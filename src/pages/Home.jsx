@@ -96,8 +96,12 @@ function Home() {
       </div>
      
 
-      <motion.div className="overlap-box">
-        <div className="overlap-container">
+      <motion.div className="content1">
+        
+          
+      
+         <div className="overlap-container">
+          
           <motion.div
             className="textbox1"
             initial={{ x: -200, opacity: 0 }}
@@ -129,6 +133,7 @@ function Home() {
             somewhere inside, a quieter voice longs to be heard.
           </motion.p>
         </div>
+        
         <div className="rightbox">
           <motion.div
             className="flow"
@@ -160,6 +165,7 @@ function Home() {
             </div>
           </motion.div>
         </div>
+        
       </motion.div>
       <div className="content2">
  <div className="div"><Program/></div>

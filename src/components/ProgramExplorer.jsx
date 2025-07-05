@@ -44,13 +44,14 @@ export default function ProgramExplorer() {
     <div className="flex flex-col md:flex-row w-full min-h-screen bg-[#f4ede9]">
       {/* Left Panel */}
       <div className="relative p-8 flex flex-col justify-center items-center bg-white overflow-hidden w-full md:w-[45%] min-h-[300px] md:min-h-full">
-        <motion.img
-          src={mandalaImg}
-          alt="Mandala"
-          className="absolute inset-0 m-auto w-[85%] opacity-10"
-          animate={{ rotate: 360 }}
-          transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
-        />
+       <motion.img
+  src={mandalaImg}
+  alt="Mandala"
+  className="absolute top-1/2 left-1/2 w-[400px] max-w-[85%] opacity-7 -translate-x-1/2 -translate-y-1/2"
+  animate={{ rotate: 360 }}
+  transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
+/>
+
 
         <div className="z-10 space-y-4">
           <h2 className="text-2xl md:text-3xl font-bold text-center text-black">
@@ -76,7 +77,7 @@ export default function ProgramExplorer() {
       </div>
 
       {/* Right Slider */}
-      <div className="flex flex-col items-center justify-center px-6 py-8 overflow-hidden w-full md:w-[55%] min-h-[300px] md:min-h-full">
+      <div className="flex flex-col bg-[#f9f3ef] items-center justify-center px-6 py-8 overflow-hidden w-full md:w-[55%] min-h-[300px] md:min-h-full">
         <div
           ref={sliderRef}
           className="flex gap-6 overflow-x-auto no-scrollbar scroll-smooth items-center"

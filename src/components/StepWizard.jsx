@@ -72,18 +72,19 @@ export default function Stepper() {
         <button
           onClick={handleBack}
           disabled={current === 1}
-          className="border border-[#8B4513] text-[#8B4513] rounded-md px-6 py-3 text-base font-medium transition duration-200 hover:bg-[#8B4513] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed shadow-sm"
+          className="w-10 border border-[#8B4513] text-[#8B4513] rounded-md px-6 py-3 text-base font-medium transition duration-200 hover:bg-[#8B4513] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed shadow-sm"
         >
           Back
         </button>
 
-        <button
-          onClick={handleNext}
-          disabled={current === steps.length}
-          className="bg-[#8B4513] text-white rounded-md px-6 py-3 text-base font-medium transition duration-200 hover:bg-[#5e3210] disabled:bg-[#8B4513]/50 disabled:cursor-not-allowed shadow-sm"
-        >
-          {current === steps.length ? "Done" : "Next"}
-        </button>
+       <button
+  onClick={handleNext}
+  disabled={current === steps.length}
+  className=" w-10 bg-[#8B4513] text-white rounded-md px-8 py-5 box-border text-base font-medium transition duration-200 hover:bg-[#5e3210] disabled:bg-[#8B4513]/50 disabled:cursor-not-allowed shadow-sm"
+>
+  {current === steps.length ? "Done" : "Next"}
+</button>
+
       </div>
     </div>
   );
