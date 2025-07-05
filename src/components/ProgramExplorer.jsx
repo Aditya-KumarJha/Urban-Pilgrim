@@ -41,7 +41,12 @@ export default function ProgramExplorer() {
   };
 
   return (
-    <div className="flex flex-col md:flex-row w-full min-h-screen bg-[#f4ede9]">
+    <motion.div className="flex flex-col md:flex-row w-full min-h-screen bg-[#f4ede9]"
+      initial={{ x: -800, opacity: 0 }}
+  whileInView={{ x: 0, opacity: 1 }}
+  transition={{ duration: 0.6, ease: "easeOut" }}
+  viewport={{ once: true }}
+    >
       {/* Left Panel */}
       <div className="relative p-8 flex flex-col justify-center items-center bg-white overflow-hidden w-full md:w-[45%] min-h-[300px] md:min-h-full">
         <motion.img
@@ -111,6 +116,6 @@ export default function ProgramExplorer() {
           </button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
