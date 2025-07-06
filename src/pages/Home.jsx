@@ -14,7 +14,7 @@ import yogaday from "../assets/yogaday-img.png";
 import Footer from "../components/footer";
 import C3_container_data from "../components/c3_container_data.jsx";
 import Animated_card from "../components/Animated_card.jsx";
-import Program from "../components/ProgramExplorer.jsx";
+import Program_Explorer from "../components/ProgramExplorer.jsx";
 import C1_container from "../components/c1_container.jsx";
 
 import Appleimg from "../assets/appleimg.png";
@@ -91,7 +91,7 @@ function Home() {
   }, [InView, Controls]);
 
   return (
-    <div className="hero-section">
+    <div className="hero-section no-scrollbar">
       <div className="topbannerimg">
         <img src={homepage_img} alt="Banner" />
       </div>
@@ -102,7 +102,7 @@ function Home() {
             className="textbox1"
             initial={{ x: -200, opacity: 0 }}
             whileInView={{ x: 0, opacity: 1 }}
-            transition={{ duration: 1, ease: "easeOut" }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
             viewport={{ once: true }} // remove if you want it every time on scroll
           >
             A journey for the modern seeker
@@ -121,7 +121,7 @@ function Home() {
             className="overlaypara"
             animate={{
               y: [200, 0],
-              transition: { duration: 1 },
+              transition: { duration: 0.5 },
             }}
           >
             We live in a world that celebrates hustle—but forgets healing. Every
@@ -135,7 +135,7 @@ function Home() {
             className="flow"
             initial={{ x: 700, opacity: 0 }}
             whileInView={{ x: 0, opacity: 1 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
+            transition={{ duration: 0.75, ease: "easeOut" }}
             viewport={{ once: true }}
           >
             <motion.div
@@ -165,7 +165,7 @@ function Home() {
 
       <div className="content2">
         <div className="div">
-          <Program />
+          <Program_Explorer />
         </div>
       </div>
 

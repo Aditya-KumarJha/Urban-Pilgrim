@@ -13,8 +13,8 @@ function C3ContainerData({ img, heading, content }) {
           className="max-h-[50px] max-w-[40px] object-contain"
         />
 
-        <div className="flex flex-col flex-nowrap text-white">
-          <div className="text-base font-bold">
+         <div className="flex flex-col gap-2 flex-nowrap text-white">
+          <div className="text-xl ">
             <strong>{heading}</strong>
           </div>
           <div className="text-[15px] leading-none">{content}</div>

@@ -20,7 +20,7 @@
   position: relative;
  /* overlaps downward */
   left: 0;
-  width: 100%; /* 40% of container width */
+  width: 100vw; /* 40% of container width */
   height: 80vh;
 background-color: #f9f3ef;
   color: white;
