@@ -15,6 +15,7 @@ import Footer from "../components/footer";
 import C3_container_data from "../components/c3_container_data.jsx";
 import Animated_card from "../components/Animated_card.jsx";
 import Program from "../components/ProgramExplorer.jsx";
+import C1_container from "../components/c1_container.jsx";
 
 import Appleimg from "../assets/appleimg.png";
 import yogapeople from "../assets/yogapeople.png";
@@ -92,16 +93,11 @@ function Home() {
   return (
     <div className="hero-section">
       <div className="topbannerimg">
-         <img src={homepage_img} alt="Banner" />
+        <img src={homepage_img} alt="Banner" />
       </div>
-     
 
       <motion.div className="content1">
-        
-          
-      
-         <div className="overlap-container">
-          
+        <div className="overlap-container">
           <motion.div
             className="textbox1"
             initial={{ x: -200, opacity: 0 }}
@@ -133,7 +129,7 @@ function Home() {
             somewhere inside, a quieter voice longs to be heard.
           </motion.p>
         </div>
-        
+
         <div className="rightbox">
           <motion.div
             className="flow"
@@ -144,11 +140,11 @@ function Home() {
           >
             <motion.div
               className="divheading"
-              initial={{ x: 0 }}
-              animate={{ x: -700 }}
-              transition={{ repeat: Infinity, duration: 10, ease: "easeOut" }}
+              initial={{ x: "100%" }}
+              animate={{ x: "-100%" }}
+              transition={{ repeat: Infinity, duration: 15, ease: "linear" }}
             >
-              Explore, Heal, Transform
+              Explore, Heal, Transform Explore, Heal, Transform
             </motion.div>
 
             <div className="about-container">
@@ -165,12 +161,13 @@ function Home() {
             </div>
           </motion.div>
         </div>
-        
       </motion.div>
+
       <div className="content2">
- <div className="div"><Program/></div>
+        <div className="div">
+          <Program />
+        </div>
       </div>
-     
 
       <div className="content3">
         <div className="c3container">
@@ -254,12 +251,12 @@ function Home() {
           </motion.div>
           <motion.div className="c4bottom">
             <div className="c4left">
-              <motion.div className="carddiv"
-               initial={{ x: -400, opacity: 0 }}
-                    whileInView={{ x: 0, opacity: 1 }}
-                    transition={{ duration: 0.5, ease: "easeOut" }}
-                    viewport={{ once: true,amount: 0.1 }} 
-              
+              <motion.div
+                className="carddiv"
+                initial={{ x: -400, opacity: 0 }}
+                whileInView={{ x: 0, opacity: 1 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                viewport={{ once: true, amount: 0.1 }}
               >
                 <PersondetailsCard
                   className="details"
@@ -270,12 +267,12 @@ function Home() {
               </motion.div>
             </div>
             <div className="c4right">
-              <motion.div className="carddiv"
-              
-               initial={{ x: 400, opacity: 0 }}
-                    whileInView={{ x: 0, opacity: 1 }}
-                    transition={{ duration: 0.5, ease: "easeOut" }}
-                    viewport={{ once: true,amount: 0.1 }}
+              <motion.div
+                className="carddiv"
+                initial={{ x: 400, opacity: 0 }}
+                whileInView={{ x: 0, opacity: 1 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                viewport={{ once: true, amount: 0.1 }}
               >
                 <PersondetailsCard
                   className="details"
@@ -294,7 +291,7 @@ function Home() {
               initial={{ x: -200, opacity: 0 }}
               whileInView={{ x: 0, opacity: 1 }}
               transition={{ duration: 0.5, ease: "easeOut" }}
-              viewport={{ once: true }}
+              viewport={{ once: true, amount: 0.1 }}
             >
               <div className="c5title">
                 <strong>Find your Pilgrim Session</strong>
@@ -313,7 +310,7 @@ function Home() {
               initial={{ y: 400, opacity: 0 }}
               whileInView={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.5, ease: "easeOut" }}
-              viewport={{ once: true }}
+              viewport={{ once: true, amount: 0.1 }}
             >
               <div className="details">
                 <PersondetailsCard
@@ -370,22 +367,23 @@ function Home() {
             </div>
           </motion.div>
           <div className="c6bottom">
-            <motion.div className="c6details"
-             initial={{ y: 400, opacity: 0 }}
+            <motion.div
+              className="c6details"
+              initial={{ y: 400, opacity: 0 }}
               whileInView={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.5, ease: "easeOut" }}
-              viewport={{ once: true }}
+              viewport={{ once: true, amount: 0.1 }}
             >
               <PersondetailsCard
                 className="c6details"
                 image={yogaday}
                 title={"Yoga hour - by Manjunath"}
                 price={"Rs.1000.00"}
-                
               />
             </motion.div>
-            <motion.div className="c6details"
-             initial={{ y: 400, opacity: 0 }}
+            <motion.div
+              className="c6details"
+              initial={{ y: 400, opacity: 0 }}
               whileInView={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.5, ease: "easeOut" }}
               viewport={{ once: true }}
@@ -403,50 +401,48 @@ function Home() {
 
       <div className="content7">
         <div className="c7container">
-                <motion.div
-          className="c7top"
-          initial={{ x: -200, opacity: 0 }}
-          whileInView={{ x: 0, opacity: 1 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          viewport={{ once: true }} // remove if you want it every time on scroll
-        >
-          <div className="c7title">
-            <strong>Find your wellness program</strong>
-          </div>
-          <div className="c7description">
-            Discover transformative wellness retreats from around the world,
-            curated in one place. From yoga and meditation to fitness and
-            spiritual growth—all inspired by Indian wisdom—Urban Pilgrim helps
-            you explore, compare, and book programs that align with your
-            wellness goals. Trusted listings and favourable terms make your
-            journey to rejuvenation easy and accessible.
-          </div>
-        </motion.div>
-        <div className="c7bottom">
-          <div className="c7left">
-            <div className="carddiv">
-              <PersondetailsCard
-                className="details"
-                image={house}
-                title={"Reboot & Rejuvenate on the Ganges (4 day retreat)"}
-                price={"Rs.50,000.00"}
-              />
+          <motion.div
+            className="c7top"
+            initial={{ x: -200, opacity: 0 }}
+            whileInView={{ x: 0, opacity: 1 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            viewport={{ once: true }} // remove if you want it every time on scroll
+          >
+            <div className="c7title">
+              <strong>Find your wellness program</strong>
             </div>
-          </div>
-          <div className="c7right">
-            <div className="carddiv">
-             <StepWizard/>
+            <div className="c7description">
+              Discover transformative wellness retreats from around the world,
+              curated in one place. From yoga and meditation to fitness and
+              spiritual growth—all inspired by Indian wisdom—Urban Pilgrim helps
+              you explore, compare, and book programs that align with your
+              wellness goals. Trusted listings and favourable terms make your
+              journey to rejuvenation easy and accessible.
+            </div>
+          </motion.div>
+          <div className="c7bottom">
+            <div className="c7left">
+              <div className="carddiv">
+                <PersondetailsCard
+                  className="details"
+                  image={house}
+                  title={"Reboot & Rejuvenate on the Ganges (4 day retreat)"}
+                  price={"Rs.50,000.00"}
+                />
+              </div>
+            </div>
+            <div className="c7right">
+              <div className="carddiv">
+                <StepWizard />
+              </div>
             </div>
           </div>
         </div>
-        </div>
-       
       </div>
       <div className="content8">
         <C8_container_data />
       </div>
 
-       
       <Footer />
     </div>
   );

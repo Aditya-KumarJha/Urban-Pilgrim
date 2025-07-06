@@ -1,0 +1,132 @@
+
+.content1 {
+  position: relative;
+ /* overlaps downward */
+  left: 0;
+  width: 100%; /* 40% of container width */
+  height: 80vh;
+background-color: #f9f3ef;
+  color: white;
+  box-sizing: border-box;
+  display: flex;
+  z-index: 0;
+}
+.overlap-container{
+  
+    box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  /* or whatever max width you want for content */
+  gap: 10px;
+  width: 40%;
+  bottom: 10vh;
+  height: 100%;
+  background-color: #2f6288;
+  position: relative;
+  z-index: 2;
+
+  padding: 20vh ;
+  overflow: hidden;
+}
+
+.overlap-box img {
+  height: auto;
+  max-width:100%;
+  width: 400px ;
+  display: block;
+  margin: 0 auto;
+  border-radius: 18px;
+  flex-shrink: 0;
+  object-fit: cover;
+  object-position: center;
+
+}
+.textbox1 {
+  max-width: 100%;
+  width: 400px;
+  height: auto;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 100%;
+  overflow-wrap: break-word;
+  word-break: break-word;
+ 
+  left: 20px;
+  font-family: sans-serif;
+}
+
+
+
+.overlaypara {
+  max-width: 100%;
+  width: 400px;
+  height: auto;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 100%;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  
+  font-weight: 500;
+  line-height: normal;
+  color: #c8cdd8;
+}
+
+.section {
+  padding: 50px;
+  background: #867832;
+}
+.rightbox {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 60%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: #f9f3ef;
+}
+
+.divheading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  margin-top: 50px;
+  left: 0;
+  width: auto;
+  height: 100px;
+  color: #c4b0ae;
+  font-size: 60px;
+  z-index: 0;
+  white-space: nowrap;
+}
+
+.about-container {
+  height: auto;
+  width: 400px;
+  max-width:100% ;
+  color: black;
+  z-index: 1;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  margin: auto;
+}
+.about-heading {
+  position: relative;
+  top: 0;
+  left: 0;
+  margin-bottom: 10px;
+}
+
+.aboutme-text {
+  position: relative;
+  left: 0;
+  margin-bottom: 100px;
+  flex-shrink: 0;
+}
