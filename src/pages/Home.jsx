@@ -386,7 +386,7 @@ function Home() {
               initial={{ y: 400, opacity: 0 }}
               whileInView={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.5, ease: "easeOut" }}
-              viewport={{ once: true }}
+              viewport={{ once: true,amount:0.1 }}
             >
               <PersondetailsCard
                 className="c6details"

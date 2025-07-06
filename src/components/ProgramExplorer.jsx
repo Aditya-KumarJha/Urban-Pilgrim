@@ -85,7 +85,7 @@ export default function ProgramExplorer() {
       </div>
 
       {/* Right Slider */}
-      <div className="flex flex-col bg-[#f9f3ef] items-center justify-center px-6 py-8 overflow-hidden w-full md:w-[55%] min-h-[300px] md:min-h-full">
+      <div className="flex flex-col gap-3 bg-[#f9f3ef] items-center justify-center px-6 py-8 overflow-hidden w-full md:w-[55%] min-h-[300px] md:min-h-full">
         <div
           ref={sliderRef}
           className="flex gap-6 overflow-x-auto no-scrollbar scroll-smooth items-center"
