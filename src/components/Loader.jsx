@@ -42,7 +42,7 @@ export default function Loader({ onFinish }) {
         {/* Loading Bar */}
         <div className="w-64 h-2 bg-gray-300 rounded overflow-hidden">
           <motion.div
-            className="h-full bg-[#2f6288]"
+            className="h-full bg-[#79534E]"
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
             transition={{ duration: 0.2, ease: "easeOut" }}
