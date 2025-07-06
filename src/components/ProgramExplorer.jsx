@@ -2,7 +2,7 @@ import React, { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import ProgramCard from "./Animated_card";
-import mandalaImg from "../assets/golden-mandala.png";
+import mandalaImg from "../assets/golden-mandala.svg";
 
 import cardimg1 from "../assets/card-img1.png";
 import cardimg2 from "../assets/onlinesession.png";
@@ -52,7 +52,7 @@ export default function ProgramExplorer() {
         <motion.img
           src={mandalaImg}
           alt="Mandala"
-          className="absolute top-1/2 left-1/2 w-[400px] max-w-[85%] opacity-7 -translate-x-1/2 -translate-y-1/2"
+          className="absolute top-1/2 left-1/2 w-[400px] max-w-[85%]  -translate-x-1/2 -translate-y-1/2"
           animate={{ rotate: 360 }}
           transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
         />
