@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import logo from "../assets/urban_pilgrim_logo.png"; // replace with your logo path
+import logo from "../assets/urban_pilgrim_logo.png";
 
 export default function Loader({ onFinish }) {
   const [progress, setProgress] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   useEffect(() => {
     // Simulate loading progress
@@ -11,7 +12,10 @@ export default function Loader({ onFinish }) {
       setProgress((prev) => {
         if (prev >= 100) {
           clearInterval(interval);
-          setTimeout(() => onFinish(), 300); // trigger after load
+          // Start transition animation
+          setIsTransitioning(true);
+          // Call onFinish after transition completes
+          setTimeout(() => onFinish(), 1200);
           return 100;
         }
         return prev + 2;
@@ -27,30 +31,61 @@ export default function Loader({ onFinish }) {
         className="fixed inset-0 bg-[#ffffff4d] bg-opacity-90 flex flex-col justify-center items-center z-[9999]"
         initial={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        transition={{ duration: 0.6 }}
+        transition={{ duration: 0.6, delay: isTransitioning ? 0.8 : 0 }}
       >
-        {/* Logo */}
+        {/* Logo with transition animation */}
         <motion.img
           src={logo}
           alt="Logo"
-          className="w-24 h-24 mb-6"
+          className="w-32 h-32 mb-6"
           initial={{ scale: 1 }}
-          animate={{ scale: [1, 1.1, 1] }}
-          transition={{ repeat: Infinity, duration: 1 }}
+          animate={
+            isTransitioning
+              ? {
+                  scale: 0.6,
+                  x: -window.innerWidth * 0.38, // Move to left side
+                  y: -window.innerHeight * 0.4, // Move to top
+                  transition: { duration: 1, ease: "easeInOut" }
+                }
+              : { scale: [1, 1.1, 1] }
+          }
+          transition={
+            isTransitioning
+              ? { duration: 1, ease: "easeInOut" }
+              : { repeat: Infinity, duration: 1 }
+          }
         />
 
-        {/* Loading Bar */}
-        <div className="w-64 h-2 bg-gray-300 rounded overflow-hidden">
+        {/* Loading Bar - fade out during transition */}
+        <motion.div
+          className="w-64 h-2 bg-gray-300 rounded overflow-hidden"
+          animate={
+            isTransitioning
+              ? { opacity: 0, y: 20 }
+              : { opacity: 1, y: 0 }
+          }
+          transition={{ duration: 0.5 }}
+        >
           <motion.div
             className="h-full bg-[#79534E]"
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
             transition={{ duration: 0.2, ease: "easeOut" }}
           />
-        </div>
+        </motion.div>
 
-        {/* Loading Text */}
-        <p className="mt-4 text-sm text-gray-600">{progress}%</p>
+        {/* Loading Text - fade out during transition */}
+        <motion.p
+          className="mt-4 text-sm text-gray-600"
+          animate={
+            isTransitioning
+              ? { opacity: 0, y: 20 }
+              : { opacity: 1, y: 0 }
+          }
+          transition={{ duration: 0.5 }}
+        >
+          {progress}%
+        </motion.p>
       </motion.div>
     </AnimatePresence>
   );

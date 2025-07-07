@@ -1,40 +1,33 @@
 
 .content1 {
-  position: relative;
- /* overlaps downward */
-  left: 0;
-  width: 100%; /* 40% of container width */
-  height: 80vh;
-background-color: #f9f3ef;
+  background-color: #f9f3ef;
   color: white;
   box-sizing: border-box;
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  justify-content: center;
+  align-items: start;
   z-index: 0;
 }
 .overlap-container{
-  
-    box-sizing: border-box;
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  /* or whatever max width you want for content */
-  gap: 10px;
-  width: 40%;
-  bottom: 10vh;
-  height: 100%;
+  gap: 2rem;
+  width: 100%;
+  height: 120%;
+  bottom: 4rem;
   background-color: #2f6288;
-  position: relative;
-  z-index: 2;
-
-  padding: 20vh ;
+  padding: 32px 16px;
   overflow: hidden;
 }
 
-.overlap-box img {
+.overlap-container img {
   height: auto;
-  max-width:100%;
-  width: 400px ;
+  width:100%;
+  max-width: 400px;
   display: block;
   margin: 0 auto;
   border-radius: 18px;
@@ -52,7 +45,6 @@ background-color: #f9f3ef;
   line-height: 100%;
   overflow-wrap: break-word;
   word-break: break-word;
- 
   left: 20px;
   font-family: sans-serif;
 }
@@ -60,15 +52,14 @@ background-color: #f9f3ef;
 
 
 .overlaypara {
-  max-width: 100%;
-  width: 400px;
+  width: 100%;
+  max-width: 400px;
   height: auto;
   font-size: 18px;
   font-weight: 500;
   line-height: 100%;
   overflow-wrap: break-word;
   word-break: break-word;
-  
   font-weight: 500;
   line-height: normal;
   color: #c8cdd8;
@@ -78,11 +69,11 @@ background-color: #f9f3ef;
   padding: 50px;
   background: #867832;
 }
+
 .rightbox {
-  position: absolute;
   bottom: 0;
   right: 0;
-  width: 60%;
+  width: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -95,7 +86,6 @@ background-color: #f9f3ef;
   display: flex;
   justify-content: center;
   align-items: center;
-  position: relative;
   margin-top: 50px;
   left: 0;
   width: auto;
@@ -108,25 +98,51 @@ background-color: #f9f3ef;
 
 .about-container {
   height: auto;
-  width: 400px;
-  max-width:100% ;
+  max-width: 400px;
+  width: 100%;
   color: black;
-  z-index: 1;
   padding: 20px;
   display: flex;
   flex-direction: column;
+  align-items: start;
+  justify-content: center;
   margin: auto;
 }
 .about-heading {
-  position: relative;
-  top: 0;
-  left: 0;
   margin-bottom: 10px;
 }
 
-.aboutme-text {
-  position: relative;
-  left: 0;
-  margin-bottom: 100px;
-  flex-shrink: 0;
+
+@media  screen and (max-width: 768px) {
+  .content1 {
+    grid-template-columns: 1fr;
+    padding: 0px;
+  }
+  
+  .overlap-container {
+    position: static;
+    flex-direction: column;
+    height: auto;
+  }
+  
+  .overlap-container img {
+    width: 100%;
+    height: auto;
+    padding: 16px;
+  }
+  
+  .textbox1, .overlaypara {
+    width: 100%;
+    text-align: center;
+    margin: 4px;
+  }
+
+  .textbox1 {
+    font-size: 24px;
+  }
+
+  .overlaypara {
+    font-size: 16px;
+  }
+  
 }

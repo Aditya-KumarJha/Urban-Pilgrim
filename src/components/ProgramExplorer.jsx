@@ -19,6 +19,8 @@ const programItems = [
 export default function ProgramExplorer() {
   const [activeIndex, setActiveIndex] = useState(0);
   const sliderRef = useRef(null);
+  const totalSteps = programItems.length;
+  const currentStep = activeIndex;
 
   const scrollToCard = (index) => {
     setActiveIndex(index);
@@ -41,14 +43,14 @@ export default function ProgramExplorer() {
   };
 
   return (
-    <motion.div className="flex flex-col md:flex-row w-full min-h-screen bg-[#f4ede9]"
+    <motion.div className="md:grid md:grid-cols-2 flex flex-col w-full min-h-screen bg-[#f4ede9]"
       initial={{ x: -800, opacity: 0 }}
-  whileInView={{ x: 0, opacity: 1 }}
-  transition={{ duration: 0.6, ease: "easeOut" }}
-  viewport={{ once: true }}
+      whileInView={{ x: 0, opacity: 1 }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
+      viewport={{ once: true }}
     >
       {/* Left Panel */}
-      <div className="relative p-8 flex flex-col justify-center items-center bg-white overflow-hidden w-full md:w-[45%] min-h-[300px] md:min-h-full">
+      <div className="relative p-8 flex flex-col justify-center items-center bg-white overflow-hidden w-full h-full min-h-[400px]">
         <motion.img
           src={mandalaImg}
           alt="Mandala"
@@ -58,7 +60,7 @@ export default function ProgramExplorer() {
         />
 
         <div className="z-10 space-y-4">
-          <h2 className="text-2xl md:text-3xl font-bold text-center text-black">
+          <h2 className="text-2xl md:text-3xl font-bold text-center text-black ">
             Explore our Programs
           </h2>
           <ul className="mt-4 space-y-6  text-base flex flex-col gap-3">
@@ -85,7 +87,7 @@ export default function ProgramExplorer() {
       </div>
 
       {/* Right Slider */}
-      <div className="flex flex-col gap-3 bg-[#f9f3ef] items-center justify-center px-6 py-8 overflow-hidden w-full md:w-[55%] min-h-[300px] md:min-h-full">
+      <div className="flex flex-col gap-3 bg-[#f9f3ef] items-center justify-center px-6 py-8 overflow-hidden w-full h-full">
         <div
           ref={sliderRef}
           className="flex gap-6 overflow-x-auto no-scrollbar scroll-smooth items-center"
@@ -101,13 +103,22 @@ export default function ProgramExplorer() {
         </div>
 
         {/* Arrows */}
-        <div className="flex gap-6 mt-6">
+        <div className="flex gap-6 mt-4 w-1/3 items-center justify-center">
           <button
             onClick={prevSlide}
             className="w-10 h-10 rounded-full border border-gray-400 flex items-center justify-center hover:bg-gray-200 transition"
           >
             <FaChevronLeft />
           </button>
+          <div className="relative flex-1 h-1 bg-[#744C44]/30 rounded overflow-hidden">
+            <div
+              className="absolute top-0 h-1 bg-[#744C44] transition-all duration-300"
+              style={{
+                width: `${100 / totalSteps}%`,
+                left: `${(currentStep / (totalSteps - 1)) * 100}%`, // Position
+              }}
+            />
+          </div>
           <button
             onClick={nextSlide}
             className="w-10 h-10 rounded-full border border-gray-400 flex items-center justify-center hover:bg-gray-200 transition"

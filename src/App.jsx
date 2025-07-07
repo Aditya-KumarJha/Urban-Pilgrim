@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, replace } from "react-router-dom";
 import NavBar from "./components/NavBar";
 import Loader from "./components/Loader";
 
@@ -31,6 +31,7 @@ function App() {
             <Route path="/Wellness_Guide" element={<Wellness_Guide />} />
             <Route path="/Wellness_Program" element={<Wellness_Program />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="*" element={<Home  replace={'/'} />} />
           </Routes>
         </>
       )}

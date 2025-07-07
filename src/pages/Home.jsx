@@ -80,8 +80,8 @@ function Home() {
 
   const Controls = useAnimation();
   const [Ref, InView] = useInView({
-    threshold: 0.3, // Adjust sensitivity if needed
-    triggerOnce: true, // fire only once
+    threshold: 0.3, // Adjust threshold as needed
+    triggerOnce: true,
   });
 
   useEffect(() => {

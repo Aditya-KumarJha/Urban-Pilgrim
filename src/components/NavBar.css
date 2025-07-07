@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 .navbar {
   box-sizing: border-box;
   display: flex;
@@ -7,14 +8,11 @@
   padding: 8px 21px;
   color: white;
   position: relative;
-  height: 13vh;
-  position: fixed;
   top: 0;                
   left: 0;
   right: 0;
   z-index: 999;  
 }
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 
 .navbar-brand {
   font-weight: bold;
