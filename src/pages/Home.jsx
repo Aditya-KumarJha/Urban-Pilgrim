@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect } from "react";
 import homepage_img from "../assets/home_page_img.png";
 import homepage_overlay_img from "../assets/overlay_img.png";
 import golden_mandala from "../assets/golden-mandala.png";
@@ -284,7 +284,7 @@ function Home() {
             </div>
           </motion.div>
         </div>
-        <div className="content5">
+        <div className="content5 ">
           <div className="c5container">
             <motion.div
               className="c5top"
@@ -349,6 +349,7 @@ function Home() {
         <div className="meditateimg">
           <img src={Meditation} alt="error" />
         </div>
+        <div className="c6container">
         <div className="imgover-content">
           <motion.div
             className="c6top"
@@ -396,6 +397,7 @@ function Home() {
               />
             </motion.div>
           </div>
+        </div>
         </div>
       </div>
 
