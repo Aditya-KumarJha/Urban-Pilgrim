@@ -94,6 +94,17 @@ function Home() {
     <div className="hero-section no-scrollbar">
       <div className="topbannerimg">
         <img src={homepage_img} alt="Banner" />
+        <div className="banner-text">
+          <motion.div
+            className="banner-heading"
+            initial={{ y: 100, opacity: 0 }}
+            whileInView={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            viewport={{ once: true }}
+          >
+            Urban Wellness Rooted in Indian Wisdom
+          </motion.div>
+        </div>
       </div>
 
       <motion.div className="content1">
@@ -173,7 +184,7 @@ function Home() {
         <div className="c3container">
           <motion.div
             className="c3img"
-            initial={{ x: -500, opacity: 0 }}
+            initial={{ x: -100, opacity: 0 }}
             whileInView={{ x: 0, opacity: 1 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
             viewport={{ once: true }}
@@ -348,6 +359,7 @@ function Home() {
       <div className="content6">
         <div className="meditateimg">
           <img src={Meditation} alt="error" />
+          <div></div>
         </div>
         <div className="c6container">
         <div className="imgover-content">

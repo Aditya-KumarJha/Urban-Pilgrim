@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 
 const steps = [
@@ -8,84 +8,83 @@ const steps = [
 ];
 
 export default function Stepper() {
-  const [current, setCurrent] = useState(1);
+  const [current, setCurrent] = useState(0);
 
-  const handleNext = () => {
-    if (current < steps.length) setCurrent(current + 1);
-  };
+  useEffect(() => {
+    let interval;
+    if (current > 0 && current < steps.length) {
+      interval = setInterval(() => {
+        setCurrent((prev) => (prev < steps.length ? prev + 1 : prev));
+      }, 1500);
+    }
+    return () => clearInterval(interval);
+  }, [current]);
 
-  const handleBack = () => {
-    if (current > 1) setCurrent(current - 1);
+  const handleInView = () => {
+    if (current === 0) setCurrent(1);
   };
 
   return (
-    <div className="flex flex-col justify-between h-full  p-6 rounded-xl ">
-      {/* Stepper container */}
+    <motion.div
+      className="flex flex-col justify-between h-full p-6 rounded-xl"
+      initial="hidden"
+      whileInView="visible"
+      onViewportEnter={handleInView}
+      viewport={{ once: true, amount: 0.3 }}
+    >
       <div className="flex flex-col items-start space-y-8">
         {steps.map((step, idx) => (
-          <div key={idx} className="flex items-start relative">
+          <motion.div
+            key={idx}
+            className="flex items-start relative"
+            initial={{ opacity: 0, x: -20 }}
+            animate={idx < current ? "visible" : "hidden"}
+            variants={{
+              visible: { opacity: 1, x: 0 },
+              hidden: { opacity: 0, x: -20 },
+            }}
+            transition={{ duration: 0.5 }}
+          >
             <div className="flex flex-col items-center">
-              {/* Brown dot */}
-              {idx < current && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.5 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.4 }}
-                  className="w-5 h-5 rounded-full bg-[#8B4513] z-10"
-                />
-              )}
+              {/* Dot */}
+              <motion.div
+                className={`w-5 h-5 rounded-full ${
+                  idx < current ? "bg-[#8B4513]" : "bg-gray-300"
+                } z-10`}
+                initial={{ scale: 0 }}
+                animate={idx < current ? { scale: 1 } : { scale: 0 }}
+                transition={{ duration: 0.3 }}
+              />
 
-              {/* Vertical Line */}
+              {/* Line */}
               {idx < steps.length - 1 && (
                 <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{
-                    height: idx < current - 1 ? "80px" : "0px",
-                    opacity: idx < current - 1 ? 1 : 0,
-                  }}
-                  transition={{ duration: 0.4 }}
                   className="w-0.5 bg-[#8B4513]"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={
+                    idx < current - 1
+                      ? { height: "80px", opacity: 1 }
+                      : { height: 0, opacity: 0 }
+                  }
+                  transition={{ duration: 0.4 }}
                 />
               )}
             </div>
 
-            {/* Step Text */}
-            {idx < current && (
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.4 }}
-                className="ml-4"
-              >
-                <h3 className="text-lg md:text-xl font-semibold text-gray-800">
-                  {step.title}
-                </h3>
-                <p className="text-gray-700 mt-2">{step.content}</p>
-              </motion.div>
-            )}
-          </div>
+            {/* Text */}
+            <div className="ml-4">
+              {idx < current && (
+                <>
+                  <h3 className="text-lg md:text-xl font-semibold text-gray-800">
+                    {step.title}
+                  </h3>
+                  <p className="text-gray-700 mt-2">{step.content}</p>
+                </>
+              )}
+            </div>
+          </motion.div>
         ))}
       </div>
-
-      {/* Buttons under stepper */}
-      <div className="flex gap-4 mt-10">
-        <button
-          onClick={handleBack}
-          disabled={current === 1}
-          className="w-full border border-[#8B4513] text-[#8B4513] rounded-md px-6 py-3 text-base font-medium transition duration-200 hover:bg-[#8B4513] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed shadow-sm"
-        >
-          Back
-        </button>
-
-       <button
-  onClick={handleNext}
-  disabled={current === steps.length}
-  className=" w-full bg-[#8B4513] text-white rounded-md px-8 py-5 box-border text-base font-medium transition duration-200 hover:bg-[#5e3210] disabled:bg-[#8B4513]/50 disabled:cursor-not-allowed shadow-sm"
->
-  {current === steps.length ? "Done" : "Next"}
-</button>
-
-      </div>
-    </div>
+    </motion.div>
   );
 }

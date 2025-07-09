@@ -2,19 +2,42 @@
 .hero-section {
   position: relative;
   box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
   margin: 0;
   padding: 0;
+  overflow: hidden;
 }
 
-.topbannerimg img{
+.topbannerimg {
+  position: relative;
+}
+
+.topbannerimg img {
   width: 100%;
   height: 100vh;
   object-fit: cover;
   object-position: top;
   margin-top: 100px;
 }
+
+.banner-text {
+  position: absolute;
+  top: 50%;
+  left: 0%;
+  transform: translate(0%, -50%);
+  font-size: 2.5rem;
+  padding: 4rem;
+  font-weight: bold;
+  z-index: 100;
+  max-width: 1000px;
+}
+
+.banner-heading {
+  color: white;
+  font-size: 3rem;
+  margin-bottom: 20px;
+  text-shadow: #000 0px 0px 10px, #000 0px 0px 10px, #000 0px 0px 10px;
+}
+
 
 
 /* ================= CONTENT 2 ================= */
@@ -277,21 +300,24 @@
 }
 
 .meditateimg img {
-  width: 100%;
+  width: 200%;
   height: auto;
   max-height: 100vh;
   object-fit: cover;
-  object-position: center;
+  object-position: left;
+  position: relative;
+  left: 50%;
+  transform: translateX(-30%);
 }
 
-.meditateimg::after {
+.meditateimg div {
   content: "";
   position: absolute;
   top: 0;
   left: 0;
   height: 100%;
   width: 100%;
-  background: linear-gradient(rgba(255, 255, 255, 0.545), rgba(255, 255, 255, 0.415));
+  background: linear-gradient(to right, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0.99), rgba(255, 255, 255, 0));
   pointer-events: none;
 }
 
@@ -467,9 +493,13 @@
 
 @media screen and (max-width: 480px) {
   .topbannerimg img{
-    width: 100vw;
-    height: auto;
+    height: 100vh;
     aspect-ratio: 16/9;
+  }
+
+  .banner-text {
+    font-size: 1.5rem;
+    padding: 1rem;
   }
 
   .animated-card {
@@ -488,5 +518,24 @@
 
   .progress-bar {
     flex: 1 0 100%;
+  }
+
+  .meditateimg img {
+    height: auto;
+    min-height: 160vh;
+    object-fit: cover;
+    object-position: center;
+    position: relative;
+    left: 0;
+    transform: none;
+  }
+  .meditateimg div {
+    visibility: hidden;
+  }
+
+  .c6bottom {
+    position: relative;
+    flex-direction: column;
+    align-items: center;
   }
 }
