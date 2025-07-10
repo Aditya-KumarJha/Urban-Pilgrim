@@ -104,13 +104,12 @@
   }
 
   .footer-subscribe {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-wrap: wrap;
     width: 100%;
   }
 
   .links-grid {
-    flex-direction: column;
+    flex-wrap: wrap;
     align-items: flex-start;
     gap: 20px;
   }

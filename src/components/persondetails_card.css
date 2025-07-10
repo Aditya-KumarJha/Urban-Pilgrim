@@ -8,6 +8,7 @@
   max-height: auto;
   width: auto;            /* let width be driven by image */
   max-width: 100%;  
+  box-shadow: 12px 12px 12px rgba(0, 0, 0, 0.15);
   
 }
 .imgdiv img {

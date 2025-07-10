@@ -34,6 +34,7 @@ import C8_container_data from "../components/c8_container_data.jsx";
 import house from "../assets/house_img.png";
 import { easeIn, motion, useAnimation } from "framer-motion";
 import StepWizard from "../components/StepWizard.jsx";
+import VerticalCarousel from "../components/BackgroundCarousel.jsx";
 function Home() {
   const wrapperRef = useRef(null);
   const [lineHeight, setLineHeight] = useState(0);
@@ -92,20 +93,7 @@ function Home() {
 
   return (
     <div className="hero-section no-scrollbar">
-      <div className="topbannerimg">
-        <img src={homepage_img} alt="Banner" />
-        <div className="banner-text">
-          <motion.div
-            className="banner-heading"
-            initial={{ y: 100, opacity: 0 }}
-            whileInView={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-            viewport={{ once: true }}
-          >
-            Urban Wellness Rooted in Indian Wisdom
-          </motion.div>
-        </div>
-      </div>
+      <VerticalCarousel />
 
       <motion.div className="content1">
         <div className="overlap-container">
@@ -264,7 +252,7 @@ function Home() {
             <div className="c4left">
               <motion.div
                 className="carddiv"
-                initial={{ x: -400, opacity: 0 }}
+                initial={{ x: -100, opacity: 0 }}
                 whileInView={{ x: 0, opacity: 1 }}
                 transition={{ duration: 0.5, ease: "easeOut" }}
                 viewport={{ once: true, amount: 0.1 }}
@@ -280,7 +268,7 @@ function Home() {
             <div className="c4right">
               <motion.div
                 className="carddiv"
-                initial={{ x: 400, opacity: 0 }}
+                initial={{ x: 100, opacity: 0 }}
                 whileInView={{ x: 0, opacity: 1 }}
                 transition={{ duration: 0.5, ease: "easeOut" }}
                 viewport={{ once: true, amount: 0.1 }}
@@ -382,7 +370,7 @@ function Home() {
           <div className="c6bottom">
             <motion.div
               className="c6details"
-              initial={{ y: 400, opacity: 0 }}
+              initial={{ y: 100, opacity: 0 }}
               whileInView={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.5, ease: "easeOut" }}
               viewport={{ once: true, amount: 0.1 }}
@@ -396,7 +384,7 @@ function Home() {
             </motion.div>
             <motion.div
               className="c6details"
-              initial={{ y: 400, opacity: 0 }}
+              initial={{ y: 100, opacity: 0 }}
               whileInView={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.5, ease: "easeOut" }}
               viewport={{ once: true,amount:0.1 }}

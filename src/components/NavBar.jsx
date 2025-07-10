@@ -3,30 +3,34 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import "./NavBar.css";
 import logo from "../assets/urban_pilgrim_logo.png";
-
+import { CiSearch } from "react-icons/ci";
 
 const NavBar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const toggleMenu = () => {
-    setIsOpen(!isOpen);
+  const toggleMenu = () => setIsOpen(!isOpen);
+  const toggleSearch = () => setShowSearch(!showSearch);
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    console.log("Search submitted:", searchQuery);
+    // Example: Navigate or fetch here
+    setShowSearch(false); // optional: close after search
   };
 
   return (
     <nav className="navbar">
       <div className="navbar-brand">
-        <img
-          className="logo"
-          src={logo}
-          alt="Urban Pilgrim"
-        />
+        <img className="logo" src={logo} alt="Urban Pilgrim" />
       </div>
 
       <motion.div
         className={`nav-links ${isOpen ? "open" : ""}`}
-        initial={{ opacity: 0, y: -20 }}
+        initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.8 }}
+        transition={{ duration: 0.5 }}
       >
         <Link to="/" onClick={() => setIsOpen(false)}>Home</Link>
         <Link to="/Pilgrim_Experiences" onClick={() => setIsOpen(false)}>Pilgrim Experiences</Link>
@@ -36,15 +40,32 @@ const NavBar = () => {
         <Link to="/contact" onClick={() => setIsOpen(false)}>Contact</Link>
       </motion.div>
 
-      <motion.div
-        className="menu-icon"
-        onClick={toggleMenu}
-        initial={{ opacity: 0, rotate: -90 }}
-        animate={{ opacity: 1, rotate: 0 }}
-        transition={{ duration: 0.5, delay: 1 }}
-      >
-        {isOpen ? '✖' : '☰'}
-      </motion.div>
+      <div className="navbar-right">
+        <CiSearch
+          className="search-icon"
+          onClick={toggleSearch}
+        />
+        <motion.div
+          className="menu-icon"
+          onClick={toggleMenu}
+          initial={{ opacity: 0, rotate: -90 }}
+          animate={{ opacity: 1, rotate: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          {isOpen ? '✖' : '☰'}
+        </motion.div>
+      </div>
+
+      {showSearch && (
+        <form className="search-bar" onSubmit={handleSearch}>
+          <input
+            type="text"
+            placeholder="Search..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </form>
+      )}
     </nav>
   );
 };

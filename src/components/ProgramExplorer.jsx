@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import ProgramCard from "./Animated_card";
@@ -19,8 +19,8 @@ const programItems = [
 export default function ProgramExplorer() {
   const [activeIndex, setActiveIndex] = useState(0);
   const sliderRef = useRef(null);
+  const dotRefs = useRef([]);
   const totalSteps = programItems.length;
-  const currentStep = activeIndex;
 
   const scrollToCard = (index) => {
     setActiveIndex(index);
@@ -37,13 +37,13 @@ export default function ProgramExplorer() {
   };
 
   const prevSlide = () => {
-    const newIndex =
-      (activeIndex - 1 + programItems.length) % programItems.length;
+    const newIndex = (activeIndex - 1 + programItems.length) % programItems.length;
     scrollToCard(newIndex);
   };
 
   return (
-    <motion.div className="md:grid md:grid-cols-2 flex flex-col w-full min-h-screen bg-[#f4ede9]"
+    <motion.div
+      className="md:grid md:grid-cols-2 flex flex-col w-full min-h-screen bg-[#f4ede9]"
       initial={{ x: -800, opacity: 0 }}
       whileInView={{ x: 0, opacity: 1 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
@@ -59,30 +59,44 @@ export default function ProgramExplorer() {
           transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
         />
 
-        <div className="z-10 space-y-4">
-          <h2 className="text-2xl md:text-3xl font-bold text-center text-black ">
+        <div className="z-10 space-y-6 w-full max-w-md">
+          <h2 className="text-2xl md:text-3xl font-bold text-center text-black">
             Explore our Programs
           </h2>
-          <ul className="mt-4 space-y-6  text-base flex flex-col gap-3">
-            {programItems.map((item, i) => (
-              <li
-                key={i}
-                onClick={() => scrollToCard(i)}
-                className={`cursor-pointer relative flex items-center transition-all duration-300 ${
-                  i === activeIndex
-                    ? "text-black font-semibold"
-                    : "text-gray-500"
-                }`}
-              >
-                <div className="flex items-center gap-x-4">
-                  {i === activeIndex && (
-                    <span className="w-1 h-4 bg-[#4d3c2c] rounded"></span>
-                  )}
-                  <span>{item.card_title}</span>
-                </div>
-              </li>
-            ))}
-          </ul>
+
+          <div className="flex gap-6 items-start">
+            {/* Vertical Line */}
+            <div className="flex flex-col py-4 items-center bg-[#744C44]/30 h-full w-1 rounded-lg">
+              {programItems.map((_, i) => (
+                <div
+                  key={i}
+                  ref={(el) => (dotRefs.current[i] = el)}
+                  className={`w-[6px] h-6 rounded-full mb-4 transition-all duration-300  ${
+                    i === activeIndex ? "bg-[#4d3c2c]" : ""
+                  }
+                  ${i === activeIndex && i === programItems.length - 1 ? "mb-0 " : ""}
+                  `}
+                />
+              ))}
+            </div>
+
+            {/* Titles */}
+            <ul className="flex flex-col gap-4 text-base py-4">
+              {programItems.map((item, i) => (
+                <li
+                  key={i}
+                  onClick={() => scrollToCard(i)}
+                  className={`cursor-pointer transition-all duration-300 ${
+                    i === activeIndex
+                      ? "text-black font-semibold"
+                      : "text-gray-500"
+                  }`}
+                >
+                  {item.card_title}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </div>
 
@@ -102,8 +116,8 @@ export default function ProgramExplorer() {
           ))}
         </div>
 
-        {/* Arrows */}
-        <div className="flex gap-6 mt-4 md:w-1/3 sm:w-1/2 w-full  items-center justify-center">
+        {/* Arrows + Progress */}
+        <div className="flex gap-6 mt-4 max-w-xl w-full items-center justify-center">
           <button
             onClick={prevSlide}
             className="w-10 h-10 rounded-full border border-gray-400 flex items-center justify-center hover:bg-gray-200 transition"
@@ -115,7 +129,7 @@ export default function ProgramExplorer() {
               className="absolute top-0 h-1 bg-[#744C44] transition-all duration-300"
               style={{
                 width: `${100 / totalSteps}%`,
-                left: `${(currentStep / (totalSteps - 1)) * 100}%`, // Position
+                left: `${(activeIndex / (totalSteps - 1)) * 100}%`,
               }}
             />
           </div>
