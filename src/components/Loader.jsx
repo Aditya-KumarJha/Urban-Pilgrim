@@ -37,14 +37,14 @@ export default function Loader({ onFinish }) {
         <motion.img
           src={logo}
           alt="Logo"
-          className="w-32 h-32 mb-6"
+          className="w-36 h-36 mb-6"
           initial={{ scale: 1 }}
           animate={
             isTransitioning
               ? {
                   scale: 0.6,
                   x: -window.innerWidth * 0.38, // Move to left side
-                  y: -window.innerHeight * 0.4, // Move to top
+                  y: -window.innerHeight * 0.35, // Move to top
                   transition: { duration: 1, ease: "easeInOut" }
                 }
               : { scale: [1, 1.1, 1] }

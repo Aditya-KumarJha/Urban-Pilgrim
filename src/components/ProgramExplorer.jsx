@@ -44,7 +44,7 @@ export default function ProgramExplorer() {
   return (
     <motion.div
       className="md:grid md:grid-cols-2 flex flex-col w-full min-h-screen bg-[#f4ede9]"
-      initial={{ x: -800, opacity: 0 }}
+      initial={{ x: -100, opacity: 0 }}
       whileInView={{ x: 0, opacity: 1 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
       viewport={{ once: true }}

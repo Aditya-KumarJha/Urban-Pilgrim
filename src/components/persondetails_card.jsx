@@ -1,7 +1,7 @@
 import React from "react";
 import yogaday_img from "../assets/card-img1.png";
 import "./persondetails_card.css";
-import Arrow from "./arrow.jsx";
+import { FaChevronRight } from "react-icons/fa";
 import { easeIn, motion } from "framer-motion";
 function persondetails_card({ image, title, price }) {
   return (
@@ -28,7 +28,11 @@ function persondetails_card({ image, title, price }) {
             <p>
               <span style={{color:"#C0B3B4"}}>From</span> <strong>{price}</strong>
             </p>
-            <Arrow className="arrow" />
+            <button
+              className="p-2 rounded-full border-2 border-white hover:bg-white/20 transition"
+            >
+              <FaChevronRight />
+            </button>
           </div>
         </div>
       </div>

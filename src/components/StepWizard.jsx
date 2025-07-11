@@ -26,13 +26,13 @@ export default function Stepper() {
 
   return (
     <motion.div
-      className="flex flex-col justify-between h-full p-6 rounded-xl"
+      className="flex flex-col justify-between h-full sm:p-6 rounded-xl"
       initial="hidden"
       whileInView="visible"
       onViewportEnter={handleInView}
       viewport={{ once: true, amount: 0.3 }}
     >
-      <div className="flex flex-col items-start space-y-8">
+      <div className="flex flex-col items-start">
         {steps.map((step, idx) => (
           <motion.div
             key={idx}
@@ -46,24 +46,34 @@ export default function Stepper() {
             transition={{ duration: 0.5 }}
           >
             <div className="flex flex-col items-center">
-              {/* Dot */}
-              <motion.div
-                className={`w-5 h-5 rounded-full ${
-                  idx < current ? "bg-[#8B4513]" : "bg-gray-300"
-                } z-10`}
+              {/* Outer Circle */}
+                <motion.div
+                className={`w-8 h-8 rounded-full border-2 border-[#8B4513] absolute -left-1 -top-1 z-0 ${
+                  idx < current ? "opacity-100" : "opacity-0"
+                }`}
+                initial={{ scale: 0 }}
+                animate={idx < current ? { scale: 1 } : { scale: 0 }}
+                transition={{ duration: 0.3, delay: 0.1 }}
+                />
+                
+                {/* Dot */}
+                <motion.div
+                className={`w-6 h-6 rounded-full ${
+                  idx < current ? "bg-[#8B4513]" : ""
+                } z-10 relative`}
                 initial={{ scale: 0 }}
                 animate={idx < current ? { scale: 1 } : { scale: 0 }}
                 transition={{ duration: 0.3 }}
-              />
+                />
 
-              {/* Line */}
+                {/* Line */}
               {idx < steps.length - 1 && (
                 <motion.div
-                  className="w-0.5 bg-[#8B4513]"
+                  className="w-0.5 my-1 bg-[#8B4513]"
                   initial={{ height: 0, opacity: 0 }}
                   animate={
                     idx < current - 1
-                      ? { height: "80px", opacity: 1 }
+                      ? { height: "76px", opacity: 1 }
                       : { height: 0, opacity: 0 }
                   }
                   transition={{ duration: 0.4 }}
@@ -78,7 +88,7 @@ export default function Stepper() {
                   <h3 className="text-lg md:text-xl font-semibold text-gray-800">
                     {step.title}
                   </h3>
-                  <p className="text-gray-700 mt-2">{step.content}</p>
+                  <p className="text-gray-700 my-2">{step.content}</p>
                 </>
               )}
             </div>
