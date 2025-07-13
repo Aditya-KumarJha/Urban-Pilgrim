@@ -8,6 +8,7 @@ import cardimg1 from "../assets/card-img1.png";
 import cardimg2 from "../assets/onlinesession.png";
 import cardimg3 from "../assets/Wellness_Programs.svg";
 import cardimg4 from "../assets/Wellness_Guides.svg";
+import ArrowButton from "./ArrowButton";
 
 const programItems = [
   { card_title: "Curated experiences", image: cardimg1 },
@@ -118,12 +119,7 @@ export default function ProgramExplorer() {
 
         {/* Arrows + Progress */}
         <div className="flex gap-6 max-w-xl w-full items-center justify-center">
-          <button
-            onClick={prevSlide}
-            className="w-10 h-10 rounded-full border border-gray-400 flex items-center justify-center hover:bg-gray-200 transition"
-          >
-            <FaChevronLeft />
-          </button>
+          <ArrowButton onClick={prevSlide} icon={FaChevronLeft} dir={1} />
           <div className="relative flex-1 h-1 bg-[#744C44]/30 rounded overflow-hidden">
             <div
               className="absolute top-0 h-1 bg-[#744C44] transition-all duration-300"
@@ -133,12 +129,7 @@ export default function ProgramExplorer() {
               }}
             />
           </div>
-          <button
-            onClick={nextSlide}
-            className="w-10 h-10 rounded-full border border-gray-400 flex items-center justify-center hover:bg-gray-200 transition"
-          >
-            <FaChevronRight />
-          </button>
+          <ArrowButton onClick={nextSlide} icon={FaChevronRight} dir={-1} />
         </div>
       </div>
     </motion.div>

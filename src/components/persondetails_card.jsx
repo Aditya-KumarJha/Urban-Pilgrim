@@ -3,6 +3,7 @@ import yogaday_img from "../assets/card-img1.png";
 import "./persondetails_card.css";
 import { FaChevronRight } from "react-icons/fa";
 import { easeIn, motion } from "framer-motion";
+import NormalArrowButton from "./NormalArrowButton";
 function persondetails_card({ image, title, price }) {
   return (
     <motion.div className="parrent"
@@ -28,11 +29,7 @@ function persondetails_card({ image, title, price }) {
             <p>
               <span style={{color:"#C0B3B4"}}>From</span> <strong>{price}</strong>
             </p>
-            <button
-              className="p-2 rounded-full border-2 border-white hover:bg-white/20 transition"
-            >
-              <FaChevronRight />
-            </button>
+            <NormalArrowButton icon={FaChevronRight} dir={-1} />
           </div>
         </div>
       </div>

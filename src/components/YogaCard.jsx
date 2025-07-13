@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import yogaImage from "../assets/yoga.svg"; // Keep the same image for all
+import ArrowButton from "./ArrowButton";
 
 const data = [
   {
@@ -38,6 +39,7 @@ const data = [
 
 export default function YogaCard() {
   const [current, setCurrent] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
   const total = data.length;
 
   const prevSlide = () => {
@@ -83,21 +85,10 @@ export default function YogaCard() {
 
           {/* Navigation */}
           <div className="mt-8 flex md:flex-col items-center justify-center gap-6 text-[#79534E]">
-            <button
-              onClick={prevSlide}
-              className="p-3 rounded-full border-2 border-[#79534E] hover:bg-[#79534E] transition"
-            >
-              <FaChevronLeft />
-            </button>
+            <ArrowButton onClick={prevSlide} icon={FaChevronLeft} dir={1} />
 
             <span className="text-sm font-medium transform md:rotate-90 rotate-0">{`${current + 1} / ${total}`}</span>
-
-            <button
-              onClick={nextSlide}
-              className="p-3 rounded-full border-2 border-[#79534E] hover:bg-[#79534E] transition"
-            >
-              <FaChevronRight />
-            </button>
+            <ArrowButton onClick={nextSlide} icon={FaChevronRight} dir={-1} />
           </div>
         </div>
       </div>
