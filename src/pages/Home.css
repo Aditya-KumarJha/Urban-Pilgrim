@@ -175,6 +175,7 @@
   margin: 0 auto;
   padding: 40px 20px;
   box-sizing: border-box;
+  overflow: visible;
 }
 
 .c4top,
@@ -197,7 +198,7 @@
   padding: 20px 0;
   width: 100%;
   box-sizing: border-box;
-  overflow-x: auto;
+  overflow-x: visible;
   scroll-snap-type: x mandatory;
 }
 
@@ -344,7 +345,7 @@
   padding: 20px 0;
   width: 100%;
   box-sizing: border-box;
-  overflow-x: auto;
+  overflow-x: visible;
   scroll-snap-type: x mandatory;
   z-index: 10;
   -webkit-overflow-scrolling: touch; /* smooth scroll on iOS */

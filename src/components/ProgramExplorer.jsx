@@ -117,7 +117,7 @@ export default function ProgramExplorer() {
         </div>
 
         {/* Arrows + Progress */}
-        <div className="flex gap-6 mt-4 max-w-xl w-full items-center justify-center">
+        <div className="flex gap-6 max-w-xl w-full items-center justify-center">
           <button
             onClick={prevSlide}
             className="w-10 h-10 rounded-full border border-gray-400 flex items-center justify-center hover:bg-gray-200 transition"
@@ -129,7 +129,7 @@ export default function ProgramExplorer() {
               className="absolute top-0 h-1 bg-[#744C44] transition-all duration-300"
               style={{
                 width: `${100 / totalSteps}%`,
-                left: `${(activeIndex / (totalSteps - 1)) * 100}%`,
+                left: `${(activeIndex / (totalSteps)) * 100}%`,
               }}
             />
           </div>

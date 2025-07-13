@@ -53,7 +53,7 @@ export default function HeroSection() {
                        className="absolute top-12 left-0 text-[#c4b0ae] text-[9vw] md:text-[4vw] font-bold whitespace-nowrap opacity-30"
                        initial={{ x: 0 }}
                        animate={{ x: -700 }}
-                       transition={{ repeat: Infinity, duration: 12, ease: "linear" }}
+                       transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
                      >
                        Explore, Heal, Transform Explore, Heal, Transform Explore
                      </motion.div>

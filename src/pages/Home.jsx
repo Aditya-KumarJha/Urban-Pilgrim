@@ -35,6 +35,7 @@ import house from "../assets/house_img.png";
 import { easeIn, motion, useAnimation } from "framer-motion";
 import StepWizard from "../components/StepWizard.jsx";
 import VerticalCarousel from "../components/BackgroundCarousel.jsx";
+import Highlights from "../components/Highlights.jsx";
 function Home() {
   const wrapperRef = useRef(null);
   const [lineHeight, setLineHeight] = useState(0);
@@ -441,9 +442,11 @@ function Home() {
           </div>
         </div>
       </div>
+      <Highlights />
       <div className="content8">
         <C8_container_data />
       </div>
+
 
       <Footer />
     </div>
