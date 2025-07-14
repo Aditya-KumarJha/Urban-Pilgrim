@@ -65,18 +65,18 @@ export default function YogaCard() {
           <img
             src={yogaImage}
             alt="Yoga"
-            className="w-full h-full object-cover rounded-t-lg md:rounded-l-lg md:rounded-tr-none"
+            className="w-full md:h-full h-50 object-cover rounded-t-lg md:rounded-l-lg md:rounded-tr-none"
           />
         </div>
 
         {/* Content */}
         <div className="md:w-1/2 w-full p-6 flex md:flex-row flex-col justify-between items-center">
           <div className="px-4">
-            <h2 className="text-xl md:text-2xl font-semibold mb-4">{card.title}</h2>
-            <p className="text-gray-600 mb-6">{card.description}</p>
+            <h2 className="text-sm sm:text-xl md:text-2xl font-semibold mb-4">{card.title}</h2>
+            <p className="text-xs text-gray-600 mb-6">{card.description}</p>
             <a
               href="#"
-              className="text-[#79534E] font-semibold flex items-center gap-2"
+              className="text-[#79534E] md:text-sm text-xs  font-semibold flex items-center gap-2"
             >
               {card.linkText}
               <span className="border-b border-[#79534E] w-6"></span>
