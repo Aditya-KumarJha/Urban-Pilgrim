@@ -1,8 +1,7 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import "./NavBar.css";
-import logo from "../assets/urban_pilgrim_logo.png";
 import { CiSearch } from "react-icons/ci";
 
 const NavBar = () => {
@@ -23,7 +22,7 @@ const NavBar = () => {
   return (
     <nav className="navbar">
       <div className="navbar-brand">
-        <img className="logo" src={logo} alt="Urban Pilgrim" />
+        <img className="logo" src="/assets/urban_pilgrim_logo.png" alt="Urban Pilgrim" />
       </div>
 
       <motion.div

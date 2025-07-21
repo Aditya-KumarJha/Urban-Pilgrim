@@ -1,27 +1,24 @@
 import { useState, useEffect } from "react";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
-import homepageImg from "../assets/image.png";
-import medi from "../assets/meditationimg.jpg";
-import NormalArrowButton from "./NormalArrowButton";
+import NormalArrowButton from "./ui/NormalArrowButton";
 
 const images = [
-  homepageImg,
-  medi,
-  homepageImg,
-  medi,
-  homepageImg,
-  medi,
+  "/assets/image.png",
+  "/assets/meditationimg.jpg",
+  "/assets/image.png",
+  "/assets/meditationimg.jpg",
+  "/assets/image.png",
+  "/assets/meditationimg.jpg"
 ];
 
-export default function VerticalCarousel() {
+export default function HeroCarousel() {
   const [current, setCurrent] = useState(0);
   const total = images.length;
 
   const nextSlide = () => setCurrent((prev) => (prev + 1) % total);
   const prevSlide = () => setCurrent((prev) => (prev - 1 + total) % total);
 
-  // Autoplay every 5 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       nextSlide();
@@ -30,7 +27,7 @@ export default function VerticalCarousel() {
   }, []);
 
   return (
-    <div className="w-screen h-screen relative overflow-hidden bg-black flex items-center justify-center mt-[100px]">
+    <div className="w-screen md:h-[75vh] h-screen relative overflow-hidden bg-black flex items-center justify-center mt-[100px]">
       <AnimatePresence mode="wait">
         <motion.img
           key={current}
@@ -60,21 +57,20 @@ export default function VerticalCarousel() {
         </div>
       </div>
 
-      {/* Arrows + Slide Count (Right Side, Horizontal) */}
+      {/* Arrows + Slide Count */}
       <div className="absolute left-4 md:left-auto md:right-10 bottom-12 md:top-1/2 md:-translate-y-1/2 flex md:flex-col items-center gap-6 text-white z-10">
         <NormalArrowButton onClick={prevSlide} icon={FaChevronLeft} dir={1} />
-
         <span className="text-sm font-medium">{`${current + 1} / ${total}`}</span>
-
         <NormalArrowButton onClick={nextSlide} icon={FaChevronRight} dir={-1} />
       </div>
+
+      {/* Sync Animation (bottom-left circle) */}
       <motion.div
         className="absolute hidden md:block bottom-32 left-16 w-8 h-8 border-2 border-white rounded-full"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.5, duration: 0.5 }}
       >
-        {/* Line animation */}
         <motion.div
           className="absolute -top-1/2 left-1/2 transform -translate-x-1/2 bg-white w-[1px] h-4"
           initial={{ height: 0, opacity: 1 }}
@@ -94,7 +90,7 @@ export default function VerticalCarousel() {
           transition={{
             duration: 2,
             repeat: Infinity,
-            repeatDelay: 1.2, // syncs with line repeatDelay
+            repeatDelay: 1.2,
             ease: "easeInOut"
           }}
         />

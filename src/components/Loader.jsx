@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import logo from "../assets/urban_pilgrim_logo.png";
 
 export default function Loader({ onFinish }) {
   const [progress, setProgress] = useState(0);
@@ -35,7 +34,7 @@ export default function Loader({ onFinish }) {
       >
         {/* Logo with transition animation */}
         <motion.img
-          src={logo}
+          src="/assets/urban_pilgrim_logo.png"
           alt="Logo"
           className="w-36 h-36 mb-6"
           initial={{ scale: 1 }}

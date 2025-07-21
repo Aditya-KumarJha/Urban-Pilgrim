@@ -1,9 +1,8 @@
 import React from "react";
-import yogaday_img from "../assets/card-img1.png";
 import "./persondetails_card.css";
 import { FaChevronRight } from "react-icons/fa";
 import { easeIn, motion } from "framer-motion";
-import NormalArrowButton from "./NormalArrowButton";
+import NormalArrowButton from "./ui/NormalArrowButton";
 function persondetails_card({ image, title, price }) {
   return (
     <motion.div className="parrent"

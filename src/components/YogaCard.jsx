@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
-import yogaImage from "../assets/yoga.svg"; // Keep the same image for all
-import ArrowButton from "./ArrowButton";
+import ArrowButton from "./ui/ArrowButton";
 
 const data = [
   {
@@ -63,7 +62,7 @@ export default function YogaCard() {
         {/* Image */}
         <div className="md:w-1/2 w-full">
           <img
-            src={yogaImage}
+            src="/assets/yoga.svg"
             alt="Yoga"
             className="w-full md:h-full h-50 object-cover rounded-t-lg md:rounded-l-lg md:rounded-tr-none"
           />

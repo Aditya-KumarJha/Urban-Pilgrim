@@ -2,19 +2,13 @@ import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import ProgramCard from "./Animated_card";
-import mandalaImg from "../assets/golden-mandala.svg";
-
-import cardimg1 from "../assets/card-img1.png";
-import cardimg2 from "../assets/onlinesession.png";
-import cardimg3 from "../assets/Wellness_Programs.svg";
-import cardimg4 from "../assets/Wellness_Guides.svg";
-import ArrowButton from "./ArrowButton";
+import ArrowButton from "./ui/ArrowButton";
 
 const programItems = [
-  { card_title: "Curated experiences", image: cardimg1 },
-  { card_title: "Online sessions", image: cardimg2 },
-  { card_title: "Wellness Programs", image: cardimg3 },
-  { card_title: "Wellness Guides", image: cardimg4 },
+  { card_title: "Curated experiences", image: "/assets/card-img1.png" },
+  { card_title: "Online sessions", image: "/assets/onlinesession.png" },
+  { card_title: "Wellness Programs", image: "/assets/Wellness_Programs.svg" },
+  { card_title: "Wellness Guides", image: "/assets/Wellness_Guides.svg" },
 ];
 
 export default function ProgramExplorer() {
@@ -53,7 +47,7 @@ export default function ProgramExplorer() {
       {/* Left Panel */}
       <div className="relative p-8 flex flex-col justify-center items-center bg-white overflow-hidden w-full h-full min-h-[400px]">
         <motion.img
-          src={mandalaImg}
+          src="/assets/golden-mandala.svg"
           alt="Mandala"
           className="absolute top-1/2 left-1/2 w-[400px] max-w-[85%]  -translate-x-1/2 -translate-y-1/2"
           animate={{ rotate: 360 }}

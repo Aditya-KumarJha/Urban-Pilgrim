@@ -1,7 +1,6 @@
-import React from "react";
-import "./footer.css";
-import Button from "../components/button.jsx";
-import Input_field from "../components/inputfield.jsx";
+import "./Footer.css";
+import Button from "../../components/ui/button";
+import Input_field from "../../components/ui/inputfield";
 
 function Footer() {
   return (
