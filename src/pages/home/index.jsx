@@ -12,6 +12,7 @@ import StepWizard from "../../components/StepWizard.jsx";
 import Highlights from "../../components/Highlights.jsx";
 import HeroCarousel from "../../components/HeroCarousel.jsx";
 import About from "../../components/about/About.jsx";
+import UpComing from "../../components/upcoming_events/UpComing.jsx";
 
 function Home() {
   const wrapperRef = useRef(null);
@@ -73,6 +74,7 @@ function Home() {
     <div className="hero-section no-scrollbar">
       <HeroCarousel />
       <About />
+      <UpComing />
 
 
 
@@ -81,6 +83,8 @@ function Home() {
           <Program_Explorer />
         </div>
       </div>
+
+
 
       <div className="content3">
         <div className="c3container">

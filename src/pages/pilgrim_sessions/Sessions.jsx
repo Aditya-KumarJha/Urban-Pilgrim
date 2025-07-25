@@ -33,7 +33,6 @@ export default function Sessions() {
       </div>
       <LiveSessions />
       <SubscriptionPlans />
-      <Footer className="mt-10" />
     </div>
   );
 }

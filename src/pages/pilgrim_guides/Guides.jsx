@@ -34,7 +34,6 @@ export default function Guides() {
         </div> 
       </div>
       <GuidesDemo />
-      <Footer className="mt-10" />
     </div>
   );
 }

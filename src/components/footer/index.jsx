@@ -20,19 +20,19 @@ function Footer() {
         <h3>Quick Links</h3>
         <div className="links-grid">
           <div>
-            <a href="#">Join us as guides</a>
-            <a href="#">Join us as Trip Curators</a>
+            <a href="/joinusguides">Join us as guides</a>
+            <a href="/joinusadvisors">Join us as Trip Curators</a>
           </div>
           <div>
             <a href="#">Who we are</a>
-            <a href="#">Why choose us</a>
+            <a href="/whyus">Why choose us</a>
           </div>
           <div>
             <a href="#">Privacy Policy</a>
             <a href="#">Blogs</a>
           </div>
           <div>
-            <a href="#">Contact us</a>
+            <a href="/contact">Contact us</a>
           </div>
         </div>
       </div>

@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import NormalArrowButton from "./ui/NormalArrowButton";
 
 const images = [
-  "/assets/image.png",
+  "/assets/home/bg1.svg",
   "/assets/meditationimg.jpg",
   "/assets/image.png",
   "/assets/meditationimg.jpg",
@@ -66,7 +66,7 @@ export default function HeroCarousel() {
 
       {/* Sync Animation (bottom-left circle) */}
       <motion.div
-        className="absolute hidden md:block bottom-32 left-16 w-8 h-8 border-2 border-white rounded-full"
+        className="absolute hidden md:block bottom-4 left-16 w-8 h-8 border-2 border-white rounded-full"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.5, duration: 0.5 }}

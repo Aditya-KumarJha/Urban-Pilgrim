@@ -3,7 +3,6 @@ import CategorySelector from "../../components/pilgrim_retreats/CategorySelector
 import RetreatList from "../../components/pilgrim_retreats/RetreatList";
 import { FaTag } from "react-icons/fa";
 import { MdKeyboardArrowDown } from "react-icons/md";
-import Footer from "../../components/footer";
 
 export default function Retreats() {
   return (
@@ -31,7 +30,6 @@ export default function Retreats() {
         </div> 
       </div>
       <RetreatList />
-      <Footer className="mt-10" />
     </div>
   );
 }

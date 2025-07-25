@@ -3,10 +3,14 @@ import { Routes, Route } from "react-router-dom";
 import NavBar from "./components/navbar/NavBar";
 import Loader from "./components/Loader";
 import Home from "./pages/home";
-import Contact from "./pages/Contact";
 import Retreats from "./pages/pilgrim_retreats/Retreats";
 import Sessions from "./pages/pilgrim_sessions/Sessions";
 import Guides from "./pages/pilgrim_guides/Guides";
+import JoinGuides from "./pages/join_us_as_guides/JoinGuides";
+import JoinAdvisors from "./pages/join_us_as_trip_advisors/JoinAdvisors";
+import ContactForm from "./pages/contact/Contact";
+import Footer from "./components/footer";
+import WhyUs from "./pages/whychooseUs/WhyChoseUs";
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -25,9 +29,13 @@ function App() {
             <Route path="/pilgrim_retreats" element={<Retreats />} />
             <Route path="/pilgrim_sessions" element={<Sessions />} />
             <Route path="/pilgrim_guides" element={<Guides />} />
-            <Route path="/contact" element={<Contact />} />
+            <Route path="/contact" element={<ContactForm />} />
+            <Route path="/joinusguides" element={<JoinGuides />} />
+            <Route path="/joinusadvisors" element={<JoinAdvisors />} />
+            <Route path="/whyus" element={<WhyUs />} />
             <Route path="*" element={<Home  replace={'/'} />} />
           </Routes>
+          <Footer className="mt-10" />
         </>
       )}
     </div>
