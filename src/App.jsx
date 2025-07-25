@@ -12,6 +12,7 @@ import ContactForm from "./pages/contact/Contact";
 import Footer from "./components/footer";
 import WhyUs from "./pages/whychooseUs/WhyChoseUs";
 import CartPage from "./pages/cart/CartPage";
+import WhoAreWe from "./pages/whoarewe/WhoAreWe";
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -34,6 +35,7 @@ function App() {
             <Route path="/joinusguides" element={<JoinGuides />} />
             <Route path="/joinusadvisors" element={<JoinAdvisors />} />
             <Route path="/whyus" element={<WhyUs />} />
+            <Route path="/whoarewe" element={<WhoAreWe />} />
             <Route path="/cart" element={<CartPage />} />
             <Route path="*" element={<Home  replace={'/'} />} />
           </Routes>

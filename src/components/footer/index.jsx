@@ -24,7 +24,7 @@ function Footer() {
             <a href="/joinusadvisors">Join us as Trip Curators</a>
           </div>
           <div>
-            <a href="#">Who we are</a>
+            <a href="/whoarewe">Who we are</a>
             <a href="/whyus">Why choose us</a>
           </div>
           <div>

@@ -184,7 +184,6 @@ function Home() {
       <div className="content8">
         <C8_container_data />
       </div>
-      <Footer />
     </div>
   );
 }
