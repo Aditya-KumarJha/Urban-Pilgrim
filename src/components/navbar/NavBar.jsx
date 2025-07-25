@@ -3,14 +3,18 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import "./NavBar.css";
 import { CiSearch } from "react-icons/ci";
+import { FaRegUser } from "react-icons/fa";
+import SignIn from "../SignIn";
 
 const NavBar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showSignIn, setShowSignIn] = useState(false);
 
   const toggleMenu = () => setIsOpen(!isOpen);
   const toggleSearch = () => setShowSearch(!showSearch);
+  const toggleSignIn = () => setShowSignIn(!showSignIn);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -44,6 +48,10 @@ const NavBar = () => {
           className="search-icon"
           onClick={toggleSearch}
         />
+        <FaRegUser
+          className="user-icon"
+          onClick={toggleSignIn}
+        />
         <motion.div
           className="menu-icon"
           onClick={toggleMenu}
@@ -64,6 +72,10 @@ const NavBar = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </form>
+      )}
+
+      {showSignIn && (
+        <SignIn onClose={() => setShowSignIn(false)} />
       )}
     </nav>
   );

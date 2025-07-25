@@ -1,4 +1,3 @@
-import Footer from "../../components/footer";
 import Steps from "../../components/Steps";
 import Button from "../../components/ui/button";
 

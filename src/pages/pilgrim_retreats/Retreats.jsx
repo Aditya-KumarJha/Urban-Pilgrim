@@ -3,6 +3,7 @@ import CategorySelector from "../../components/pilgrim_retreats/CategorySelector
 import RetreatList from "../../components/pilgrim_retreats/RetreatList";
 import { FaTag } from "react-icons/fa";
 import { MdKeyboardArrowDown } from "react-icons/md";
+import Testimonials from "../../components/Testimonials";
 
 export default function Retreats() {
   return (
@@ -30,6 +31,7 @@ export default function Retreats() {
         </div> 
       </div>
       <RetreatList />
+      <Testimonials />
     </div>
   );
 }
