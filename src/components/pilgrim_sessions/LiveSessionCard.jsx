@@ -1,10 +1,15 @@
 import { FaInfoCircle } from "react-icons/fa";
 import { BsFillCameraVideoFill } from "react-icons/bs";
+import { useNavigate } from "react-router-dom";
 
 export default function LiveSessionCard({ image, category, title, price }) {
+  const navigate = useNavigate();
+  const handleCardClick = () => {
+    navigate(`/session/${title.replace(/\s+/g, '-').toLowerCase()}/slots`);
+  };
   return (
-    <div className="rounded-xl overflow-hidden shadow-md bg-white flex flex-col">
-      <img src={image} alt={title} className="h-64 w-full object-cover object-top" />
+    <div className="rounded-xl overflow-hidden shadow-md bg-white flex flex-col max-w-xs" onClick={handleCardClick}>
+      <img src={image} alt={title} className="w-full aspect-[5/4] object-cover object-top" />
 
       <div className="p-4 flex flex-col justify-between flex-1">
         <span className="inline-block bg-[#EAEFF3] text-[#3A6288] text-xs font-semibold px-3 py-1 rounded-full mb-2 w-fit">

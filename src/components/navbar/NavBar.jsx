@@ -39,7 +39,6 @@ const NavBar = () => {
         <Link to="/pilgrim_retreats" onClick={() => setIsOpen(false)}>Pilgrim Retreats</Link>
         <Link to="/pilgrim_sessions" onClick={() => setIsOpen(false)}>Pilgrim Sessions</Link>
         <Link to="/pilgrim_guides" onClick={() => setIsOpen(false)}>Pilgrim Guides</Link>
-        <Link to="/Wellness_Guide" onClick={() => setIsOpen(false)}>Wellness Guide</Link>
         <Link to="/contact" onClick={() => setIsOpen(false)}>Contact</Link>
       </motion.div>
 

@@ -13,6 +13,9 @@ import Footer from "./components/footer";
 import WhyUs from "./pages/whychooseUs/WhyChoseUs";
 import CartPage from "./pages/cart/CartPage";
 import WhoAreWe from "./pages/whoarewe/WhoAreWe";
+import SessionSlots from "./pages/session_slots/SessionSlots";
+import SessionDescription from "./pages/session_slots/SessionDescription";
+import GuideClassDetails from "./components/pilgrim_guides/GuideClassDetails";
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -37,6 +40,9 @@ function App() {
             <Route path="/whyus" element={<WhyUs />} />
             <Route path="/whoarewe" element={<WhoAreWe />} />
             <Route path="/cart" element={<CartPage />} />
+            <Route path="/session/:sessionId/slots" element={<SessionSlots />} />
+            <Route path="/session/:sessionId/slots/description" element={<SessionDescription />} />
+            <Route path="/guide/:guideClassName" element={<GuideClassDetails />} />
             <Route path="*" element={<Home  replace={'/'} />} />
           </Routes>
           <Footer className="mt-10" />

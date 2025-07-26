@@ -1,9 +1,14 @@
 import { FaInfoCircle, FaMapMarkerAlt } from "react-icons/fa";
 import { BsFillCameraVideoFill } from "react-icons/bs";
+import { useNavigate } from "react-router-dom";
 
 export default function GuideCard({ image, category, title, price }) {
+  const navigate = useNavigate();
+  const handleCardClick = (title) => {
+    navigate(`/guide/${title.replace(/\s+/g, '-').toLowerCase()}`);
+  };
   return (
-    <div className="rounded-xl overflow-hidden shadow-md bg-white flex flex-col">
+    <div className="rounded-xl overflow-hidden shadow-md bg-white flex flex-col" onClick={() => handleCardClick(title)}>
       <img src={image} alt={title} className="aspect-square w-full object-cover object-top" />
 
       <div className="p-4 flex flex-col justify-between flex-1">
