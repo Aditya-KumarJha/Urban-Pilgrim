@@ -23,12 +23,12 @@ const testimonials = [
 
 export default function Testimonials() {
   return (
-    <div className="mx-auto p-6 bg-[#F0F5FA] py-10">
+    <div className="mx-auto p-6 bg-[#F0F5FA] py-10 overflow-hidden">
       <h2 className="text-4xl font-bold py-10">Testimonials</h2>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {testimonials.map((t, index) => (
-          <div key={index} className="bg-white rounded-lg shadow-md py-6">
+      <div className="flex gap-6 w-max animate-infinite-scroll">
+        {[...testimonials, ...testimonials].map((t, index) => (
+          <div key={index} className="bg-white rounded-lg shadow-md py-6 w-80 flex-shrink-0">
             {/* Quotation Icon */}
             <div className="text-[#2F6288] text-3xl mb-3 px-4">
               <FaQuoteLeft />

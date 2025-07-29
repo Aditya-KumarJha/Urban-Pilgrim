@@ -5,11 +5,11 @@ import NormalArrowButton from "./ui/NormalArrowButton";
 
 const images = [
   "/assets/home/bg1.svg",
-  "/assets/meditationimg.jpg",
-  "/assets/image.png",
-  "/assets/meditationimg.jpg",
-  "/assets/image.png",
-  "/assets/meditationimg.jpg"
+  "/assets/home/carousel2.png",
+  "/assets/home/carousel3.png",
+  "/assets/home/carousel4.png",
+  "/assets/home/carousel5.png",
+  "/assets/home/carousel6.png",
 ];
 
 export default function HeroCarousel() {
@@ -33,7 +33,7 @@ export default function HeroCarousel() {
           key={current}
           src={images[current]}
           alt={`Slide ${current + 1}`}
-          className="absolute w-full h-full object-cover object-top"
+          className="absolute w-full h-full object-cover object-center"
           initial={{ opacity: 0, scale: 1.05 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0.8, scale: 1 }}

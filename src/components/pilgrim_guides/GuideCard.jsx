@@ -8,8 +8,8 @@ export default function GuideCard({ image, category, title, price }) {
     navigate(`/guide/${title.replace(/\s+/g, '-').toLowerCase()}`);
   };
   return (
-    <div className="rounded-xl overflow-hidden shadow-md bg-white flex flex-col" onClick={() => handleCardClick(title)}>
-      <img src={image} alt={title} className="aspect-square w-full object-cover object-top" />
+    <div className="rounded-xl overflow-hidden shadow-md bg-white flex flex-col max-w-xs" onClick={() => handleCardClick(title)}>
+      <img src={image} alt={title} className="aspect-[5/4] w-full object-cover object-top" />
 
       <div className="p-4 flex flex-col justify-between flex-1">
         <span className="inline-block bg-[#EAEFF3] text-[#3A6288] text-xs font-semibold px-3 py-1 rounded-full mb-2 w-fit">
