@@ -30,7 +30,7 @@ export default function CartPage() {
   const total = subtotal - discount;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#f2f4fc] via-[#fdf7f1] to-[#fffaf6] px-4 md:px-12 py-10 mt-[100px]">
+    <div className="min-h-screen bg-gradient-to-br from-[#f2f4fc] via-[#fdf7f1] to-[#fffaf6] px-4 md:px-12 py-10 mt-[120px]">
       <h2 className="text-3xl font-bold mb-8">Your Cart</h2>
 
       <div className="grid md:grid-cols-3 gap-6">

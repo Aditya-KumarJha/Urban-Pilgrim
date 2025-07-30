@@ -13,7 +13,7 @@ import Faqs from "../Faqs";
 export default function Retreatdescription() {
   return (
     <>
-    <div className="max-w-7xl mx-auto p-6 bg-gradient-to-b from-[#FAF4F0] to-white rounded-2xl shadow-lg grid gap-6 mt-[100px] px-4">
+    <div className="max-w-7xl mx-auto p-6 bg-gradient-to-b from-[#FAF4F0] to-white rounded-2xl shadow-lg grid gap-6 mt-[120px] px-4">
       <div className="space-y-4">
         <h2 className="text-2xl font-bold">
           Rejuvenate in the Himalayas - Immerse in nature & local culture at Kasol (3N4D)
@@ -59,7 +59,7 @@ export default function Retreatdescription() {
             <Button btn_name={"Book Now"} />
         </div>
 
-        <div className="flex w-full mx-auto bg-white rounded-2xl shadow-md overflow-hidden mt-[100px]">
+        <div className="flex w-full mx-auto bg-white rounded-2xl shadow-md overflow-hidden mt-[120px]">
             {/* Left: Weather Info */}
             <div className="bg-[#396E94] text-white p-6 max-w-7xl w-full mx-auto flex flex-col justify-center rounded-l-2xl">
                 <FaSnowflake className="text-7xl mb-4" />

@@ -4,7 +4,7 @@ import Button from "../../components/ui/button";
 export default function WhoAreWe() {
   return (
     <>
-    <div className="mt-[100px] relative w-full">
+    <div className="mt-[120px] relative w-full">
       <img
         src="/assets/whyus/whowe.png"
         alt="Who Are We Header"

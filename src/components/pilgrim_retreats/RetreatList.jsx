@@ -17,7 +17,7 @@ const retreats = [
 
 export default function RetreatList() {
   return (
-    <div className="flex flex-wrap gap-8 px-6 py-4">
+    <div className="md:flex md:flex-wrap grid sm:grid-cols-2 gap-8 px-6 py-4 pt-10 md:pt-4 ">
       {retreats.map((retreat, index) => (
         <RetreatCard key={index} {...retreat} />
       ))}

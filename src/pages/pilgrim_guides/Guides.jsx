@@ -1,8 +1,6 @@
 import FilterBar from "../../components/pilgrim_guides/FilterBar";
 import CategorySelector from "../../components/pilgrim_guides/CategorySelector";
-import { FaTag } from "react-icons/fa";
 import { MdKeyboardArrowDown } from "react-icons/md";
-import Footer from "../../components/footer";
 import GuidesDemo from "../../components/pilgrim_guides/GuidesDemo";
 import WhyChooseUs from "../../components/pilgrim_guides/WhyChooseUs";
 import Testimonials from "../../components/Testimonials";
@@ -10,7 +8,7 @@ import Testimonials from "../../components/Testimonials";
 export default function Guides() {
   return (
     <>
-    <div className="min-h-screen bg-gradient-to-b from-[#FAF4F0] to-white mt-[100px]">
+    <div className="min-h-screen bg-gradient-to-b from-[#FAF4F0] to-white mt-[120px]">
       <div className="relative w-full mb-10">
         <img
           src="/retreats.svg"
@@ -26,7 +24,7 @@ export default function Guides() {
             <div className="flex items-center gap-2">
               <span className="text-sm">Sort By:</span>
               <button className="px-4 py-1 text-black border-2 border-[#00000033] rounded-full text-sm flex items-center gap-2">
-                <FaTag /> Best Selling <MdKeyboardArrowDown />
+                <img src="/assets/retreats/bookmark.svg" /> Best Selling <MdKeyboardArrowDown />
               </button>
             </div>
           </div>

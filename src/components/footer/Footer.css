@@ -133,3 +133,17 @@
   }
 }
 
+@media screen and (max-width: 496px) {
+  .links-grid div:nth-child(2) {
+    align-items: flex-end;
+  }
+  
+}
+
+@media screen and (max-width: 367px) {
+  .links-grid div:nth-child(2) {
+    align-items: flex-start;
+  }
+  
+}
+

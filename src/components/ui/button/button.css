@@ -26,6 +26,7 @@
   letter-spacing: 0.5px;
   text-decoration: none;
   user-select: none;
+  text-wrap: nowrap;
 }
 
 /* --- Responsive tweaks --- */

@@ -27,7 +27,7 @@ export default function LiveSessions() {
     <section className="px-6 py-12 text-gray-900">
       <div className="max-w-7xl mx-auto">
         <h2 className="text-3xl text-[#2F6288] font-bold mb-6">
-          Live Sessions <span className="bg-[#2F6288] mt-4 w-xs h-1 block"></span>
+          Live Sessions <span className="bg-[#2F6288] mt-4 max-w-xs h-1 block"></span>
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

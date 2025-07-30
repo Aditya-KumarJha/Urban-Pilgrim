@@ -14,7 +14,7 @@
 }
 .imgdiv img {
   height: auto;
-  width: auto;
+  max-width: 20rem;
   object-fit: cover;
   object-position: center;
 }

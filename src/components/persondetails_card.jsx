@@ -1,14 +1,10 @@
-import React from "react";
 import "./persondetails_card.css";
 import { FaChevronRight } from "react-icons/fa";
-import { easeIn, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import NormalArrowButton from "./ui/NormalArrowButton";
 function persondetails_card({ image, title, price }) {
   return (
-    <motion.div className="parrent"
-   // remove if you want it every time on scroll
-   
-    >
+    <motion.div className="parrent">
       <motion.div
         className="imgdiv"
         initial={{ scale: 1 }}

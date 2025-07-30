@@ -159,7 +159,7 @@ function Home() {
         </div>
       </div>
 
-      <div className="content7">
+      {/* <div className="content7">
         <div className="c7container">
           <motion.div className="c7top" initial={{ x: -200, opacity: 0 }} whileInView={{ x: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} viewport={{ once: true }}>
             <div className="c7title"><strong>Find your wellness program</strong></div>
@@ -178,7 +178,7 @@ function Home() {
             </div>
           </div>
         </div>
-      </div>
+      </div> */}
 
       <Highlights />
       <div className="content8">

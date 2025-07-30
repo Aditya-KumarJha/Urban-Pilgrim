@@ -6,7 +6,7 @@ export default function EventCard({ data }) {
       <img
         src={data.image}
         alt={data.title}
-        className="w-full h-60 aspect-square object-cover rounded-xl"
+        className="w-full h-60 aspect-square object-cover rounded-t-xl"
       />
 
       <div className="space-y-2 p-4 bg-[url('/assets/eventbg.svg')] bg-cover bg-bottom rounded-b-2xl">

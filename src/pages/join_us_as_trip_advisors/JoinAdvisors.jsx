@@ -24,7 +24,7 @@ export default function JoinAdvisors() {
 
 
     return (
-        <div className=" bg-gradient-to-b from-[#FAF4F0] to-white mt-[100px]">
+        <div className=" bg-gradient-to-b from-[#FAF4F0] to-white mt-[120px]">
             <div className="relative w-full mb-10">
                 <img
                 src="/retreats.svg"

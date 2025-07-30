@@ -36,7 +36,7 @@ export default function Loader({ onFinish }) {
         <motion.img
           src="/assets/urban_pilgrim_logo.png"
           alt="Logo"
-          className="w-36 h-36 mb-6"
+          className="w-48 h-48 mb-6"
           initial={{ scale: 1 }}
           animate={
             isTransitioning
@@ -46,7 +46,7 @@ export default function Loader({ onFinish }) {
                   y: -window.innerHeight * 0.35, // Move to top
                   transition: { duration: 1, ease: "easeInOut" }
                 }
-              : { scale: [1, 1.1, 1] }
+              : { scale: [1, 1, 1] }
           }
           transition={
             isTransitioning

@@ -27,7 +27,7 @@ export default function HeroCarousel() {
   }, []);
 
   return (
-    <div className="w-screen md:h-[75vh] h-screen relative overflow-hidden bg-black flex items-center justify-center mt-[100px]">
+    <div className="w-screen md:h-[75vh] h-[50vh] relative overflow-hidden bg-black flex items-center justify-center mt-[120px]">
       <AnimatePresence mode="wait">
         <motion.img
           key={current}
@@ -43,13 +43,13 @@ export default function HeroCarousel() {
 
       {/* Overlay with Text */}
       <div className="absolute inset-0 bg-black/30">
-        <div className="flex items-center justify-center h-full">
-          <div className="banner-text text-white text-xl md:text-3xl font-semibold px-4">
+        <div className="flex items-center justify-start h-full">
+          <div className="text-white text-3xl xl:text-6xl md:text-5xl max-w-6xl font-semibold md:px-10 px-4">
             <motion.div
               className="banner-heading"
               initial={{ y: 100, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
+              animate={{ y: 0, opacity: [1, 1, 1],  scale: [1, 1.1, 1] }}
+              transition={{ duration: 1, ease: "easeOut", times: [0, 0.5, 1] }}
             >
               Urban Wellness Rooted in Indian Wisdom
             </motion.div>
@@ -58,7 +58,7 @@ export default function HeroCarousel() {
       </div>
 
       {/* Arrows + Slide Count */}
-      <div className="absolute left-4 md:left-auto md:right-10 bottom-12 md:top-1/2 md:-translate-y-1/2 flex md:flex-col items-center gap-6 text-white z-10">
+      <div className="absolute left-4 md:left-auto md:right-10 md:bottom-12 bottom-2 md:top-1/2 md:-translate-y-1/2 flex md:flex-col items-center gap-6 text-white z-10">
         <NormalArrowButton onClick={prevSlide} icon={FaChevronLeft} dir={1} />
         <span className="text-sm font-medium">{`${current + 1} / ${total}`}</span>
         <NormalArrowButton onClick={nextSlide} icon={FaChevronRight} dir={-1} />

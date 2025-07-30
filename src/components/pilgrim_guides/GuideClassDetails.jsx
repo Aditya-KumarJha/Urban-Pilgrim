@@ -32,7 +32,7 @@ export default function GuideClassDetails() {
   ];
 
   return (
-    <div className="px-4 py-10 mt-[100px] bg-gradient-to-r from-[#FAF4F0] to-white">
+    <div className="px-4 py-10 mt-[120px] bg-gradient-to-r from-[#FAF4F0] to-white">
       <div className="max-w-7xl mx-auto px-4">
         <h1 className="text-4xl font-bold">
           Yoga hour - by Manish Kumar (Bihar School of Yoga)
