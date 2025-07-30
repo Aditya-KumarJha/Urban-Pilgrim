@@ -47,8 +47,8 @@
   position: relative;
   font-family: 'Poppins', sans-serif;
   font-size: clamp(12px, 3vw, 15px);
-  text-align: center;
   width: 100%;
+  text-align: left;;
 }
 
 .pricediv {

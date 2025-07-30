@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import "./Animated_card.css";
 import { FaChevronRight } from 'react-icons/fa';
 import { motion } from "framer-motion";
+import NormalArrowButton from './ui/NormalArrowButton';
 
 function Animated_card({ image, card_title }) {
   const [isHovered, setIsHovered] = useState(false);
@@ -53,11 +54,7 @@ function Animated_card({ image, card_title }) {
         <div className="card_content_inner">
           <div className="card_title">{card_title}</div>
           <div className="card_arrow">
-            <button
-              className="p-1 rounded-full border-2 border-white hover:bg-white/20 transition"
-            >
-              <FaChevronRight color="white" />
-            </button>
+            <NormalArrowButton icon={FaChevronRight} dir={-1} />
           </div>
         </div>
       </motion.div>

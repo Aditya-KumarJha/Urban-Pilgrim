@@ -1,27 +1,21 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import "./NavBar.css";
 import { CiSearch } from "react-icons/ci";
 import { FaRegUser } from "react-icons/fa";
+import { FiShoppingCart } from "react-icons/fi";
 import SignIn from "../SignIn";
+import SearchBar from "../SearchBar";
 
 const NavBar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [showSignIn, setShowSignIn] = useState(false);
 
   const toggleMenu = () => setIsOpen(!isOpen);
-  const toggleSearch = () => setShowSearch(!showSearch);
+  const toggleSearch = () => setShowSearch(true);
   const toggleSignIn = () => setShowSignIn(!showSignIn);
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    console.log("Search submitted:", searchQuery);
-    // Example: Navigate or fetch here
-    setShowSearch(false); // optional: close after search
-  };
 
   return (
     <nav className="navbar">
@@ -51,6 +45,10 @@ const NavBar = () => {
           className="user-icon"
           onClick={toggleSignIn}
         />
+        <FiShoppingCart
+          className="user-icon"
+          onClick={() => window.location.href = "/cart"}
+        />
         <motion.div
           className="menu-icon"
           onClick={toggleMenu}
@@ -62,16 +60,11 @@ const NavBar = () => {
         </motion.div>
       </div>
 
-      {showSearch && (
-        <form className="search-bar" onSubmit={handleSearch}>
-          <input
-            type="text"
-            placeholder="Search..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </form>
-      )}
+      <AnimatePresence>
+        {showSearch && (
+          <SearchBar onClose={() => setShowSearch(false)} />
+        )}
+      </AnimatePresence>
 
       {showSignIn && (
         <SignIn onClose={() => setShowSignIn(false)} />

@@ -4,7 +4,7 @@ export default function SignIn({ onClose }) {
       
       <div className="absolute inset-0 bg-black/20 backdrop-blur-sm"></div>
 
-      <div className="relative z-10 rounded-2xl bg-white/20 shadow-lg w-full  max-w-xl px-8 py-12 text-center">
+      <div className="relative z-10 rounded-2xl bg-white/50 shadow-lg w-full  max-w-xl px-8 py-12 text-center">
         <button className="absolute top-4 right-4 text-gray-500 hover:text-black text-2xl" onClick={onClose}>&times;</button>
 
         <h2 className="text-3xl font-bold mb-3">Sign in</h2>

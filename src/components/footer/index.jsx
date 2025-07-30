@@ -17,7 +17,7 @@ function Footer() {
       </div>
 
       <div className="footer-links">
-        <h3>Quick Links</h3>
+        <h3 className="font-semibold">Quick Links</h3>
         <div className="links-grid">
           <div>
             <a href="/joinusguides">Join us as guides</a>

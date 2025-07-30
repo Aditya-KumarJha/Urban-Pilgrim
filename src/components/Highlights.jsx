@@ -16,7 +16,7 @@ function Highlights() {
             </div>
         </motion.div>
         <motion.div
-            className="c5bottom"
+            className="c7bottom"
             initial={{ y: 100, opacity: 0 }}
             whileInView={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.5, ease: "easeOut" }}

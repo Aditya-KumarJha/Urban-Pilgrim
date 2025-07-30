@@ -187,7 +187,6 @@
 }
 
 .c4bottom,
-.c5bottom,
 .c7bottom {
   display: flex;
   justify-content: space-between;
@@ -198,6 +197,27 @@
   box-sizing: border-box;
   overflow-x: visible;
   scroll-snap-type: x mandatory;
+}
+
+.c5bottom {
+  display: flex;
+  justify-content: flex-start;
+  align-items: stretch;
+  gap: 30px;
+  padding: 20px 0;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: visible;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Ensure PersondetailsCard components maintain their width in c5bottom */
+.c5bottom .parrent {
+  flex: 0 0 auto;
+  min-width: 280px;
+  scroll-snap-align: start;
 }
 
 .c4bottom::-webkit-scrollbar,
@@ -468,13 +488,28 @@
   }
 
   .c4bottom,
-  .c5bottom,
   .c7bottom {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     justify-content: center;
     align-items: center;
     gap: 20px;
+  }
+
+  .c5bottom {
+    display: flex;
+    overflow-x: auto;
+    overflow-y: hidden;
+    gap: 20px;
+    padding: 20px 0;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .c5bottom .parrent {
+    flex: 0 0 auto;
+    min-width: 250px;
+    scroll-snap-align: start;
   }
 
   .banner-text{
