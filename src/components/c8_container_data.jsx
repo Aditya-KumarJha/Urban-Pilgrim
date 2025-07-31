@@ -2,9 +2,9 @@ import Button from "./ui/button/index.jsx";
 
 function C8ContainerData() {
   return (
-    <div className="md:w-screen h-[70vh] w-auto md:h-auto relative">
+    <div className="md:w-screen h-[40vh] w-auto md:h-auto relative">
       <div className="w-full h-full">
-        <img src="/assets/bazar.svg" alt="none" className="w-full h-full object-cover" />
+        <img src="/assets/bazar.svg" alt="none" className="w-full h-full object-cover object-center" />
       </div>
 
       <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20 w-full h-full flex flex-col items-center justify-center gap-7 bg-[rgba(24,76,116,0.3)] rounded-[15px] backdrop-blur-[6.7px] border border-[rgba(255,255,255,0.6)] p-5 text-white md:max-w-[55%] max-h-[80%] max-w-[90%]">

@@ -27,7 +27,7 @@ export default function HeroCarousel() {
   }, []);
 
   return (
-    <div className="w-screen md:h-[75vh] h-[50vh] relative overflow-hidden bg-black flex items-center justify-center mt-[120px]">
+    <div className="w-screen md:h-[75vh] h-[50vh] relative overflow-hidden bg-black flex items-center justify-center mt-[100px]">
       <AnimatePresence mode="wait">
         <motion.img
           key={current}

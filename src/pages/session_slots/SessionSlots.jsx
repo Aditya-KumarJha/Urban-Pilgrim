@@ -32,7 +32,7 @@ const SessionSlots = () => {
     },
   ];
   return (
-    <div className=" bg-gradient-to-b from-[#FAF4F0] to-white mt-[120px]">
+    <div className=" bg-gradient-to-b from-[#FAF4F0] to-white mt-[100px]">
         <div className="relative w-full ">
             <img
             src="/retreats.svg"

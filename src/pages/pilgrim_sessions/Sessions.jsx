@@ -7,7 +7,7 @@ import Testimonials from "../../components/Testimonials";
 
 export default function Sessions() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#FAF4F0] to-white mt-[120px]">
+    <div className="min-h-screen bg-gradient-to-b from-[#FAF4F0] to-white mt-[100px]">
       <div className="relative w-full mb-10">
         <img
           src="/retreats.svg"

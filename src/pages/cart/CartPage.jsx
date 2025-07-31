@@ -55,7 +55,7 @@ export default function CartPage() {
 
 	if (cartData.length === 0) {
 		return (
-			<div className="min-h-screen bg-gradient-to-br from-[#f2f4fc] via-[#fdf7f1] to-[#fffaf6] px-4 md:px-12 py-10 mt-[120px]">
+			<div className="min-h-screen bg-gradient-to-br from-[#f2f4fc] via-[#fdf7f1] to-[#fffaf6] px-4 md:px-12 py-10 mt-[100px]">
 				<h2 className="text-3xl font-bold mb-8">Your Cart</h2>
 				<div className="text-center py-12">
 					<p className="text-gray-500 text-lg">Your cart is empty</p>
@@ -65,7 +65,7 @@ export default function CartPage() {
 	}
 
 	return (
-		<div className="min-h-screen bg-gradient-to-br from-[#f2f4fc] via-[#fdf7f1] to-[#fffaf6] px-4 md:px-12 py-10 mt-[120px]">
+		<div className="min-h-screen bg-gradient-to-br from-[#f2f4fc] via-[#fdf7f1] to-[#fffaf6] px-4 md:px-12 py-10 mt-[100px]">
 			<h2 className="text-3xl font-bold mb-8">Your Cart</h2>
 
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

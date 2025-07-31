@@ -240,7 +240,7 @@
 
 .carddiv {
   width: 100%;
-  max-width: 350px;
+  max-width: 20rem;
   height: auto;
   margin: 0 auto;
   scroll-snap-align: center;
@@ -548,7 +548,7 @@
 
   .meditateimg img {
     height: auto;
-    min-height: 1050px;
+    min-height: 1150px;
     object-fit: cover;
     object-position: center;
     position: relative;

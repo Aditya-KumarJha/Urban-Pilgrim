@@ -82,7 +82,6 @@
   }
   
   .pricediv {
-    flex-direction: column;
     gap: 5px;
     bottom: 5%;
   }

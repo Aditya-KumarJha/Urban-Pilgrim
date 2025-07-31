@@ -13,6 +13,7 @@ import Highlights from "../../components/Highlights.jsx";
 import HeroCarousel from "../../components/HeroCarousel.jsx";
 import About from "../../components/about/About.jsx";
 import UpComing from "../../components/upcoming_events/UpComing.jsx";
+import ViewAll from "../../components/ui/button/ViewAll.jsx";
 
 function Home() {
   const wrapperRef = useRef(null);
@@ -108,6 +109,7 @@ function Home() {
             <div className="c4title"><strong>Book your Pilgrim Experience</strong></div>
             <div className="c4description">Step into a transformative journey with our curated Pilgrim Experiences...</div>
           </motion.div>
+          <ViewAll link="/pilgrim_retreats" />
           <motion.div className="c4bottom">
             <div className="c4left">
               <motion.div className="carddiv" initial={{ x: -100, opacity: 0 }} whileInView={{ x: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} viewport={{ once: true, amount: 0.1 }}>
@@ -129,6 +131,7 @@ function Home() {
             <div className="c5title"><strong>Find your Pilgrim Session</strong></div>
             <div className="c5description">Find clarity, balance, and strength with Pilgrim Sessions...</div>
           </motion.div>
+          <ViewAll link="/pilgrim_sessions" />
           <motion.div className="c5bottom" initial={{ y: 100, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} viewport={{ once: true, amount: 0.1 }}>
             <PersondetailsCard image="/assets/Rohini_singh.png" title="Discover your true self - A 28 day program with Rohini Singh Sisodia" price="Rs.14,999.00" />
             <PersondetailsCard image="/assets/Anisha.png" title="Let's meditate for an hour - With Anisha" price="Rs.199.00" />
@@ -147,6 +150,7 @@ function Home() {
               <div className="c6title"><strong>Find your Guides</strong></div>
               <div className="c6description" style={{ color: "#4F4F4F" }}>Begin your wellness journey with trusted guides...</div>
             </motion.div>
+            <ViewAll link="/pilgrim_guides" />
             <div className="c6bottom">
               <motion.div className="c6details" initial={{ y: 100, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} viewport={{ once: true, amount: 0.1 }}>
                 <PersondetailsCard image="/assets/yogaday-img.png" title="Yoga hour - by Manjunath" price="Rs.1000.00" />
