@@ -10,7 +10,7 @@ import SectionTwo from "./SectionTwo";
 export default function TitleDescriptionEditor() {
   return (
     <>
-      <div className="max-w-3xl mx-auto p-6 rounded space-y-4">
+      <div className="mx-auto p-6 rounded space-y-4">
         <h2 className="text-3xl text-[#2F6288] font-bold mb-6">
           Title and Description <span className="bg-[#2F6288] mt-4 max-w-xs h-1 block"></span>
         </h2>
