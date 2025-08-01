@@ -5,14 +5,14 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 import { MdDragIndicator } from "react-icons/md";
 import { FaTrash, FaEdit } from "react-icons/fa";
 
-const ItemType = "SLIDE";
+const ItemType = "HIGHLIGHT";
 
-function SlideItem({ slide, index, moveSlide, onEdit, onDelete, onToggle }) {
+function HighlightItem({ highlight, index, moveHighlight, onEdit, onDelete, onToggle }) {
   const [, ref] = useDrop({
     accept: ItemType,
     hover: (item) => {
       if (item.index !== index) {
-        moveSlide(item.index, index);
+        moveHighlight(item.index, index);
         item.index = index;
       }
     },
@@ -30,20 +30,20 @@ function SlideItem({ slide, index, moveSlide, onEdit, onDelete, onToggle }) {
     >
       <div className="flex items-center gap-3">
         <MdDragIndicator className="text-gray-400 cursor-move" />
-        <img src={slide.image} alt="thumb" className="h-12 w-12 rounded object-cover" />
+        <img src={highlight.image} alt="thumb" className="h-12 w-12 rounded object-cover" />
         <div>
-          <p className="font-semibold">{slide.title}</p>
-          <p className="text-sm text-gray-500">Link: {slide.link}</p>
+          <p className="font-semibold">{highlight.title}</p>
+          <p className="text-sm text-gray-500">Description: {highlight.description}</p>
         </div>
       </div>
       <div className="flex items-center gap-3">
         <button
           onClick={() => onToggle(index)}
           className={`text-xs px-3 py-1 rounded font-semibold cursor-pointer ${
-            slide.active ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"
+            highlight.active ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"
           }`}
         >
-          {slide.active ? "Active" : "Inactive"}
+          {highlight.active ? "Active" : "Inactive"}
         </button>
         <button onClick={() => onEdit(index)} className="text-blue-600"><FaEdit /></button>
         <button onClick={() => onDelete(index)} className="text-gray-600"><FaTrash /></button>
@@ -52,10 +52,11 @@ function SlideItem({ slide, index, moveSlide, onEdit, onDelete, onToggle }) {
   );
 }
 
-export default function ImageSlider() {
-  const [slides, setSlides] = useState([]);
+export default function Highlights() {
+  const [highlights, setHighlights] = useState([]);
   const [image, setImage] = useState(null);
-  const [link, setLink] = useState("");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [displayOrder, setDisplayOrder] = useState("1");
   const [editingIndex, setEditingIndex] = useState(null);
 
@@ -67,62 +68,81 @@ export default function ImageSlider() {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
 
-  const addOrUpdateSlide = () => {
-    if (!image || !link) return;
-    const newSlide = {
+  const addOrUpdateHighlight = () => {
+    if (!image || !title) return;
+    const newHighlight = {
       image,
-      link,
-      title: link.split("/").pop().replace(/[-_]/g, " "),
+      title,
+      description,
       active: true,
     };
     if (editingIndex !== null) {
-      const updated = [...slides];
-      updated[editingIndex] = newSlide;
-      setSlides(updated);
+      const updated = [...highlights];
+      updated[editingIndex] = newHighlight;
+      setHighlights(updated);
       setEditingIndex(null);
     } else {
-      const updated = [...slides];
-      updated.splice(parseInt(displayOrder) - 1, 0, newSlide);
-      setSlides(updated);
+      const updated = [...highlights];
+      updated.splice(parseInt(displayOrder) - 1, 0, newHighlight);
+      setHighlights(updated);
     }
     setImage(null);
-    setLink("");
+    setTitle("");
+    setDescription("");
     setDisplayOrder("1");
   };
 
-  const editSlide = (index) => {
-    const slide = slides[index];
-    setImage(slide.image);
-    setLink(slide.link);
+  const editHighlight = (index) => {
+    const highlight = highlights[index];
+    setImage(highlight.image);
+    setTitle(highlight.title);
+    setDescription(highlight.description);
     setEditingIndex(index);
   };
 
-  const deleteSlide = (index) => {
-    const updated = [...slides];
+  const deleteHighlight = (index) => {
+    const updated = [...highlights];
     updated.splice(index, 1);
-    setSlides(updated);
+    setHighlights(updated);
   };
 
   const toggleActive = (index) => {
-    const updated = [...slides];
+    const updated = [...highlights];
     updated[index].active = !updated[index].active;
-    setSlides(updated);
+    setHighlights(updated);
   };
 
-  const moveSlide = (from, to) => {
-    const updated = [...slides];
+  const moveHighlight = (from, to) => {
+    const updated = [...highlights];
     const [moved] = updated.splice(from, 1);
     updated.splice(to, 0, moved);
-    setSlides(updated);
+    setHighlights(updated);
   };
 
   return (
     <div className="p-8 max-w-3xl mx-auto">
       {/* Upload & Form */}
       <h2 className="text-3xl text-[#2F6288] font-bold mb-6">
-        Image Slider <span className="bg-[#2F6288] mt-4 max-w-xs h-1 block"></span>
+        Highlights <span className="bg-[#2F6288] mt-4 max-w-xs h-1 block"></span>
       </h2>
       <div className="mb-6">
+        <h3 className="text-lg font-semibold mb-3">Highlight Title</h3>
+        <input
+          type="text"
+          placeholder="Enter Highlight title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="w-full border p-2 rounded mb-3"
+        />
+        <h3 className="text-lg font-semibold mb-3">Highlight Description</h3>
+        <input
+          type="textarea"
+          rows="4"
+          placeholder="Enter Highlight description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          className="w-full border p-2 rounded mb-3"
+        />
         <h3 className="text-lg font-semibold mb-3">Add Image</h3>
         <div
           {...getRootProps()}
@@ -138,46 +158,27 @@ export default function ImageSlider() {
             </div>
           )}
         </div>
-        <h3 className="text-lg font-semibold mb-3">Link Url</h3>
-        <input
-          type="text"
-          placeholder="http://example.com"
-          value={link}
-          onChange={(e) => setLink(e.target.value)}
-          className="w-full border p-2 rounded mb-3"
-        />
-        <h3 className="text-lg font-semibold mb-3">Display Order</h3>
-        <select
-          value={displayOrder}
-          onChange={(e) => setDisplayOrder(e.target.value)}
-          className="w-full border p-2 rounded mb-3"
-        >
-          {Array.from({ length: slides.length + 1 }).map((_, i) => (
-            <option key={i} value={i + 1}>
-              Position {i + 1}
-            </option>
-          ))}
-        </select>
+        
 
         <button
-          onClick={addOrUpdateSlide}
+          onClick={addOrUpdateHighlight}
           className="bg-gradient-to-b from-[#C5703F] to-[#C16A00] text-white px-4 py-2 rounded hover:bg-gradient-to-b hover:from-[#C16A00] hover:to-[#C5703F] transition-colors"
         >
-          {editingIndex !== null ? "Update Slide" : "Add Slide"}
+          {editingIndex !== null ? "Update Highlight" : "Add Highlights"}
         </button>
       </div>
 
-      {/* Slide List */}
-      <h3 className="text-lg font-semibold mb-3">Current Slides</h3>
+      {/* Highlight List */}
+      <h3 className="text-lg font-semibold mb-3">Current Highlights</h3>
       <DndProvider backend={HTML5Backend}>
-        {slides.map((slide, index) => (
-          <SlideItem
+        {highlights.map((highlight, index) => (
+          <HighlightItem
             key={index}
             index={index}
-            slide={slide}
-            moveSlide={moveSlide}
-            onEdit={editSlide}
-            onDelete={deleteSlide}
+            highlight={highlight}
+            moveHighlight={moveHighlight}
+            onEdit={editHighlight}
+            onDelete={deleteHighlight}
             onToggle={toggleActive}
           />
         ))}

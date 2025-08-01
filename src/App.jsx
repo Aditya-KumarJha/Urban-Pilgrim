@@ -27,7 +27,8 @@ function App() {
   return (
     <div className="relative">
       {/* Loader overlay */}
-      {(loading || !isAdminRoute) && <Loader onFinish={() => setLoading(false)} />}
+      {loading && <Loader onFinish={() => setLoading(false)} />}
+      {loading && isAdminRoute && <div className="hidden">{setLoading(false)}</div>}
 
       {/* Only show navbar & routes once loader is done */}
       {!loading && (
