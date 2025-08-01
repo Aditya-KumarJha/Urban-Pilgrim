@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Routes, Route } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Routes, Route, useLocation } from "react-router-dom";
 import NavBar from "./components/navbar/NavBar";
 import Loader from "./components/Loader";
 import Home from "./pages/home";
@@ -17,19 +17,22 @@ import SessionSlots from "./pages/session_slots/SessionSlots";
 import SessionDescription from "./pages/session_slots/SessionDescription";
 import GuideClassDetails from "./components/pilgrim_guides/GuideClassDetails";
 import Retreatdescription from "./components/pilgrim_retreats/Retreatdescription";
+import Admin from "./pages/admin/Admin";
 
 function App() {
   const [loading, setLoading] = useState(true);
+  const location = useLocation();
+  const isAdminRoute = location.pathname === "/admin";
 
   return (
     <div className="relative">
       {/* Loader overlay */}
-      {loading && <Loader onFinish={() => setLoading(false)} />}
+      {(loading || !isAdminRoute) && <Loader onFinish={() => setLoading(false)} />}
 
       {/* Only show navbar & routes once loader is done */}
       {!loading && (
         <>
-          <NavBar />
+          {!isAdminRoute && <NavBar />}
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/pilgrim_retreats" element={<Retreats />} />
@@ -45,9 +48,10 @@ function App() {
             <Route path="/session/:sessionId/slots/description" element={<SessionDescription />} />
             <Route path="/guide/:guideClassName" element={<GuideClassDetails />} />
             <Route path="/pilgrim_retreats/:retreatName" element={<Retreatdescription />} />
-            <Route path="*" element={<Home  replace={'/'} />} />
+            <Route path="/admin" element={<Admin />} />
+            <Route path="*" element={<Home replace={'/'} />} />
           </Routes>
-          <Footer className="mt-10" />
+          {!isAdminRoute && <Footer className="mt-10" />}
         </>
       )}
     </div>
