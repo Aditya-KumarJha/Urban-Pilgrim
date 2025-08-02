@@ -1,10 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-function FAQForm() {
+function FAQForm({ onUpdateData, resetTrigger }) {
   const [faqs, setFaqs] = useState([]);
 
+  // Reset form when resetTrigger changes
+  useEffect(() => {
+    if (resetTrigger) {
+      setFaqs([]);
+    }
+  }, [resetTrigger]);
+
   const handleAddPoint = () => {
-    setFaqs((prev) => [...prev, { title: "", description: "" }]);
+    setFaqs((prev) => [...prev, { title: "", description: ""}]);
   };
 
   const handleTitleChange = (index, value) => {
@@ -24,6 +31,16 @@ function FAQForm() {
     updated.splice(index, 1);
     setFaqs(updated);
   };
+
+  useEffect(() => {
+    const validFaqs = faqs.filter(faq => faq.title.trim() && faq.description.trim());
+    if (validFaqs.length > 0) {
+      onUpdateData({
+        type: "FAQ",
+        faqs: validFaqs
+      });
+    }
+  }, [faqs, onUpdateData]);
 
   return (
     <div className="p-8 mx-auto">

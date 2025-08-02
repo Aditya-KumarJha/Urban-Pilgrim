@@ -1,12 +1,23 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FaTimes } from "react-icons/fa";
 
-function MeetGuideForm() {
+function MeetGuideForm({ onUpdateData, resetTrigger }) {
   const [guide, setGuide] = useState({
     title: "",
     description: "",
-    image: null,
+    image: null
   });
+  
+  // Reset form when resetTrigger changes
+  useEffect(() => {
+    if (resetTrigger) {
+      setGuide({
+        title: "",
+        description: "",
+        image: null
+      });
+    }
+  }, [resetTrigger]);
 
   const handleTitleChange = (value) => {
     setGuide((prev) => ({ ...prev, title: value }));
@@ -28,10 +39,24 @@ function MeetGuideForm() {
     setGuide((prev) => ({ ...prev, image: null }));
   };
 
+  useEffect(() => {
+    const { title, description, image } = guide;
+    const isValid = title.trim() && description.trim() && image;
+
+    onUpdateData({
+      type: "MeetGuide",
+      title: title.trim(),
+      description: description.trim(),
+      image,
+      isValid: Boolean(isValid)
+    });
+  }, [guide]);
+
   return (
     <div className="p-8 mx-auto">
       <h2 className="text-3xl text-[#2F6288] font-bold mb-6">
-        Meet Your Pilgrim Guide <span className="bg-[#2F6288] mt-4 max-w-xs h-1 block"></span>
+        Meet Your Pilgrim Guide
+        <span className="bg-[#2F6288] mt-4 max-w-xs h-1 block"></span>
       </h2>
 
       <div className="mb-6 pt-4 relative">

@@ -1,10 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-function ProgramScheduleForm() {
+function ProgramScheduleForm({ onUpdateData, resetTrigger }) {
   const [programs, setPrograms] = useState([]);
+  
+  // Reset form when resetTrigger changes
+  useEffect(() => {
+    if (resetTrigger) {
+      setPrograms([]);
+    }
+  }, [resetTrigger]);
 
   const handleAddProgram = () => {
-    setPrograms((prev) => [...prev, { title: "", description: ""}]);
+    setPrograms((prev) => [...prev, { title: "", description: "" }]);
   };
 
   const handleTitleChange = (index, value) => {
@@ -19,12 +26,29 @@ function ProgramScheduleForm() {
     setPrograms(updated);
   };
 
-
   const handleDeleteProgram = (index) => {
     const updated = [...programs];
     updated.splice(index, 1);
     setPrograms(updated);
   };
+
+  useEffect(() => {
+    const valid = programs.filter(p => p.title.trim() && p.description.trim());
+
+    if (valid.length > 0) {
+      onUpdateData({
+        type: "ProgramScheduleForm",
+        programs: valid,
+        isValid: true
+      });
+    } else {
+      onUpdateData({
+        type: "ProgramScheduleForm",
+        programs: [],
+        isValid: false
+      });
+    }
+  }, [programs]);
 
   return (
     <div className="p-8 mx-auto">

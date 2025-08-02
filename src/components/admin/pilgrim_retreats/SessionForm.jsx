@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-export default function SessionForm() {
+export default function SessionForm({ onUpdateData }) {
   const [description, setDescription] = useState("");
   const [dateOptions, setDateOptions] = useState([{ start: "", end: "" }]);
   const [occupancies, setOccupancies] = useState(["Single"]);
@@ -26,13 +26,30 @@ export default function SessionForm() {
     setOccupancies(updated);
   };
 
+  useEffect(() => {
+    const validDates = dateOptions.filter((d) => d.start && d.end);
+    const validOccupancies = occupancies.filter((o) => o.trim());
+
+    const isValid = description.trim() && validDates.length > 0 && validOccupancies.length > 0;
+
+    onUpdateData({
+      type: "SessionForm",
+      data: {
+        description: description.trim(),
+        dateOptions: validDates,
+        occupancies: validOccupancies,
+        showOccupancyInRetreat,
+      },
+      isValid
+    });
+  }, [description, dateOptions, occupancies, showOccupancyInRetreat]);
+
   return (
     <div className="p-8">
       <h2 className="text-3xl text-[#2F6288] font-bold mb-6">
         Session <span className="bg-[#2F6288] mt-4 max-w-xs h-1 block"></span>
       </h2>
 
-      {/* Session Description */}
       <label className="block text-lg font-semibold mb-3">Session Description</label>
       <textarea
         placeholder="Enter Description"
@@ -42,7 +59,6 @@ export default function SessionForm() {
         className="w-full border p-2 rounded mb-4"
       />
 
-      {/* Date Options */}
       <label className="block text-lg font-semibold mb-3">Date Option</label>
       {dateOptions.map((option, index) => (
         <div key={index} className="flex gap-2 mb-2 items-center">
@@ -50,25 +66,17 @@ export default function SessionForm() {
             type="date"
             value={option.start}
             onChange={(e) => updateDateOption(index, "start", e.target.value)}
-            placeholder="Start Date"
             className="w-full border p-2 rounded"
           />
           <input
             type="date"
             value={option.end}
             onChange={(e) => updateDateOption(index, "end", e.target.value)}
-            placeholder="End Date"
             className="w-full border p-2 rounded"
           />
-          {(index === dateOptions.length - 1) ? (
-            <button
-              onClick={addDateOption}
-              type="button"
-              className="border border-dashed px-2 py-1 rounded text-xl"
-            >
-              +
-            </button>
-          ): (
+          {index === dateOptions.length - 1 ? (
+            <button onClick={addDateOption} type="button" className="border border-dashed px-2 py-1 rounded text-xl">+</button>
+          ) : (
             <button
               onClick={() => {
                 const updated = [...dateOptions];
@@ -77,14 +85,11 @@ export default function SessionForm() {
               }}
               type="button"
               className="border border-dashed px-2 py-1 rounded text-xl"
-            >
-              -
-            </button>
+            >-</button>
           )}
         </div>
       ))}
 
-      {/* Occupancy */}
       <label className="block text-lg font-semibold mb-3 mt-4">Occupancy</label>
       {occupancies.map((occ, index) => (
         <div key={index} className="flex gap-2 mb-2 items-center">
@@ -95,15 +100,9 @@ export default function SessionForm() {
             onChange={(e) => updateOccupancy(index, e.target.value)}
             className="w-full border p-2 rounded"
           />
-          {(index === occupancies.length - 1) ? (
-            <button
-              onClick={addOccupancy}
-              type="button"
-              className="border border-dashed px-2 py-1 rounded text-xl"
-            >
-              +
-            </button>
-          ): (
+          {index === occupancies.length - 1 ? (
+            <button onClick={addOccupancy} type="button" className="border border-dashed px-2 py-1 rounded text-xl">+</button>
+          ) : (
             <button
               onClick={() => {
                 const updated = [...occupancies];
@@ -112,14 +111,11 @@ export default function SessionForm() {
               }}
               type="button"
               className="border border-dashed px-2 py-1 rounded text-xl"
-            >
-              -
-            </button>
+            >-</button>
           )}
         </div>
       ))}
 
-      {/* Checkbox */}
       <div className="flex items-center gap-2 mt-2">
         <input
           type="checkbox"

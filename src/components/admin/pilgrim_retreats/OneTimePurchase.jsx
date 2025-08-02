@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FaTimes } from "react-icons/fa";
 
-function OneTimePurchase() {
+function OneTimePurchase({ onUpdateData }) {
   const [price, setPrice] = useState("");
   const [images, setImages] = useState([]);
   const [videos, setVideos] = useState([]);
@@ -42,13 +42,29 @@ function OneTimePurchase() {
     setVideos(updated);
   };
 
+  useEffect(() => {
+    const isValid = price.trim() && images.length > 0 && videos.length > 0;
+
+    onUpdateData({
+      type: "OneTimePurchase",
+      title: `₹${price} (one-time)`,
+      image: images[0] || null,
+      description: `${images.length} image(s), ${videos.length} video(s)`,
+      data: {
+        price,
+        images,
+        videos
+      },
+      isValid: Boolean(isValid)
+    });
+  }, [price, images, videos, onUpdateData]);
+
   return (
     <div className="p-8 mx-auto">
       <h2 className="text-3xl text-[#2F6288] font-bold mb-6">
         One Time Purchase<span className="bg-[#2F6288] mt-4 max-w-xs h-1 block"></span>
       </h2>
 
-      {/* Price */}
       <label className="block font-semibold mb-1">Per Month Price</label>
       <input
         type="text"
@@ -58,15 +74,12 @@ function OneTimePurchase() {
         className="w-full border p-2 rounded mb-6"
       />
 
-      {/* Image Upload */}
       <label className="block font-semibold mb-2">Add Images ( Maximum 5 Images )</label>
       <div className="mb-6">
         {images.length < 5 && (
-          <label
-            className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50"
-          >
+          <label className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50">
             <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-10 h-10 mb-2" />
-            <span>Click to upload image<br />Size: (1126*626)px</span>
+            <span>Click to upload image<br />Size: (1126×626)px</span>
             <input
               type="file"
               accept="image/*"
@@ -91,13 +104,10 @@ function OneTimePurchase() {
         </div>
       </div>
 
-      {/* Video Upload */}
       <label className="block font-semibold mb-2">Add Videos ( Maximum 6 Videos )</label>
       <div className="mb-4">
         {videos.length < 6 && (
-          <label
-            className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50"
-          >
+          <label className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50">
             <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-10 h-10 mb-2" />
             <span>Click to upload Videos</span>
             <input

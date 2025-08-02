@@ -1,16 +1,13 @@
 import { useDropzone } from "react-dropzone";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-export default function PilgrimRetreatCard() {
+export default function PilgrimRetreatCard({ onUpdateData }) {
   const [image, setImage] = useState(null);
   const [title, setTitle] = useState("");
   const [location, setLocation] = useState("");
   const [price, setPrice] = useState("");
-
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [customCategory, setCustomCategory] = useState("");
-
-
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: (acceptedFiles) => {
@@ -31,13 +28,33 @@ export default function PilgrimRetreatCard() {
     );
   };
 
+  useEffect(() => {
+    const isValid = title && image && location && price;
+
+    onUpdateData({
+      type: "PilgrimRetreatCard",
+      title,
+      image,
+      description: `${location} — ₹${price}`,
+      active: true,
+      data: {
+        title,
+        location,
+        price,
+        categories: selectedCategories,
+        image
+      },
+      isValid: Boolean(isValid)
+    });
+  }, [title, image, location, price, selectedCategories, onUpdateData]);
+
   return (
     <div className="p-8 mx-auto">
       <h2 className="text-3xl text-[#2F6288] font-bold mb-6">
-        Pilgrim Retreat Card<span className="bg-[#2F6288] mt-4 max-w-xs h-1 block"></span>
+        Pilgrim Retreat Card
+        <span className="bg-[#2F6288] mt-4 max-w-xs h-1 block"></span>
       </h2>
 
-      {/* Thumbnail Uploader */}
       <div className="mb-4">
         <h3 className="text-lg font-semibold mb-3">Add Thumbnail</h3>
         <div
@@ -46,7 +63,7 @@ export default function PilgrimRetreatCard() {
         >
           <input {...getInputProps()} />
           {image ? (
-            <img src={image} alt="Uploaded" className="h-full object-conatin rounded-md" />
+            <img src={image} alt="Uploaded" className="h-full object-contain rounded-md" />
           ) : (
             <div className="text-center text-gray-500 flex flex-col items-center">
               <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-12 h-12 mb-2" />
@@ -57,7 +74,6 @@ export default function PilgrimRetreatCard() {
         </div>
       </div>
 
-      {/* Title */}
       <h3 className="text-lg font-semibold mb-3">Title</h3>
       <input
         type="text"
@@ -67,7 +83,6 @@ export default function PilgrimRetreatCard() {
         className="w-full border p-2 rounded mb-3"
       />
 
-      {/* Category Selector */}
       <div className="mb-4">
         <h4 className="text-lg font-semibold mb-3">Select Category</h4>
         <div className="flex flex-wrap gap-2 mb-2">
@@ -107,7 +122,6 @@ export default function PilgrimRetreatCard() {
         </div>
       </div>
 
-      {/* Location */}
       <h3 className="text-lg font-semibold mb-3">Location</h3>
       <input
         type="text"
@@ -117,7 +131,6 @@ export default function PilgrimRetreatCard() {
         className="w-full border p-2 rounded mb-3"
       />
 
-      {/* Price */}
       <h3 className="text-lg font-semibold mb-3">Price</h3>
       <input
         type="number"
@@ -126,7 +139,6 @@ export default function PilgrimRetreatCard() {
         onChange={(e) => setPrice(e.target.value)}
         className="w-full border p-2 rounded mb-3"
       />
-
     </div>
   );
 }

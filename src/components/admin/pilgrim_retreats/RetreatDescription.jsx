@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FaPlus, FaTimes } from "react-icons/fa";
 
-function RetreatDescription() {
+function RetreatDescription({ onUpdateData }) {
   const [points, setPoints] = useState([]);
 
   const handleAddPoint = () => {
@@ -37,6 +37,29 @@ function RetreatDescription() {
     updated[pointIndex].subpoints.splice(subIndex, 1);
     setPoints(updated);
   };
+
+  useEffect(() => {
+    const valid = points
+      .filter((point) => point.title.trim() && point.subpoints.some((s) => s.trim()))
+      .map((point) => ({
+        title: point.title.trim(),
+        description: point.subpoints.filter((s) => s.trim()),
+      }));
+
+    if (valid.length > 0) {
+      onUpdateData({
+        type: "RetreatDescription",
+        points: valid,
+        isValid: true
+      });
+    } else {
+      onUpdateData({
+        type: "RetreatDescription",
+        points: [],
+        isValid: false
+      });
+    }
+  }, [points]);
 
   return (
     <div className="p-8 mx-auto">
