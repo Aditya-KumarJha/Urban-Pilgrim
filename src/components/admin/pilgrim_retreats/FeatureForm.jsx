@@ -1,15 +1,13 @@
 import { useState } from "react";
-import { useDropzone } from "react-dropzone";
 import { FaTimes } from "react-icons/fa";
 
 
-function SectionFour() {
-    const [image, setImage] = useState(null);
+function FeatureForm() {
 
     const [features, setFeatures] = useState([]);
 
     const handleAddFeature = () => {
-    setFeatures((prev) => [...prev, { title: "", shorttitle: "", image: null }]);
+    setFeatures((prev) => [...prev, { title: "", shortdescription: "", image: null }]);
     };
 
     const handleFeatureTitleChange = (index, value) => {
@@ -18,9 +16,9 @@ function SectionFour() {
     setFeatures(updated);
     };
 
-    const handleFeatureShortTitleChange = (index, value) => {
+    const handleFeatureShortDescriptionChange = (index, value) => {
     const updated = [...features];
-    updated[index].shorttitle = value;
+    updated[index].shortdescription = value;
     setFeatures(updated);
     };
 
@@ -40,58 +38,18 @@ function SectionFour() {
     setFeatures(updated);
     };
 
-    const handleDiscard = () => {
-    setImage(null);
-    setFeatures([]);
-    };
-
-    const handleSave = () => {
-    console.log({
-        image,
-        features,
-    });
-    };
-
     const handleDeleteFeature = (index) => {
     const updated = [...features];
     updated.splice(index, 1);
     setFeatures(updated);
     };
 
-    const onDrop = (acceptedFiles) => {
-        const reader = new FileReader();
-        reader.onload = () => setImage(reader.result);
-        reader.readAsDataURL(acceptedFiles[0]);
-    };
 
-    const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
-
-    const handleRemoveImage = () => setImage(null);
     return (
-    <>
-        <h3 className="text-lg font-bold mb-2">Section 4</h3>
-        <label className="block font-semibold mb-1">Image</label>
-
-        {image ? (
-            <div className="relative inline-block mb-4">
-            <img src={image} alt="Preview" className="w-64 h-auto object-cover rounded shadow" />
-            <button
-                onClick={handleRemoveImage}
-                className="absolute top-0 right-0 bg-white border border-gray-300 rounded-full p-1 transform translate-x-1/2 -translate-y-1/2 hover:bg-gray-200"
-            >
-                <FaTimes size={14} />
-            </button>
-            </div>
-        ) : (
-            <div
-            {...getRootProps()}
-            className="w-full h-40 border-2 border-dashed border-gray-300 rounded flex items-center justify-center text-gray-500 cursor-pointer mb-4 hover:bg-gray-50 flex-col"
-            >
-            <input {...getInputProps()} />
-            <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-12 h-12 mb-2" />
-            {isDragActive ? "Drop the image here..." : "Click to upload or drag and drop"}
-            </div>
-        )}
+    <div className="p-8 mx-auto">
+        <h2 className="text-3xl text-[#2F6288] font-bold mb-6">
+            Features<span className="bg-[#2F6288] mt-4 max-w-xs h-1 block"></span>
+        </h2>
 
         {features.map((feature, index) => (
           <div key={index} className="mb-6 pt-4 relative">
@@ -101,25 +59,6 @@ function SectionFour() {
             >
               Delete
             </button>
-
-            <label className="block font-semibold mb-1">Title {index + 1}</label>
-            <input
-              type="text"
-              value={feature.title}
-              placeholder="Enter feature title"
-              onChange={(e) => handleFeatureTitleChange(index, e.target.value)}
-              className="w-full border rounded p-2 mb-4"
-            />
-
-            <label className="block font-semibold mb-1">Short Text {index + 1}</label>
-
-            <input
-              type="text"
-              value={feature.shorttitle}
-              placeholder="Enter feature short title"
-              onChange={(e) => handleFeatureShortTitleChange(index, e.target.value)}
-              className="w-full border rounded p-2 mb-4"
-            />
 
             <label className="block font-semibold mb-1">Add Icon {index + 1}</label>
             {feature.image ? (
@@ -148,7 +87,6 @@ function SectionFour() {
                             className="w-12 h-12 mb-2"
                         />
                         <span>Click to upload</span>
-                        <span>Size: 40 * 40 px</span>
                         <input
                             id={`feature-upload-${index}`}
                             type="file"
@@ -159,6 +97,27 @@ function SectionFour() {
                     </label>
                 </div>
             )}
+
+            <label className="block font-semibold mb-1">Title</label>
+            <input
+              type="text"
+              value={feature.title}
+              placeholder="Enter title"
+              onChange={(e) => handleFeatureTitleChange(index, e.target.value)}
+              className="w-full border rounded p-2 mb-4"
+            />
+
+            <label className="block font-semibold mb-1">Short description</label>
+
+            <input
+              type="text"
+              value={feature.shortdescription}
+              placeholder="Enter description"
+              onChange={(e) => handleFeatureShortDescriptionChange(index, e.target.value)}
+              className="w-full border rounded p-2 mb-4"
+            />
+
+            
           </div>
         ))}
 
@@ -170,23 +129,8 @@ function SectionFour() {
         >
           Add Feature
         </div>
-
-        <div className="flex justify-end gap-3">
-          <button
-            onClick={handleDiscard}
-            className="px-4 py-2 font-semibold border border-gray-800 rounded-md"
-          >
-            Discard Changes
-          </button>
-          <button
-            onClick={handleSave}
-            className="px-4 py-2 bg-gradient-to-b  from-[#C5703F] to-[#C16A00] text-white rounded-md hover:from-[#C16A00] hover:to-[#C5703F]"
-          >
-            Save Changes
-          </button>
-        </div>
-    </>
+    </div>
   )
 }
 
-export default SectionFour
+export default FeatureForm

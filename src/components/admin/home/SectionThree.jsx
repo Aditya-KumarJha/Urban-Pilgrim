@@ -133,7 +133,7 @@ function SectionThree() {
         onClick={handleAddProgram}
         className="w-full text-center my-4 bg-[#2F6288] text-white py-2 rounded-md cursor-pointer hover:bg-[#224b66]"
       >
-        Add One More Program
+        Add Program
       </div>
 
       <div className="flex justify-end gap-3">

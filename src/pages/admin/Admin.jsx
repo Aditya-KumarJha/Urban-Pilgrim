@@ -23,9 +23,9 @@ export default function Admin() {
   };
 
   return (
-    <div className="flex">
+    <div className="flex md:flex-row flex-col min-h-screen bg-gray-50">
       <Sidebar activeSection={activeSection} setActiveSection={setActiveSection} />
-      <div className="flex-1 ml-[250px] bg-gray-50">{renderSection()}</div>
+      <div className="flex-1 ml-0 md:ml-[250px] md:mt-0">{renderSection()}</div>
     </div>
   );
 }
