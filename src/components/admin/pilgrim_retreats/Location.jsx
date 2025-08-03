@@ -3,21 +3,26 @@ import { useState, useEffect } from "react";
 function Location({ onUpdateData, resetTrigger }) {
   const [location, setLocation] = useState("");
 
-  // Reset form when resetTrigger changes
   useEffect(() => {
-    if (resetTrigger) {
+    const storedLocation = localStorage.getItem('pilgrimLocation');
+    if (storedLocation && !resetTrigger) {
+      setLocation(storedLocation);
+    } else if (resetTrigger) {
       setLocation("");
+      localStorage.removeItem('pilgrimLocation');
     }
   }, [resetTrigger]);
 
   useEffect(() => {
     if (location.trim()) {
+      localStorage.setItem('pilgrimLocation', location.trim());
       onUpdateData({
         type: "Location",
         location: location.trim(),
         isValid: true
       });
     } else {
+      localStorage.removeItem('pilgrimLocation');
       onUpdateData({
         type: "Location",
         location: "",

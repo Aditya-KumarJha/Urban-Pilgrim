@@ -1,23 +1,41 @@
 import { useState, useEffect } from "react";
 import { FaTimes } from "react-icons/fa";
 
-function FeatureForm({ onUpdateData }) {
+function FeatureForm({ onUpdateData, resetTrigger }) {
   const [features, setFeatures] = useState([]);
+  
+  useEffect(() => {
+    const storedFeatures = localStorage.getItem('pilgrimFeatures');
+    if (storedFeatures && !resetTrigger) {
+      setFeatures(JSON.parse(storedFeatures));
+    } else if (resetTrigger) {
+      setFeatures([]);
+      localStorage.removeItem('pilgrimFeatures');
+    }
+  }, [resetTrigger]);
+
+  const saveToLocalStorage = (updatedFeatures) => {
+    localStorage.setItem('pilgrimFeatures', JSON.stringify(updatedFeatures));
+  };
 
   const handleAddFeature = () => {
-    setFeatures((prev) => [...prev, { title: "", shortdescription: "", image: null}]);
+    const newFeatures = [...features, { id: Date.now(), title: "", shortdescription: "", image: null}];
+    setFeatures(newFeatures);
+    saveToLocalStorage(newFeatures);
   };
 
   const handleFeatureTitleChange = (index, value) => {
     const updated = [...features];
     updated[index].title = value;
     setFeatures(updated);
+    saveToLocalStorage(updated);
   };
 
   const handleFeatureShortDescriptionChange = (index, value) => {
     const updated = [...features];
     updated[index].shortdescription = value;
     setFeatures(updated);
+    saveToLocalStorage(updated);
   };
 
   const handleFeatureImageChange = (index, file) => {
@@ -26,6 +44,7 @@ function FeatureForm({ onUpdateData }) {
       const updated = [...features];
       updated[index].image = reader.result;
       setFeatures(updated);
+      saveToLocalStorage(updated);
     };
     reader.readAsDataURL(file);
   };
@@ -34,12 +53,14 @@ function FeatureForm({ onUpdateData }) {
     const updated = [...features];
     updated[index].image = null;
     setFeatures(updated);
+    saveToLocalStorage(updated);
   };
 
   const handleDeleteFeature = (index) => {
     const updated = [...features];
     updated.splice(index, 1);
     setFeatures(updated);
+    saveToLocalStorage(updated);
   };
 
   useEffect(() => {

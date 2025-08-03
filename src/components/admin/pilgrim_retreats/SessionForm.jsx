@@ -1,29 +1,81 @@
 import { useState, useEffect } from "react";
 
-export default function SessionForm({ onUpdateData }) {
+export default function SessionForm({ onUpdateData, resetTrigger }) {
   const [description, setDescription] = useState("");
   const [dateOptions, setDateOptions] = useState([{ start: "", end: "" }]);
   const [occupancies, setOccupancies] = useState(["Single"]);
   const [showOccupancyInRetreat, setShowOccupancyInRetreat] = useState(false);
+  
+  useEffect(() => {
+    const storedSession = localStorage.getItem('pilgrimSession');
+    if (storedSession && !resetTrigger) {
+      const data = JSON.parse(storedSession);
+      setDescription(data.description || "");
+      setDateOptions(data.dateOptions || [{ start: "", end: "" }]);
+      setOccupancies(data.occupancies || ["Single"]);
+      setShowOccupancyInRetreat(data.showOccupancyInRetreat || false);
+    } else if (resetTrigger) {
+      setDescription("");
+      setDateOptions([{ start: "", end: "" }]);
+      setOccupancies(["Single"]);
+      setShowOccupancyInRetreat(false);
+      localStorage.removeItem('pilgrimSession');
+    }
+  }, [resetTrigger]);
+
+  const saveToLocalStorage = () => {
+    localStorage.setItem('pilgrimSession', JSON.stringify({
+      description,
+      dateOptions,
+      occupancies,
+      showOccupancyInRetreat
+    }));
+  };
 
   const addDateOption = () => {
-    setDateOptions([...dateOptions, { start: "", end: "" }]);
+    const newDateOptions = [...dateOptions, { start: "", end: "" }];
+    setDateOptions(newDateOptions);
+    localStorage.setItem('pilgrimSession', JSON.stringify({
+      description,
+      dateOptions: newDateOptions,
+      occupancies,
+      showOccupancyInRetreat
+    }));
   };
 
   const updateDateOption = (index, field, value) => {
     const updated = [...dateOptions];
     updated[index][field] = value;
     setDateOptions(updated);
+    localStorage.setItem('pilgrimSession', JSON.stringify({
+      description,
+      dateOptions: updated,
+      occupancies,
+      showOccupancyInRetreat
+    }));
   };
 
   const addOccupancy = () => {
-    setOccupancies([...occupancies, ""]);
+    const newOccupancies = [...occupancies, ""];
+    setOccupancies(newOccupancies);
+    localStorage.setItem('pilgrimSession', JSON.stringify({
+      description,
+      dateOptions,
+      occupancies: newOccupancies,
+      showOccupancyInRetreat
+    }));
   };
 
   const updateOccupancy = (index, value) => {
     const updated = [...occupancies];
     updated[index] = value;
     setOccupancies(updated);
+    localStorage.setItem('pilgrimSession', JSON.stringify({
+      description,
+      dateOptions,
+      occupancies: updated,
+      showOccupancyInRetreat
+    }));
   };
 
   useEffect(() => {
@@ -55,7 +107,15 @@ export default function SessionForm({ onUpdateData }) {
         placeholder="Enter Description"
         rows="4"
         value={description}
-        onChange={(e) => setDescription(e.target.value)}
+        onChange={(e) => {
+          setDescription(e.target.value);
+          localStorage.setItem('pilgrimSession', JSON.stringify({
+            description: e.target.value,
+            dateOptions,
+            occupancies,
+            showOccupancyInRetreat
+          }));
+        }}
         className="w-full border p-2 rounded mb-4"
       />
 
@@ -82,6 +142,12 @@ export default function SessionForm({ onUpdateData }) {
                 const updated = [...dateOptions];
                 updated.splice(index, 1);
                 setDateOptions(updated);
+                localStorage.setItem('pilgrimSession', JSON.stringify({
+                  description,
+                  dateOptions: updated,
+                  occupancies,
+                  showOccupancyInRetreat
+                }));
               }}
               type="button"
               className="border border-dashed px-2 py-1 rounded text-xl"
@@ -108,6 +174,12 @@ export default function SessionForm({ onUpdateData }) {
                 const updated = [...occupancies];
                 updated.splice(index, 1);
                 setOccupancies(updated);
+                localStorage.setItem('pilgrimSession', JSON.stringify({
+                  description,
+                  dateOptions,
+                  occupancies: updated,
+                  showOccupancyInRetreat
+                }));
               }}
               type="button"
               className="border border-dashed px-2 py-1 rounded text-xl"
@@ -121,7 +193,16 @@ export default function SessionForm({ onUpdateData }) {
           type="checkbox"
           id="showOccupancy"
           checked={showOccupancyInRetreat}
-          onChange={() => setShowOccupancyInRetreat(!showOccupancyInRetreat)}
+          onChange={() => {
+            const newValue = !showOccupancyInRetreat;
+            setShowOccupancyInRetreat(newValue);
+            localStorage.setItem('pilgrimSession', JSON.stringify({
+              description,
+              dateOptions,
+              occupancies,
+              showOccupancyInRetreat: newValue
+            }));
+          }}
           className="w-4 h-4"
         />
         <label htmlFor="showOccupancy" className="text-sm text-gray-600">

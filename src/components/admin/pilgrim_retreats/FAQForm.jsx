@@ -2,34 +2,46 @@ import { useState, useEffect } from "react";
 
 function FAQForm({ onUpdateData, resetTrigger }) {
   const [faqs, setFaqs] = useState([]);
-
-  // Reset form when resetTrigger changes
+  
   useEffect(() => {
-    if (resetTrigger) {
+    const storedFaqs = localStorage.getItem('pilgrimFaqs');
+    if (storedFaqs && !resetTrigger) {
+      setFaqs(JSON.parse(storedFaqs));
+    } else if (resetTrigger) {
       setFaqs([]);
+      localStorage.removeItem('pilgrimFaqs');
     }
   }, [resetTrigger]);
 
+  const saveToLocalStorage = (updatedFaqs) => {
+    localStorage.setItem('pilgrimFaqs', JSON.stringify(updatedFaqs));
+  };
+
   const handleAddPoint = () => {
-    setFaqs((prev) => [...prev, { title: "", description: ""}]);
+    const newFaqs = [...faqs, { id: Date.now(), title: "", description: "" }];
+    setFaqs(newFaqs);
+    saveToLocalStorage(newFaqs);
   };
 
   const handleTitleChange = (index, value) => {
     const updated = [...faqs];
     updated[index].title = value;
     setFaqs(updated);
+    saveToLocalStorage(updated);
   };
 
   const handleDescriptionChange = (index, value) => {
     const updated = [...faqs];
     updated[index].description = value;
     setFaqs(updated);
+    saveToLocalStorage(updated);
   };
 
   const handleDeletePoint = (index) => {
     const updated = [...faqs];
     updated.splice(index, 1);
     setFaqs(updated);
+    saveToLocalStorage(updated);
   };
 
   useEffect(() => {
@@ -81,7 +93,7 @@ function FAQForm({ onUpdateData, resetTrigger }) {
         onClick={handleAddPoint}
         className="w-full text-center my-4 bg-[#2F6288] text-white py-2 rounded-md cursor-pointer hover:bg-[#224b66]"
       >
-        Add Description
+        Add FAQ
       </div>
     </div>
   );

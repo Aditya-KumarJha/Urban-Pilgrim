@@ -5,20 +5,38 @@ export default function MonthlySubscription({ onUpdateData, resetTrigger }) {
   const [discount, setDiscount] = useState("");
   const [description, setDescription] = useState("");
   
-  // Reset form when resetTrigger changes
   useEffect(() => {
-    if (resetTrigger) {
+    const storedSubscription = localStorage.getItem('pilgrimSubscription');
+    if (storedSubscription && !resetTrigger) {
+      const data = JSON.parse(storedSubscription);
+      setSubscriptionPrice(data.price || "");
+      setDiscount(data.discount || "");
+      setDescription(data.description || "");
+    } else if (resetTrigger) {
       setSubscriptionPrice("");
       setDiscount("");
       setDescription("");
+      localStorage.removeItem('pilgrimSubscription');
     }
   }, [resetTrigger]);
 
+  const saveToLocalStorage = () => {
+    localStorage.setItem('pilgrimSubscription', JSON.stringify({
+      price: subscriptionPrice,
+      discount: discount,
+      description: description
+    }));
+  };
+  
   useEffect(() => {
     const isValid =
       subscriptionPrice.trim() &&
       discount.trim() &&
       description.trim();
+
+    if (isValid) {
+      saveToLocalStorage();
+    }
 
     onUpdateData({
       type: "MonthlySubscription",

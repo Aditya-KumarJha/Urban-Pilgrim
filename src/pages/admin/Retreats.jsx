@@ -8,12 +8,13 @@ import PilgrimRetreatCard from "../../components/admin/pilgrim_retreats/PilgrimR
 import ProgramScheduleForm from "../../components/admin/pilgrim_retreats/ProgramScheduleForm";
 import RetreatDescription from "../../components/admin/pilgrim_retreats/RetreatDescription";
 import SessionForm from "../../components/admin/pilgrim_retreats/SessionForm";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { MdDragIndicator } from "react-icons/md";
 import { FaEdit, FaTrash } from "react-icons/fa";
 import { useDrag, useDrop } from "react-dnd";
+import RetreatBookingTable from "../../components/admin/pilgrim_retreats/RetreatBookingTable";
 
 
 const ItemType = "RETREAT";
@@ -68,9 +69,22 @@ export default function Retreats() {
    const [formData, setFormData] = useState({});
    const [resetTrigger, setResetTrigger] = useState(0);
    const [editingIndex, setEditingIndex] = useState(null);
+   
+   useEffect(() => {
+     const storedItems = localStorage.getItem('pilgrimRetreats');
+     if (storedItems) {
+       setItems(JSON.parse(storedItems));
+     }
+   }, []);
+
+  const saveToLocalStorage = (updatedItems) => {
+    localStorage.setItem('pilgrimRetreats', JSON.stringify(updatedItems));
+  };
 
   const addItem = (item) => {
-    setItems((prev) => [...prev, item]);
+    const updatedItems = [...items, item];
+    setItems(updatedItems);
+    saveToLocalStorage(updatedItems);
   };
 
   const updateFormData = (type, data) => {
@@ -84,6 +98,7 @@ export default function Retreats() {
     }
     
     const combinedRetreatItem = {
+      id: editingIndex !== null ? items[editingIndex].id : Date.now(),
       type: 'retreat',
       active: true,
       title: formData.PilgrimRetreatCard?.title || 'Retreat',
@@ -92,16 +107,22 @@ export default function Retreats() {
       ...formData
     };
 
+    let newItems;
+    
     if (editingIndex !== null) {
       // We are editing an existing item
-      const newItems = [...items];
+      newItems = [...items];
       newItems[editingIndex] = combinedRetreatItem;
       setItems(newItems);
       setEditingIndex(null);
     } else {
       // We are adding a new item
-      addItem(combinedRetreatItem);
+      newItems = [...items, combinedRetreatItem];
+      setItems(newItems);
     }
+    
+    // Save to localStorage
+    saveToLocalStorage(newItems);
     
     // Reset form data
     setFormData({});
@@ -124,12 +145,14 @@ export default function Retreats() {
     const newItems = [...items];
     newItems.splice(index, 1);
     setItems(newItems);
+    saveToLocalStorage(newItems);
   };
 
   const toggleItem = (index) => {
     const newItems = [...items];
     newItems[index].active = !newItems[index].active;
     setItems(newItems);
+    saveToLocalStorage(newItems);
   };
 
   const moveItem = (from, to) => {
@@ -137,6 +160,7 @@ export default function Retreats() {
     const [moved] = updated.splice(from, 1);
     updated.splice(to, 0, moved);
     setItems(updated);
+    saveToLocalStorage(updated);
   };
   return(
     <>
@@ -176,6 +200,7 @@ export default function Retreats() {
         ))}
       </DndProvider>
       </div>
+      <RetreatBookingTable />
     </>
   )
 }

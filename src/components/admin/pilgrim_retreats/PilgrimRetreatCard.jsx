@@ -1,18 +1,58 @@
 import { useDropzone } from "react-dropzone";
 import { useEffect, useState } from "react";
 
-export default function PilgrimRetreatCard({ onUpdateData }) {
+export default function PilgrimRetreatCard({ onUpdateData, resetTrigger }) {
   const [image, setImage] = useState(null);
   const [title, setTitle] = useState("");
   const [location, setLocation] = useState("");
   const [price, setPrice] = useState("");
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [customCategory, setCustomCategory] = useState("");
+  
+  useEffect(() => {
+    const storedCard = localStorage.getItem('pilgrimRetreatCard');
+    if (storedCard && !resetTrigger) {
+      const data = JSON.parse(storedCard);
+      setTitle(data.title || "");
+      setImage(data.image || null);
+      setLocation(data.location || "");
+      setPrice(data.price || "");
+      setSelectedCategories(data.categories || []);
+    } else if (resetTrigger) {
+      setImage(null);
+      setTitle("");
+      setLocation("");
+      setPrice("");
+      setSelectedCategories([]);
+      setCustomCategory("");
+      localStorage.removeItem('pilgrimRetreatCard');
+    }
+  }, [resetTrigger]);
+
+  const saveToLocalStorage = () => {
+    localStorage.setItem('pilgrimRetreatCard', JSON.stringify({
+      title,
+      image,
+      location,
+      price,
+      categories: selectedCategories
+    }));
+  };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: (acceptedFiles) => {
       const reader = new FileReader();
-      reader.onload = () => setImage(reader.result);
+      reader.onload = () => {
+        const result = reader.result;
+        setImage(result);
+        localStorage.setItem('pilgrimRetreatCard', JSON.stringify({
+          title,
+          image: result,
+          location,
+          price,
+          categories: selectedCategories
+        }));
+      };
       reader.readAsDataURL(acceptedFiles[0]);
     },
   });
@@ -23,9 +63,19 @@ export default function PilgrimRetreatCard({ onUpdateData }) {
   ];
 
   const toggleCategory = (cat) => {
-    setSelectedCategories((prev) =>
-      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
-    );
+    const updatedCategories = selectedCategories.includes(cat) 
+      ? selectedCategories.filter((c) => c !== cat) 
+      : [...selectedCategories, cat];
+    
+    setSelectedCategories(updatedCategories);
+    
+    localStorage.setItem('pilgrimRetreatCard', JSON.stringify({
+      title,
+      image,
+      location,
+      price,
+      categories: updatedCategories
+    }));
   };
 
   useEffect(() => {
@@ -79,7 +129,16 @@ export default function PilgrimRetreatCard({ onUpdateData }) {
         type="text"
         placeholder="Enter Title"
         value={title}
-        onChange={(e) => setTitle(e.target.value)}
+        onChange={(e) => {
+          setTitle(e.target.value);
+          localStorage.setItem('pilgrimRetreatCard', JSON.stringify({
+            title: e.target.value,
+            image,
+            location,
+            price,
+            categories: selectedCategories
+          }));
+        }}
         className="w-full border p-2 rounded mb-3"
       />
 
@@ -127,7 +186,16 @@ export default function PilgrimRetreatCard({ onUpdateData }) {
         type="text"
         placeholder="Enter Location"
         value={location}
-        onChange={(e) => setLocation(e.target.value)}
+        onChange={(e) => {
+          setLocation(e.target.value);
+          localStorage.setItem('pilgrimRetreatCard', JSON.stringify({
+            title,
+            image,
+            location: e.target.value,
+            price,
+            categories: selectedCategories
+          }));
+        }}
         className="w-full border p-2 rounded mb-3"
       />
 
@@ -136,7 +204,16 @@ export default function PilgrimRetreatCard({ onUpdateData }) {
         type="number"
         placeholder="Enter Price"
         value={price}
-        onChange={(e) => setPrice(e.target.value)}
+        onChange={(e) => {
+          setPrice(e.target.value);
+          localStorage.setItem('pilgrimRetreatCard', JSON.stringify({
+            title,
+            image,
+            location,
+            price: e.target.value,
+            categories: selectedCategories
+          }));
+        }}
         className="w-full border p-2 rounded mb-3"
       />
     </div>

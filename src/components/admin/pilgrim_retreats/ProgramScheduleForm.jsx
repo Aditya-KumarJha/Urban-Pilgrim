@@ -3,33 +3,45 @@ import { useState, useEffect } from "react";
 function ProgramScheduleForm({ onUpdateData, resetTrigger }) {
   const [programs, setPrograms] = useState([]);
   
-  // Reset form when resetTrigger changes
   useEffect(() => {
-    if (resetTrigger) {
+    const storedPrograms = localStorage.getItem('pilgrimPrograms');
+    if (storedPrograms && !resetTrigger) {
+      setPrograms(JSON.parse(storedPrograms));
+    } else if (resetTrigger) {
       setPrograms([]);
+      localStorage.removeItem('pilgrimPrograms');
     }
   }, [resetTrigger]);
 
+  const saveToLocalStorage = (updatedPrograms) => {
+    localStorage.setItem('pilgrimPrograms', JSON.stringify(updatedPrograms));
+  };
+
   const handleAddProgram = () => {
-    setPrograms((prev) => [...prev, { title: "", description: "" }]);
+    const newPrograms = [...programs, { id: Date.now(), title: "", description: "" }];
+    setPrograms(newPrograms);
+    saveToLocalStorage(newPrograms);
   };
 
   const handleTitleChange = (index, value) => {
     const updated = [...programs];
     updated[index].title = value;
     setPrograms(updated);
+    saveToLocalStorage(updated);
   };
 
   const handleDescriptionChange = (index, value) => {
     const updated = [...programs];
     updated[index].description = value;
     setPrograms(updated);
+    saveToLocalStorage(updated);
   };
 
   const handleDeleteProgram = (index) => {
     const updated = [...programs];
     updated.splice(index, 1);
     setPrograms(updated);
+    saveToLocalStorage(updated);
   };
 
   useEffect(() => {

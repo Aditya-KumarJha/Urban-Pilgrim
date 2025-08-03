@@ -1,41 +1,62 @@
 import { useState, useEffect } from "react";
 import { FaPlus, FaTimes } from "react-icons/fa";
 
-function RetreatDescription({ onUpdateData }) {
+function RetreatDescription({ onUpdateData, resetTrigger }) {
   const [points, setPoints] = useState([]);
+  
+  useEffect(() => {
+    const storedDescription = localStorage.getItem('pilgrimRetreatDescription');
+    if (storedDescription && !resetTrigger) {
+      setPoints(JSON.parse(storedDescription));
+    } else if (resetTrigger) {
+      setPoints([]);
+      localStorage.removeItem('pilgrimRetreatDescription');
+    }
+  }, [resetTrigger]);
+
+  const saveToLocalStorage = (updatedPoints) => {
+    localStorage.setItem('pilgrimRetreatDescription', JSON.stringify(updatedPoints));
+  };
 
   const handleAddPoint = () => {
-    setPoints((prev) => [...prev, { title: "", subpoints: [""] }]);
+    const newPoints = [...points, { id: Date.now(), title: "", subpoints: [""] }];
+    setPoints(newPoints);
+    saveToLocalStorage(newPoints);
   };
 
   const handleTitleChange = (index, value) => {
     const updated = [...points];
     updated[index].title = value;
     setPoints(updated);
+    saveToLocalStorage(updated);
   };
 
   const handleSubPointChange = (pointIndex, subIndex, value) => {
     const updated = [...points];
     updated[pointIndex].subpoints[subIndex] = value;
     setPoints(updated);
+    saveToLocalStorage(updated);
   };
 
   const handleAddSubPoint = (index) => {
     const updated = [...points];
     updated[index].subpoints.push("");
     setPoints(updated);
+    saveToLocalStorage(updated);
   };
 
   const handleDeletePoint = (index) => {
     const updated = [...points];
     updated.splice(index, 1);
     setPoints(updated);
+    saveToLocalStorage(updated);
   };
 
   const handleDeleteSubPoint = (pointIndex, subIndex) => {
     const updated = [...points];
     updated[pointIndex].subpoints.splice(subIndex, 1);
     setPoints(updated);
+    saveToLocalStorage(updated);
   };
 
   useEffect(() => {

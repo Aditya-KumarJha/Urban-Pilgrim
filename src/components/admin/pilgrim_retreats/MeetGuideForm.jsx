@@ -8,35 +8,50 @@ function MeetGuideForm({ onUpdateData, resetTrigger }) {
     image: null
   });
   
-  // Reset form when resetTrigger changes
   useEffect(() => {
-    if (resetTrigger) {
+    const storedGuide = localStorage.getItem('pilgrimGuide');
+    if (storedGuide && !resetTrigger) {
+      setGuide(JSON.parse(storedGuide));
+    } else if (resetTrigger) {
       setGuide({
         title: "",
         description: "",
         image: null
       });
+      localStorage.removeItem('pilgrimGuide');
     }
   }, [resetTrigger]);
 
+  const saveToLocalStorage = (updatedGuide) => {
+    localStorage.setItem('pilgrimGuide', JSON.stringify(updatedGuide));
+  };
+
   const handleTitleChange = (value) => {
-    setGuide((prev) => ({ ...prev, title: value }));
+    const updatedGuide = { ...guide, title: value };
+    setGuide(updatedGuide);
+    saveToLocalStorage(updatedGuide);
   };
 
   const handleDescriptionChange = (value) => {
-    setGuide((prev) => ({ ...prev, description: value }));
+    const updatedGuide = { ...guide, description: value };
+    setGuide(updatedGuide);
+    saveToLocalStorage(updatedGuide);
   };
 
   const handleImageChange = (file) => {
     const reader = new FileReader();
     reader.onload = () => {
-      setGuide((prev) => ({ ...prev, image: reader.result }));
+      const updatedGuide = { ...guide, image: reader.result };
+      setGuide(updatedGuide);
+      saveToLocalStorage(updatedGuide);
     };
     reader.readAsDataURL(file);
   };
 
   const handleImageRemove = () => {
-    setGuide((prev) => ({ ...prev, image: null }));
+    const updatedGuide = { ...guide, image: null };
+    setGuide(updatedGuide);
+    saveToLocalStorage(updatedGuide);
   };
 
   useEffect(() => {

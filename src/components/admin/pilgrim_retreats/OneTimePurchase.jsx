@@ -1,10 +1,33 @@
 import { useState, useEffect } from "react";
 import { FaTimes } from "react-icons/fa";
 
-function OneTimePurchase({ onUpdateData }) {
+function OneTimePurchase({ onUpdateData, resetTrigger }) {
   const [price, setPrice] = useState("");
   const [images, setImages] = useState([]);
   const [videos, setVideos] = useState([]);
+  
+  useEffect(() => {
+    const storedPurchase = localStorage.getItem('pilgrimOneTimePurchase');
+    if (storedPurchase && !resetTrigger) {
+      const data = JSON.parse(storedPurchase);
+      setPrice(data.price || "");
+      setImages(data.images || []);
+      setVideos(data.videos || []);
+    } else if (resetTrigger) {
+      setPrice("");
+      setImages([]);
+      setVideos([]);
+      localStorage.removeItem('pilgrimOneTimePurchase');
+    }
+  }, [resetTrigger]);
+
+  const saveToLocalStorage = () => {
+    localStorage.setItem('pilgrimOneTimePurchase', JSON.stringify({
+      price,
+      images,
+      videos
+    }));
+  };
 
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
@@ -12,7 +35,13 @@ function OneTimePurchase({ onUpdateData }) {
     files.slice(0, allowed).forEach((file) => {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImages((prev) => [...prev, reader.result]);
+        const newImages = [...images, reader.result];
+        setImages(newImages);
+        localStorage.setItem('pilgrimOneTimePurchase', JSON.stringify({
+          price,
+          images: newImages,
+          videos
+        }));
       };
       reader.readAsDataURL(file);
     });
@@ -24,7 +53,13 @@ function OneTimePurchase({ onUpdateData }) {
     files.slice(0, allowed).forEach((file) => {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setVideos((prev) => [...prev, reader.result]);
+        const newVideos = [...videos, reader.result];
+        setVideos(newVideos);
+        localStorage.setItem('pilgrimOneTimePurchase', JSON.stringify({
+          price,
+          images,
+          videos: newVideos
+        }));
       };
       reader.readAsDataURL(file);
     });
@@ -34,12 +69,22 @@ function OneTimePurchase({ onUpdateData }) {
     const updated = [...images];
     updated.splice(index, 1);
     setImages(updated);
+    localStorage.setItem('pilgrimOneTimePurchase', JSON.stringify({
+      price,
+      images: updated,
+      videos
+    }));
   };
 
   const removeVideo = (index) => {
     const updated = [...videos];
     updated.splice(index, 1);
     setVideos(updated);
+    localStorage.setItem('pilgrimOneTimePurchase', JSON.stringify({
+      price,
+      images,
+      videos: updated
+    }));
   };
 
   useEffect(() => {
@@ -70,7 +115,14 @@ function OneTimePurchase({ onUpdateData }) {
         type="text"
         placeholder="Enter Price"
         value={price}
-        onChange={(e) => setPrice(e.target.value)}
+        onChange={(e) => {
+          setPrice(e.target.value);
+          localStorage.setItem('pilgrimOneTimePurchase', JSON.stringify({
+            price: e.target.value,
+            images,
+            videos
+          }));
+        }}
         className="w-full border p-2 rounded mb-6"
       />
 
