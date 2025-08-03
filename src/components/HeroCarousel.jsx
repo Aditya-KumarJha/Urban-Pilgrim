@@ -4,97 +4,97 @@ import { motion, AnimatePresence } from "framer-motion";
 import NormalArrowButton from "./ui/NormalArrowButton";
 
 const images = [
-  "/assets/home/bg1.svg",
-  "/assets/home/carousel2.png",
-  "/assets/home/carousel3.png",
-  "/assets/home/carousel4.png",
-  "/assets/home/carousel5.png",
-  "/assets/home/carousel6.png",
+    "/assets/home/bg1.svg",
+    "/assets/home/carousel2.png",
+    "/assets/home/carousel3.png",
+    "/assets/home/carousel4.png",
+    "/assets/home/carousel5.png",
+    "/assets/home/carousel6.png",
 ];
 
 export default function HeroCarousel() {
-  const [current, setCurrent] = useState(0);
-  const total = images.length;
+    const [current, setCurrent] = useState(0);
+    const total = images.length;
 
-  const nextSlide = () => setCurrent((prev) => (prev + 1) % total);
-  const prevSlide = () => setCurrent((prev) => (prev - 1 + total) % total);
+    const nextSlide = () => setCurrent((prev) => (prev + 1) % total);
+    const prevSlide = () => setCurrent((prev) => (prev - 1 + total) % total);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      nextSlide();
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
+    useEffect(() => {
+        const interval = setInterval(() => {
+            nextSlide();
+        }, 5000);
+        return () => clearInterval(interval);
+    }, []);
 
-  return (
-    <div className="w-screen md:h-[75vh] h-[50vh] relative overflow-hidden bg-black flex items-center justify-center mt-[100px]">
-      <AnimatePresence mode="wait">
-        <motion.img
-          key={current}
-          src={images[current]}
-          alt={`Slide ${current + 1}`}
-          className="absolute w-full h-full object-cover object-center"
-          initial={{ opacity: 0, scale: 1.05 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0.8, scale: 1 }}
-          transition={{ duration: 0.8, ease: "easeInOut" }}
-        />
-      </AnimatePresence>
+    return (
+        <div className="w-screen lg:h-[75vh] sm:h-[50vh] h-[40vh] relative overflow-hidden bg-black flex items-center justify-center mt-[70px]">
+            <AnimatePresence mode="wait">
+                <motion.img
+                    key={current}
+                    src={images[current]}
+                    alt={`Slide ${current + 1}`}
+                    className="absolute w-full h-full object-cover object-center"
+                    initial={{ opacity: 0, scale: 1.05 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0.8, scale: 1 }}
+                    transition={{ duration: 0.8, ease: "easeInOut" }}
+                />
+            </AnimatePresence>
 
-      {/* Overlay with Text */}
-      <div className="absolute inset-0 bg-black/30">
-        <div className="flex items-center justify-start h-full">
-          <div className="text-white text-3xl xl:text-6xl md:text-5xl max-w-6xl font-semibold md:px-10 px-4">
+            {/* Overlay with Text */}
+            <div className="absolute inset-0 bg-black/30">
+                <div className="flex items-center justify-start h-full">
+                    <div className="text-white text-3xl xl:text-6xl md:text-5xl max-w-6xl font-semibold md:px-10 px-4">
+                        <motion.div
+                            className="banner-heading"
+                            initial={{ y: 100, opacity: 0 }}
+                            animate={{ y: 0, opacity: [1, 1, 1], scale: [1, 1.1, 1] }}
+                            transition={{ duration: 1, ease: "easeOut", times: [0, 0.5, 1] }}
+                        >
+                            Urban Wellness Rooted in Indian Wisdom
+                        </motion.div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Arrows + Slide Count */}
+            <div className="absolute left-4 md:left-auto md:right-10 md:bottom-12 bottom-2 md:top-1/2 md:-translate-y-1/2 flex md:flex-col items-center gap-6 text-white z-10">
+                <NormalArrowButton onClick={prevSlide} icon={FaChevronLeft} dir={1} />
+                <span className="text-sm font-medium">{`${current + 1} / ${total}`}</span>
+                <NormalArrowButton onClick={nextSlide} icon={FaChevronRight} dir={-1} />
+            </div>
+
+            {/* Sync Animation (bottom-left circle) */}
             <motion.div
-              className="banner-heading"
-              initial={{ y: 100, opacity: 0 }}
-              animate={{ y: 0, opacity: [1, 1, 1],  scale: [1, 1.1, 1] }}
-              transition={{ duration: 1, ease: "easeOut", times: [0, 0.5, 1] }}
+                className="absolute hidden md:block bottom-4 left-16 w-8 h-8 border-2 border-white rounded-full"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5, duration: 0.5 }}
             >
-              Urban Wellness Rooted in Indian Wisdom
+                <motion.div
+                    className="absolute -top-1/2 left-1/2 transform -translate-x-1/2 bg-white w-[1px] h-4"
+                    initial={{ height: 0, opacity: 1 }}
+                    animate={{ height: "100%", opacity: [1, 1, 0] }}
+                    transition={{
+                        duration: 1,
+                        times: [0, 0.8, 1],
+                        repeat: Infinity,
+                        repeatDelay: 2,
+                    }}
+                />
+
+                <motion.span
+                    className="absolute inset-0 bg-white rounded-full"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: [0, 1.5, 0], opacity: [0.8, 0.5, 0] }}
+                    transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        repeatDelay: 1.2,
+                        ease: "easeInOut"
+                    }}
+                />
             </motion.div>
-          </div>
         </div>
-      </div>
-
-      {/* Arrows + Slide Count */}
-      <div className="absolute left-4 md:left-auto md:right-10 md:bottom-12 bottom-2 md:top-1/2 md:-translate-y-1/2 flex md:flex-col items-center gap-6 text-white z-10">
-        <NormalArrowButton onClick={prevSlide} icon={FaChevronLeft} dir={1} />
-        <span className="text-sm font-medium">{`${current + 1} / ${total}`}</span>
-        <NormalArrowButton onClick={nextSlide} icon={FaChevronRight} dir={-1} />
-      </div>
-
-      {/* Sync Animation (bottom-left circle) */}
-      <motion.div
-        className="absolute hidden md:block bottom-4 left-16 w-8 h-8 border-2 border-white rounded-full"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.5, duration: 0.5 }}
-      >
-        <motion.div
-          className="absolute -top-1/2 left-1/2 transform -translate-x-1/2 bg-white w-[1px] h-4"
-          initial={{ height: 0, opacity: 1 }}
-          animate={{ height: "100%", opacity: [1, 1, 0] }}
-          transition={{
-            duration: 1,
-            times: [0, 0.8, 1],
-            repeat: Infinity,
-            repeatDelay: 2,
-          }}
-        />
-
-        <motion.span
-          className="absolute inset-0 bg-white rounded-full"
-          initial={{ scale: 0 }}
-          animate={{ scale: [0, 1.5, 0], opacity: [0.8, 0.5, 0] }}
-          transition={{
-            duration: 2,
-            repeat: Infinity,
-            repeatDelay: 1.2,
-            ease: "easeInOut"
-          }}
-        />
-      </motion.div>
-    </div>
-  );
+    );
 }

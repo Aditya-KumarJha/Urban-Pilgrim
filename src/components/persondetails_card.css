@@ -5,26 +5,26 @@
   border-radius: 0;
   background-color: transparent;
   overflow: hidden;
-  max-height: auto;
-  width: auto;            /* let width be driven by image */
+  /* max-height: 400px; */
+  width: auto;          
   max-width: 100%;
   margin-bottom: 2.5rem;  
   box-shadow: -46px 46px 27.5px 0px rgba(0, 0, 0, 0.25);
-  
 }
 .imgdiv img {
-  height: auto;
-  max-width: 20rem;
-  object-fit: cover;
+  height: 400px;
+  max-width: 15rem;
+  object-fit: contain;
   object-position: center;
 }
+
 .data_container {
   position: absolute;
-  bottom: 0;
+  bottom: -10px;
   right: 0;
   background-color: #2f6288;
   color: rgb(255, 255, 255);
-  min-height: 33%;
+  min-height: 30%;
   width: 90%;
   display: flex;
   align-items: center;
@@ -48,7 +48,7 @@
   font-family: 'Poppins', sans-serif;
   font-size: clamp(12px, 3vw, 15px);
   width: 100%;
-  text-align: left;;
+  text-align: left;
 }
 
 .pricediv {
@@ -69,12 +69,15 @@
 @media screen and (max-width: 768px) {
   .data_container {
     height: auto;
+    right: 0;
+    width: 90%;
   }
+
 }
 
 @media screen and (max-width: 480px) {
   .data_container {
-    width: 100%;
+    width: 90%;
   }
 
   .parrent {
