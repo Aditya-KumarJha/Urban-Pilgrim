@@ -1,11 +1,11 @@
 const PilgrimGuide = () => {
   return (
     <section className="bg-[#1F4B6E] text-white px-6 py-12 w-screen">
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-10 items-start">
+      <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-10 md:items-start items-center">
         <img
           src="/assets/Anisha.png"
           alt="Pilgrim Guide"
-          className="w-auto h-full rounded-lg shadow-lg object-cover"
+          className="w-auto md:h-full md:max-h-none max-h-90 rounded-lg shadow-lg object-cover"
         />
 
         <div className="text-sm leading-relaxed">

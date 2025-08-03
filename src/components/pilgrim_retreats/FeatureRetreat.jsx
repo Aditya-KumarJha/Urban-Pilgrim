@@ -35,7 +35,7 @@ const features = [
 
 export default function FeatureRetreat() {
   return (
-    <div className="max-w-6xl mx-auto px-6 py-12">
+    <div className="max-w-7xl mx-auto md:px-6 md:py-12 py-8">
       <h2 className="text-2xl font-bold text-center mb-8">Features</h2>
       <div className="grid md:grid-cols-3 sm:grid-cols-2 gap-6">
         {features.map((item, idx) => (

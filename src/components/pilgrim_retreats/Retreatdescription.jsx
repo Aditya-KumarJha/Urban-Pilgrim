@@ -13,9 +13,9 @@ import Faqs from "../Faqs";
 export default function Retreatdescription() {
   return (
     <>
-    <div className="max-w-7xl mx-auto p-6 bg-gradient-to-b from-[#FAF4F0] to-white rounded-2xl shadow-lg grid gap-6 mt-[100px] px-4">
+    <div className="max-w-7xl mx-auto p-6 bg-gradient-to-b from-[#FAF4F0] to-white rounded-2xl shadow-lg grid gap-6 md:mt-[100px] mt-[80px] px-4">
       <div className="space-y-4">
-        <h2 className="text-2xl font-bold">
+        <h2 className="md:text-2xl font-bold text-xl">
           Rejuvenate in the Himalayas - Immerse in nature & local culture at Kasol (3N4D)
         </h2>
         <ImageGallery />
@@ -28,7 +28,7 @@ export default function Retreatdescription() {
           </div>
 
           <div className="flex items-center gap-2">
-            <FaMapMarkerAlt className="text-orange-500" />
+            <FaMapMarkerAlt className="text-[#C5703F]" />
             <span className="flex gap-6 text-sm">Bhubaneswar, Odisha <span className="flex items-center text-sm text-gray-500">
                 <span className="flex justify-center items-center bg-green-500 rounded-full h-4 w-4 mr-1">
                     <TiTick className="text-white text-xs" />
@@ -40,17 +40,17 @@ export default function Retreatdescription() {
           </div>
 
           <div className="flex items-center gap-2">
-            <FaCalendarAlt className="text-orange-500" />
+            <FaCalendarAlt className="text-[#C5703F]" />
             <span className="text-sm">Date Options: 17th August 2025</span>
           </div>
 
           <div className="flex items-center gap-2">
-            <FaUser className="text-orange-500" />
+            <FaUser className="text-[#C5703F]" />
             <span className="text-sm">Occupancy: Single</span>
           </div>
 
           <div className="flex items-center gap-2">
-            <FaUsers className="text-orange-500" />
+            <FaUsers className="text-[#C5703F]" />
             <span className="text-sm">No. of persons/session: 1</span>
           </div>
         </div>
@@ -59,10 +59,10 @@ export default function Retreatdescription() {
             <Button btn_name={"Book Now"} />
         </div>
 
-        <div className="flex w-full mx-auto bg-white rounded-2xl shadow-md overflow-hidden mt-[100px]">
+        <div className="flex md:flex-row flex-col w-full mx-auto bg-white rounded-2xl shadow-md overflow-hidden mt-[100px]">
             {/* Left: Weather Info */}
-            <div className="bg-[#396E94] text-white p-6 max-w-7xl w-full mx-auto flex flex-col justify-center rounded-l-2xl">
-                <FaSnowflake className="text-7xl mb-4" />
+            <div className="bg-[#396E94] text-white p-6 max-w-7xl w-full mx-auto flex flex-col justify-center md:rounded-l-2xl rounded-t-2xl md:rounded-tr-none">
+                <FaSnowflake className="md:text-7xl text-4xl mb-4" />
                 <h3 className="text-xl font-semibold">Bhubaneswar Weather Forecast</h3>
                 <p className="mt-2 text-sm">
                 14–17 August 2025 | Average: 28°C (82°F) | Mostly sunny with occasional showers
@@ -97,7 +97,7 @@ export default function Retreatdescription() {
         <Faqs />
       </div>
     </div>
-        <PilgrimGuide />
+    <PilgrimGuide />
     <div className="max-w-7xl mx-auto p-6 bg-white rounded-2xl grid gap-6 px-4">
         <h2 className="text-3xl text-[#2F6288] font-bold mb-6">
           You May Also Like

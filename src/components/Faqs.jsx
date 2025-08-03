@@ -31,7 +31,7 @@ function Faqs () {
   };
 
   return (
-    <section className="px-4" id='faq'>
+    <section id='faq'>
       <div className="max-w-7xl mx-auto">
 
         {/* FAQ Items */}
@@ -44,23 +44,19 @@ function Faqs () {
           {faqs.map((faq) => (
             <div
               key={faq.id}
-              className="bg-[#FFFFFF99] rounded-md border border-[#D9E8EE] overflow-hidden transition-all duration-300"
+              className="bg-[#FFFFFF99] rounded-md border-b border-[#D9E8EE] overflow-hidden transition-all duration-300"
             >
               <button
                 onClick={() => toggleFaq(faq.id)}
-                className="w-full px-6 py-4 text-left transition-all duration-200"
+                className="w-full py-4 text-left transition-all duration-200"
               >
                 <div className="flex items-center justify-between">
-                  {/* <p className="text-xl font-semibold text-gray-900 pr-4">
-                    {faq.id}
+                  <p className="text-sm font-semibold text-gray-900 pr-4 flex items-center gap-2">
+                    <span className="flex items-center justify-center w-8 aspect-square rounded-full bg-[#004B6E] text-white text-sm font-bold whitespace-nowrap">
+                      {faq.id}
+                    </span>
                     {faq.question}
-                  </p> */}
-                  <p className="text-xl font-semibold text-gray-900 pr-4 flex items-center gap-2">
-  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#004B6E] text-white text-sm font-bold">
-    {faq.id}
-  </span>
-  {faq.question}
-</p>
+                  </p>
 
                   <div className="flex-shrink-0">
                     <div className="w-8 h-8 rounded-full flex items-center justify-center transition-transform duration-300">
