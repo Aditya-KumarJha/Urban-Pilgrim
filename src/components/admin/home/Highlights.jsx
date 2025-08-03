@@ -120,13 +120,13 @@ export default function Highlights() {
   };
 
   return (
-    <div className="p-8 mx-auto">
+    <div className="md:p-8 px-4 py-0 mx-auto">
       {/* Upload & Form */}
-      <h2 className="text-3xl text-[#2F6288] font-bold mb-6">
-        Highlights <span className="bg-[#2F6288] mt-4 max-w-xs h-1 block"></span>
+      <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl">
+        Highlights <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
       </h2>
       <div className="mb-6">
-        <h3 className="text-lg font-semibold mb-3">Highlight Title</h3>
+        <h3 className="text-md font-semibold text-gray-700 mb-2">Highlight Title</h3>
         <input
           type="text"
           placeholder="Enter Highlight title"
@@ -134,7 +134,7 @@ export default function Highlights() {
           onChange={(e) => setTitle(e.target.value)}
           className="w-full border p-2 rounded mb-3"
         />
-        <h3 className="text-lg font-semibold mb-3">Highlight Description</h3>
+        <h3 className="text-md font-semibold text-gray-700 mb-2">Highlight Description</h3>
         <input
           type="textarea"
           rows="4"
@@ -143,7 +143,7 @@ export default function Highlights() {
           onChange={(e) => setDescription(e.target.value)}
           className="w-full border p-2 rounded mb-3"
         />
-        <h3 className="text-lg font-semibold mb-3">Add Image</h3>
+        <h3 className="text-md font-semibold text-gray-700 mb-2">Add Image</h3>
         <div
           {...getRootProps()}
           className="border-2 border-dashed border-gray-300 h-40 rounded mb-4 flex items-center justify-center cursor-pointer hover:bg-gray-50"
@@ -169,7 +169,7 @@ export default function Highlights() {
       </div>
 
       {/* Highlight List */}
-      <h3 className="text-lg font-semibold mb-3">Current Highlights</h3>
+      <h3 className="text-md font-semibold text-gray-700 mb-2">Current Highlights</h3>
       <DndProvider backend={HTML5Backend}>
         {highlights.map((highlight, index) => (
           <HighlightItem

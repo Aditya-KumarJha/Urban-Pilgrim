@@ -6,47 +6,48 @@ const initialData = [
   {
     id: "#PR-1001",
     email: "user1@example.com",
-    mode: "Online",
+    retreat: "Rejuvenate in the Himalayas",
+    occupancy: "Twin",
     persons: 1,
     date: "2023-11-15",
-    location: "-",
   },
   {
     id: "#PR-1002",
-    email: "user2@example.com",
-    mode: "Offline",
+    email: "user1@example.com",
+    retreat: "Reflect & Reboot by the Ganges",
+    occupancy: "Single",
     persons: 2,
     date: "2023-11-15",
-    location: "Address: 123 Temple Road, Location: Varanasi, UP",
   },
   {
     id: "#PR-1003",
-    email: "user3@example.com",
-    mode: "Online",
-    persons: 3,
+    email: "user1@example.com",
+    retreat: "Reflect & Reboot by the Ganges",
+    occupancy: "Twin",
+    persons: 6,
     date: "2023-11-15",
-    location: "-",
   },
   {
     id: "#PR-1004",
-    email: "user4@example.com",
-    mode: "Offline",
-    persons: 5,
+    email: "user2@example.com",
+    retreat: "Reflect & Reboot by the Ganges",
+    occupancy: "Single",
+    persons: 9,
     date: "2023-11-15",
-    location: "Address: 123 Temple Road, Location: Varanasi, UP",
   },
   {
     id: "#PR-1005",
-    email: "user5@example.com",
-    mode: "Online",
+    email: "user1@example.com",
+    retreat: "Reflect & Reboot by the Ganges",
+    occupancy: "Single",
     persons: 1,
     date: "2023-11-15",
-    location: "-",
   },
 ];
 
-export default function GuideBookingsTable() {
-  const [filter, setFilter] = useState("All");
+export default function RetreatBookingTable() {
+  const [filter, setFilter] = useState("All Bookings");
+  const [occupancyFilter, setOccupancyFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -54,35 +55,118 @@ export default function GuideBookingsTable() {
 
   const filtered = bookings.filter((b) => {
     const matchesSearch = b.email.toLowerCase().includes(search.toLowerCase());
-    const matchesMode = filter === "All" || b.mode === filter;
+    const matchesOccupancy = occupancyFilter === "All" || b.occupancy === occupancyFilter;
 
     const bookingTime = new Date(b.date).getTime();
-    let matchesDateRange = true;
-    if (startDate) matchesDateRange = matchesDateRange && bookingTime >= new Date(startDate).getTime();
-    if (endDate) matchesDateRange = matchesDateRange && bookingTime <= new Date(endDate).getTime();
+    const now = Date.now();
 
-    return matchesSearch && matchesMode && matchesDateRange;
+    let matchesFilter = true;
+    if (filter === "Upcoming") {
+      matchesFilter = bookingTime >= now;
+    } else if (filter === "Past") {
+      matchesFilter = bookingTime < now;
+    }
+
+    let matchesDateRange = true;
+    if (startDate) {
+      const startTime = new Date(startDate).getTime();
+      matchesDateRange = matchesDateRange && bookingTime >= startTime;
+    }
+    if (endDate) {
+      const endTime = new Date(endDate).getTime();
+      matchesDateRange = matchesDateRange && bookingTime <= endTime;
+    }
+
+    return matchesSearch && matchesOccupancy && matchesFilter && matchesDateRange;
   });
 
   return (
     <div className="p-4 md:p-6">
       <h2 className="text-xl md:text-2xl font-bold text-[#2F6288] mb-4">
-        Pilgrim Guide Bookings <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
+        Pilgrim Retreats Bookings <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
       </h2>
 
       {/* Filters */}
+      {/* <div className="flex flex-col md:flex-row md:items-center gap-3 mb-4">
+        <label className="text-nowrap text-sm flex flex-col md:flex-row md:items-center gap-2 w-full md:w-auto">
+          Filter by:
+          <select
+            className="border p-2 rounded w-full md:w-auto"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+          >
+            <option>All Bookings</option>
+            <option>Upcoming</option>
+            <option>Past</option>
+          </select>
+        </label>
+
+        <label className="text-nowrap text-sm flex flex-col md:flex-row md:items-center gap-2 w-full md:w-auto">
+          Occupancy:
+          <select
+            className="border p-2 rounded w-full md:w-auto"
+            value={occupancyFilter}
+            onChange={(e) => setOccupancyFilter(e.target.value)}
+          >
+            <option>All</option>
+            <option>Single</option>
+            <option>Twin</option>
+          </select>
+        </label>
+
+        <label className="text-nowrap text-sm flex flex-col md:flex-row md:items-center gap-2 w-full">
+          Date range:
+          <div className="flex flex-wrap gap-2">
+            <input
+              type="date"
+              className="border p-2 rounded flex-1 min-w-[140px]"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+            <span className="self-center">to</span>
+            <input
+              type="date"
+              className="border p-2 rounded flex-1 min-w-[140px]"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+          </div>
+        </label>
+
+        <input
+          type="text"
+          placeholder="Search by email or name..."
+          className="border p-2 rounded flex-1 min-w-[220px]"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div> */}
+
       <div className="flex flex-col xl:flex-row gap-3 mb-4">
         <div className="flex flex-col md:flex-row gap-3 flex-shrink-0">
           <label className="text-sm flex flex-col md:flex-row md:items-center gap-2 text-nowrap">
-            Mode:
+            Filter by:
             <select
               className="border p-2 rounded w-full md:w-auto"
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
             >
+              <option>All Bookings</option>
+              <option>Upcoming</option>
+              <option>Past</option>
+            </select>
+          </label>
+
+          <label className="text-sm flex flex-col md:flex-row md:items-center gap-2 text-nowrap">
+            Occupancy:
+            <select
+              className="border p-2 rounded w-full md:w-auto"
+              value={occupancyFilter}
+              onChange={(e) => setOccupancyFilter(e.target.value)}
+            >
               <option>All</option>
-              <option>Online</option>
-              <option>Offline</option>
+              <option>Single</option>
+              <option>Twin</option>
             </select>
           </label>
 
@@ -105,7 +189,6 @@ export default function GuideBookingsTable() {
             </div>
           </label>
         </div>
-
         <div className="flex-1">
           <input
             type="text"
@@ -117,17 +200,18 @@ export default function GuideBookingsTable() {
         </div>
       </div>
 
+
       {/* Table for desktop */}
       <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-sm border rounded overflow-hidden">
-          <thead className="bg-[#E8F0F6] text-[#2F6288] text-left">
+          <thead className="bg-[#E8F0F6] text-[#2F6288] border-b text-left">
             <tr>
               <th className="p-2">Booking ID</th>
               <th className="p-2">User Email</th>
-              <th className="p-2">Mode</th>
-              <th className="p-2">Persons per Session</th>
+              <th className="p-2">Retreat</th>
+              <th className="p-2">Occupancy</th>
+              <th className="p-2">Persons</th>
               <th className="p-2">Booking Date</th>
-              <th className="p-2">Location Details</th>
               <th className="p-2">Actions</th>
             </tr>
           </thead>
@@ -138,24 +222,24 @@ export default function GuideBookingsTable() {
                 initial={{ opacity: 0, y: 5 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, delay: idx * 0.05 }}
-                className="bg-gray-50 border-b"
+                className="bg-gray-50 border-b hover:bg-gray-100"
               >
                 <td className="p-2">{booking.id}</td>
                 <td className="p-2">{booking.email}</td>
+                <td className="p-2">{booking.retreat}</td>
                 <td className="p-2">
                   <span
                     className={`text-xs font-medium px-2 py-1 rounded ${
-                      booking.mode === "Online"
+                      booking.occupancy === "Twin"
                         ? "bg-green-100 text-green-700"
-                        : "bg-blue-100 text-blue-700"
+                        : "bg-red-100 text-red-700"
                     }`}
                   >
-                    {booking.mode}
+                    {booking.occupancy}
                   </span>
                 </td>
                 <td className="p-2">{booking.persons}</td>
                 <td className="p-2">{booking.date}</td>
-                <td className="p-2">{booking.location}</td>
                 <td className="p-2 flex items-center gap-2">
                   <button className="text-blue-600 hover:text-blue-800">
                     <FaEye />
@@ -185,8 +269,6 @@ export default function GuideBookingsTable() {
           </tbody>
         </table>
       </div>
-
-      {/* Card view for mobile */}
       <div className="md:hidden space-y-4">
         {filtered.map((booking, idx) => (
           <motion.div
@@ -200,16 +282,16 @@ export default function GuideBookingsTable() {
               <p className="font-semibold">{booking.id}</p>
               <span
                 className={`text-xs font-medium px-2 py-1 rounded ${
-                  booking.mode === "Online"
+                  booking.occupancy === "Twin"
                     ? "bg-green-100 text-green-700"
-                    : "bg-blue-100 text-blue-700"
+                    : "bg-red-100 text-red-700"
                 }`}
               >
-                {booking.mode}
+                {booking.occupancy}
               </span>
             </div>
             <p className="text-sm text-gray-600">{booking.email}</p>
-            <p className="mt-1 text-sm">{booking.location}</p>
+            <p className="mt-1 text-sm">{booking.retreat}</p>
             <p className="text-xs text-gray-500 mt-1">
               {booking.persons} persons | {booking.date}
             </p>

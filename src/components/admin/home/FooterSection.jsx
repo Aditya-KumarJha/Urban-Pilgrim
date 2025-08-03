@@ -49,9 +49,9 @@ function FooterSection() {
 
     return (
     <>
-    <div className="p-8 mx-auto">
-        <h2 className="text-3xl text-[#2F6288] font-bold mb-6">
-          Footer Section <span className="bg-[#2F6288] mt-4 max-w-xs h-1 block"></span>
+    <div className="md:p-8 px-4 py-0 mx-auto">
+        <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl">
+          Footer Section <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
         </h2>
 
         <label className="block font-semibold mb-1">Short Text</label>

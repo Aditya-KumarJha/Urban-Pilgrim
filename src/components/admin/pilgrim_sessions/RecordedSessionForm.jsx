@@ -325,13 +325,13 @@ export default function RecordedProgramForm() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="p-8 mx-auto" id="recorded">
+      <div className="md:p-8 px-4 py-0 mx-auto" id="recorded">
         
         {/* Recorded Program Card */}
         <div className="mb-8">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-[#2F6288]">
-              {isEditing ? "Edit Recorded Program Card" : "Recorded Program Card"}
+          <div className="flex justify-between items-center mb-0">
+            <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl">
+              {isEditing ? "Edit Recorded Program Card" : "Recorded Program Card"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
             </h2>
             {isEditing && (
               <button
@@ -344,7 +344,7 @@ export default function RecordedProgramForm() {
             )}
           </div>
           <div className="mb-6">
-            <h3 className="block text-sm font-semibold text-gray-700 mb-2">Add Thumbnail</h3>
+            <h3 className="block text-md font-semibold text-gray-700 mb-2">Add Thumbnail</h3>
             <div
                 className={`border-2 border-dashed h-40 rounded mb-4 flex items-center justify-center cursor-pointer transition-colors ${
                 dragActive ? 'border-[#2F6288] bg-[#2F6288]' : 'border-gray-300 hover:bg-gray-50'
@@ -391,25 +391,25 @@ export default function RecordedProgramForm() {
 
           {/* Title */}
           <div className="mb-4">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Title</label>
+            <label className="block text-md font-semibold text-gray-700 mb-2">Title</label>
             <input
               placeholder="Enter Title"
               value={formData.recordedProgramCard.title}
               onChange={(e) => handleFieldChange("recordedProgramCard", "title", e.target.value)}
-              className="w-full border p-3 rounded-lg"
+              className="text-sm w-full border p-3 rounded-lg"
             />
             {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title}</p>}
           </div>
 
           {/* Category Selection */}
           <div className="mb-4">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Select Category</label>
+            <label className="block text-md font-semibold text-gray-700 mb-2">Select Category</label>
             <div className="flex flex-wrap gap-3 mb-3">
               {categories.map((cat, index) => (
                 <button
                   key={index}
                   onClick={() => handleFieldChange("recordedProgramCard", "category", cat)}
-                  className={`px-4 py-2 rounded-full border transition-colors ${
+                  className={`text-sm px-4 py-2 rounded-full border transition-colors ${
                     formData.recordedProgramCard.category === cat
                       ? 'bg-[#2F6288] text-white border-[#2F6288]'
                       : 'bg-white text-gray-700 border-gray-300 hover:border-[#2F6288]'
@@ -420,9 +420,8 @@ export default function RecordedProgramForm() {
               ))}
               <button
                 onClick={addNewCategory}
-                className="px-4 py-2 rounded-full border border-gray-300 text-[#2F6288] hover:bg-[#2F6288] hover:text-white flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
+                className="text-sm px-4 py-2 rounded-full border border-gray-300 text-[#2F6288] hover:bg-[#2F6288] hover:text-white flex items-center gap-2"
+              >               
                 Add New Category
               </button>
             </div>
@@ -431,74 +430,74 @@ export default function RecordedProgramForm() {
 
           {/* Price */}
           <div className="mb-4">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Price</label>
+            <label className="block text-md font-semibold text-gray-700 mb-2">Price</label>
             <input
               placeholder="Enter Price"
               type="number"
               value={formData.recordedProgramCard.price}
               onChange={(e) => handleFieldChange("recordedProgramCard", "price", e.target.value)}
-              className="w-full border border-gray-300 p-3 rounded-lg "
+              className="text-sm w-full border border-gray-300 p-3 rounded-lg "
             />
             {errors.recordedPrice && <p className="text-red-500 text-sm mt-1">{errors.recordedPrice}</p>}
           </div>
 
           {/* Number of days */}
           <div className="mb-4">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Number of Days</label>
+            <label className="block text-md font-semibold text-gray-700 mb-2">Number of Days</label>
             <input
               placeholder="Enter Number"
               type="number"
               value={formData.recordedProgramCard.days}
               onChange={(e) => handleFieldChange("recordedProgramCard", "days", e.target.value)}
-              className="w-full border border-gray-300 p-3 rounded-lg "
+              className="text-sm w-full border border-gray-300 p-3 rounded-lg "
             />
             {errors.days && <p className="text-red-500 text-sm mt-1">{errors.days}</p>}
           </div>
 
           {/* Number of Videos */}
           <div className="mb-4">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Number of videos</label>
+            <label className="block text-md font-semibold text-gray-700 mb-2">Number of videos</label>
             <input
               placeholder="Enter Number"
               type="number"
               value={formData.recordedProgramCard.videos}
               onChange={(e) => handleFieldChange("recordedProgramCard", "videos", e.target.value)}
-              className="w-full border border-gray-300 p-3 rounded-lg "
+              className="text-sm w-full border border-gray-300 p-3 rounded-lg "
             />
             {errors.videos && <p className="text-red-500 text-sm mt-1">{errors.videos}</p>}
           </div>
 
           {/* Total Price */}
           <div className="mb-4">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Total Price</label>
+            <label className="block text-md font-semibold text-gray-700 mb-2">Total Price</label>
             <input
               placeholder="Enter Total Price"
               type="number"
               value={formData.recordedProgramCard.totalprice}
               onChange={(e) => handleFieldChange("recordedProgramCard", "totalprice", e.target.value)}
-              className="w-full border border-gray-300 p-3 rounded-lg "
+              className="text-sm w-full border border-gray-300 p-3 rounded-lg "
             />
             {errors.totalprice && <p className="text-red-500 text-sm mt-1">{errors.totalprice}</p>}
           </div>
 
           {/* Program Description */}
           <div className="mb-4">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Program Description</label>
+            <label className="block text-md font-semibold text-gray-700 mb-2">Program Description</label>
             <textarea
               placeholder="Enter Program Description"
               type="text"
               rows={4}
               value={formData.recordedProgramCard.description}
               onChange={(e) => handleFieldChange("recordedProgramCard", "description", e.target.value)}
-              className="w-full border border-gray-300 p-3 rounded-lg "
+              className="text-sm w-full border border-gray-300 p-3 rounded-lg "
             />
           </div>
         </div>
 
         {/* Program Schedule */}
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-[#2F6288] mb-6">
-            {isEditing ? "Edit Program Schedule" : "Program Schedule"}
+          <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+            {isEditing ? "Edit Program Schedule" : "Program Schedule"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
           </h2>
           <div className="space-y-4 relative">
             {formData.recordedProgramPrograms.map((schedule, i) => (
@@ -515,23 +514,23 @@ export default function RecordedProgramForm() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Day {i+1}</label>
+                  <label className="block text-md font-semibold text-gray-700 mb-2">Day {i+1}</label>
                   <input 
                     placeholder="Enter Title" 
                     value={schedule.title} 
                     onChange={(e) => handleScheduleChange(i, "title", e.target.value)} 
-                    className="w-full border border-gray-300 p-3 rounded-lg " 
+                    className="text-sm w-full border border-gray-300 p-3 rounded-lg " 
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                  <label className="block text-md font-semibold text-gray-700 mb-2">Description</label>
                   <textarea
                     placeholder="Enter Description"
                     rows={4}
                     value={schedule.description}
                     onChange={(e) => handleScheduleChange(i, "description", e.target.value)}
-                    className="w-full border border-gray-300 p-3 rounded-lg "
+                    className="text-sm w-full border border-gray-300 p-3 rounded-lg "
                   />
                 </div>
 
@@ -543,7 +542,6 @@ export default function RecordedProgramForm() {
               onClick={addProgramSchedule} 
               className="w-full px-4 py-3 bg-[#2F6288] text-white rounded-lg  transition-colors flex items-center justify-center gap-2"
             >
-              <Plus className="w-5 h-5" />
               Add New Program
             </button>
           </div>
@@ -551,8 +549,8 @@ export default function RecordedProgramForm() {
 
         {/* FAQS */}
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-[#2F6288] mb-6">
-            {isEditing ? "Edit FAQS" : "FAQS"}
+          <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+            {isEditing ? "Edit FAQS" : "FAQS"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
           </h2>
           <div className="relative space-y-4">
             {formData.faqs.map((faq, i) => (
@@ -569,23 +567,23 @@ export default function RecordedProgramForm() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">FAQ Title</label>
+                  <label className="block text-md font-semibold text-gray-700 mb-2">FAQ Title</label>
                   <input
                     placeholder="Enter FAQ Title"
                     value={faq.title}
                     onChange={(e) => handleFaqChange(i, "title", e.target.value)}
-                    className="w-full border border-gray-300 p-3 rounded-lg "
+                    className="text-sm w-full border border-gray-300 p-3 rounded-lg "
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                  <label className="block text-md font-semibold text-gray-700 mb-2">Description</label>
                   <textarea
                     rows={4}
                     placeholder="Enter FAQ Description"
                     value={faq.description}
                     onChange={(e) => handleFaqChange(i, "description", e.target.value)}
-                    className="w-full border border-gray-300 p-3 rounded-lg "
+                    className="text-sm w-full border border-gray-300 p-3 rounded-lg "
                   />
                 </div>
 
@@ -597,7 +595,7 @@ export default function RecordedProgramForm() {
               onClick={addFaq} 
               className="w-full px-4 py-3 bg-[#2F6288] text-white rounded-lg  transition-colors flex items-center justify-center gap-2"
             >
-              <Plus className="w-5 h-5" />
+              
               Add New FAQ
             </button>
           </div>
@@ -605,13 +603,12 @@ export default function RecordedProgramForm() {
 
         {/* Meet Your Pilgrim Guide */}
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-[#2F6288] mb-6">
-           Meet Your Pilgrim Guide
-          <span className="bg-[#2F6288] mt-4 max-w-xs h-1 block"></span>
+          <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+            {isEditing ? "Edit Meet Your Pilgrim Guide" : "Meet Your Pilgrim Guide"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
           </h2>
 
           <div className="mb-6 pt-4 relative flex flex-col space-y-4">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Add Photo</label>
+            <label className="block text-md font-semibold text-gray-700 mb-2">Add Photo</label>
             {formData.guide[0].image ? (
               <div className="relative inline-block mb-4">
                 <img
@@ -650,22 +647,22 @@ export default function RecordedProgramForm() {
               </div>
             )}
 
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Title</label>
+            <label className="block text-md font-semibold text-gray-700 mb-2">Title</label>
             <input
               type="text"
               value={formData.guide[0].title}
               placeholder="Enter title"
               onChange={(e) => handleGuideChange("title", e.target.value)}
-              className="w-full border border-gray-300 p-3 rounded-lg"
+              className="text-sm w-full border border-gray-300 p-3 rounded-lg"
             />
 
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+            <label className="block text-md font-semibold text-gray-700 mb-2">Description</label>
             <textarea
               rows={4}
               value={formData.guide[0].description}
               placeholder="Enter description"
               onChange={(e) => handleGuideChange("description", e.target.value)}
-              className="w-full border border-gray-300 p-3 rounded-lg"
+              className="text-sm w-full border border-gray-300 p-3 rounded-lg"
             />
           </div>
         </div>
@@ -673,7 +670,7 @@ export default function RecordedProgramForm() {
         {/* Current Recorded Sessions */}
         {formData.slides.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-[#2F6288] mb-6">Current Recorded Sessions</h2>
+            <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">Current Recorded Sessions <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span></h2>
             <DndProvider backend={HTML5Backend}>
               <div className="space-y-3">
                 {formData.slides.map((slide, index) => (
@@ -695,14 +692,14 @@ export default function RecordedProgramForm() {
         <div className="flex gap-4">
           <button 
             onClick={onSaveRecorded} 
-            className="flex p-4 bg-gradient-to-b from-[#C5703F] to-[#C16A00] text-white font-bold rounded-lg hover:bg-green-700 transition-colors text-lg"
+            className="text-sm flex p-4 bg-gradient-to-b from-[#C5703F] to-[#C16A00] text-white font-bold rounded-lg hover:bg-green-700 transition-colors"
           >
             {isEditing ? "Update Recorded Session" : "Add Recorded Session"}
           </button>
           {isEditing && (
             <button 
               onClick={cancelEdit}
-              className="px-8 py-4 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition-colors text-lg"
+              className="text-sm px-8 py-4 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition-colors"
             >
               Cancel
             </button>

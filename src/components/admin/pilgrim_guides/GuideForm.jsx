@@ -390,13 +390,13 @@ export default function GuideForm() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="p-8 mx-auto">
+      <div className="md:p-8 px-4 py-0 mx-auto">
         
-        {/* Live Session Card */}
+        {/* Guide Card */}
         <div className="mb-8">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-[#2F6288]">
-              {isEditing ? "Edit Pilgrim Guide" : "Add Pilgrim Guide"}
+          <div className="flex justify-between items-center mb-0">
+            <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl">
+              {isEditing ? "Edit Pilgrim Guide" : "Add Pilgrim Guide"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
             </h2>
             {isEditing && (
               <button
@@ -409,7 +409,7 @@ export default function GuideForm() {
             )}
           </div>
           <div className="mb-6">
-            <h3 className="block text-sm font-semibold text-gray-700 mb-2">Add Thumbnail</h3>
+            <h3 className="block text-md font-semibold text-gray-700 mb-2">Add Thumbnail</h3>
             <div
                 className={`border-2 border-dashed h-40 rounded mb-4 flex items-center justify-center cursor-pointer transition-colors ${
                 dragActive ? 'border-[#2F6288] bg-[#2F6288]' : 'border-gray-300 hover:bg-gray-50'
@@ -437,10 +437,10 @@ export default function GuideForm() {
                     </button>
                 </div>
                 ) : (
-                <div className="text-center text-gray-500 flex flex-col items-center">
+                <div className="text-center text-sm text-gray-500 flex flex-col items-center">
                     <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-12 h-12 mb-2" />
                     <p>{dragActive ? "Drop here..." : "Click to upload or drag and drop"}</p>
-                    <p className="text-sm text-gray-400">Size: (487×387)px</p>
+                    <p className="text-gray-400">Size: (487×387)px</p>
                 </div>
                 )}
                 <input 
@@ -456,25 +456,25 @@ export default function GuideForm() {
 
           {/* Title */}
           <div className="mb-4">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Title</label>
+            <label className="block text-md font-semibold text-gray-700 mb-2">Title</label>
             <input
               placeholder="Enter Title"
               value={formData.guideCard.title}
               onChange={(e) => handleFieldChange("guideCard", "title", e.target.value)}
-              className="w-full border p-3 rounded-lg"
+              className="text-sm w-full border p-3 rounded-lg"
             />
             {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title}</p>}
           </div>
 
           {/* Category Selection */}
           <div className="mb-4">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Select Category</label>
+            <label className="block text-md font-semibold text-gray-700 mb-2">Select Category</label>
             <div className="flex flex-wrap gap-3 mb-3">
               {categories.map((cat, index) => (
                 <button
                   key={index}
                   onClick={() => handleFieldChange("guideCard", "category", cat)}
-                  className={`px-4 py-2 rounded-full border transition-colors ${
+                  className={`text-sm px-4 py-2 rounded-full border transition-colors ${
                     formData.guideCard.category === cat
                       ? 'bg-[#2F6288] text-white border-[#2F6288]'
                       : 'bg-white text-gray-700 border-gray-300 hover:border-[#2F6288]'
@@ -485,7 +485,7 @@ export default function GuideForm() {
               ))}
               <button
                 onClick={addNewCategory}
-                className="px-4 py-2 rounded-full border border-gray-300 text-[#2F6288] hover:bg-[#2F6288] hover:text-white flex items-center gap-2"
+                className="text-sm px-4 py-2 rounded-full border border-gray-300 text-[#2F6288] hover:bg-[#2F6288] hover:text-white flex items-center gap-2"
               >
                 <Plus className="w-4 h-4" />
                 Add New Category
@@ -496,13 +496,13 @@ export default function GuideForm() {
 
           {/* Sub-Category Selection */}
           <div className="mb-4">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Select Sub-Category</label>
+            <label className="block text-md font-semibold text-gray-700 mb-2">Select Sub-Category</label>
             <div className="flex flex-wrap gap-3 mb-3">
               {subCategories.map((subCat, index) => (
                 <button
                   key={index}
                   onClick={() => handleFieldChange("guideCard", "subCategory", subCat)}
-                  className={`px-4 py-2 rounded-full border transition-colors ${
+                  className={`text-sm px-4 py-2 rounded-full border transition-colors ${
                     formData.guideCard.subCategory === subCat
                       ? 'bg-[#2F6288] text-white border-[#2F6288]'
                       : 'bg-white text-gray-700 border-gray-300 hover:border-[#2F6288]'
@@ -513,7 +513,7 @@ export default function GuideForm() {
               ))}
               <button
                 onClick={addNewSubCategory}
-                className="px-4 py-2 rounded-full border border-gray-300 text-[#2F6288] hover:bg-[#2F6288] hover:text-white flex items-center gap-2"
+                className="text-sm px-4 py-2 rounded-full border border-gray-300 text-[#2F6288] hover:bg-[#2F6288] hover:text-white flex items-center gap-2"
               >
                 <Plus className="w-4 h-4" />
                 Add New Category
@@ -523,13 +523,13 @@ export default function GuideForm() {
 
           {/* Price */}
           <div className="mb-4">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Price</label>
+            <label className="block text-md font-semibold text-gray-700 mb-2">Price</label>
             <input
               placeholder="Enter Price"
               type="number"
               value={formData.guideCard.price}
               onChange={(e) => handleFieldChange("guideCard", "price", e.target.value)}
-              className="w-full border border-gray-300 p-3 rounded-lg "
+              className="text-sm w-full border border-gray-300 p-3 rounded-lg "
             />
             {errors.guidePrice && <p className="text-red-500 text-sm mt-1">{errors.guidePrice}</p>}
           </div>
@@ -538,7 +538,7 @@ export default function GuideForm() {
           <div className="mb-4">
             <label 
                 htmlFor="guide-session-date" 
-                className="block text-sm font-semibold text-gray-700 mb-2"
+                className="block text-md font-semibold text-gray-700 mb-2"
             >
                 Occupany
             </label>
@@ -552,7 +552,7 @@ export default function GuideForm() {
                     onChange={(e) =>
                     handleFieldChange("guideCard", "occupancy", e.target.value)
                     }
-                    className={`w-full border border-gray-300 p-3 rounded-lg pr-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer ${
+                    className={`text-sm w-full border border-gray-300 p-3 rounded-lg pr-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer ${
                     !formData.guideCard.occupancy ? 'text-transparent' : 'text-black'
                     }`}
                     aria-describedby="date-help-text"
@@ -585,41 +585,41 @@ export default function GuideForm() {
 
         {/* Monthly Subscription */}
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-[#2F6288] mb-6">
-            {isEditing ? "Edit Monthly Subscription" : "Monthly Subscription"}
+          <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+            {isEditing ? "Edit Monthly Subscription" : "Monthly Subscription"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
           </h2>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Monthly Subscription Price</label>
+              <label className="block text-md font-semibold text-gray-700 mb-2">Monthly Subscription Price</label>
               <input
                 placeholder="Enter Price"
                 type="number"
                 value={formData.monthlySubscription.price}
                 onChange={(e) => handleFieldChange("monthlySubscription", "price", e.target.value)}
-                className="w-full border border-gray-300 p-3 rounded-lg "
+                className="text-sm w-full border border-gray-300 p-3 rounded-lg "
               />
               {errors.monthlyPrice && <p className="text-red-500 text-sm mt-1">{errors.monthlyPrice}</p>}
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Monthly Subscription Discount</label>
+              <label className="block text-md font-semibold text-gray-700 mb-2">Monthly Subscription Discount</label>
               <input
                 type="number"
                 placeholder="Enter Discount Percentage"
                 value={formData.monthlySubscription.discount}
                 onChange={(e) => handleFieldChange("monthlySubscription", "discount", e.target.value)}
-                className="w-full border border-gray-300 p-3 rounded-lg "
+                className="text-sm w-full border border-gray-300 p-3 rounded-lg "
               />
               {errors.monthlyDiscount && <p className="text-red-500 text-sm mt-1">{errors.monthlyDiscount}</p>}
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Monthly Subscription Description</label>
+              <label className="block text-md font-semibold text-gray-700 mb-2">Monthly Subscription Description</label>
               <textarea
                 placeholder="Enter Description"
                 value={formData.monthlySubscription.description}
                 onChange={(e) => handleFieldChange("monthlySubscription", "description", e.target.value)}
-                className="w-full border border-gray-300 p-3 rounded-lg  h-24 resize-none"
+                className="text-sm w-full border border-gray-300 p-3 rounded-lg  h-24 resize-none"
               />
             </div>
           </div>
@@ -627,16 +627,16 @@ export default function GuideForm() {
 
         {/* One Time Purchase */}
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-[#2F6288] mb-6">
-            {isEditing ? "Edit One Time Purchase" : "One Time Purchase"}
+          <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+            {isEditing ? "Edit One Time Purchase" : "One Time Purchase"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
           </h2>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">One TIme Purchase Per Month Price</label>
+            <label className="block text-md font-semibold text-gray-700 mb-2">One TIme Purchase Per Month Price</label>
             <input
               placeholder="Enter Price"
               value={formData.oneTimePurchase.price}
               onChange={(e) => handleFieldChange("oneTimePurchase", "price", e.target.value)}
-              className="w-full border border-gray-300 p-3 rounded-lg "
+              className="text-sm w-full border border-gray-300 p-3 rounded-lg "
             />
             {errors.oneTimePrice && <p className="text-red-500 text-sm mt-1">{errors.oneTimePrice}</p>}
           </div>
@@ -644,16 +644,16 @@ export default function GuideForm() {
 
         {/* Session Description */}
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-[#2F6288] mb-6">
-            {isEditing ? "Edit Session" : "Session"}
+          <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+            {isEditing ? "Edit Session" : "Session"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
           </h2>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Session Description</label>
+            <label className="block text-md font-semibold text-gray-700 mb-2">Session Description</label>
             <textarea
               placeholder="Enter Description"
               value={formData.session.sessiondescription}
               onChange={(e) => handleFieldChange("session", "sessiondescription", e.target.value)}
-              className="w-full border border-gray-300 p-3 rounded-lg  h-32 resize-none"
+              className="text-sm w-full border border-gray-300 p-3 rounded-lg  h-32 resize-none"
             />
           </div>
 
@@ -719,29 +719,29 @@ export default function GuideForm() {
 
             <div className="mb-6 space-y-4">    
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Title</label>
+              <label className="block text-md font-semibold text-gray-700 mb-2">Title</label>
               <input
                 type="text"
                 placeholder="Enter Title"
                 value={formData.session.title}
                 onChange={(e) => handleFieldChange("session", "title", e.target.value)}
-                className="w-full border border-gray-300 p-3 rounded-lg "
+                className="text-sm w-full border border-gray-300 p-3 rounded-lg "
               />
               {errors.monthlyDiscount && <p className="text-red-500 text-sm mt-1">{errors.monthlyDiscount}</p>}
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+              <label className="block text-md font-semibold text-gray-700 mb-2">Description</label>
               <textarea
                 placeholder="Enter Description"
                 value={formData.session.description}
                 onChange={(e) => handleFieldChange("session", "description", e.target.value)}
-                className="w-full border border-gray-300 p-3 rounded-lg  h-24 resize-none"
+                className="text-sm w-full border border-gray-300 p-3 rounded-lg  h-24 resize-none"
               />
             </div>
 
             <div>
-            <h3 className="block text-sm font-semibold text-gray-700 mb-2">Free Trial Video Upload</h3>
+            <h3 className="block text-md font-semibold text-gray-700 mb-2">Free Trial Video Upload</h3>
             <div
                 className={`border-2 border-dashed h-40 rounded mb-4 flex items-center justify-center cursor-pointer transition-colors ${
                 dragActive ? 'border-[#2F6288] bg-[#2F6288]/10' : 'border-gray-300 hover:bg-gray-50'
@@ -787,16 +787,16 @@ export default function GuideForm() {
             </div>
         </div>
 
-        {/* Live Session Slots */}
+        {/* Guide Slots */}
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-[#2F6288] mb-6">
-            {isEditing ? "Edit Guide Slots" : "Guide Slots"}
+          <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+            {isEditing ? "Edit Guide Slots" : "Guide Slots"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
           </h2>
           <div className="space-y-4">
             {formData.guideSlots.map((slot, i) => (
               <div key={i} className="border border-gray-200 rounded-lg p-4 space-y-4">
                 <div className="flex justify-between items-center">
-                  <h3 className="font-semibold text-gray-700">Slot {i + 1}</h3>
+                  <p className="font-semibold text-gray-700">Slot {i + 1}</p>
                   {formData.guideSlots.length > 1 && (
                     <button 
                       onClick={() => removeSessionSlot(i)} 
@@ -807,32 +807,32 @@ export default function GuideForm() {
                   )}
                 </div>
 
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Prefered Date</label>
+                <label className="block text-md font-semibold text-gray-700 mb-2">Prefered Date</label>
                 
                 <input 
                   type="date" 
                   value={slot.date} 
                   onChange={(e) => handleSlotChange(i, "date", e.target.value)} 
-                  className="flex border border-gray-300 p-3 rounded-lg " 
+                  className="sm:flex block w-full border border-gray-300 p-3 rounded-lg " 
                 />
                 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Start Time</label>  
+                  <label className="block text-md font-semibold text-gray-700 mb-2">Start Time</label>  
                   <input 
                     type="time" 
                     value={slot.startTime} 
                     onChange={(e) => handleSlotChange(i, "startTime", e.target.value)} 
-                    className="w-full border border-gray-300 p-3 rounded-lg " 
+                    className="text-sm w-full border border-gray-300 p-3 rounded-lg " 
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">End Time</label>  
+                  <label className="block text-md font-semibold text-gray-700 mb-2">End Time</label>  
                   <input 
                     type="time" 
                     value={slot.endTime} 
                     onChange={(e) => handleSlotChange(i, "endTime", e.target.value)} 
-                    className="w-full border border-gray-300 p-3 rounded-lg " 
+                    className="text-sm w-full border border-gray-300 p-3 rounded-lg " 
                   />
                 </div>
                 </div>
@@ -843,9 +843,8 @@ export default function GuideForm() {
             
             <button 
               onClick={addSessionSlot} 
-              className="w-full px-4 py-3 bg-[#2F6288] text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+              className="text-sm w-full px-4 py-3 bg-[#2F6288] text-white rounded-lg transition-colors flex items-center justify-center gap-2"
             >
-              <Plus className="w-5 h-5" />
               Add New Slot
             </button>
           </div>
@@ -855,24 +854,24 @@ export default function GuideForm() {
         <div className="flex gap-4">
           <button 
             onClick={onSaveRetreat} 
-            className="flex p-4 bg-gradient-to-b from-[#C5703F] to-[#C16A00] text-white font-bold rounded-lg hover:bg-green-700 transition-colors text-lg"
+            className="text-sm flex p-4 bg-gradient-to-b from-[#C5703F] to-[#C16A00] text-white font-bold rounded-lg hover:bg-green-700 transition-colors"
           >
             {isEditing ? "Update Pilgrim Guide" : "Add Pilgrim Guide"}
           </button>
           {isEditing && (
             <button 
               onClick={cancelEdit}
-              className="px-8 py-4 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition-colors text-lg"
+              className="text-sm px-8 py-4 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition-colors"
             >
               Cancel
             </button>
           )}
         </div>
 
-        {/* Current Live Sessions */}
+        {/* Current Guides */}
         {formData.slides.length > 0 && (
           <div className="mt-8">
-            <h2 className="text-2xl font-bold text-[#2F6288] mb-6">Current Live Sessions</h2>
+            <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">Current Guides</h2>
             <DndProvider backend={HTML5Backend}>
               <div className="space-y-3">
                 {formData.slides.map((slide, index) => (
