@@ -1,3 +1,11 @@
+import GuideBookingsTable from "../../components/admin/pilgrim_guides/GuideBookingsTable";
+import GuideForm from "../../components/admin/pilgrim_guides/GuideForm";
+
 export default function Guides() {
-  return <div className="p-6 text-xl font-semibold">Pilgrim Guides Content</div>;
+  return(
+    <>
+      <GuideForm />
+      <GuideBookingsTable />
+    </>
+  )
 }
