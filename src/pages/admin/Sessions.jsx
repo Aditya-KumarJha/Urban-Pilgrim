@@ -1,3 +1,11 @@
+import LiveSessionForm from "../../components/admin/pilgrim_sessions/LiveSessions";
+import RecordedSessionForm from "../../components/admin/pilgrim_sessions/RecordedSessionForm";
+
 export default function Sessions() {
-  return <div className="p-6 text-xl font-semibold">Pilgrim Sessions Content</div>;
+  return (
+    <>
+      <LiveSessionForm />
+      <RecordedSessionForm />
+    </>
+  )
 }
