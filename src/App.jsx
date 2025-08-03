@@ -18,6 +18,7 @@ import SessionDescription from "./pages/session_slots/SessionDescription";
 import GuideClassDetails from "./components/pilgrim_guides/GuideClassDetails";
 import Retreatdescription from "./components/pilgrim_retreats/Retreatdescription";
 import Admin from "./pages/admin/Admin";
+import ProgramDetails from "./pages/program_details/ProgramDetails";
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -46,6 +47,7 @@ function App() {
             <Route path="/whoarewe" element={<WhoAreWe />} />
             <Route path="/cart" element={<CartPage />} />
             <Route path="/session/:sessionId/slots" element={<SessionSlots />} />
+            <Route path="/program/:programId/details" element={<ProgramDetails />} />
             <Route path="/session/:sessionId/slots/description" element={<SessionDescription />} />
             <Route path="/guide/:guideClassName" element={<GuideClassDetails />} />
             <Route path="/pilgrim_retreats/:retreatName" element={<Retreatdescription />} />

@@ -4,6 +4,7 @@ import { MdKeyboardArrowDown } from "react-icons/md";
 import SubscriptionPlans from "../../components/pilgrim_sessions/SubscriptionPlans";
 import LiveSessions from "../../components/pilgrim_sessions/LiveSessions";
 import Testimonials from "../../components/Testimonials";
+import RecordedPrograms from "../../components/pilgrim_sessions/RecordedPrograms";
 
 export default function Sessions() {
   return (
@@ -31,6 +32,7 @@ export default function Sessions() {
         </div> 
       </div>
       <LiveSessions />
+      <RecordedPrograms />
       <SubscriptionPlans />
       <Testimonials />
     </div>

@@ -1,8 +1,11 @@
+import { motion } from "framer-motion";
 export default function EventCard({ data }) {
   return (
-    <div className="max-w-sm rounded-2xl overflow-hidden bg-gradient-to-b from-[#FDF6F2] to-[#FCEFE6]" style={{
+    <motion.div className="max-w-sm rounded-2xl overflow-hidden bg-gradient-to-b from-[#FDF6F2] to-[#FCEFE6]" style={{
         boxShadow: "-21px 21px 25.7px 0 rgba(0, 0, 0, 0.25)"
-    }}>
+    }}
+    initial={{ y: 100, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} viewport={{ once: true, amount: 0.1 }}
+    >
       <img
         src={data.image}
         alt={data.title}
@@ -29,6 +32,6 @@ export default function EventCard({ data }) {
           From <span className="text-black font-semibold">Rs. {data.price}</span>
         </p>
       </div>
-    </div>
+    </motion.div>
   );
 }
