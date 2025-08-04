@@ -9,6 +9,7 @@ import PilgrimGuide from "./Pilgrim_Guide";
 import PersondetailsCard from "../../components/persondetails_card";
 import { motion } from "framer-motion";
 import Faqs from "../Faqs";
+import ProgramSchedule from "./ProgramSchedule";
 
 export default function Retreatdescription() {
   return (
@@ -57,6 +58,10 @@ export default function Retreatdescription() {
 
         <div className="flex justify-end items-end w-full gap-4 mt-6">
             <Button btn_name={"Book Now"} />
+        </div>
+        <div className="flex flex-col" >
+          <p className="text-lg font-semibold text-gray-800 mt-4">Program Schedule</p>
+          <ProgramSchedule />
         </div>
 
         <div className="flex md:flex-row flex-col w-full mx-auto bg-white rounded-2xl shadow-md overflow-hidden mt-[100px]">
