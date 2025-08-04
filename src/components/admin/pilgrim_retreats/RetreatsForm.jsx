@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { MdDragIndicator } from "react-icons/md";
@@ -82,7 +82,7 @@ export default function RetreatsForm() {
     },
     features: [],
     location: "",
-    programSchedule: [],
+    programSchedule: [],  // This will now be populated with objects that have title, description, and points array
     retreatDescription: [],
     faqs: [],
     meetGuide: {
@@ -134,7 +134,6 @@ export default function RetreatsForm() {
     handleFieldChange("pilgrimRetreatCard", "categories", categories);
   };
 
-  // Update the toggleCategory function to directly set the category
   const handleCategorySelect = (cat) => {
     handleFieldChange("pilgrimRetreatCard", "category", cat);
   };
@@ -181,7 +180,6 @@ export default function RetreatsForm() {
     handleFieldChange("session", "occupancies", updated);
   };
 
-  // Features Functions - Updated to match RecordedSessionForm.jsx approach
   const addFeature = () => {
     setFormData((prev) => ({
       ...prev,
@@ -217,13 +215,52 @@ export default function RetreatsForm() {
   const addProgram = () => {
     setFormData((prev) => ({
       ...prev,
-      programSchedule: [...prev.programSchedule, { title: "", description: "" }],
+      programSchedule: [...prev.programSchedule, { 
+        title: "", 
+        points: [{ title: "", subpoints: [] }] 
+      }],
     }));
   };
 
   const handleProgramChange = (index, field, value) => {
     const updated = [...formData.programSchedule];
     updated[index][field] = value;
+    setFormData((prev) => ({ ...prev, programSchedule: updated }));
+  };
+
+  const handleProgramPointChange = (programIndex, pointIndex, value) => {
+    const updated = [...formData.programSchedule];
+    updated[programIndex].points[pointIndex].title = value;
+    setFormData((prev) => ({ ...prev, programSchedule: updated }));
+  };
+
+  const handleProgramSubPointChange = (programIndex, pointIndex, subIndex, value) => {
+    const updated = [...formData.programSchedule];
+    updated[programIndex].points[pointIndex].subpoints[subIndex] = value;
+    setFormData((prev) => ({ ...prev, programSchedule: updated }));
+  };
+
+  const addProgramPoint = (programIndex) => {
+    const updated = [...formData.programSchedule];
+    updated[programIndex].points.push({ title: "", subpoints: [] });
+    setFormData((prev) => ({ ...prev, programSchedule: updated }));
+  };
+
+  const removeProgramPoint = (programIndex, pointIndex) => {
+    const updated = [...formData.programSchedule];
+    updated[programIndex].points.splice(pointIndex, 1);
+    setFormData((prev) => ({ ...prev, programSchedule: updated }));
+  };
+
+  const addProgramSubPoint = (programIndex, pointIndex) => {
+    const updated = [...formData.programSchedule];
+    updated[programIndex].points[pointIndex].subpoints.push("");
+    setFormData((prev) => ({ ...prev, programSchedule: updated }));
+  };
+
+  const removeProgramSubPoint = (programIndex, pointIndex, subIndex) => {
+    const updated = [...formData.programSchedule];
+    updated[programIndex].points[pointIndex].subpoints.splice(subIndex, 1);
     setFormData((prev) => ({ ...prev, programSchedule: updated }));
   };
 
@@ -429,7 +466,7 @@ export default function RetreatsForm() {
       },
       features: [],
       location: "",
-      programSchedule: [],
+      programSchedule: [],  // This will now be populated with objects that have title, description, and points array
       retreatDescription: [],
       faqs: [],
       meetGuide: {
@@ -455,13 +492,13 @@ export default function RetreatsForm() {
     <>
       {/* Pilgrim Retreat Card */}
       <div className="md:p-8 px-4 py-0 mx-auto">
-        <h2 className="text-3xl text-[#2F6288] font-bold mb-6">
+        <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-0">
           Pilgrim Retreat Card
-          <span className="bg-[#2F6288] mt-4 max-w-xs h-1 block"></span>
+          <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
         </h2>
 
         <div className="mb-4">
-          <h3 className="text-lg font-semibold mb-3">Add Thumbnail</h3>
+          <h3 className="block text-md font-semibold text-gray-700 mb-2">Add Thumbnail</h3>
           <div
             {...getCardImageRootProps()}
             className="border-2 border-dashed border-gray-300 h-52 w-full rounded-md flex items-center justify-center cursor-pointer text-center text-sm text-gray-500"
@@ -479,13 +516,13 @@ export default function RetreatsForm() {
           </div>
         </div>
 
-        <h3 className="text-lg font-semibold mb-3">Title</h3>
+        <h3 className="block text-md font-semibold text-gray-700 mb-2">Title</h3>
         <input
           type="text"
           placeholder="Enter Title"
           value={formData.pilgrimRetreatCard.title}
           onChange={(e) => handleFieldChange("pilgrimRetreatCard", "title", e.target.value)}
-          className="w-full border p-2 rounded mb-3"
+          className="text-sm w-full border p-3 rounded-lg mb-3"
         />
 
         {/* Category Selection - Updated to match LiveSessions.jsx */}
@@ -515,63 +552,63 @@ export default function RetreatsForm() {
           </div>
         </div>
 
-        <h3 className="text-lg font-semibold mb-3">Location</h3>
+        <h3 className="block text-md font-semibold text-gray-700 mb-2">Location</h3>
         <input
           type="text"
           placeholder="Enter Location"
           value={formData.pilgrimRetreatCard.location}
           onChange={(e) => handleFieldChange("pilgrimRetreatCard", "location", e.target.value)}
-          className="w-full border p-2 rounded mb-3"
+          className="text-sm w-full border p-3 rounded-lg mb-3"
         />
 
-        <h3 className="text-lg font-semibold mb-3">Price</h3>
+        <h3 className="block text-md font-semibold text-gray-700 mb-2">Price</h3>
         <input
           type="number"
           placeholder="Enter Price"
           value={formData.pilgrimRetreatCard.price}
           onChange={(e) => handleFieldChange("pilgrimRetreatCard", "price", e.target.value)}
-          className="w-full border p-2 rounded mb-3"
+          className="text-sm w-full border p-3 rounded-lg mb-3"
         />
       </div>
 
       {/* Monthly Subscription */}
       <div className="md:p-8 px-4 py-0 mx-auto">
-        <h2 className="text-3xl text-[#2F6288] font-bold mb-6">
-          Monthly Subscription <span className="bg-[#2F6288] mt-4 max-w-xs h-1 block"></span>
+        <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+          Monthly Subscription <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
         </h2>
 
-        <h3 className="text-lg font-semibold mb-3">Subscription Price</h3>
+        <h3 className="block text-md font-semibold text-gray-700 mb-2">Subscription Price</h3>
         <input
           type="number"
           placeholder="Enter Price"
           value={formData.monthlySubscription.price}
           onChange={(e) => handleFieldChange("monthlySubscription", "price", e.target.value)}
-          className="w-full border p-2 rounded mb-3"
+          className="text-sm w-full border p-3 rounded-lg mb-3"
         />
 
-        <h3 className="text-lg font-semibold mb-3">Discount</h3>
+        <h3 className="block text-md font-semibold text-gray-700 mb-2">Discount</h3>
         <input
           type="number"
           placeholder="Enter percentage"
           value={formData.monthlySubscription.discount}
           onChange={(e) => handleFieldChange("monthlySubscription", "discount", e.target.value)}
-          className="w-full border p-2 rounded mb-3"
+          className="text-sm w-full border p-3 rounded-lg mb-3"
         />
 
-        <h3 className="text-lg font-semibold mb-3">Description</h3>
+        <h3 className="block text-md font-semibold text-gray-700 mb-2">Description</h3>
         <textarea
           placeholder="Enter description"
           value={formData.monthlySubscription.description}
           onChange={(e) => handleFieldChange("monthlySubscription", "description", e.target.value)}
-          className="w-full border p-2 rounded mb-3"
+          className="text-sm w-full border p-3 rounded-lg mb-3"
           rows={3}
         />
       </div>
 
       {/* One Time Purchase */}
       <div className="md:p-8 px-4 py-0 mx-auto">
-        <h2 className="text-3xl text-[#2F6288] font-bold mb-6">
-          One Time Purchase<span className="bg-[#2F6288] mt-4 max-w-xs h-1 block"></span>
+        <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+          One Time Purchase<span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
         </h2>
 
         <label className="block font-semibold mb-1">Per Month Price</label>
@@ -580,7 +617,7 @@ export default function RetreatsForm() {
           placeholder="Enter Price"
           value={formData.oneTimePurchase.price}
           onChange={(e) => handleFieldChange("oneTimePurchase", "price", e.target.value)}
-          className="w-full border p-2 rounded mb-6"
+          className="text-sm w-full border p-3 rounded-lg mb-6"
         />
 
         <label className="block font-semibold mb-2">Add Images ( Maximum 5 Images )</label>
@@ -645,34 +682,34 @@ export default function RetreatsForm() {
       </div>
 
       {/* Session */}
-      <div className="p-8">
-        <h2 className="text-3xl text-[#2F6288] font-bold mb-6">
-          Session <span className="bg-[#2F6288] mt-4 max-w-xs h-1 block"></span>
+      <div className="md:p-8 px-4 py-0 mx-auto">
+        <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+          Session <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
         </h2>
 
-        <label className="block text-lg font-semibold mb-3">Session Description</label>
+        <label className="block text-md font-semibold text-gray-700 mb-2">Session Description</label>
         <textarea
           placeholder="Enter Description"
           rows="4"
           value={formData.session.description}
           onChange={(e) => handleFieldChange("session", "description", e.target.value)}
-          className="w-full border p-2 rounded mb-4"
+          className="text-sm w-full border p-3 rounded-lg mb-4"
         />
 
-        <label className="block text-lg font-semibold mb-3">Date Option</label>
+        <label className="block text-md font-semibold text-gray-700 mb-2">Date Option</label>
         {formData.session.dateOptions.map((option, index) => (
           <div key={index} className="flex gap-2 mb-2 items-center">
             <input
               type="date"
               value={option.start}
               onChange={(e) => updateDateOption(index, "start", e.target.value)}
-              className="w-full border p-2 rounded"
+              className="text-sm w-full border p-3 rounded-lg"
             />
             <input
               type="date"
               value={option.end}
               onChange={(e) => updateDateOption(index, "end", e.target.value)}
-              className="w-full border p-2 rounded"
+              className="text-sm w-full border p-3 rounded-lg"
             />
             {index === formData.session.dateOptions.length - 1 ? (
               <button onClick={addDateOption} type="button" className="border border-dashed px-2 py-1 rounded text-xl">+</button>
@@ -686,7 +723,7 @@ export default function RetreatsForm() {
           </div>
         ))}
 
-        <label className="block text-lg font-semibold mb-3 mt-4">Occupancy</label>
+        <label className="block text-md font-semibold text-gray-700 mb-2 mt-4">Occupancy</label>
         {formData.session.occupancies.map((occ, index) => (
           <div key={index} className="flex gap-2 mb-2 items-center">
             <input
@@ -694,7 +731,7 @@ export default function RetreatsForm() {
               value={occ}
               placeholder="Enter Occupancy"
               onChange={(e) => updateOccupancy(index, e.target.value)}
-              className="w-full border p-2 rounded"
+              className="text-sm w-full border p-3 rounded-lg"
             />
             {index === formData.session.occupancies.length - 1 ? (
               <button onClick={addOccupancy} type="button" className="border border-dashed px-2 py-1 rounded text-xl">+</button>
@@ -722,8 +759,8 @@ export default function RetreatsForm() {
         </div>
       </div>
       <div className="md:p-8 px-4 py-0 mx-auto">
-        <h2 className="text-3xl text-[#2F6288] font-bold mb-6">
-          Features<span className="bg-[#2F6288] mt-4 max-w-xs h-1 block"></span>
+        <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+          Features<span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
         </h2>
 
         <div className="space-y-6">
@@ -813,8 +850,8 @@ export default function RetreatsForm() {
 
       {/* Location */}
       <div className="md:p-8 px-4 py-0 mx-auto">
-        <h2 className="text-3xl text-[#2F6288] font-bold mb-6">
-          Location <span className="bg-[#2F6288] mt-4 max-w-xs h-1 block"></span>
+        <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+          Location <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
         </h2>
         <input
           type="text"
@@ -827,16 +864,16 @@ export default function RetreatsForm() {
 
 
       <div className="md:p-8 px-4 py-0 mx-auto">
-        <h2 className="text-3xl text-[#2F6288] font-bold mb-6">
+        <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
           Program Schedule
-          <span className="bg-[#2F6288] mt-4 max-w-xs h-1 block"></span>
+          <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
         </h2>
 
         <div className="space-y-6">
-          {formData.programSchedule.map((program, index) => (
-            <div key={index} className="p-6 bg-gray-50 rounded-lg border border-gray-200 relative">
+          {formData.programSchedule.map((program, programIndex) => (
+            <div key={programIndex} className="p-6 bg-gray-50 rounded-lg border border-gray-200 relative">
               <button
-                onClick={() => removeProgram(index)}
+                onClick={() => removeProgram(programIndex)}
                 className="absolute top-4 right-4 text-red-500 hover:text-red-700 p-1"
                 title="Delete Program"
               >
@@ -844,25 +881,90 @@ export default function RetreatsForm() {
               </button>
 
               <div className="mb-4">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Day {index + 1} Title</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Day {programIndex + 1} Title</label>
                 <input
                   type="text"
                   value={program.title}
                   placeholder="Enter title"
-                  onChange={(e) => handleProgramChange(index, "title", e.target.value)}
+                  onChange={(e) => handleProgramChange(programIndex, "title", e.target.value)}
                   className="w-full border border-gray-300 p-3 rounded-lg"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Description</label>
-                <textarea
-                  rows={4}
-                  value={program.description}
-                  placeholder="Enter description"
-                  onChange={(e) => handleProgramChange(index, "description", e.target.value)}
-                  className="w-full border border-gray-300 p-3 rounded-lg"
-                />
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Description Points</label>
+                
+                {program.points && program.points.map((point, pointIndex) => (
+                  <div key={pointIndex} className="mb-4 relative">
+                    <div className="mb-3">
+                      <label className="block text-sm text-gray-700 mb-2">Point {pointIndex + 1} Title</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={point.title}
+                          placeholder={`Point ${pointIndex + 1}`}
+                          onChange={(e) => handleProgramPointChange(programIndex, pointIndex, e.target.value)}
+                          className="w-full border border-gray-300 p-3 rounded-lg"
+                        />
+                        
+                        {program.points.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeProgramPoint(programIndex, pointIndex)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <FaTrash className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Sub Points Section */}
+                    <div>
+                      <div className="flex flex-col items-start justify-between">
+                        <label className="block text-sm text-gray-700 mb-2">Sub Points (Optional)</label>
+                      </div>
+                      
+                      {point.subpoints && point.subpoints.length > 0 && (
+                        <div className="space-y-3 mb-3">
+                          {point.subpoints.map((subpoint, subIndex) => (
+                            <div key={subIndex} className="flex items-center gap-2">
+                              <input
+                                type="text"
+                                value={subpoint}
+                                placeholder={`Sub Point ${subIndex + 1}`}
+                                onChange={(e) => handleProgramSubPointChange(programIndex, pointIndex, subIndex, e.target.value)}
+                                className="w-full border border-gray-300 p-3 rounded-lg"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeProgramSubPoint(programIndex, pointIndex, subIndex)}
+                                className="text-red-500 hover:text-red-700"
+                              >
+                                <FaTimes className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <button
+                          type="button"
+                          onClick={() => addProgramSubPoint(programIndex, pointIndex)}
+                          className="w-full px-4 py-3 bg-[#2F6288] text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                        >
+                          <FaPlus className="w-3 h-3" /> Add Sub Point
+                        </button>
+                    </div>
+                  </div>
+                ))}
+                
+                <button
+                  type="button"
+                  onClick={() => addProgramPoint(programIndex)}
+                  className="w-full px-4 py-3 bg-[#2F6288] text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  <FaPlus className="w-3 h-3" /> Add Point
+                </button>
               </div>
             </div>
           ))}
@@ -878,8 +980,8 @@ export default function RetreatsForm() {
       </div>
 
       <div className="md:p-8 px-4 py-0 mx-auto">
-        <h2 className="text-3xl text-[#2F6288] font-bold mb-6">
-          Retreat Description<span className="bg-[#2F6288] mt-4 max-w-xs h-1 block"></span>
+        <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+          Retreat Description<span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
         </h2>
 
         <div className="space-y-6">
@@ -1001,10 +1103,10 @@ export default function RetreatsForm() {
         </div>
 
       {/* Meet Guide */}
-      <div className="p-8 pb-0 mx-auto">
-        <h2 className="text-3xl text-[#2F6288] font-bold mb-6">
+      <div className="md:p-8 p-4 mx-auto">
+        <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
           Meet Your Pilgrim Guide
-          <span className="bg-[#2F6288] mt-4 max-w-xs h-1 block"></span>
+          <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
         </h2>
 
         <div className="mb-6 pt-4 relative">
