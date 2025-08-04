@@ -24,7 +24,7 @@ export default function EventCard({ data }) {
           ))}
         </div>
 
-        <h3 className="text-lg font-semibold text-[#1A1A1A]">
+        <h3 className="md:text-lg text-sm font-semibold text-[#1A1A1A]">
           {data.title}
         </h3>
 

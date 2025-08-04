@@ -15,6 +15,30 @@ export default function UpComing() {
         tags: ["Breathwork", "Silence"],
         price: "12,500.00",
     },
+    {
+        title: "The Return - A Sacred Immersion",
+        image: "https://picsum.photos/400/300",
+        tags: ["Yoga", "Meditation"],
+        price: "9,999.00",
+    },
+    {
+        title: "Inner Peace Retreat",
+        image: "https://picsum.photos/400/300?random=1",
+        tags: ["Breathwork", "Silence"],
+        price: "12,500.00",
+    },
+    {
+        title: "The Return - A Sacred Immersion",
+        image: "https://picsum.photos/400/300",
+        tags: ["Yoga", "Meditation"],
+        price: "9,999.00",
+    },
+    {
+        title: "Inner Peace Retreat",
+        image: "https://picsum.photos/400/300?random=1",
+        tags: ["Breathwork", "Silence"],
+        price: "12,500.00",
+    },
     ];
     return (
         <div className="content4">
@@ -24,10 +48,14 @@ export default function UpComing() {
                     <div className="text-sm">Find and book upcoming wellness events, workshops, and classes led by trusted Urban Pilgrim guides—happening near you and across soulful spaces</div>
                 </motion.div>
                 <ViewAll link="/upcoming_events" />
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 py-4 md:px-5 px-2.5">
-                    {events.map((event, index) => (
-                        <EventCard key={index} data={event} />
-                    ))}
+                <div className="relative -mx-10 ">
+                    <div className="flex py-4 pb-12 overflow-x-scroll overflow-y-hidden no-scrollbar whitespace-nowrap">
+                        {events.map((event, index) => (
+                            <div key={index} className="md:min-w-[448px] min-w-[300px] pl-10">
+                                <EventCard data={event} />
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
         </div>
