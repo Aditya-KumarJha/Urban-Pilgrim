@@ -4,6 +4,7 @@ import "./Home.css";
 import { useInView } from "react-intersection-observer";
 import Footer from "../../components/footer/index.jsx";
 import C3_container_data from "../../components/c3_container_data.jsx";
+import SEO from "../../components/SEO.jsx";
 import Program_Explorer from "../../components/ProgramExplorer.jsx";
 import PersondetailsCard from "../../components/persondetails_card.jsx";
 import C8_container_data from "../../components/c8_container_data.jsx";
@@ -73,6 +74,13 @@ function Home() {
 
     return (
         <div className="hero-section no-scrollbar">
+            <SEO 
+                title="Urban Pilgrim | Wellness Events, Retreats & Sessions"
+                description="Discover authentic wellness experiences with Urban Pilgrim. Book yoga, meditation, and holistic wellness sessions with trusted guides."
+                keywords="urban pilgrim, wellness, yoga, meditation, retreats, sessions, holistic wellness, Indian wisdom"
+                canonicalUrl="/"
+                ogImage="/public/assets/home_page_img.png"
+            />
             <HeroCarousel />
             <About />
             <UpComing />

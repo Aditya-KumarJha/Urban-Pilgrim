@@ -3,10 +3,18 @@ import CategorySelector from "../../components/pilgrim_retreats/CategorySelector
 import RetreatList from "../../components/pilgrim_retreats/RetreatList";
 import { MdKeyboardArrowDown } from "react-icons/md";
 import Testimonials from "../../components/Testimonials";
+import SEO from "../../components/SEO.jsx";
 
 export default function Retreats() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#FAF4F0] to-white mt-[100px]">
+      <SEO 
+        title="Pilgrim Retreats | Urban Pilgrim"
+        description="Immerse yourself in authentic retreat experiences with Urban Pilgrim. Find yoga, meditation, and wellness retreats across India."
+        keywords="wellness retreats, yoga retreat, meditation retreat, urban pilgrim retreats, holistic wellness getaways"
+        canonicalUrl="/pilgrim_retreats"
+        ogImage="/retreats.svg"
+      />
       <div className="relative w-full mb-10">
         <img
           src="/retreats.svg"

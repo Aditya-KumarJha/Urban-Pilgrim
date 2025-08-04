@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import EventCard from './EventCard';
 import ViewAll from '../ui/button/ViewAll';
+import SEO from '../SEO';
 export default function UpComing() {
     const events = [
     {
@@ -42,6 +43,14 @@ export default function UpComing() {
     ];
     return (
         <div className="content4">
+            <SEO 
+                title="Upcoming Wellness Events | Urban Pilgrim"
+                description="Find and book upcoming wellness events, workshops, and classes led by trusted Urban Pilgrim guides—happening near you and across soulful spaces"
+                keywords="wellness events, workshops, yoga, meditation, breathwork, silence retreats, urban pilgrim"
+                canonicalUrl="/upcoming_events"
+                ogImage="/public/assets/eventbg.svg"
+                ogType="website"
+            />
             <div className="c4container">
                 <motion.div className="c4top mb-4" initial={{ x: -200, opacity: 0 }} whileInView={{ x: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} viewport={{ once: true }}>
                     <div className="text-2xl md:text-3xl font-bold text-black"><strong>Upcoming Events</strong></div>

@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useLocation } from "react-router-dom";
 import ProgramSchedule from "../../components/pilgrim_retreats/ProgramSchedule";
 import Faqs from "../../components/Faqs";
 import PilgrimGuide from "../../components/pilgrim_retreats/Pilgrim_Guide";
+import SEO from "../../components/SEO.jsx";
 import PersondetailsCard from "../../components/persondetails_card";
 import FeatureProgram from "../../components/pilgrim_sessions/FeatureProgram";
 import ProgramImageGallery from "../../components/pilgrim_sessions/ProgramImageGallery";
@@ -11,12 +13,63 @@ import ProgramSection from "../../components/pilgrim_sessions/ProgramSection";
 
 export default function ProgramDetails() {
   const [persons, setPersons] = useState(1);
+  const location = useLocation();
+  const [programData, setProgramData] = useState({
+    title: "Discover your true self - A 28 day soul search journey with Rohini Singh Sisodia",
+    description: "Embark on a transformative 28-day journey with Rohini Singh Sisodia to discover your true self through meditation, yoga, and mindfulness practices.",
+    price: "74,999.00",
+    instructor: "Rohini Singh Sisodia",
+    duration: "28 days",
+    image: "/assets/Rohini_singh.png"
+  });
+
+  // In a real application, you would fetch the program details based on the URL parameter
+  useEffect(() => {
+    // Example of how you might extract a program ID from URL
+    const programId = new URLSearchParams(location.search).get('id');
+    
+    // In a real app, you would fetch program data here
+    // For now, we're using the hardcoded data above
+  }, [location]);
 
   const increment = () => setPersons(prev => prev + 1);
   const decrement = () => setPersons(prev => (prev > 1 ? prev - 1 : 1));
 
   return (
     <>
+      <SEO 
+        title={`${programData.title} | Urban Pilgrim`}
+        description={programData.description}
+        keywords={`${programData.instructor}, wellness program, ${programData.duration}, urban pilgrim, self-discovery, meditation, yoga`}
+        canonicalUrl={`/program_details?id=${encodeURIComponent(programData.title.toLowerCase().replace(/\s+/g, '-'))}`}
+        ogImage={programData.image}
+        ogType="product"
+      >
+        {/* Additional structured data for programs/products */}
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org/",
+            "@type": "Product",
+            "name": programData.title,
+            "description": programData.description,
+            "image": programData.image,
+            "offers": {
+              "@type": "Offer",
+              "priceCurrency": "INR",
+              "price": programData.price.replace(/,/g, ''),
+              "availability": "https://schema.org/InStock"
+            },
+            "brand": {
+              "@type": "Brand",
+              "name": "Urban Pilgrim"
+            },
+            "instructor": {
+              "@type": "Person",
+              "name": programData.instructor
+            }
+          })}
+        </script>
+      </SEO>
       <div className="max-w-7xl mx-auto p-6 bg-gradient-to-b from-[#FAF4F0] to-white rounded-2xl shadow-lg grid gap-6 md:mt-[100px] mt-[80px] px-4">
         <div className="space-y-4">
           <h2 className="md:text-2xl font-bold text-xl">
