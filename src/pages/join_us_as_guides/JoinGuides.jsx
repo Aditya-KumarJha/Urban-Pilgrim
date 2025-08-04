@@ -64,15 +64,15 @@ export default function JoinGuides() {
                 <h2 className="text-3xl text-[#2F6288] font-bold mb-6">
                 Onboarding Process <span className="bg-[#2F6288] mt-4 max-w-xs w-full h-1 block"></span>
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch md:max-h-[600px]">
-                    <div className="flex flex-col justify-between max-h-[600px]">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+                    <div className="flex flex-col justify-between gap-4">
                         <Steps steps={steps} />
                         <Button btn_name={"Join Us As Urban Pilgrim Guide"} />
                     </div>
                     <img
                         src="/assets/joinus/joinus.png"
                         alt="Join Us"
-                        className="w-full max-h-[600px] object-cover object-top rounded-lg mb-10 md:mb-0"
+                        className="lg:w-full w-auto object-cover object-top rounded-lg mb-10 md:mb-0 lg:max-h-[600px] max-h-[300px] aspect-auto"
                         style={{ boxShadow: "-20px 26px 25.7px rgba(0, 0, 0, 0.25)" }}
                     />
                 </div>
