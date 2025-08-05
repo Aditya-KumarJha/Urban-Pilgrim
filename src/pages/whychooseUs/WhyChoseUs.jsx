@@ -1,8 +1,16 @@
 import FeatureSection from "../../components/whyus/FeatureSection";
+import SEO from "../../components/SEO.jsx";
 
 export default function WhyUs() {
   return (
     <div className=" bg-gradient-to-b from-[#FAF4F0] to-white mt-[100px]">
+      <SEO 
+        title="Why Choose Urban Pilgrim | Our Unique Approach to Wellness"
+        description="Discover what sets Urban Pilgrim apart - authentic Indian wisdom, expert-verified programs, a trusted global community, and transparent reviews."
+        keywords="urban pilgrim benefits, authentic wellness, expert-verified programs, transparent reviews, wellness community"
+        canonicalUrl="/whychooseUs"
+        ogImage="/retreats.svg"
+      />
         <div className="relative w-full">
             <img
             src="/retreats.svg"

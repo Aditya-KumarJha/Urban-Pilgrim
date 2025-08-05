@@ -1,6 +1,7 @@
 import FilterBar from "../../components/pilgrim_guides/FilterBar";
 import CategorySelector from "../../components/pilgrim_guides/CategorySelector";
 import { MdKeyboardArrowDown } from "react-icons/md";
+import SEO from "../../components/SEO.jsx";
 import GuidesDemo from "../../components/pilgrim_guides/GuidesDemo";
 import WhyChooseUs from "../../components/pilgrim_guides/WhyChooseUs";
 import Testimonials from "../../components/Testimonials";
@@ -8,6 +9,13 @@ import Testimonials from "../../components/Testimonials";
 export default function Guides() {
   return (
     <>
+    <SEO 
+      title="Pilgrim Guides | Expert Wellness Instructors | Urban Pilgrim"
+      description="Find experienced wellness guides and instructors for yoga, meditation, and holistic health practices. Connect with teachers who resonate with your path."
+      keywords="wellness guides, yoga instructors, meditation teachers, wellness experts, holistic health practitioners, urban pilgrim"
+      canonicalUrl="/pilgrim_guides"
+      ogImage="/retreats.svg"
+    />
     <div className="min-h-screen bg-gradient-to-b from-[#FAF4F0] to-white mt-[100px]">
       <div className="relative w-full mb-10">
         <img

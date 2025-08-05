@@ -1,5 +1,6 @@
 import { useState } from "react";
 import CartItem from "../../components/ui/CartItem";
+import SEO from "../../components/SEO.jsx";
 
 const initialCartData = [
 	{
@@ -56,6 +57,13 @@ export default function CartPage() {
 	if (cartData.length === 0) {
 		return (
 			<div className="min-h-screen bg-gradient-to-br from-[#f2f4fc] via-[#fdf7f1] to-[#fffaf6] px-4 md:px-12 py-10 mt-[100px]">
+				<SEO 
+					title="Your Cart | Urban Pilgrim"
+					description="View and manage your selected wellness sessions, retreats, and programs."
+					keywords="shopping cart, checkout, urban pilgrim cart"
+					canonicalUrl="/cart"
+					ogType="website"
+				/>
 				<h2 className="text-3xl font-bold mb-8">Your Cart</h2>
 				<div className="text-center py-12">
 					<p className="text-gray-500 text-lg">Your cart is empty</p>
@@ -66,6 +74,13 @@ export default function CartPage() {
 
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[#f2f4fc] via-[#fdf7f1] to-[#fffaf6] px-4 md:px-12 py-10 mt-[100px]">
+			<SEO 
+				title="Your Cart | Urban Pilgrim"
+				description="View and manage your selected wellness sessions, retreats, and programs."
+				keywords="shopping cart, checkout, urban pilgrim cart"
+				canonicalUrl="/cart"
+				ogType="website"
+			/>
 			<h2 className="text-3xl font-bold mb-8">Your Cart</h2>
 
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

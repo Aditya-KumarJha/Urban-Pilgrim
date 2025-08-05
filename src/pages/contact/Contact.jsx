@@ -1,12 +1,19 @@
 import { useState } from "react";
 import { FiUser, FiMail, FiSend } from "react-icons/fi";
 import Footer from "../../components/footer";
+import SEO from "../../components/SEO.jsx";
 
 export default function ContactForm() {
   const [comment, setComment] = useState("");
 
   return (
     <>
+    <SEO 
+      title="Contact Us | Urban Pilgrim"
+      description="Get in touch with the Urban Pilgrim team for questions about wellness sessions, retreats, or becoming a guide."
+      keywords="contact urban pilgrim, wellness inquiries, become a guide, customer support"
+      canonicalUrl="/contact"
+    />
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#eaeefc] via-[#f3e8e1] to-[#fdfaf7] px-4 mt-[100px]">
       <div className="bg-white/60 backdrop-blur-3xl rounded-xl shadow-lg w-full max-w-md p-8">
         <h2 className="text-3xl font-bold text-center mb-8">Contact</h2>

@@ -1,9 +1,17 @@
 import { motion } from "framer-motion";
 import Button from "../../components/ui/button";
+import SEO from "../../components/SEO.jsx";
 
 export default function WhoAreWe() {
   return (
     <>
+    <SEO 
+      title="About Urban Pilgrim | Our Story & Mission"
+      description="Urban Pilgrim connects modern seekers with authentic Indian wellness traditions. Learn about our founder, mission, and vision for holistic wellness."
+      keywords="urban pilgrim about us, manu indrayan, wellness mission, indian traditions, holistic wellness platform"
+      canonicalUrl="/whoarewe"
+      ogImage="/assets/whyus/whowe.png"
+    />
     <div className="mt-[100px] relative w-full">
       <img
         src="/assets/whyus/whowe.png"

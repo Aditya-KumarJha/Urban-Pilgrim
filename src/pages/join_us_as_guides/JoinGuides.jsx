@@ -1,6 +1,7 @@
 import Footer from "../../components/footer";
 import Steps from "../../components/Steps";
 import Button from "../../components/ui/button";
+import SEO from "../../components/SEO.jsx";
 
 export default function JoinGuides() {
     
@@ -25,6 +26,13 @@ export default function JoinGuides() {
 
     return (
         <div className=" bg-gradient-to-b from-[#FAF4F0] to-white mt-[100px]">
+            <SEO 
+              title="Become a Wellness Guide | Join Urban Pilgrim"
+              description="Share your expertise as a wellness professional with Urban Pilgrim. Join our platform as a Pilgrim Guide and reach a global audience."
+              keywords="become a wellness guide, join urban pilgrim, wellness instructor opportunities, yoga teacher platform, meditation guide"
+              canonicalUrl="/join_us_as_guides"
+              ogImage="/assets/joinus/joinus.png"
+            />
             <div className="relative w-full mb-10">
                 <img
                 src="/retreats.svg"

@@ -25,10 +25,8 @@ export default function ProgramDetails() {
 
   // In a real application, you would fetch the program details based on the URL parameter
   useEffect(() => {
-    // Example of how you might extract a program ID from URL
     const programId = new URLSearchParams(location.search).get('id');
     
-    // In a real app, you would fetch program data here
     // For now, we're using the hardcoded data above
   }, [location]);
 

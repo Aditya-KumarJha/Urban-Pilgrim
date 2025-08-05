@@ -2,6 +2,7 @@ import { FiPlay, FiCalendar, FiClock } from "react-icons/fi";
 import { BsFillCameraVideoFill } from "react-icons/bs";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import SEO from "../../components/SEO.jsx";
 
 const SessionSlots = () => {
   const navigate = useNavigate();
@@ -33,6 +34,13 @@ const SessionSlots = () => {
   ];
   return (
     <div className=" bg-gradient-to-b from-[#FAF4F0] to-white mt-[100px]">
+      <SEO 
+        title="Live Session Slots | Meditation with Anisha | Urban Pilgrim"
+        description="Book your spot for live meditation sessions with Anisha. View available dates and times for 'Let's meditate for an hour'."
+        keywords="meditation slots, book meditation, live meditation, anisha meditation, urban pilgrim sessions"
+        canonicalUrl="/session_slots"
+        ogImage="https://images.unsplash.com/photo-1506748686214-e9df14d4d9d0"
+      />
         <div className="relative w-full ">
             <img
             src="/retreats.svg"

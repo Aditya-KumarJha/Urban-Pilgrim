@@ -2,6 +2,7 @@ import FilterBar from "../../components/pilgrim_sessions/FilterBar";
 import CategorySelector from "../../components/pilgrim_sessions/CategorySelector";
 import { MdKeyboardArrowDown } from "react-icons/md";
 import SubscriptionPlans from "../../components/pilgrim_sessions/SubscriptionPlans";
+import SEO from "../../components/SEO.jsx";
 import LiveSessions from "../../components/pilgrim_sessions/LiveSessions";
 import Testimonials from "../../components/Testimonials";
 import RecordedPrograms from "../../components/pilgrim_sessions/RecordedPrograms";
@@ -9,6 +10,13 @@ import RecordedPrograms from "../../components/pilgrim_sessions/RecordedPrograms
 export default function Sessions() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#FAF4F0] to-white mt-[100px]">
+      <SEO 
+        title="Pilgrim Sessions | Online Wellness Classes | Urban Pilgrim"
+        description="Join live and recorded wellness sessions with expert guides. Explore yoga, meditation, and mindfulness classes for all levels."
+        keywords="wellness sessions, online wellness, yoga classes, meditation sessions, mindfulness classes, urban pilgrim"
+        canonicalUrl="/pilgrim_sessions"
+        ogImage="/retreats.svg"
+      />
       <div className="relative w-full mb-10">
         <img
           src="/retreats.svg"

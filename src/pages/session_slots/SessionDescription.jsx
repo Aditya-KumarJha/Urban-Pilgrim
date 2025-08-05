@@ -1,8 +1,16 @@
 import YouTubeVideoPlaylist from "../../components/sessions/VideoPlayerSection"
+import SEO from "../../components/SEO.jsx";
 
 const SessionDescription = () => {
   return (
     <div className=" bg-gradient-to-b from-[#FAF4F0] to-white mt-[100px]">
+      <SEO 
+        title="Soul Search Journey | 28 Day Program with Rohini Singh Sisodia"
+        description="Embark on a 28-day soul search journey with Rohini Singh Sisodia. Watch video sessions designed to help you discover your true self through mindfulness and meditation."
+        keywords="soul search journey, rohini singh sisodia, 28 day program, self-discovery, mindfulness videos"
+        canonicalUrl="/session/discover-your-true-self-a-28-day-soul-search-journey-with-rohini-singh-sisodia/slots/description"
+        ogType="video"
+      />
         <div className="relative w-full ">
             <img
             src="/retreats.svg"
