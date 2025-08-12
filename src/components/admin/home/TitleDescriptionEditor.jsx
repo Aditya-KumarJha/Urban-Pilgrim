@@ -23,7 +23,6 @@ export default function TitleDescriptionEditor() {
         <SectionSix />
         <SectionSeven />
         <SectionEight />
-
         
       </div>
     </>
