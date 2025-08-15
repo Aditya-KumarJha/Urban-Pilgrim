@@ -36,30 +36,6 @@ export const fetchRetreatData = async (uid) => {
     }
 };
 
-// export const deleteRetreatItem = async (uid, arrayName, itemId) => {
-//     if (!uid) throw new Error("User ID is required");
-
-//     try {
-//         const retreatRef = doc(db, `pilgrim_retreat/${uid}/retreats/data`);
-//         const docSnap = await getDoc(retreatRef);
-
-//         if (!docSnap.exists()) {
-//             throw new Error("No retreat data found for this user.");
-//         }
-
-//         await setDoc(
-//             retreatRef,
-//             { [arrayName]: deleteField() },
-//             { merge: true }
-//         );
-        
-//         return "deleted";
-//     } catch (error) {
-//         console.error("Error deleting retreat item:", error);
-//         throw error;
-//     }
-// };
-
 export const deleteRetreatItem = async (uid, arrayName) => {
     if (!uid) throw new Error("User ID is required");
     if (arrayName === undefined || arrayName === null) throw new Error("Array name is required");
@@ -103,5 +79,4 @@ export const deleteRetreatItem = async (uid, arrayName) => {
         throw error;
     }
 };
-
 
