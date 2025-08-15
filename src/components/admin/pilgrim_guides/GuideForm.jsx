@@ -254,6 +254,7 @@ export default function GuideForm() {
             guideSlots: slideToEdit?.guideSlots?.length > 0
                 ? slideToEdit?.guideSlots
                 : [{ date: "", startTime: "", endTime: "" }],
+            slides: slideToEdit?.slides || []
         }));
 
         // Update slideData to reflect the slide being edited

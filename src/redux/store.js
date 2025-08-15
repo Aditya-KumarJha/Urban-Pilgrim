@@ -13,6 +13,7 @@ import sectionSevenReducer from "../features/home_slices/sectionSevenSlice";
 import sectionEightReducer from "../features/home_slices/sectionEightSlice";
 import pilgrimRetreatReducer from "../features/pilgrim_retreat/pilgrimRetreatSlice";
 import pilgrimGuidesReducer from "../features/pilgrim_guide/pilgrimGuideSlice";
+import pilgrimLiveSessionReducer from "../features/pilgrim_session/liveSessionsSlice"
 
 const store = configureStore({
     reducer: {
@@ -29,7 +30,8 @@ const store = configureStore({
         // booking: bookingReducer,
         slides: slidesReducer,
         pilgrimRetreat: pilgrimRetreatReducer,
-        pilgrimGuides: pilgrimGuidesReducer
+        pilgrimGuides: pilgrimGuidesReducer,
+        pilgrimLiveSession: pilgrimLiveSessionReducer
     },
 });
 
