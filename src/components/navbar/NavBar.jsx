@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import "./NavBar.css";
 import { CiSearch } from "react-icons/ci";
 import { FaRegUser } from "react-icons/fa";
 import { FiShoppingCart } from "react-icons/fi";
+import { useSelector } from "react-redux";
 import SignIn from "../SignIn";
 import SearchBar from "../SearchBar";
 
@@ -12,15 +13,22 @@ const NavBar = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [showSearch, setShowSearch] = useState(false);
     const [showSignIn, setShowSignIn] = useState(false);
+    const navigate = useNavigate();
+
+    // 🔥 Get user from Redux (set during login)
+    const user = useSelector((state) => state.auth.user);
 
     const toggleMenu = () => setIsOpen(!isOpen);
     const toggleSearch = () => setShowSearch(true);
-    const toggleSignIn = () => setShowSignIn(!showSignIn);
 
     return (
         <nav className="navbar">
             <div className="navbar-brand">
-                <img className="logo " src="https://www.urbanpilgrim.in/cdn/shop/files/logo.jpg?v=1744941617&width=600" alt="Urban Pilgrim" />
+                <img
+                    className="logo"
+                    src="https://www.urbanpilgrim.in/cdn/shop/files/logo.jpg?v=1744941617&width=600"
+                    alt="Urban Pilgrim"
+                />
             </div>
 
             <motion.div
@@ -37,18 +45,35 @@ const NavBar = () => {
             </motion.div>
 
             <div className="navbar-right">
+                {/* 🔍 Search */}
                 <CiSearch
-                    className="search-icon "
+                    className="search-icon cursor-pointer"
                     onClick={toggleSearch}
                 />
-                <FaRegUser
-                    className="user-icon"
-                    onClick={toggleSignIn}
-                />
+
+                {/* 👤 User Icon or Profile */}
+                {user ? (
+                    <img
+                        src={user.photoURL || "https://i.pravatar.cc/40"} // fallback avatar
+                        alt="Profile"
+                        className="profile-icon cursor-pointer"
+                        onClick={() => navigate("/dashboard")}
+                        style={{ width: 32, height: 32, borderRadius: "50%" }}
+                    />
+                ) : (
+                    <FaRegUser
+                        className="user-icon cursor-pointer"
+                        onClick={() => setShowSignIn(true)}
+                    />
+                )}
+
+                {/* 🛒 Cart */}
                 <FiShoppingCart
-                    className="user-icon"
-                    onClick={() => window.location.href = "/cart"}
+                    className="user-icon cursor-pointer"
+                    onClick={() => navigate("/cart")}
                 />
+
+                {/* ☰ Mobile Menu */}
                 <motion.div
                     className="menu-icon"
                     onClick={toggleMenu}
@@ -60,13 +85,15 @@ const NavBar = () => {
                 </motion.div>
             </div>
 
+            {/* 🔍 Search Modal */}
             <AnimatePresence>
                 {showSearch && (
                     <SearchBar onClose={() => setShowSearch(false)} />
                 )}
             </AnimatePresence>
 
-            {showSignIn && (
+            {/* 🔑 Sign In Modal */}
+            {showSignIn && !user && (
                 <SignIn onClose={() => setShowSignIn(false)} />
             )}
         </nav>
