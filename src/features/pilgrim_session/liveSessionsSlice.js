@@ -12,11 +12,11 @@ const liveSessionSlice = createSlice({
             state.LiveSession = action.payload;
         },
 
-        addLiveSession: (state, action) => {
-            state.LiveSession.push(action.payload);
-        },
+        setLoading: (state, action) => {
+            state.loading = action.payload;
+        }
     }
 });
 
-export const { setLiveSessions, addLiveSession } = liveSessionSlice.actions;
+export const { setLiveSessions, setLoading } = liveSessionSlice.actions;
 export default liveSessionSlice.reducer;

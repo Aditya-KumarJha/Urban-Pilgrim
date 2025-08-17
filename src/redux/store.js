@@ -14,6 +14,7 @@ import sectionEightReducer from "../features/home_slices/sectionEightSlice";
 import pilgrimRetreatReducer from "../features/pilgrim_retreat/pilgrimRetreatSlice";
 import pilgrimGuidesReducer from "../features/pilgrim_guide/pilgrimGuideSlice";
 import pilgrimLiveSessionReducer from "../features/pilgrim_session/liveSessionsSlice"
+import pilgrimRecordedSessionreducer from "../features/pilgrim_session/recordedSessionSlice"
 
 const store = configureStore({
     reducer: {
@@ -31,7 +32,8 @@ const store = configureStore({
         slides: slidesReducer,
         pilgrimRetreat: pilgrimRetreatReducer,
         pilgrimGuides: pilgrimGuidesReducer,
-        pilgrimLiveSession: pilgrimLiveSessionReducer
+        pilgrimLiveSession: pilgrimLiveSessionReducer,
+        pilgrimRecordedSession: pilgrimRecordedSessionreducer
     },
 });
 

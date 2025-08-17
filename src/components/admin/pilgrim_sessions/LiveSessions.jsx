@@ -333,7 +333,7 @@ export default function LiveSessionForm() {
                 }
 
             } catch (err) {
-                console.error("Error fetching guide cards:", err);
+                console.error("Error fetching live session data:", err);
             }
         };
 

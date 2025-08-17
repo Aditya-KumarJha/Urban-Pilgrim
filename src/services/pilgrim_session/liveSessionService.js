@@ -53,7 +53,7 @@ export const deleteLiveSessionByIndex = async (uid, index) => {
         const updatedSession = data.slides.filter((_, i) => i !== index);
 
         // Update Firestore
-        await updateDoc(guideRef, { LiveSession: updatedSession });
+        await updateDoc(guideRef, { slides: updatedSession });
 
         console.log(`live session at index ${index} deleted successfully`);
         return "deleted";
