@@ -5,6 +5,8 @@ import { auth, db, functions } from "../services/firebase";
 import { useDispatch } from "react-redux";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { setUser } from "../features/authSlice";
+import { showError, showSuccess } from "../utils/toast";
+import store from "../redux/store";
 
 export default function SignIn({ onClose }) {
     const [email, setEmail] = useState("");
@@ -23,10 +25,10 @@ export default function SignIn({ onClose }) {
             const result = await sendOtpFn({ email });
             console.log("OTP function result:", result.data);
             setStep(2);
-            alert("OTP sent to your email!");
+            showSuccess("OTP sent to your email!");
         } catch (err) {
             console.error(err);
-            alert("Failed to send OTP");
+            showError("Failed to send OTP");
         }
         setLoading(false);
     };
@@ -61,17 +63,18 @@ export default function SignIn({ onClose }) {
                 console.log("Existing user logged in");
             }
 
-            // 🗂️ Store in Redux
             dispatch(setUser({
                 uid: user.uid,
                 email: user.email,
             }));
 
-            alert("Signed in successfully!");
+            console.log("Redux state after setUser:", store.getState().auth.user);
+
+            showSuccess("Signed in successfully!");
             onClose();
         } catch (err) {
             console.error(err);
-            alert("Invalid OTP");
+            showError("Invalid OTP");
         }
 
         setLoading(false);

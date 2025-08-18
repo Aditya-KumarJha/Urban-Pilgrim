@@ -1,4 +1,3 @@
-import { configureStore } from "@reduxjs/toolkit";
 import authReducer from "../features/authSlice";
 // import sessionReducer from "../features/sessionSlice";
 // import bookingReducer from "../features/bookingSlice";
@@ -15,9 +14,27 @@ import pilgrimRetreatReducer from "../features/pilgrim_retreat/pilgrimRetreatSli
 import pilgrimGuidesReducer from "../features/pilgrim_guide/pilgrimGuideSlice";
 import pilgrimLiveSessionReducer from "../features/pilgrim_session/liveSessionsSlice"
 import pilgrimRecordedSessionreducer from "../features/pilgrim_session/recordedSessionSlice"
+import { combineReducers, configureStore } from "@reduxjs/toolkit";
 
-const store = configureStore({
-    reducer: {
+import { 
+    persistReducer,
+    FLUSH,
+    REHYDRATE,
+    PAUSE,
+    PERSIST,
+    PURGE,
+    REGISTER,
+} from 'redux-persist'
+import storage from 'redux-persist/lib/storage'
+
+
+const persistConfig = {
+    key: 'root',
+    version: 1,
+    storage,
+}
+
+const rootReducer = combineReducers({
         auth: authReducer,
         // sessions: sessionReducer,
         sectionOne: sectionOneReducer,
@@ -34,7 +51,19 @@ const store = configureStore({
         pilgrimGuides: pilgrimGuidesReducer,
         pilgrimLiveSession: pilgrimLiveSessionReducer,
         pilgrimRecordedSession: pilgrimRecordedSessionreducer
-    },
+})
+
+const persistedReducer = persistReducer(persistConfig, rootReducer)
+
+const store = configureStore({
+    reducer: persistedReducer,
+    middleware: (getDefaultMiddleware) =>
+        getDefaultMiddleware({
+            serializableCheck: {
+                ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
+            },
+        }),
 });
 
 export default store;
+

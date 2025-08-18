@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import "./NavBar.css";
@@ -8,18 +8,45 @@ import { FiShoppingCart } from "react-icons/fi";
 import { useSelector } from "react-redux";
 import SignIn from "../SignIn";
 import SearchBar from "../SearchBar";
+// import { auth, db } from "../../services/firebase";
+// import { doc, getDoc } from "firebase/firestore";
 
 const NavBar = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [showSearch, setShowSearch] = useState(false);
     const [showSignIn, setShowSignIn] = useState(false);
     const navigate = useNavigate();
-
-    // 🔥 Get user from Redux (set during login)
     const user = useSelector((state) => state.auth.user);
+    
+    // const [userData, setUserData] = useState(null);
+
+    // useEffect(() => {
+    //     const fetchData = async () => {
+    //         try {
+    //             const currentUser = auth.currentUser; // logged-in Firebase user
+    //             if (!currentUser) return;
+
+    //             // reference to user document
+    //             const userRef = doc(db, "users", currentUser.uid);
+    //             const userSnap = await getDoc(userRef);
+
+    //             if (userSnap.exists()) {
+    //                 setUserData(userSnap.data());
+    //                 console.log("User data:", userSnap.data());
+    //             } else {
+    //                 console.log("No such user document!");
+    //             }
+    //         } catch (error) {
+    //             console.log("Error fetching user data:", error);
+    //         }
+    //     };
+
+    //     fetchData();
+    // }, []);
 
     const toggleMenu = () => setIsOpen(!isOpen);
     const toggleSearch = () => setShowSearch(true);
+    // console.log("userData in NavBar:", userData);
 
     return (
         <nav className="navbar">
@@ -57,7 +84,7 @@ const NavBar = () => {
                         src={user.photoURL || "https://i.pravatar.cc/40"} // fallback avatar
                         alt="Profile"
                         className="profile-icon cursor-pointer"
-                        onClick={() => navigate("/dashboard")}
+                        onClick={() => navigate("/userdashboard")}
                         style={{ width: 32, height: 32, borderRadius: "50%" }}
                     />
                 ) : (
