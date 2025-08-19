@@ -7,6 +7,9 @@ import { FaTrash, FaEdit } from "react-icons/fa";
 import { useDispatch } from "react-redux";
 import { add_Or_Update_Highlight, deleteHighlightFromFirestore, fetchHighlights } from "../../../services/home_service/highlights";
 import { setHighlight, setLoading } from "../../../features/home_slices/highlightSlice";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { v4 as uuidv4 } from "uuid";
+import { storage } from "../../../services/firebase";
 
 const ItemType = "HIGHLIGHT";
 
@@ -65,10 +68,26 @@ export default function Highlights() {
     const dispatch = useDispatch();
     const uid = "your-unique-id";
 
-    const onDrop = (acceptedFiles) => {
-        const reader = new FileReader();
-        reader.onload = () => setImage(reader.result);
-        reader.readAsDataURL(acceptedFiles[0]);
+    const onDrop = async (acceptedFiles) => {
+        const file = acceptedFiles[0];
+        if (!file) return;
+
+        try {
+            // Create a unique path for the file
+            const storageRef = ref(storage, `slides/upcomingEvents/${uuidv4()}-${file.name}`);
+
+            // Upload file
+            await uploadBytes(storageRef, file);
+
+            // Get downloadable URL
+            const downloadURL = await getDownloadURL(storageRef);
+
+            // Store only the URL in state (not base64)
+            setImage(downloadURL);
+            console.log("Uploaded file URL:", downloadURL);
+        } catch (error) {
+            console.error("Error uploading file:", error);
+        }
     };
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
@@ -113,7 +132,7 @@ export default function Highlights() {
         setTitle("");
         setDescription("");
         setDisplayOrder("1");
-        
+
     };
 
     const editHighlight = (index) => {
@@ -139,11 +158,22 @@ export default function Highlights() {
         setHighlights(updated);
     };
 
-    const moveHighlight = (from, to) => {
+    const moveHighlight = async (from, to) => {
+        if (to < 0 || to >= highlights.length) return; // prevent invalid moves
+
         const updated = [...highlights];
         const [moved] = updated.splice(from, 1);
         updated.splice(to, 0, moved);
+
         setHighlights(updated);
+
+        try {
+            // persist updated order in Firestore
+            await add_Or_Update_Highlight(uid, updated);
+            console.log("Highlight order updated successfully!");
+        } catch (error) {
+            console.error("Error updating highlight order:", error);
+        }
     };
 
     return (

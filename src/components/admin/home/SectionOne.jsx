@@ -4,11 +4,15 @@ import { FaTimes } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
 import { setSectionOne, setLoading } from "../../../features/home_slices/sectionOneSlice";
 import { fetchSectionOne, saveSectionOne } from "../../../services/home_service/sectionOneService";
+import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { storage } from "../../../services/firebase";
+import { v4 as uuidv4 } from "uuid";
+import { showSuccess } from "../../../utils/toast";
 
 function SectionOne() {
     const dispatch = useDispatch();
     const { title, description, image } = useSelector((state) => state.sectionOne);
-    const uid = "your-unique-id"; 
+    const uid = "your-unique-id";
 
     const [localTitle, setLocalTitle] = useState(title);
     const [localDescription, setLocalDescription] = useState(description);
@@ -28,20 +32,55 @@ function SectionOne() {
         loadData();
     }, [uid, dispatch]);
 
-    const onDrop = (acceptedFiles) => {
-        const reader = new FileReader();
-        reader.onload = () => setLocalImage(reader.result);
-        reader.readAsDataURL(acceptedFiles[0]);
+    const onDrop = async (acceptedFiles) => {
+        if (acceptedFiles.length === 0) return;
+        const file = acceptedFiles[0];
+
+        try {
+            // create a unique path in storage
+            const storageRef = ref(storage, `slides/sesctionOne/${uuidv4()}-${file.name}`);
+            await uploadBytes(storageRef, file);
+            const url = await getDownloadURL(storageRef);
+            setLocalImage(url);
+            console.log("upload successful:");
+        } catch (error) {
+            console.error("Error uploading image:", error);
+        }
     };
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
-
-    const handleRemoveImage = () => setLocalImage(null);
 
     const handleDiscard = () => {
         setLocalTitle(title);
         setLocalDescription(description);
         setLocalImage(image);
+    };
+
+    const handleRemoveImage = async () => {
+        try {
+            if (image) {
+                const storageRef = ref(storage, image);
+                await deleteObject(storageRef);
+                console.log("Image deleted from storage:", image);
+
+                setLocalTitle(title);
+                setLocalDescription(description);
+                setLocalImage(null); 
+
+                const newData = {
+                    title: localTitle,
+                    description: localDescription,
+                    image: localImage
+                };
+                dispatch(setSectionOne(newData)); 
+            } else {
+                console.log("No image to delete");
+            }
+            
+            
+        } catch (error) {
+            console.error("Error discarding image:", error);
+        }
     };
 
     const handleSave = async () => {
@@ -53,6 +92,7 @@ function SectionOne() {
         dispatch(setSectionOne(newData)); // update store
         await saveSectionOne(uid, newData); // update Firestore
         console.log("Section 1 data saved successfully", newData);
+        showSuccess("Data saved successfully");
     };
 
     return (
@@ -60,26 +100,36 @@ function SectionOne() {
             <h3 className="text-lg font-bold mb-2">Section 1</h3>
             <label className="block font-semibold mb-1">Image</label>
 
-            {localImage ? (
-                <div className="relative inline-block mb-4">
-                    <img src={localImage} alt="Preview" className="w-64 h-auto object-cover rounded shadow" />
-                    <button
-                        onClick={handleRemoveImage}
-                        className="absolute top-0 right-0 bg-white border border-gray-300 rounded-full p-1 transform translate-x-1/2 -translate-y-1/2 hover:bg-gray-200"
-                    >
-                        <FaTimes size={14} />
-                    </button>
-                </div>
-            ) : (
-                <div
-                    {...getRootProps()}
-                    className="w-full h-40 border-2 border-dashed border-gray-300 rounded flex items-center justify-center text-gray-500 cursor-pointer mb-4 hover:bg-gray-50 flex-col"
-                >
-                    <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-12 h-12 mb-2" />
-                    <input {...getInputProps()} />
-                    {isDragActive ? "Drop the image here..." : "Click to upload or drag and drop"}
-                </div>
-            )}
+            {/* Image Upload */}
+            <div
+                {...getRootProps()}
+                className="border-2 border-dashed border-gray-300 h-40 rounded mb-4 flex items-center justify-center cursor-pointer hover:bg-gray-50 relative"
+            >
+                <input {...getInputProps()} />
+                {localImage ? (
+                    <div className="relative h-full flex items-center">
+                        <img
+                            src={localImage}
+                            alt="Preview"
+                            className="h-full object-contain rounded"
+                        />
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation(); // prevent triggering upload
+                                handleRemoveImage();
+                            }}
+                            className="absolute top-0 right-0 bg-white border border-gray-300 rounded-full p-1 transform translate-x-1/2 -translate-y-1/2 hover:bg-gray-200"
+                        >
+                            <FaTimes size={14} />
+                        </button>
+                    </div>
+                ) : (
+                    <div className="text-center text-gray-500 flex flex-col items-center">
+                        <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-12 h-12 mb-2" />
+                        <p>{isDragActive ? "Drop here..." : "Click to upload or drag and drop"}</p>
+                    </div>
+                )}
+            </div>
 
             <label className="block font-semibold mb-1">Title</label>
             <div className="relative mb-4">

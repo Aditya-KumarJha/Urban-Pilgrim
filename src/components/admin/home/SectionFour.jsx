@@ -4,7 +4,9 @@ import { FaTimes } from "react-icons/fa";
 import { fetchSectionFour, saveSectionFour } from "../../../services/home_service/sectionFourServices";
 import { setLoading, setSectionFour } from "../../../features/home_slices/sectionFourSlice";
 import { useDispatch } from "react-redux";
-
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
+import { storage } from "../../../services/firebase";
+import { v4 as uuidv4 } from "uuid";
 
 function SectionFour() {
     const [image, setImage] = useState(null);
@@ -19,7 +21,7 @@ function SectionFour() {
             dispatch(setLoading(true));
             const data = await fetchSectionFour(uid);
             console.log("data from section 4: ", data);
-            dispatch(setSectionFour(data?.setSectionFour));
+            dispatch(setSectionFour(data?.sectionFour));
             setFeatures(data?.sectionFour?.features || []);
             setImage(data?.sectionFour?.image || null);
             dispatch(setLoading(false));
@@ -43,20 +45,50 @@ function SectionFour() {
         setFeatures(updated);
     };
 
-    const handleFeatureImageChange = (index, file) => {
-        const reader = new FileReader();
-        reader.onload = () => {
+    // Remove feature image (from state + storage)
+    const handleFeatureImageRemove = async (index) => {
+        try {
             const updated = [...features];
-            updated[index].image = reader.result;
+            const imageUrl = updated[index].image;
+
+            if (imageUrl) {
+                // Create reference from URL
+                const storageRef = ref(storage, imageUrl);
+
+                // Delete from Firebase Storage
+                await deleteObject(storageRef);
+                console.log("Feature image deleted from storage:", imageUrl);
+            }
+
+            // Remove from local state
+            updated[index].image = null;
             setFeatures(updated);
-        };
-        reader.readAsDataURL(file);
+        } catch (error) {
+            console.error("Error removing feature image:", error);
+        }
     };
 
-    const handleFeatureImageRemove = (index) => {
-        const updated = [...features];
-        updated[index].image = null;
-        setFeatures(updated);
+    // Upload new image for a feature
+    const handleFeatureImageChange = async (index, file) => {
+        try {
+            // Create a unique storage path for each feature image
+            const storageRef = ref(storage, `slides/sesctionFour/${uuidv4()}-${file.name}`);
+
+            // Upload file
+            await uploadBytes(storageRef, file);
+
+            // Get download URL
+            const downloadURL = await getDownloadURL(storageRef);
+
+            // Update local state with download URL
+            const updated = [...features];
+            updated[index].image = downloadURL;
+            setFeatures(updated);
+
+            console.log("Feature image uploaded:", downloadURL);
+        } catch (error) {
+            console.error("Error uploading feature image:", error);
+        }
     };
 
     const handleDiscard = async () => {
@@ -84,11 +116,27 @@ function SectionFour() {
         setFeatures(updated);
         console.log("Feature deleted successfully", { features: updated });
     };
-// 
-    const onDrop = (acceptedFiles) => {
-        const reader = new FileReader();
-        reader.onload = () => setImage(reader.result);
-        reader.readAsDataURL(acceptedFiles[0]);
+
+    const onDrop = async (acceptedFiles) => {
+        const file = acceptedFiles[0];
+        if (!file) return;
+
+        try {
+            // Create a unique path for the file
+            const storageRef = ref(storage, `slides/sesctionFour/features/${uuidv4()}-${file.name}`);
+
+            // Upload file
+            await uploadBytes(storageRef, file);
+
+            // Get downloadable URL
+            const downloadURL = await getDownloadURL(storageRef);
+
+            // Store only the URL in state (not base64)
+            setImage(downloadURL);
+            console.log("Uploaded file URL:", downloadURL);
+        } catch (error) {
+            console.error("Error uploading file:", error);
+        }
     };
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });

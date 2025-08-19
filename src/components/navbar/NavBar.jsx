@@ -8,6 +8,8 @@ import { FiShoppingCart } from "react-icons/fi";
 import { useSelector } from "react-redux";
 import SignIn from "../SignIn";
 import SearchBar from "../SearchBar";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../../services/firebase";
 // import { auth, db } from "../../services/firebase";
 // import { doc, getDoc } from "firebase/firestore";
 
@@ -17,7 +19,10 @@ const NavBar = () => {
     const [showSignIn, setShowSignIn] = useState(false);
     const navigate = useNavigate();
     const user = useSelector((state) => state.auth.user);
-    
+    const [navbarData, setNavbarData] = useState([]);
+
+    const uid = "your-unique-id"
+
     // const [userData, setUserData] = useState(null);
 
     // useEffect(() => {
@@ -44,6 +49,26 @@ const NavBar = () => {
     //     fetchData();
     // }, []);
 
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const slidesRef = doc(db, `homepage/${uid}/navbar/links`);
+                const snapshot = await getDoc(slidesRef);
+
+                if (snapshot.exists()) {
+                    const data = snapshot.data();
+                    setNavbarData(data?.links || []);
+                } else {
+                    console.log("No navbar links found in Firestore");
+                }
+            } catch (error) {
+                console.error("Error fetching navbar links from Firestore:", error);
+            }
+        };
+
+        fetchData();
+    }, []);
+
     const toggleMenu = () => setIsOpen(!isOpen);
     const toggleSearch = () => setShowSearch(true);
     // console.log("userData in NavBar:", userData);
@@ -58,19 +83,36 @@ const NavBar = () => {
                 />
             </div>
 
+            {/* Navbar Links */}
             <motion.div
                 className={`nav-links ${isOpen ? "open" : ""}`}
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
             >
-                <Link to="/" onClick={() => setIsOpen(false)}>Home</Link>
+                {/* <Link to="/" onClick={() => setIsOpen(false)}>Home</Link>
                 <Link to="/pilgrim_retreats" onClick={() => setIsOpen(false)}>Pilgrim Retreats</Link>
                 <Link to="/pilgrim_sessions" onClick={() => setIsOpen(false)}>Pilgrim Sessions</Link>
                 <Link to="/pilgrim_guides" onClick={() => setIsOpen(false)}>Pilgrim Guides</Link>
-                <Link to="/contact" onClick={() => setIsOpen(false)}>Contact</Link>
+                <Link to="/contact" onClick={() => setIsOpen(false)}>Contact</Link> */}
+
+                {
+                    navbarData.map((link, index) => (
+                        <span 
+                            key={index} 
+                            onClick={() => {
+                                setIsOpen(false);
+                                navigate(`/${link?.linkUrl}`);
+                            }}
+                            className="font-semibold cursor-pointer text-sm"
+                        >
+                            {link?.title.toUpperCase()}
+                        </span>
+                    ))
+                }
             </motion.div>
 
+            {/* Right Side Icons */}
             <div className="navbar-right">
                 {/* 🔍 Search */}
                 <CiSearch
@@ -85,7 +127,7 @@ const NavBar = () => {
                         alt="Profile"
                         className="profile-icon cursor-pointer"
                         onClick={() => navigate("/userdashboard")}
-                        style={{ width: 32, height: 32, borderRadius: "50%" }}
+                        style={{ width: 20, height: 20, borderRadius: "50%" }}
                     />
                 ) : (
                     <FaRegUser

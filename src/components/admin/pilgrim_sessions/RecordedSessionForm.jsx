@@ -3,11 +3,12 @@ import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { X, Plus, Trash2, GripVertical, Edit2 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
-import { v4 as uuidv4 } from "uuid"; 
+import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { v4 as uuidv4 } from "uuid";
 import { storage } from "../../../services/firebase";
 import { setRecordedSessions } from "../../../features/pilgrim_session/recordedSessionSlice";
 import { deleteRecordedSessionByIndex, fetchRecordedSessionData, saveOrUpdateRecordedSessionData } from "../../../services/pilgrim_session/recordedSessionService";
+import { showSuccess } from "../../../utils/toast";
 
 const ItemType = "SLIDE";
 
@@ -79,7 +80,7 @@ export default function RecordedProgramForm() {
 
     const [allData, setAllData] = useState([]);
     const [slideData, setSlideData] = useState([]);
-    
+
     const [errors, setErrors] = useState({});
     const [dragActive, setDragActive] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
@@ -363,6 +364,7 @@ export default function RecordedProgramForm() {
             // Save full updated programs array to Firestore
             const status = await saveOrUpdateRecordedSessionData(uid, "slides", updatedPrograms);
             console.log(`Firestore ${status} successfully`);
+            showSuccess("Recorded Program saved successfully!");
 
             // Reset local form state
             setFormData({
@@ -429,8 +431,29 @@ export default function RecordedProgramForm() {
         }
     };
 
-    const handleGuideImageRemove = () => {
-        handleGuideChange("image", null);
+    const handleGuideImageRemove = async () => {
+        try {
+            const currentImage = formData.guide?.[0]?.image;
+            if (currentImage) {
+                // Create a reference to the file to delete
+                const imageRef = ref(storage, currentImage);
+                await deleteObject(imageRef);
+                console.log("Image deleted from storage:", currentImage);
+            }
+
+            handleGuideChange("image", null);
+            dispatch(setRecordedSessions((prev) => {
+                const updatedSessions = [...prev];
+                const sessionIndex = updatedSessions.findIndex((s) => s.id === formData.id);
+                if (sessionIndex !== -1) {
+                    updatedSessions[sessionIndex].guide[0].image = null;
+                }
+                return updatedSessions;
+            }));
+
+        } catch (error) {
+            console.error("Error removing image:", error);
+        }
     };
 
     return (
@@ -520,8 +543,8 @@ export default function RecordedProgramForm() {
                                     key={index}
                                     onClick={() => handleFieldChange("recordedProgramCard", "category", cat)}
                                     className={`text-sm px-4 py-2 rounded-full border transition-colors ${formData.recordedProgramCard.category === cat
-                                            ? 'bg-[#2F6288] text-white border-[#2F6288]'
-                                            : 'bg-white text-gray-700 border-gray-300 hover:border-[#2F6288]'
+                                        ? 'bg-[#2F6288] text-white border-[#2F6288]'
+                                        : 'bg-white text-gray-700 border-gray-300 hover:border-[#2F6288]'
                                         }`}
                                 >
                                     {cat}
@@ -796,7 +819,7 @@ export default function RecordedProgramForm() {
 
                 {/* Current Recorded Sessions */}
                 {allData && (
-                    <div className="mb-8">
+                    <div className="mt-8">
                         <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">Current Recorded Sessions <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span></h2>
                         <DndProvider backend={HTML5Backend}>
                             <div className="space-y-3">

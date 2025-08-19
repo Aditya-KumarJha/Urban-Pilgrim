@@ -54,7 +54,7 @@ function App() {
             <Route path="/pilgrim_retreats/:retreatName" element={<Retreatdescription />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="*" element={<Home replace={'/'} />} />
-             <Route path="/userdashboard" element={<UserDashboard />} />
+            <Route path="/userdashboard" element={<UserDashboard />} />
           </Routes>
           {!isAdminRoute && <Footer className="mt-10" />}
         </>

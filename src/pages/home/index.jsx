@@ -15,15 +15,109 @@ import HeroCarousel from "../../components/HeroCarousel.jsx";
 import About from "../../components/about/About.jsx";
 import UpComing from "../../components/upcoming_events/UpComing.jsx";
 import ViewAll from "../../components/ui/button/ViewAll.jsx";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../../services/firebase.js";
 
 function Home() {
     const wrapperRef = useRef(null);
     const [lineHeight, setLineHeight] = useState(0);
+    const [contentFeatures, setContentFeatures] = useState(null);
+    const [contentImage, setContentImage] = useState(null);
+    const [Experience, setExperience] = useState(null);
+    const [sessions, setSessions] = useState(null);
+    const [guides, setGuides] = useState(null);
 
     const cardContainerRef = useRef(null);
     const [progress, setProgress] = useState(0);
     const controls = useAnimation();
     const scrollAmount = 300;
+
+    const uid = "your-unique-id";
+
+    // section 4
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const slidesRef = doc(db, `homepage/${uid}/title_description/sectionFour`);
+                const snapshot = await getDoc(slidesRef);
+
+                if (snapshot.exists()) {
+                    const data = snapshot.data();
+                    setContentFeatures(data?.sectionFour?.features || []);
+                    setContentImage(data?.sectionFour?.image || null);
+                } else {
+                    console.log("No slides found in Firestore");
+                }
+            } catch (error) {
+                console.error("Error fetching images from Firestore:", error);
+            }
+        };
+
+        fetchData();
+    }, []);
+
+    // section 5
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const slidesRef = doc(db, `homepage/${uid}/title_description/sectionFive`);
+                const snapshot = await getDoc(slidesRef);
+
+                if (snapshot.exists()) {
+                    const data = snapshot.data();
+                    setExperience(data?.sectionFive || {});
+                } else {
+                    console.log("No experiences found in Firestore");
+                }
+            } catch (error) {
+                console.error("Error fetching experiences from Firestore:", error);
+            }
+        };
+
+        fetchData();
+    }, []);
+
+    // section 6
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const slidesRef = doc(db, `homepage/${uid}/title_description/sectionSix`);
+                const snapshot = await getDoc(slidesRef);
+
+                if (snapshot.exists()) {
+                    const data = snapshot.data();
+                    setSessions(data?.sectionSix || {});
+                } else {
+                    console.log("No sessions found in Firestore");
+                }
+            } catch (error) {
+                console.error("Error fetching sessions from Firestore:", error);
+            }
+        };
+
+        fetchData();
+    }, []);
+
+    // section 7
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const slidesRef = doc(db, `homepage/${uid}/title_description/sectionSeven`);
+                const snapshot = await getDoc(slidesRef);
+
+                if (snapshot.exists()) {
+                    const data = snapshot.data();
+                    setGuides(data?.sectionSeven || {});
+                } else {
+                    console.log("No guides found in Firestore");
+                }
+            } catch (error) {
+                console.error("Error fetching guides from Firestore:", error);
+            }
+        };
+
+        fetchData();
+    }, []);
 
     const handleCardScroll = (dir) => {
         if (cardContainerRef.current) {
@@ -74,7 +168,7 @@ function Home() {
 
     return (
         <div className="hero-section no-scrollbar">
-            <SEO 
+            <SEO
                 title="Urban Pilgrim | Wellness Events, Retreats & Sessions"
                 description="Discover authentic wellness experiences with Urban Pilgrim. Book yoga, meditation, and holistic wellness sessions with trusted guides."
                 keywords="urban pilgrim, wellness, yoga, meditation, retreats, sessions, holistic wellness, Indian wisdom"
@@ -96,14 +190,15 @@ function Home() {
             <div className="content3">
                 <div className="c3container">
                     <motion.div className="c3img" initial={{ x: -100, opacity: 0 }} whileInView={{ x: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} viewport={{ once: true }}>
-                        <img src="/assets/people_running.svg" alt="" />
+                        <img src={contentImage} alt="iamge" />
                     </motion.div>
                     <motion.div className="c3text_container" initial={{ x: 100, opacity: 0 }} whileInView={{ x: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} viewport={{ once: true }}>
                         <motion.div className="datacontainer">
-                            <div><C3_container_data imageCss="lg:max-h-[40px] lg:max-w-[30px] sm:max-h-[40px] sm:max-w-[30px] sm:mt-0 mt-1 max-h-[30px] max-w-[25px]" img="/assets/lotos_icon.svg" heading="Rooted in Indian Wisdom" content="Authentic, not commercialized wellness." /></div>
-                            <div><C3_container_data imageCss="lg:max-h-[40px] lg:max-w-[30px] sm:max-h-[40px] sm:max-w-[30px] sm:mt-0 mt-1 max-h-[30px] max-w-[25px]" img="/assets/verification_icon.svg" heading="Expert-verified Programs" content="Only qualified, experienced professionals make it to our platform." /></div>
-                            <div><C3_container_data imageCss="lg:max-h-[40px] lg:max-w-[25px] sm:max-h-[30px] sm:max-w-[25px] sm:mt-0 mt-1 max-h-[25px] max-w-[25px]" img="/assets/security_icon.svg" heading="Trusted, Global Community" content="Your wellness, globally curated and locally rooted." /></div>
-                            <div><C3_container_data imageCss="lg:max-h-[40px] lg:max-w-[25px] sm:max-h-[30px] sm:max-w-[25px] sm:mt-0 mt-1 max-h-[25px] max-w-[25px]" img="/assets/writting_icon.svg" heading="Transparent Listings & Reviews" content="Read real reviews. Choose what resonates. No surprises." /></div>
+                            { contentFeatures &&
+                                contentFeatures.map((feature, index) => (
+                                    <C3_container_data key={index} imageCss="lg:max-h-[40px] lg:max-w-[30px] sm:max-h-[40px] sm:max-w-[30px] sm:mt-0 mt-1 max-h-[30px] max-w-[25px]" img={feature?.image} heading={feature?.title} content={feature?.shorttitle} />
+                                ))
+                            }
                         </motion.div>
                     </motion.div>
                 </div>
@@ -112,12 +207,21 @@ function Home() {
             {/* Book your Pilgrim Experience */}
             <div className="content5">
                 <div className="c5container">
+                    {/* Heading */}
                     <motion.div className="c5top" initial={{ x: -200, opacity: 0 }} whileInView={{ x: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} viewport={{ once: true, amount: 0.1 }}>
-                        <div className="text-2xl md:text-3xl font-bold text-left text-black"><strong>Book your Pilgrim Experience</strong></div>
-                        <div className="c5description">Step into a transformative journey with our curated Pilgrim Experiences...</div>
+                        <div className="text-2xl md:text-3xl font-bold text-left text-black"><strong>{Experience?.title}</strong></div>
+                        <div className="c5description">
+                            {Experience?.description
+                                ?.split(" ")
+                                .slice(0, 10)
+                                .join(" ")}...
+                        </div>
                     </motion.div>
+
                     <ViewAll link="/pilgrim_retreats" />
-                    <motion.div className="c5bottom lg:!overflow-visible " initial={{ y: 100, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} viewport={{ once: true, amount: 0.1 }}>
+
+                    {/* Card */}
+                    <motion.div className="c5bottom lg:!overflow-visible" initial={{ y: 100, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} viewport={{ once: true, amount: 0.1 }}>
                         <PersondetailsCard image="/assets/appleimg.png" title="Reboot & Rejuvenate on the Ganges (4 day retreat)" price="Rs.56,997.00" />
                         <PersondetailsCard image="/assets/yogapeople.png" title="Reboot & Rejuvenate on the Ganges (4 day retreat)" price="Rs.56,997.00" />
                     </motion.div>
@@ -127,10 +231,18 @@ function Home() {
             {/* Find your Pilgrim Session */}
             <div className="content5 ">
                 <div className="c5container">
+                    {/* Heading */}
                     <motion.div className="c5top" initial={{ x: -200, opacity: 0 }} whileInView={{ x: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} viewport={{ once: true, amount: 0.1 }}>
-                        <div className="text-2xl md:text-3xl font-bold text-left text-black"><strong>Find your Pilgrim Session</strong></div>
-                        <div className="c5description">Find clarity, balance, and strength with Pilgrim Sessions...</div>
+                        <div className="text-2xl md:text-3xl font-bold text-left text-black"><strong>{sessions?.title}</strong></div>
+                        <div className="c5description">
+                            {sessions?.description
+                                ?.split(" ")
+                                .slice(0, 10)
+                                .join(" ")}...
+                        </div>
                     </motion.div>
+
+                    {/* Card */}
                     <ViewAll link="/pilgrim_sessions" />
                     <motion.div className="c5bottom lg:!overflow-visible" initial={{ y: 100, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} viewport={{ once: true, amount: 0.1 }}>
                         <PersondetailsCard image="/assets/Rohini_singh.png" title="Discover your true self - A 28 day program with Rohini Singh Sisodia" price="Rs.14,999.00" />
@@ -145,12 +257,22 @@ function Home() {
                 <div className="meditateimg ">
                     <img src="/assets/meditationimg.png" alt="error" />
                 </div>
+                
                 <div className="c6container">
                     <div className="imgover-content">
+                        {/* Heading */}
                         <motion.div className="c6top" initial={{ x: -200, opacity: 0 }} whileInView={{ x: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} viewport={{ once: true, amount: 0.05 }}>
-                            <div className="text-2xl md:text-3xl font-bold text-left text-black"><strong>Find your Guides</strong></div>
-                            <div className="c6description" style={{ color: "#4F4F4F" }}>Begin your wellness journey with trusted guides...</div>
+                            <div className="text-2xl md:text-3xl font-bold text-left text-black"><strong>{guides?.title}</strong></div>
+                            <div className="c6description" style={{ color: "#4F4F4F" }}>
+                                {guides?.description
+                                    ?.split(" ")
+                                    .slice(0, 10)
+                                    .join(" ")}...
+                            
+                            </div>
                         </motion.div>
+
+                        {/* Card */}
                         <ViewAll link="/pilgrim_guides" />
                         <div className="c6bottom lg:!gap-20 lg:!overflow-visible overflow-hidden">
                             <motion.div initial={{ y: 100, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} viewport={{ once: true, amount: 0.1 }}>
@@ -175,3 +297,8 @@ function Home() {
 }
 
 export default Home;
+
+
+{/* <div><C3_container_data imageCss="lg:max-h-[40px] lg:max-w-[30px] sm:max-h-[40px] sm:max-w-[30px] sm:mt-0 mt-1 max-h-[30px] max-w-[25px]" img="/assets/lotos_icon.svg" heading="Rooted in Indian Wisdom" content="Authentic, not commercialized wellness." /></div> */}
+
+    

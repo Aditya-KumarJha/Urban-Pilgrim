@@ -6,9 +6,11 @@ import { MdDragIndicator } from "react-icons/md";
 import { FaTrash, FaEdit } from "react-icons/fa";
 import { add_Or_Update_Slide, deleteSlideFromFirestore } from "../../../services/home_service/slidesService";
 import { doc, getDoc } from "firebase/firestore";
-import { db } from "../../../services/firebase";
-import { useDispatch } from "react-redux";
-import { setLoading } from "../../../features/home_slices/slidesSlice";
+import { db, storage } from "../../../services/firebase";
+import { useDispatch, useSelector } from "react-redux";
+import { setLoading, setSlides } from "../../../features/home_slices/slidesSlice";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { v4 as uuidv4 } from "uuid";
 
 const ItemType = "SLIDE";
 
@@ -57,7 +59,7 @@ function SlideItem({ slide, index, moveSlide, onEdit, onDelete, onToggle }) {
 }
 
 export default function ImageSlider() {
-    const [slides, setSlides] = useState([]);
+    // const [slides, setSlides] = useState([]);
     const [image, setImage] = useState(null);
     const [link, setLink] = useState("");
     const [displayOrder, setDisplayOrder] = useState("1");
@@ -65,6 +67,7 @@ export default function ImageSlider() {
 
     const dispatch = useDispatch();
     const uid = "your-unique-id";
+    const slides = useSelector((state) => state.slides.data);
 
     useEffect(() => {
         const fetchSlidesOnce = async () => {
@@ -84,36 +87,48 @@ export default function ImageSlider() {
         fetchSlidesOnce();
     }, [uid, dispatch]);
 
-    const onDrop = (acceptedFiles) => {
-        const reader = new FileReader();
-        reader.onload = () => setImage(reader.result);
-        reader.readAsDataURL(acceptedFiles[0]);
+    const onDrop = async (acceptedFiles) => {
+        if (acceptedFiles.length === 0) return;
+        const file = acceptedFiles[0];
+
+        try {
+            // create a unique path in storage
+            const storageRef = ref(storage, `slides/${uid}/${uuidv4()}-${file.name}`);
+            await uploadBytes(storageRef, file);
+            const url = await getDownloadURL(storageRef);
+            setImage(url);
+            console.log("upload successful:");
+        } catch (error) {
+            console.error("Error uploading image:", error);
+        }
     };
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
 
-    const addOrUpdateSlide = () => {
+    const addOrUpdateSlide = async () => {
         if (!image || !link) return;
+
         const newSlide = {
             image,
             link,
             title: link.split("/").pop().replace(/[-_]/g, " "),
             active: true,
         };
+
+        let updated;
         if (editingIndex !== null) {
-            const updated = [...slides];
+            updated = [...slides];
             updated[editingIndex] = newSlide;
-            setSlides(updated);
             setEditingIndex(null);
-            dispatch(setSlides(updated));
-            add_Or_Update_Slide(uid, updated);
         } else {
-            const updated = [...slides];
+            updated = [...slides];
             updated.splice(parseInt(displayOrder) - 1, 0, newSlide);
-            setSlides(updated);
-            dispatch(setSlides(updated));
-            add_Or_Update_Slide(uid, updated);
         }
+
+        setSlides(updated);
+        dispatch(setSlides(updated));
+        await add_Or_Update_Slide(uid, updated);
+
         setImage(null);
         setLink("");
         setDisplayOrder("1");
@@ -140,14 +155,25 @@ export default function ImageSlider() {
         setSlides(updated);
     };
 
-    const moveSlide = (from, to) => {
+    const moveSlide = async (from, to) => {
+        // prevent invalid moves
+        if (to < 0 || to >= slides.length) return;
+
         const updated = [...slides];
         const [moved] = updated.splice(from, 1);
         updated.splice(to, 0, moved);
-        setSlides(updated);
-    };
 
-    console.log(slides);
+        setSlides(updated);
+        dispatch(setSlides(updated));
+
+        // persist new order in Firestore
+        try {
+            await add_Or_Update_Slide(uid, updated);
+            console.log("Slide order updated successfully!");
+        } catch (error) {
+            console.error("Error updating slide order:", error);
+        }
+    };
 
     return (
         <div className="md:p-8 px-4 py-0 mx-auto">
@@ -155,7 +181,7 @@ export default function ImageSlider() {
             <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl">
                 Image Slider <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
             </h2>
-            
+
             <div className="mb-6">
 
                 {/* Image Upload */}
@@ -173,6 +199,7 @@ export default function ImageSlider() {
                             <p>{isDragActive ? "Drop here..." : "Click to upload or drag and drop"}</p>
                         </div>
                     )}
+
                 </div>
 
                 {/* Link url */}
@@ -216,12 +243,12 @@ export default function ImageSlider() {
                             key={index}
                             index={index}
                             slide={slide}
-                        moveSlide={moveSlide}
-                        onEdit={editSlide}
-                        onDelete={deleteSlide}
-                        onToggle={toggleActive}
-                    />
-                ))}
+                            moveSlide={moveSlide}
+                            onEdit={editSlide}
+                            onDelete={deleteSlide}
+                            onToggle={toggleActive}
+                        />
+                    ))}
             </DndProvider>
         </div>
     );

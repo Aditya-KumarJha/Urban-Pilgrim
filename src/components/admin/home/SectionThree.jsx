@@ -3,6 +3,10 @@ import { FaTimes } from "react-icons/fa";
 import { useDispatch } from "react-redux";
 import { setSectionThree, setLoading } from "../../../features/home_slices/sectionThreeSlice";
 import { fetchSectionThree, saveSectionThree } from "../../../services/home_service/sectionThreeService";
+import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { storage } from "../../../services/firebase";
+import { v4 as uuidv4 } from "uuid";
+import { showSuccess } from "../../../utils/toast";
 
 function SectionThree() {
     const [image, setImage] = useState(null);
@@ -33,20 +37,53 @@ function SectionThree() {
         setPrograms(updated);
     };
 
-    const handleProgramImageChange = (index, file) => {
-        const reader = new FileReader();
-        reader.onload = () => {
+    const handleProgramImageChange = async (index, file) => {
+        try {
+            // Create a storage reference (you can customize the path)
+            const storageRef = ref(storage, `slides/sectionThree/${uuidv4()}-${file.name}`);
+
+            // Upload file
+            await uploadBytes(storageRef, file);
+
+            // Get download URL
+            const downloadURL = await getDownloadURL(storageRef);
+
+            // Update local state with download URL
             const updated = [...programs];
-            updated[index].image = reader.result;
+            updated[index].image = downloadURL;
             setPrograms(updated);
-        };
-        reader.readAsDataURL(file);
+
+            // (Optional) if syncing with Redux
+            // dispatch(setPrograms(updated));
+
+            console.log("Image uploaded successfully:", downloadURL);
+        } catch (error) {
+            console.error("Error uploading image:", error);
+        }
     };
 
-    const handleProgramImageRemove = (index) => {
-        const updated = [...programs];
-        updated[index].image = null;
-        setPrograms(updated);
+    const handleProgramImageRemove = async (index) => {
+        try {
+            const updated = [...programs];
+
+            // check if an image exists before removing
+            if (updated[index].image) {
+                const storageRef = ref(storage, updated[index].image);
+                await deleteObject(storageRef);
+                console.log("Image deleted from storage:", updated[index].image);
+
+                // set image field to null after deletion
+                updated[index].image = null;
+                setPrograms(updated);
+
+                // if you are syncing with redux (optional)
+                // dispatch(setPrograms(updated));
+            } else {
+                console.log("No image to delete for this program");
+            }
+        } catch (error) {
+            console.error("Error removing program image:", error);
+        }
     };
 
     const handleDiscard = () => {
@@ -60,6 +97,7 @@ function SectionThree() {
         dispatch(setSectionThree(programs)); // update store
         await saveSectionThree(uid, programs); // update Firestore
         console.log("Section 3 data saved successfully", programs);
+        showSuccess("Data saved successfully");
     };
 
     const handleDeleteProgram = (index) => {

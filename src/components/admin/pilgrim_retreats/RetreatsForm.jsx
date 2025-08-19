@@ -11,6 +11,7 @@ import { setRetreatData } from "../../../features/pilgrim_retreat/pilgrimRetreat
 import { useDispatch } from "react-redux";
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
 import { storage } from "../../../services/firebase"
+import { showError, showSuccess } from "../../../utils/toast";
 
 const ItemType = "RETREAT";
 
@@ -80,7 +81,10 @@ export default function RetreatsForm() {
             videos: []
         },
         session: {
-            description: "",
+            title: "",
+            description1: "",
+            description2: "",
+            description3: "",
             dateOptions: [{ start: "", end: "" }],
             occupancies: ["Single"],
             showOccupancyInRetreat: false
@@ -640,7 +644,10 @@ export default function RetreatsForm() {
                 videos: []
             },
             session: {
-                description: "",
+                title: "",
+                description1: "",
+                description2: "",
+                description3: "",
                 dateOptions: [{ start: "", end: "" }],
                 occupancies: ["Single"],
                 showOccupancyInRetreat: false
@@ -684,6 +691,7 @@ export default function RetreatsForm() {
                 dispatch(setRetreatData(uid, editingIndex, items));
                 updateItem(editingIndex - 1);
                 console.log(`Retreat updated successfully!`, formData);
+                showSuccess("Retreat updated successfully!");
                 resetForm();
                 setEditingIndex(null);
             } else {
@@ -693,6 +701,7 @@ export default function RetreatsForm() {
                 console.log(`Retreat saved successfully!`, formData);
                 resetForm();
                 addItem2(formData);
+                showError("Retreat saved successfully!");
                 console.log(`after reset`, formData);
             }
 
@@ -919,15 +928,47 @@ export default function RetreatsForm() {
                     Session <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
                 </h2>
 
-                <label className="block text-md font-semibold text-gray-700 mb-2">Session Description</label>
+                {/* Title */}
+                <h3 className="block text-md font-semibold text-gray-700 mb-2">Title</h3>
+                <input
+                    type="text"
+                    placeholder="Enter Title"
+                    value={formData?.session?.title}
+                    onChange={(e) => handleFieldChange("session", "title", e.target.value)}
+                    className="text-sm w-full border p-3 rounded-lg mb-3"
+                />
+
+                {/* Session Description 1 */}
+                <label className="block text-md font-semibold text-gray-700 mb-2">Session Description 1</label>
                 <textarea
                     placeholder="Enter Description"
                     rows="4"
-                    value={formData?.session?.description}
-                    onChange={(e) => handleFieldChange("session", "description", e.target.value)}
+                    value={formData?.session?.description1}
+                    onChange={(e) => handleFieldChange("session", "description1", e.target.value)}
                     className="text-sm w-full border p-3 rounded-lg mb-4"
                 />
 
+                {/* Session Description 2 */}
+                <label className="block text-md font-semibold text-gray-700 mb-2">Session Description 2</label>
+                <textarea
+                    placeholder="Enter Description"
+                    rows="4"
+                    value={formData?.session?.description2}
+                    onChange={(e) => handleFieldChange("session", "description2", e.target.value)}
+                    className="text-sm w-full border p-3 rounded-lg mb-4"
+                />
+
+                {/* Session Description 3 */}
+                <label className="block text-md font-semibold text-gray-700 mb-2">Session Description 3</label>
+                <textarea
+                    placeholder="Enter Description"
+                    rows="4"
+                    value={formData?.session?.description3}
+                    onChange={(e) => handleFieldChange("session", "description3", e.target.value)}
+                    className="text-sm w-full border p-3 rounded-lg mb-4"
+                />
+
+                {/* Date Option */}
                 <label className="block text-md font-semibold text-gray-700 mb-2">Date Option</label>
                 {formData?.session?.dateOptions.map((option, index) => (
                     <div key={index} className="flex gap-2 mb-2 items-center">
@@ -960,7 +1001,7 @@ export default function RetreatsForm() {
                         )}
                     </div>
                 ))}
-
+                
                 <label className="block text-md font-semibold text-gray-700 mb-2 mt-4">Occupancy</label>
                 {formData?.session?.occupancies.map((occ, index) => (
                     <div key={index} className="flex gap-2 mb-2 items-center">
@@ -1419,8 +1460,9 @@ export default function RetreatsForm() {
                     />
 
                     <label className="block font-semibold mb-1">Description</label>
-                    <input
+                    <textarea
                         type="text"
+                        rows="4"
                         value={formData?.meetGuide?.description}
                         placeholder="Enter description"
                         onChange={(e) => handleFieldChange("meetGuide", "description", e.target.value)}

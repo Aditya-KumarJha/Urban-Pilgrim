@@ -3,6 +3,9 @@ import { setTestimonials, setLoading } from "../../../features/home_slices/testi
 import { fetchTestimonials, saveTestimonials, deleteTestimonial } from "../../../services/home_service/testimonialService";
 import { useDispatch } from "react-redux";
 import { FaTimes } from "react-icons/fa";
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
+import { storage } from "../../../services/firebase";
+import { showSuccess } from "../../../utils/toast";
 
 function TestimonialsEdit() {
     const [testimonial, setTestimonial] = useState([]);
@@ -43,20 +46,36 @@ function TestimonialsEdit() {
         setTestimonial(updated);
     };
 
-    const handleProgramImageChange = (index, file) => {
-        const reader = new FileReader();
-        reader.onload = () => {
+    const handleProgramImageChange = async (index, file) => {
+        try {
+            const storageRef = ref(storage, `testimonials/${Date.now()}_${file.name}`);
+
+            await uploadBytes(storageRef, file);
+
+            const url = await getDownloadURL(storageRef);
+
             const updated = [...testimonial];
-            updated[index].image = reader.result;
+            updated[index].image = url;
             setTestimonial(updated);
-        };
-        reader.readAsDataURL(file);
+            dispatch(setTestimonials(updated));
+        } catch (error) {
+            console.error("Image upload failed:", error);
+        }
     };
 
-    const handleTestimonialImageRemove = (index) => {
-        const updated = [...testimonial];
-        updated[index].image = null;
-        setTestimonial(updated);
+    const handleTestimonialImageRemove = async (index) => {
+        try {
+            const imageUrl = testimonial[index].image;
+            const imageRef = ref(storage, imageUrl);
+            await deleteObject(imageRef);
+
+            const updated = [...testimonial];
+            updated[index].image = null;
+            setTestimonial(updated);
+            dispatch(setTestimonials(updated));
+        } catch (error) {
+            console.error("Image remove failed:", error);
+        }
     };
 
     const handleDiscard = async () => {
@@ -74,12 +93,14 @@ function TestimonialsEdit() {
         dispatch(setTestimonials(testimonial));
         await saveTestimonials(uid, testimonial);
         console.log("Testimonials saved successfully", testimonial);
+        showSuccess("Testimonials saved successfully");
     };
 
     const handleDeleteTestimonial = async (index) => {
         const updated = [...testimonial];
         updated.splice(index, 1);
         setTestimonial(updated);
+        handleDeleteTestimonial(index);
         dispatch(setTestimonials(updated));
         await deleteTestimonial(uid, index);
         console.log("Testimonials deleted successfully", index);

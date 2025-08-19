@@ -1,3 +1,4 @@
+import { combineReducers, configureStore } from "@reduxjs/toolkit";
 import authReducer from "../features/authSlice";
 // import sessionReducer from "../features/sessionSlice";
 // import bookingReducer from "../features/bookingSlice";
@@ -14,7 +15,6 @@ import pilgrimRetreatReducer from "../features/pilgrim_retreat/pilgrimRetreatSli
 import pilgrimGuidesReducer from "../features/pilgrim_guide/pilgrimGuideSlice";
 import pilgrimLiveSessionReducer from "../features/pilgrim_session/liveSessionsSlice"
 import pilgrimRecordedSessionreducer from "../features/pilgrim_session/recordedSessionSlice"
-import { combineReducers, configureStore } from "@reduxjs/toolkit";
 
 import { 
     persistReducer,

@@ -2,13 +2,11 @@ import { useEffect, useState } from "react";
 import { setSectionTwo, setLoading } from "../../../features/home_slices/sectionTwoSlice";
 import { fetchSectionTwo, saveSectionTwo } from "../../../services/home_service/sectionTwoService";
 import { useDispatch } from "react-redux";
-
+import { showSuccess } from "../../../utils/toast";
 
 function SectionTwo() {
-    const [title, setTitle] = useState("It asks: What about me?");
-    const [description, setDescription] = useState(
-        "We live in a world that celebrates hustle—but forgets healing. Every scroll, every deadline, every city noise pulls us outward. Yet somewhere inside, a quieter voice longs to be heard."
-    );
+    const [title, setTitle] = useState("");
+    const [description, setDescription] = useState("")
 
     const dispatch = useDispatch();
     // const { title, description, image } = useSelector((state) => state.sectionTwo);
@@ -40,6 +38,7 @@ function SectionTwo() {
         dispatch(setSectionTwo(newData)); // update store
         await saveSectionTwo(uid, newData); // update Firestore
         console.log("Section 2 data saved successfully", newData);
+        showSuccess("Data saved successfully");
     };
 
     return (

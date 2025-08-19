@@ -14,7 +14,10 @@ const initialState = {
         videos: [],
     },
     session: {
-        description: "",
+        title: "",
+        description1: "",
+        description2: "",
+        description3: "",
         dateOptions: [{ start: "", end: "" }],
         occupancies: ["Single"],
         showOccupancyInRetreat: false,

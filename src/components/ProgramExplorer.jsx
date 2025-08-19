@@ -1,21 +1,40 @@
-import { useState, useRef } from "react";
+
+import { useEffect, useState, useRef } from "react";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../services/firebase";
 import { motion } from "framer-motion";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import ProgramCard from "./Animated_card";
 import ArrowButton from "./ui/ArrowButton";
 
-const programItems = [
-    { card_title: "Curated experiences", image: "/assets/card-img1.png" },
-    { card_title: "Online sessions", image: "/assets/onlinesession.png" },
-    { card_title: "Wellness Programs", image: "/assets/Wellness_Programs.svg" },
-    { card_title: "Wellness Guides", image: "/assets/Wellness_Guides.svg" },
-];
-
 export default function ProgramExplorer() {
     const [activeIndex, setActiveIndex] = useState(0);
     const sliderRef = useRef(null);
     const dotRefs = useRef([]);
+    const [programItems, setProgramItems] = useState([]);
     const totalSteps = programItems.length;
+
+    const uid = "your-unique-id";
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const slidesRef = doc(db, `homepage/${uid}/title_description/sectionThree`);
+                const snapshot = await getDoc(slidesRef);
+
+                if (snapshot.exists()) {
+                    const data = snapshot.data();
+                    setProgramItems(data.sectionThree || []);
+                } else {
+                    console.log("No slides found in Firestore");
+                }
+            } catch (error) {
+                console.error("Error fetching images from Firestore:", error);
+            }
+        };
+
+        fetchData();
+    }, []);
 
     const scrollToCard = (index) => {
         setActiveIndex(index);
@@ -67,7 +86,7 @@ export default function ProgramExplorer() {
                                     key={i}
                                     ref={(el) => (dotRefs.current[i] = el)}
                                     className={`w-[2px] h-10 rounded-full transition-all duration-300  
-                                        ${i === activeIndex ? "bg-[#4d3c2c] " : "" } 
+                                        ${i === activeIndex ? "bg-[#4d3c2c] " : ""} 
                                         ${i === activeIndex && i === programItems.length - 1 ? " " : ""} `}
                                 />
                             ))}
@@ -80,11 +99,11 @@ export default function ProgramExplorer() {
                                     key={i}
                                     onClick={() => scrollToCard(i)}
                                     className={`cursor-pointer transition-all duration-300 ${i === activeIndex
-                                            ? "text-black font-semibold"
-                                            : "text-gray-500"
+                                        ? "text-black font-semibold"
+                                        : "text-gray-500"
                                         }`}
                                 >
-                                    {item.card_title}
+                                    {item?.title}
                                 </li>
                             ))}
                         </ul>
@@ -102,8 +121,8 @@ export default function ProgramExplorer() {
                     {programItems.map((item, i) => (
                         <ProgramCard
                             key={i}
-                            image={item.image}
-                            card_title={item.card_title}
+                            image={item?.image}
+                            card_title={item?.title}
                         />
                     ))}
                 </div>

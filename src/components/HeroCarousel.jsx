@@ -2,29 +2,61 @@ import { useState, useEffect } from "react";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import NormalArrowButton from "./ui/NormalArrowButton";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../services/firebase";
+import { useSelector } from "react-redux";
 
-const images = [
-    "/assets/home/bg1.svg",
-    "/assets/home/carousel2.png",
-    "/assets/home/carousel3.png",
-    "/assets/home/carousel4.png",
-    "/assets/home/carousel5.png",
-    "/assets/home/carousel6.png",
-];
+// const images = [
+//     "/assets/home/bg1.svg",
+//     "/assets/home/carousel2.png",
+//     "/assets/home/carousel3.png",
+//     "/assets/home/carousel4.png",
+//     "/assets/home/carousel5.png",
+//     "/assets/home/carousel6.png",
+// ];
 
 export default function HeroCarousel() {
     const [current, setCurrent] = useState(0);
-    const total = images.length;
+    const [images, setImages] = useState([]);
 
-    const nextSlide = () => setCurrent((prev) => (prev + 1) % total);
-    const prevSlide = () => setCurrent((prev) => (prev - 1 + total) % total);
+    const nextSlide = () => setCurrent((prev) => (prev + 1) % images.length);
+    const prevSlide = () => setCurrent((prev) => (prev - 1 + images.length) % images.length);
+
+    const user = useSelector((state) => state.auth.user);
+    const uid = "your-unique-id";
+
+    useEffect(() => {
+        const fetchImages = async () => {
+            try {
+                const slidesRef = doc(db, `homepage/${uid}/image_slider/slides`);
+                const snapshot = await getDoc(slidesRef);
+
+                if (snapshot.exists()) {
+                    const data = snapshot.data();
+                    console.log("Fetched images in hero:", data);
+                    for (const slide of data.slides) {
+                        const image = slide.image;
+                        if (image) {
+                            setImages((prev) => [...prev, image]);
+                        }
+                    }
+                } else {
+                    console.log("No slides found in Firestore");
+                }
+            } catch (error) {
+                console.error("Error fetching images from Firestore:", error);
+            }
+        };
+
+        fetchImages();
+    }, [user.uid]);
 
     useEffect(() => {
         const interval = setInterval(() => {
             nextSlide();
         }, 5000);
         return () => clearInterval(interval);
-    }, []);
+    }, [nextSlide]);
 
     return (
         <div className="w-screen lg:h-[75vh] sm:h-[50vh] h-[40vh] relative overflow-hidden bg-black flex items-center justify-center mt-[70px]">
@@ -60,7 +92,7 @@ export default function HeroCarousel() {
             {/* Arrows + Slide Count */}
             <div className="absolute left-4 md:left-auto md:right-10 md:bottom-12 bottom-2 md:top-1/2 md:-translate-y-1/2 flex md:flex-col items-center gap-6 text-white z-10">
                 <NormalArrowButton onClick={prevSlide} icon={FaChevronLeft} dir={1} />
-                <span className="text-sm font-medium">{`${current + 1} / ${total}`}</span>
+                <span className="text-sm font-medium">{`${current + 1} / ${images.length}`}</span>
                 <NormalArrowButton onClick={nextSlide} icon={FaChevronRight} dir={-1} />
             </div>
 
