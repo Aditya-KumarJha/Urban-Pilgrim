@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import { X, Plus, Trash2, GripVertical, Edit2 } from "lucide-react";
+import { X, Trash2, GripVertical, Edit2 } from "lucide-react";
+import { FaPlus, FaTimes } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
-import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { deleteObject, getDownloadURL, ref, uploadBytes, uploadBytesResumable } from "firebase/storage";
 import { v4 as uuidv4 } from "uuid";
 import { storage } from "../../../services/firebase";
 import { setRecordedSessions } from "../../../features/pilgrim_session/recordedSessionSlice";
@@ -56,7 +57,7 @@ function SlideItem({ slide, index, moveSlide, removeSlide, editSlide }) {
     );
 }
 
-export default function RecordedProgramForm() {
+export default function RecordedSession2() {
     const [formData, setFormData] = useState({
         recordedProgramCard: {
             title: "",
@@ -68,9 +69,27 @@ export default function RecordedProgramForm() {
             totalprice: "",
             description: ""
         },
+        // New: About Program section
+        aboutProgram: {
+            title: "",
+            shortDescription: "",
+            points: [""]
+        },
+        // New: One Time Subscription (price only)
+        oneTimeSubscription: {
+            price: ""
+        },
+        // Replaces simple recordedProgramPrograms with richer programSchedule structure
+        programSchedule: [],
+        // New: features like pilgrim retreat form
+        features: [],
         faqs: [{ title: "", description: "" }],
-        recordedProgramPrograms: [{ title: "", description: "" }],
         guide: [{ title: "", description: "", image: null }],
+        // New: Additional section with title and points
+        keyHighlights: {
+            title: "",
+            points: [""]
+        },
         slides: [],
     });
 
@@ -107,21 +126,13 @@ export default function RecordedProgramForm() {
                 return;
             }
 
-            // Create a unique storage path for the file
             const filePath = `pilgrim_sessions/thumbnails/${uuidv4()}_${file.name}`;
             const storageRef = ref(storage, filePath);
-
-            // Upload file
             const snapshot = await uploadBytes(storageRef, file);
             console.log("File uploaded successfully:", snapshot.metadata.fullPath);
-
-            // Get download URL
             const downloadURL = await getDownloadURL(storageRef);
             console.log("Download URL:", downloadURL);
-
-            // Update formData with the file's download URL
             handleFieldChange("recordedProgramCard", "thumbnail", downloadURL);
-
         } catch (error) {
             console.error("Error uploading file:", error);
         }
@@ -144,25 +155,7 @@ export default function RecordedProgramForm() {
         setDragActive(false);
     };
 
-    const handleScheduleChange = (index, field, value) => {
-        const updated = [...formData.recordedProgramPrograms];
-        updated[index][field] = value;
-        setFormData((prev) => ({ ...prev, recordedProgramPrograms: updated }));
-    };
-
-    const addProgramSchedule = () => {
-        setFormData((prev) => ({
-            ...prev,
-            recordedProgramPrograms: [...prev.recordedProgramPrograms, { title: "", description: "" }],
-        }));
-    };
-
-    const removeProgramSchedule = (index) => {
-        const updated = [...formData.recordedProgramPrograms];
-        updated.splice(index, 1);
-        setFormData((prev) => ({ ...prev, recordedProgramPrograms: updated }));
-    };
-
+    // FAQs
     const handleFaqChange = (index, field, value) => {
         const updated = [...formData.faqs];
         updated[index][field] = value;
@@ -182,26 +175,123 @@ export default function RecordedProgramForm() {
         setFormData((prev) => ({ ...prev, faqs: updated }));
     };
 
+    // Features (like retreat form)
+    const addFeature = () => {
+        setFormData((prev) => ({
+            ...prev,
+            features: [...prev.features, { id: Date.now(), title: "", shortdescription: "", image: null }],
+        }));
+    };
+
+    const handleFeatureChange = (index, field, value) => {
+        const updated = [...formData.features];
+        updated[index][field] = value;
+        setFormData((prev) => ({ ...prev, features: updated }));
+    };
+
+    const handleFeatureImageChange = async (index, file) => {
+        if (!file) return;
+        try {
+            const storageRef = ref(storage, `featureImages/${uuidv4()}_${file.name}`);
+            const uploadTask = uploadBytesResumable(storageRef, file);
+            uploadTask.on(
+                "state_changed",
+                () => {},
+                (error) => {
+                    console.error("Upload failed:", error);
+                },
+                async () => {
+                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                    const updated = [...formData.features];
+                    updated[index].image = downloadURL;
+                    setFormData((prev) => ({ ...prev, features: updated }));
+                }
+            );
+        } catch (err) {
+            console.error("Error uploading file:", err);
+        }
+    };
+
+    const removeFeature = (index) => {
+        const updated = [...formData.features];
+        updated.splice(index, 1);
+        setFormData((prev) => ({ ...prev, features: updated }));
+    };
+
+    // Program Schedule (richer structure like retreat form)
+    const addProgram = () => {
+        setFormData((prev) => ({
+            ...prev,
+            programSchedule: [
+                ...prev.programSchedule,
+                { title: "", points: [{ title: "", subpoints: [] }] },
+            ],
+        }));
+    };
+
+    const handleProgramChange = (index, field, value) => {
+        const updated = [...formData.programSchedule];
+        updated[index][field] = value;
+        setFormData((prev) => ({ ...prev, programSchedule: updated }));
+    };
+
+    const handleProgramPointChange = (programIndex, pointIndex, value) => {
+        const updated = [...formData.programSchedule];
+        updated[programIndex].points[pointIndex].title = value;
+        setFormData((prev) => ({ ...prev, programSchedule: updated }));
+    };
+
+    const handleProgramSubPointChange = (programIndex, pointIndex, subIndex, value) => {
+        const updated = [...formData.programSchedule];
+        updated[programIndex].points[pointIndex].subpoints[subIndex] = value;
+        setFormData((prev) => ({ ...prev, programSchedule: updated }));
+    };
+
+    const addProgramPoint = (programIndex) => {
+        const updated = [...formData.programSchedule];
+        updated[programIndex].points.push({ title: "", subpoints: [] });
+        setFormData((prev) => ({ ...prev, programSchedule: updated }));
+    };
+
+    const removeProgramPoint = (programIndex, pointIndex) => {
+        const updated = [...formData.programSchedule];
+        updated[programIndex].points.splice(pointIndex, 1);
+        setFormData((prev) => ({ ...prev, programSchedule: updated }));
+    };
+
+    const addProgramSubPoint = (programIndex, pointIndex) => {
+        const updated = [...formData.programSchedule];
+        updated[programIndex].points[pointIndex].subpoints.push("");
+        setFormData((prev) => ({ ...prev, programSchedule: updated }));
+    };
+
+    const removeProgramSubPoint = (programIndex, pointIndex, subIndex) => {
+        const updated = [...formData.programSchedule];
+        updated[programIndex].points[pointIndex].subpoints.splice(subIndex, 1);
+        setFormData((prev) => ({ ...prev, programSchedule: updated }));
+    };
+
+    const removeProgram = (index) => {
+        const updated = [...formData.programSchedule];
+        updated.splice(index, 1);
+        setFormData((prev) => ({ ...prev, programSchedule: updated }));
+    };
+
+    // Slides ordering & CRUD
     const moveSlide = async (from, to) => {
         try {
             const updatedPrograms = [...sessions];
-
             let allSlides = updatedPrograms.flatMap(g => g.slides);
-
             if (from < 0 || from >= allSlides.length || to < 0 || to >= allSlides.length) {
                 console.warn("Invalid slide move indexes");
                 return;
             }
-
             const [moved] = allSlides.splice(from, 1);
             allSlides.splice(to, 0, moved);
-
             setSlideData(allSlides);
             updatedPrograms[0].slides = allSlides;
             dispatch(setRecordedSessions(updatedPrograms));
-
             await saveOrUpdateRecordedSessionData(uid, "slides", updatedPrograms);
-
         } catch (err) {
             console.error("Error moving slide:", err);
         }
@@ -210,22 +300,14 @@ export default function RecordedProgramForm() {
     const removeSlide = async (index) => {
         try {
             if (!uid) throw new Error("User not logged in");
-
-            // Remove from Firestore first
             await deleteRecordedSessionByIndex(uid, index);
-
-            // Remove from Redux store
             const updatedRecordedSessions = sessions.filter((_, i) => i !== index);
             dispatch(setRecordedSessions(updatedRecordedSessions));
-
-            // Update local states if you’re keeping them for form rendering
             setFormData((prev) => ({
                 ...prev,
                 slides: prev.slides?.filter((_, i) => i !== index) || []
             }));
-
             setSlideData((prev) => prev.filter((_, i) => i !== index));
-
             console.log("Slide removed locally and from Firestore");
         } catch (err) {
             console.error("Error removing slide:", err);
@@ -234,7 +316,6 @@ export default function RecordedProgramForm() {
 
     const editSlide = (index) => {
         const slideToEdit = allData[index];
-        console.log("slide to edit in recorded", slideToEdit);
         setFormData((prev) => ({
             ...prev,
             recordedProgramCard: {
@@ -248,12 +329,30 @@ export default function RecordedProgramForm() {
                 description: slideToEdit?.recordedProgramCard?.description || "",
             },
             faqs: slideToEdit?.faqs?.length > 0 ? slideToEdit.faqs : [{ title: "", description: "" }],
-            recordedProgramPrograms: slideToEdit?.recordedProgramPrograms?.length > 0 ? slideToEdit.recordedProgramPrograms : [{ title: "", description: "" }],
+            // Load richer schedule and features when present
+            programSchedule: slideToEdit?.programSchedule?.length > 0 ? slideToEdit.programSchedule : [],
+            features: slideToEdit?.features?.length > 0 ? slideToEdit.features : [],
+            oneTimeSubscription: slideToEdit?.oneTimeSubscription ? {
+                price: slideToEdit?.oneTimeSubscription?.price || ""
+            } : { price: "" },
+            aboutProgram: slideToEdit?.aboutProgram ? {
+                title: slideToEdit?.aboutProgram?.title || "",
+                shortDescription: slideToEdit?.aboutProgram?.shortDescription || "",
+                points: Array.isArray(slideToEdit?.aboutProgram?.points) && slideToEdit?.aboutProgram?.points.length > 0
+                    ? slideToEdit?.aboutProgram?.points
+                    : [""]
+            } : { title: "", shortDescription: "", points: [""] },
+            keyHighlights: slideToEdit?.keyHighlights ? {
+                title: slideToEdit?.keyHighlights?.title || "",
+                points: Array.isArray(slideToEdit?.keyHighlights?.points) && slideToEdit?.keyHighlights?.points.length > 0
+                    ? slideToEdit?.keyHighlights?.points
+                    : [""]
+            } : { title: "", points: [""] },
             guide: slideToEdit?.guide?.length > 0 ? slideToEdit.guide : [{ title: "", description: "", image: null }],
         }));
         setIsEditing(true);
         setEditIndex(index);
-        document.getElementById("recorded").scrollIntoView({ behavior: "smooth" });
+        document.getElementById("recorded2")?.scrollIntoView({ behavior: "smooth" });
     };
 
     const cancelEdit = () => {
@@ -271,9 +370,13 @@ export default function RecordedProgramForm() {
                 totalprice: "",
                 description: "",
             },
+            aboutProgram: { title: "", shortDescription: "", points: [""] },
+            programSchedule: [],
+            features: [],
+            oneTimeSubscription: { price: "" },
             faqs: [{ title: "", description: "" }],
-            recordedProgramPrograms: [{ title: "", description: "" }],
             guide: [{ title: "", description: "", image: null }],
+            keyHighlights: { title: "", points: [""] },
         }));
     };
 
@@ -286,9 +389,7 @@ export default function RecordedProgramForm() {
 
     const validateFields = () => {
         const newErrors = {};
-
-        const isPriceValid = (value) => /^\d+(\.\d{1,2})?$/.test(value.trim());
-
+        const isPriceValid = (value) => /^\d+(\.\d{1,2})?$/.test((value || "").toString().trim());
         if (!formData.recordedProgramCard.title) newErrors.title = "Title is required";
         if (!formData.recordedProgramCard.category) newErrors.category = "Category required";
         if (!isPriceValid(formData.recordedProgramCard.price)) newErrors.recordedPrice = "Invalid Price";
@@ -302,10 +403,12 @@ export default function RecordedProgramForm() {
             }
         });
 
-        formData.recordedProgramPrograms.forEach((slot, i) => {
-            if (!slot.title || !slot.description) {
-                newErrors[`slot_${i}`] = "Schedule title and description are required";
-            }
+        // Validate program schedule
+        formData.programSchedule.forEach((program, i) => {
+            if (!program.title) newErrors[`program_${i}`] = "Program day title is required";
+            program.points.forEach((pt, j) => {
+                if (!pt.title) newErrors[`program_${i}_point_${j}`] = "Point title is required";
+            });
         });
 
         setErrors(newErrors);
@@ -316,25 +419,23 @@ export default function RecordedProgramForm() {
         const loadCards = async () => {
             try {
                 const session = await fetchRecordedSessionData(uid);
-                console.log("Fetched recorded session data:", session);
-                setAllData(session.slides || []);
-                console.log("All data loaded:", session);
-                if (session.slides) {
+                if (session && session.slides) {
+                    setAllData(session.slides || []);
                     let allSlides = [];
                     for (const ssn of session.slides) {
-                        console.log("Slide data inside:", ssn.slides);
                         if (ssn.slides) {
                             allSlides = [...allSlides, ...ssn.slides];
                         }
                     }
                     setSlideData(allSlides);
+                } else {
+                    setAllData([]);
+                    setSlideData([]);
                 }
-
             } catch (err) {
                 console.error("Error fetching recorded session data:", err);
             }
         };
-
         loadCards();
     }, [uid]);
 
@@ -347,7 +448,12 @@ export default function RecordedProgramForm() {
         const newCard = {
             recordedProgramCard: { ...formData.recordedProgramCard },
             faqs: [...formData.faqs],
-            recordedProgramPrograms: [...formData.recordedProgramPrograms],
+            // New: richer schedule and features
+            programSchedule: [...formData.programSchedule],
+            features: [...formData.features],
+            oneTimeSubscription: { ...formData.oneTimeSubscription },
+            aboutProgram: { ...formData.aboutProgram },
+            keyHighlights: { ...formData.keyHighlights },
             guide: [...formData.guide],
             slides: [
                 {
@@ -358,33 +464,23 @@ export default function RecordedProgramForm() {
 
         try {
             if (!uid) throw new Error("User not logged in");
-
             let updatedPrograms;
-
             if (isEditing && editIndex !== null) {
-                // Replace the existing card at editIndex
-                updatedPrograms = [...sessions]; // here sessions = recorded sessions array from redux or state
+                updatedPrograms = [...sessions];
                 updatedPrograms[editIndex] = newCard;
-                console.log("Recorded Program Updated Successfully");
+                console.log("Recorded Program (v2) Updated Successfully");
             } else {
-                // Add a new card
                 updatedPrograms = [...sessions, newCard];
-                console.log("Recorded Program Added Successfully");
+                console.log("Recorded Program (v2) Added Successfully");
             }
 
-            // Update Redux store
             dispatch(setRecordedSessions(updatedPrograms));
-
-            // Also update slideData
             setSlideData(updatedPrograms.flatMap(g => g.slides));
             setAllData(updatedPrograms);
-
-            // Save full updated programs array to Firestore
             const status = await saveOrUpdateRecordedSessionData(uid, "slides", updatedPrograms);
             console.log(`Firestore ${status} successfully`);
-            showSuccess("Recorded Program saved successfully!");
+            showSuccess("Recorded Program (v2) saved successfully!");
 
-            // Reset local form state
             setFormData({
                 recordedProgramCard: {
                     title: "",
@@ -396,18 +492,21 @@ export default function RecordedProgramForm() {
                     totalprice: "",
                     description: ""
                 },
+                aboutProgram: { title: "", shortDescription: "", points: [""] },
+                programSchedule: [],
+                features: [],
+                oneTimeSubscription: { price: "" },
                 faqs: [{ title: "", description: "" }],
-                recordedProgramPrograms: [{ title: "", description: "" }],
                 guide: [{ title: "", description: "", image: null }],
+                keyHighlights: { title: "", points: [""] },
                 slides: [],
             });
 
             setIsEditing(false);
             setEditIndex(null);
-
         } catch (err) {
-            console.error("Error saving recorded retreat:", err);
-            alert("Error saving recorded retreat data. Please try again.");
+            console.error("Error saving recorded session (v2):", err);
+            alert("Error saving recorded session. Please try again.");
         }
     };
 
@@ -422,28 +521,18 @@ export default function RecordedProgramForm() {
 
     const handleGuideImageChange = async (file) => {
         if (!file) return;
-
         try {
             if (!file.type.startsWith("image/")) {
                 alert("Please upload an image file");
                 return;
             }
-
-            // Create a unique storage path
             const filePath = `pilgrim_sessions/meet_guides/${uuidv4()}_${file.name}`;
             const storageRef = ref(storage, filePath);
-
-            // Upload file
             const snapshot = await uploadBytes(storageRef, file);
             console.log("File uploaded successfully:", snapshot.metadata.fullPath);
-
-            // Get download URL
             const downloadURL = await getDownloadURL(storageRef);
             console.log("Download URL:", downloadURL);
-
-            // Update formData.guide[0].image
             handleGuideChange("image", downloadURL);
-
         } catch (error) {
             console.error("Error uploading file:", error);
         }
@@ -453,12 +542,10 @@ export default function RecordedProgramForm() {
         try {
             const currentImage = formData.guide?.[0]?.image;
             if (currentImage) {
-                // Create a reference to the file to delete
                 const imageRef = ref(storage, currentImage);
                 await deleteObject(imageRef);
                 console.log("Image deleted from storage:", currentImage);
             }
-
             handleGuideChange("image", null);
             dispatch(setRecordedSessions((prev) => {
                 const updatedSessions = [...prev];
@@ -468,7 +555,6 @@ export default function RecordedProgramForm() {
                 }
                 return updatedSessions;
             }));
-
         } catch (error) {
             console.error("Error removing image:", error);
         }
@@ -476,7 +562,7 @@ export default function RecordedProgramForm() {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <div className="md:p-8 px-4 py-0 mx-auto" id="recorded">
+            <div className="md:p-8 px-4 py-0 mx-auto" id="recorded2">
 
                 {/* Recorded Program Card */}
                 <div className="mb-8">
@@ -504,7 +590,7 @@ export default function RecordedProgramForm() {
                             onDrop={handleDrop}
                             onDragOver={handleDragOver}
                             onDragLeave={handleDragLeave}
-                            onClick={() => document.getElementById('thumbnail-recorded-upload').click()}
+                            onClick={() => document.getElementById('thumbnail-recorded2-upload').click()}
                         >
                             {formData.recordedProgramCard.thumbnail ? (
                                 <div className="relative h-full flex items-center">
@@ -515,8 +601,8 @@ export default function RecordedProgramForm() {
                                     />
                                     <button
                                         onClick={(e) => {
-                                            e.stopPropagation()
-                                            handleFieldChange("recordedProgramCard", "thumbnail", null)
+                                            e.stopPropagation();
+                                            handleFieldChange("recordedProgramCard", "thumbnail", null);
                                         }}
                                         className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
                                     >
@@ -535,7 +621,7 @@ export default function RecordedProgramForm() {
                                 accept="image/*"
                                 onChange={(e) => handleFileUpload(e.target.files[0])}
                                 className="hidden"
-                                id="thumbnail-recorded-upload"
+                                id="thumbnail-recorded2-upload"
                             />
                         </div>
                     </div>
@@ -642,57 +728,357 @@ export default function RecordedProgramForm() {
                             className="text-sm w-full border border-gray-300 p-3 rounded-lg "
                         />
                     </div>
+                </div>   
+
+                {/* One Time Subscription (price only) */}
+                <div className="mb-8">
+                    <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+                        One Time Subscription <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
+                    </h2>
+                    <div>
+                        <label className="block text-md font-semibold text-gray-700 mb-2">Price</label>
+                        <input
+                            type="number"
+                            value={formData.oneTimeSubscription.price}
+                            placeholder="Enter price"
+                            onChange={(e) => setFormData(prev => ({ ...prev, oneTimeSubscription: { price: e.target.value } }))}
+                            className="text-sm w-full border border-gray-300 p-3 rounded-lg"
+                        />
+                    </div>
                 </div>
 
-                {/* Program Schedule */}
+                {/* About the Program */}
+                <div className="mb-8">
+                    <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+                        About the Program <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
+                    </h2>
+
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-md font-semibold text-gray-700 mb-2">Title</label>
+                            <input
+                                type="text"
+                                value={formData.aboutProgram.title}
+                                placeholder="Enter title"
+                                onChange={(e) => setFormData(prev => ({ ...prev, aboutProgram: { ...prev.aboutProgram, title: e.target.value } }))}
+                                className="text-sm w-full border border-gray-300 p-3 rounded-lg"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-md font-semibold text-gray-700 mb-2">Short Description</label>
+                            <textarea
+                                rows={3}
+                                value={formData.aboutProgram.shortDescription}
+                                placeholder="Enter short description"
+                                onChange={(e) => setFormData(prev => ({ ...prev, aboutProgram: { ...prev.aboutProgram, shortDescription: e.target.value } }))}
+                                className="text-sm w-full border border-gray-300 p-3 rounded-lg"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-md font-semibold text-gray-700 mb-2">Points</label>
+                            <div className="space-y-3">
+                                {formData.aboutProgram.points.map((pt, idx) => (
+                                    <div key={idx} className="flex items-center gap-2">
+                                        <input
+                                            type="text"
+                                            value={pt}
+                                            placeholder={`Point ${idx + 1}`}
+                                            onChange={(e) => {
+                                                const updated = [...formData.aboutProgram.points];
+                                                updated[idx] = e.target.value;
+                                                setFormData(prev => ({ ...prev, aboutProgram: { ...prev.aboutProgram, points: updated } }));
+                                            }}
+                                            className="w-full border border-gray-300 p-3 rounded-lg"
+                                        />
+                                        {formData.aboutProgram.points.length > 1 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const updated = [...formData.aboutProgram.points];
+                                                    updated.splice(idx, 1);
+                                                    setFormData(prev => ({ ...prev, aboutProgram: { ...prev.aboutProgram, points: updated } }));
+                                                }}
+                                                className="text-red-500 hover:text-red-700"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setFormData(prev => ({ ...prev, aboutProgram: { ...prev.aboutProgram, points: [...prev.aboutProgram.points, ""] } }))}
+                                className="w-full mt-3 px-4 py-3 bg-[#2F6288] text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                            >
+                                <FaPlus className="w-3 h-3" /> Add Point
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Program Schedule (Richer) */}
                 <div className="mb-8">
                     <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
                         {isEditing ? "Edit Program Schedule" : "Program Schedule"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
                     </h2>
-                    <div className="space-y-4 relative">
-                        {formData.recordedProgramPrograms.map((schedule, i) => (
-                            <div key={i} className="space-y-4">
-                                <div className="absolute right-0 justify-end items-center">
-                                    {formData.recordedProgramPrograms.length > 1 && (
-                                        <button
-                                            onClick={() => removeProgramSchedule(i)}
-                                            className="text-red-500 hover:text-red-700 p-1"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    )}
-                                </div>
+                    <div className="space-y-6">
+                        {formData?.programSchedule && formData?.programSchedule.map((program, programIndex) => (
+                            <div key={programIndex} className="p-6 bg-gray-50 rounded-lg border border-gray-200 relative">
+                                <button
+                                    onClick={() => removeProgram(programIndex)}
+                                    className="absolute top-4 right-4 text-red-500 hover:text-red-700 p-1"
+                                    title="Delete Program"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
 
-                                <div>
-                                    <label className="block text-md font-semibold text-gray-700 mb-2">Day {i + 1}</label>
+                                <div className="mb-4">
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Day {programIndex + 1} Title</label>
                                     <input
-                                        placeholder="Enter Title"
-                                        value={schedule.title}
-                                        onChange={(e) => handleScheduleChange(i, "title", e.target.value)}
-                                        className="text-sm w-full border border-gray-300 p-3 rounded-lg "
+                                        type="text"
+                                        value={program?.title}
+                                        placeholder="Enter title"
+                                        onChange={(e) => handleProgramChange(programIndex, "title", e.target.value)}
+                                        className="w-full border border-gray-300 p-3 rounded-lg"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-md font-semibold text-gray-700 mb-2">Description</label>
-                                    <textarea
-                                        placeholder="Enter Description"
-                                        rows={4}
-                                        value={schedule.description}
-                                        onChange={(e) => handleScheduleChange(i, "description", e.target.value)}
-                                        className="text-sm w-full border border-gray-300 p-3 rounded-lg "
-                                    />
-                                </div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Description Points</label>
 
-                                {errors[`slot_${i}`] && <p className="text-red-500 text-sm">{errors[`slot_${i}`]}</p>}
+                                    {program?.points && program?.points.map((point, pointIndex) => (
+                                        <div key={pointIndex} className="mb-4 relative">
+                                            <div className="mb-3">
+                                                <label className="block text-sm text-gray-700 mb-2">Point {pointIndex + 1} Title</label>
+                                                <div className="flex items-center gap-2">
+                                                    <input
+                                                        type="text"
+                                                        value={point?.title}
+                                                        placeholder={`Point ${pointIndex + 1}`}
+                                                        onChange={(e) => handleProgramPointChange(programIndex, pointIndex, e.target.value)}
+                                                        className="w-full border border-gray-300 p-3 rounded-lg"
+                                                    />
+
+                                                    {program?.points.length > 1 && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeProgramPoint(programIndex, pointIndex)}
+                                                            className="text-red-500 hover:text-red-700"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <div className="flex flex-col items-start justify-between">
+                                                    <label className="block text-sm text-gray-700 mb-2">Sub Points (Optional)</label>
+                                                </div>
+
+                                                {point?.subpoints && point?.subpoints.length > 0 && (
+                                                    <div className="space-y-3 mb-3">
+                                                        {point.subpoints.map((subpoint, subIndex) => (
+                                                            <div key={subIndex} className="flex items-center gap-2">
+                                                                <input
+                                                                    type="text"
+                                                                    value={subpoint}
+                                                                    placeholder={`Sub Point ${subIndex + 1}`}
+                                                                    onChange={(e) => handleProgramSubPointChange(programIndex, pointIndex, subIndex, e.target.value)}
+                                                                    className="w-full border border-gray-300 p-3 rounded-lg"
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => removeProgramSubPoint(programIndex, pointIndex, subIndex)}
+                                                                    className="text-red-500 hover:text-red-700"
+                                                                >
+                                                                    <FaTimes className="w-4 h-4" />
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => addProgramSubPoint(programIndex, pointIndex)}
+                                                    className="w-full px-4 py-3 bg-[#2F6288] text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                                                >
+                                                    <FaPlus className="w-3 h-3" /> Add Sub Point
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+
+                                    <button
+                                        type="button"
+                                        onClick={() => addProgramPoint(programIndex)}
+                                        className="w-full px-4 py-3 bg-[#2F6288] text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                                    >
+                                        <FaPlus className="w-3 h-3" /> Add Point
+                                    </button>
+                                </div>
                             </div>
                         ))}
 
                         <button
-                            onClick={addProgramSchedule}
-                            className="w-full px-4 py-3 bg-[#2F6288] text-white rounded-lg  transition-colors flex items-center justify-center gap-2"
+                            onClick={addProgram}
+                            className="w-full px-4 py-3 bg-[#2F6288] text-white rounded-lg transition-colors flex items-center justify-center gap-2"
                         >
-                            Add New Program
+                            <FaPlus className="w-5 h-5" />
+                            Add Program Day
+                        </button>
+                    </div>
+                </div>
+
+                {/* Key Highlights */}
+                <div className="mb-8">
+                    <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+                        Key Highlights <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
+                    </h2>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-md font-semibold text-gray-700 mb-2">Title</label>
+                            <input
+                                type="text"
+                                value={formData.keyHighlights.title}
+                                placeholder="Enter title"
+                                onChange={(e) => setFormData(prev => ({ ...prev, keyHighlights: { ...prev.keyHighlights, title: e.target.value } }))}
+                                className="text-sm w-full border border-gray-300 p-3 rounded-lg"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-md font-semibold text-gray-700 mb-2">Points</label>
+                            <div className="space-y-3">
+                                {formData.keyHighlights.points.map((pt, idx) => (
+                                    <div key={idx} className="flex items-center gap-2">
+                                        <input
+                                            type="text"
+                                            value={pt}
+                                            placeholder={`Point ${idx + 1}`}
+                                            onChange={(e) => {
+                                                const updated = [...formData.keyHighlights.points];
+                                                updated[idx] = e.target.value;
+                                                setFormData(prev => ({ ...prev, keyHighlights: { ...prev.keyHighlights, points: updated } }));
+                                            }}
+                                            className="w-full border border-gray-300 p-3 rounded-lg"
+                                        />
+                                        {formData.keyHighlights.points.length > 1 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const updated = [...formData.keyHighlights.points];
+                                                    updated.splice(idx, 1);
+                                                    setFormData(prev => ({ ...prev, keyHighlights: { ...prev.keyHighlights, points: updated } }));
+                                                }}
+                                                className="text-red-500 hover:text-red-700"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setFormData(prev => ({ ...prev, keyHighlights: { ...prev.keyHighlights, points: [...prev.keyHighlights.points, ""] } }))}
+                                className="w-full mt-3 px-4 py-3 bg-[#2F6288] text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                            >
+                                <FaPlus className="w-3 h-3" /> Add Point
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Features (like retreat form) */}
+                <div className="mb-8">
+                    <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+                        Features<span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
+                    </h2>
+
+                    <div className="space-y-6">
+                        {formData?.features && formData?.features.map((feature, index) => (
+                            <div key={index} className="p-6 bg-gray-50 rounded-lg border border-gray-200 relative">
+                                <button
+                                    onClick={() => removeFeature(index)}
+                                    className="absolute top-4 right-4 text-red-500 hover:text-red-700 p-1"
+                                    title="Delete Feature"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+
+                                <div className="mb-4">
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Feature Icon</label>
+                                    {feature.image ? (
+                                        <div className="relative inline-block mb-4">
+                                            <img
+                                                src={feature?.image}
+                                                alt="Preview"
+                                                className="w-32 h-32 object-contain rounded"
+                                            />
+                                            <button
+                                                onClick={() => handleFeatureChange(index, "image", null)}
+                                                className="absolute top-1 right-1 bg-white border border-gray-300 rounded-full p-1 hover:bg-gray-200"
+                                            >
+                                                <FaTimes size={12} />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="mb-4">
+                                            <label
+                                                htmlFor={`feature-upload-${index}`}
+                                                className="w-full h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50"
+                                            >
+                                                <img
+                                                    src="/assets/admin/upload.svg"
+                                                    alt="Upload Icon"
+                                                    className="w-12 h-12 mb-2"
+                                                />
+                                                <span>Click to upload feature icon</span>
+                                                <input
+                                                    id={`feature-upload-${index}`}
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={(e) => handleFeatureImageChange(index, e.target.files[0])}
+                                                    className="hidden"
+                                                />
+                                            </label>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="mb-4">
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Title</label>
+                                    <input
+                                        type="text"
+                                        value={feature?.title}
+                                        placeholder="Enter title"
+                                        onChange={(e) => handleFeatureChange(index, "title", e.target.value)}
+                                        className="w-full border border-gray-300 p-3 rounded-lg"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                                    <textarea
+                                        rows={3}
+                                        value={feature?.shortdescription}
+                                        placeholder="Enter short description"
+                                        onChange={(e) => handleFeatureChange(index, "shortdescription", e.target.value)}
+                                        className="w-full border border-gray-300 p-3 rounded-lg"
+                                    />
+                                </div>
+                            </div>
+                        ))}
+
+                        <button
+                            onClick={addFeature}
+                            className="w-full px-4 py-3 bg-[#2F6288] text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                        >
+                            <FaPlus className="w-5 h-5" />
+                            Add Feature
                         </button>
                     </div>
                 </div>
@@ -745,7 +1131,6 @@ export default function RecordedProgramForm() {
                             onClick={addFaq}
                             className="w-full px-4 py-3 bg-[#2F6288] text-white rounded-lg  transition-colors flex items-center justify-center gap-2"
                         >
-
                             Add New FAQ
                         </button>
                     </div>
@@ -823,7 +1208,7 @@ export default function RecordedProgramForm() {
                         onClick={onSaveRecorded}
                         className="text-sm flex p-4 bg-gradient-to-b from-[#C5703F] to-[#C16A00] text-white font-bold rounded-lg hover:bg-green-700 transition-colors"
                     >
-                        {isEditing ? "Update Recorded Session" : "Add Recorded Session"}
+                        {isEditing ? "Update Recorded Session (v2)" : "Add Recorded Session (v2)"}
                     </button>
                     {isEditing && (
                         <button
@@ -859,3 +1244,5 @@ export default function RecordedProgramForm() {
         </div>
     );
 }
+
+

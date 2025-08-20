@@ -1,34 +1,22 @@
+import { useSelector } from "react-redux";
 import RecordedProgramCard from "./RecordedProgramCard";
 
-const programs = [
-    {
-        image: "/assets/sessions/discover_your_true_self.png",
-        category: "Yoga",
-        title: "Discover Your True Self...",
-        days: "28 Days",
-        videos: "12 Videos",
-        price: "14,999.00",
-    },
-    {
-        image: "/assets/sessions/menopausal_fitness.png",
-        category: "Yoga",
-        title: "Menopausal Fitness",
-        days: "4 Days",
-        videos: "12 Videos",
-        price: "199.00",
-    },
-    {
-        image: "/assets/sessions/yoga_foundations.png",
-        category: "Yoga",
-        title: "Yoga Foundations",
-        days: "4 Days",
-        videos: "12 Videos",
-        price: "199.00",
-    },
-];
-
-
 export default function RecordedPrograms() {
+
+    const Data = useSelector(
+        (state) => state?.pilgrimRecordedSession?.recordedSessions
+    );
+
+    console.log("Data: ", Data);
+    const programs = Data?.map((program) => ({
+        image: program?.recordedProgramCard?.thumbnail,
+        category: program?.recordedProgramCard?.category,
+        title: program?.recordedProgramCard?.title,
+        days: program?.recordedProgramCard?.days,
+        videos: program?.recordedProgramCard?.videos,
+        price: program?.recordedProgramCard?.price,
+    }));
+
     return (
         <section className="px-6 py-12 text-gray-900">
             <div className="max-w-7xl mx-auto">

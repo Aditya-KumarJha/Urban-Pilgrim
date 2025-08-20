@@ -4,7 +4,7 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 import { X, Trash2, GripVertical, Edit2 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
-import { v4 as uuidv4 } from "uuid"; 
+import { v4 as uuidv4 } from "uuid";
 import { storage } from "../../../services/firebase";
 import { deleteLiveSessionByIndex, fetchLiveSessionData, saveOrUpdateLiveSessionData } from "../../../services/pilgrim_session/liveSessionService";
 import { setLiveSessions } from "../../../features/pilgrim_session/liveSessionsSlice";
@@ -171,10 +171,35 @@ export default function LiveSessionForm() {
     };
 
     const moveSlide = (from, to) => {
-        const updated = [...formData.slides];
-        const [moved] = updated.splice(from, 1);
-        updated.splice(to, 0, moved);
-        setFormData((prev) => ({ ...prev, slides: updated }));
+        if (from === to) return;
+
+        // --- Update formData.slides ---
+        const updatedSlides = [...formData.slides];
+        const [movedSlide] = updatedSlides.splice(from, 1);
+        updatedSlides.splice(to, 0, movedSlide);
+
+        setFormData((prev) => ({
+            ...prev,
+            slides: updatedSlides,
+        }));
+
+        // --- Update slideData ---
+        setSlideData((prev) => {
+            const updated = [...prev];
+            const [moved] = updated.splice(from, 1);
+            updated.splice(to, 0, moved);
+            return updated;
+        });
+
+        // --- Update allData ---
+        setAllData((prev) => {
+            const updated = [...prev];
+            const [moved] = updated.splice(from, 1);
+            updated.splice(to, 0, moved);
+            return updated;
+        });
+
+        console.log(`Moved slide from ${from} → ${to}`);
     };
 
     const removeSlide = async (index) => {
@@ -378,7 +403,7 @@ export default function LiveSessionForm() {
 
             // Update Redux store
             dispatch(setLiveSessions(updatedSessions));
-            
+
             // Also update slideData
             setSlideData(updatedSessions.flatMap(g => g.slides));
             setAllData(updatedSessions);
@@ -454,7 +479,7 @@ export default function LiveSessionForm() {
             }
         }
     };
-    
+
     const removeImage = async (index) => {
         setFormData(prev => {
             const imageURL = prev?.session?.images[index];
@@ -477,7 +502,7 @@ export default function LiveSessionForm() {
             };
         });
     };
-    
+
     const handleVideoUpload = async (e) => {
         const files = Array.from(e.target.files);
         const remainingSlots = 6 - formData.session.videos.length;
@@ -552,7 +577,7 @@ export default function LiveSessionForm() {
                             </button>
                         )}
                     </div>
-                    
+
                     {/* thumbnail */}
                     <div className="mb-6">
                         <h3 className="block text-md font-semibold text-gray-700 mb-2">Add Thumbnail</h3>
@@ -646,8 +671,8 @@ export default function LiveSessionForm() {
                                     key={index}
                                     onClick={() => handleFieldChange("liveSessionCard", "subCategory", subCat)}
                                     className={`px-4 py-2 rounded-full border transition-colors text-sm ${formData.liveSessionCard.subCategory === subCat
-                                            ? 'bg-[#2F6288] text-white border-[#2F6288]'
-                                            : 'bg-white text-gray-700 border-gray-300 hover:border-[#2F6288]'
+                                        ? 'bg-[#2F6288] text-white border-[#2F6288]'
+                                        : 'bg-white text-gray-700 border-gray-300 hover:border-[#2F6288]'
                                         }`}
                                 >
                                     {subCat}

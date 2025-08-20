@@ -4,7 +4,7 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 import { X, Plus, Trash2, GripVertical, Edit2 } from "lucide-react";
 import { storage } from "../../../services/firebase";
 import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
-import { v4 as uuidv4 } from "uuid"; 
+import { v4 as uuidv4 } from "uuid";
 import { deleteSlideByIndex, fetchGuideData, saveOrUpdateGuideData } from "../../../services/pilgrim_guide/guideService";
 import { useDispatch, useSelector } from "react-redux";
 import { setGuides } from "../../../features/pilgrim_guide/pilgrimGuideSlice";
@@ -71,24 +71,24 @@ export default function GuideForm() {
             occupancy: "",
             showOccupancy: false
         },
-        monthlySubscription: { 
-            price: "", 
-            discount: "", 
-            description: "" 
+        monthlySubscription: {
+            price: "",
+            discount: "",
+            description: ""
         },
         oneTimePurchase: { price: "" },
-        session: { 
-            sessiondescription: "", 
-            images: [], 
-            videos: [], 
-            title: "", 
-            description: "", 
-            freeTrialVideo: null 
+        session: {
+            sessiondescription: "",
+            images: [],
+            videos: [],
+            title: "",
+            description: "",
+            freeTrialVideo: null
         },
-        guideSlots: [{ 
-            date: "", 
-            startTime: "", 
-            endTime: "" 
+        guideSlots: [{
+            date: "",
+            startTime: "",
+            endTime: ""
         }],
         slides: [],
     });
@@ -110,7 +110,7 @@ export default function GuideForm() {
         "Mental Wellness",
         "Ritual Pandits"
     ]);
-    const subCategories = ["Online", "Offline"];
+    const subCategories = ["Online", "Offline", "both"];
 
     const handleFieldChange = (section, field, value) => {
         setFormData((prev) => ({
@@ -187,11 +187,28 @@ export default function GuideForm() {
         setFormData((prev) => ({ ...prev, guideSlots: updated }));
     };
 
-    const moveSlide = (from, to) => {
-        const updated = [...formData.slides];
-        const [moved] = updated.splice(from, 1);
-        updated.splice(to, 0, moved);
-        setFormData((prev) => ({ ...prev, slides: updated }));
+    const moveSlide = async (from, to) => {
+        try {
+            const updatedGuides = [...guides];
+
+            let allSlides = updatedGuides.flatMap(g => g.slides);
+            if (from < 0 || from >= allSlides.length || to < 0 || to >= allSlides.length) {
+                console.warn("Invalid slide move indexes");
+                return;
+            }
+
+            const [moved] = allSlides.splice(from, 1);
+            allSlides.splice(to, 0, moved);
+
+            setSlideData(allSlides);
+
+            updatedGuides[0].slides = allSlides;
+            dispatch(setGuides(updatedGuides));
+            await saveOrUpdateGuideData(uid, "slides", updatedGuides);
+
+        } catch (err) {
+            console.error("Error moving slide:", err);
+        }
     };
 
     const removeSlide = async (index) => {
@@ -298,13 +315,6 @@ export default function GuideForm() {
         }
     };
 
-    // const addNewSubCategory = () => {
-    //     const newSubCategory = prompt("Enter new sub-category name:");
-    //     if (newSubCategory && !subCategories.includes(newSubCategory)) {
-    //         subCategories.push(newSubCategory);
-    //     }
-    // };
-
     const validateFields = () => {
         const newErrors = {};
 
@@ -323,74 +333,6 @@ export default function GuideForm() {
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
-
-    // const onSaveRetreat = () => {
-    //     if (!validateFields()) {
-    //         alert("Fix validation errors");
-    //         return;
-    //     }
-
-    //     const newCard = {
-    //         title: formData.guideCard.title,
-    //         price: formData.guideCard.price,
-    //         category: formData.guideCard.category,
-    //         subCategory: formData.guideCard.subCategory,
-    //         thumbnail: formData.guideCard.thumbnail,
-    //         occupancy: formData.guideCard.occupancy,
-    //         showOccupancy: formData.guideCard.showOccupancy,
-    //         monthlySubscription: {
-    //             price: formData.monthlySubscription.price,
-    //             discount: formData.monthlySubscription.discount,
-    //             description: formData.monthlySubscription.description,
-    //         },
-    //         oneTimePurchase: {
-    //             price: formData.oneTimePurchase.price,
-    //         },
-    //         session: {
-    //             sessiondescription: formData.session.sessiondescription,
-    //             images: formData.session.images,
-    //             videos: formData.session.videos,
-    //             title: formData.session.title,
-    //             description: formData.session.description,
-    //             freeTrialVideo: formData.session.freeTrialVideo,
-    //         },
-    //         guideSlots: formData.guideSlots,
-    //     };
-
-    //     let updatedSlides;
-
-    //     if (isEditing && editIndex !== null) {
-    //         // Update existing slide
-    //         updatedSlides = [...formData.slides];
-    //         updatedSlides[editIndex] = newCard;
-    //         setIsEditing(false);
-    //         setEditIndex(null);
-    //         alert("Session Card Updated Successfully");
-    //     } else {
-    //         // Add new slide
-    //         updatedSlides = [...formData.slides, newCard];
-    //         alert("Session Card Added Successfully");
-    //     }
-
-    //     setFormData((prev) => ({
-    //         ...prev,
-    //         slides: updatedSlides,
-    //         guideCard: {
-    //             title: "",
-    //             category: "",
-    //             subCategory: "",
-    //             price: "",
-    //             thumbnail: null,
-    //             occupancy: "",
-    //             showOccupancy: false,
-    //         },
-    //         monthlySubscription: { price: "", discount: "", description: "" },
-    //         oneTimePurchase: { price: "" },
-    //         session: { sessiondescription: "", images: [], videos: [], title: "", description: "", freeTrialVideo: null },
-    //         guideSlots: [{ date: "", startTime: "", endTime: "" }],
-    //     }));
-    // };
-
 
     useEffect(() => {
         const loadCards = async () => {
@@ -456,7 +398,7 @@ export default function GuideForm() {
 
             // Update Redux store
             dispatch(setGuides(updatedGuides));
-            
+
             // Also update slideData
             setSlideData(updatedGuides.flatMap(g => g.slides));
 
@@ -719,11 +661,10 @@ export default function GuideForm() {
                                 <button
                                     key={index}
                                     onClick={() => handleFieldChange("guideCard", "category", cat)}
-                                    className={`text-sm px-4 py-2 rounded-full border transition-colors ${
-                                        formData.guideCard.category === cat
+                                    className={`text-sm px-4 py-2 rounded-full border transition-colors ${formData.guideCard.category === cat
                                             ? 'bg-[#2F6288] text-white border-[#2F6288]'
                                             : 'bg-white text-gray-700 border-gray-300 hover:border-[#2F6288]'
-                                    }`}
+                                        }`}
                                 >
                                     {cat}
                                 </button>
@@ -756,13 +697,6 @@ export default function GuideForm() {
                                     {subCat}
                                 </button>
                             ))}
-                            {/* <button
-                                onClick={addNewSubCategory}
-                                className="text-sm px-4 py-2 rounded-full border border-gray-300 text-[#2F6288] hover:bg-[#2F6288] hover:text-white flex items-center gap-2"
-                            >
-                                <Plus className="w-4 h-4" />
-                                Add New Category
-                            </button> */}
                         </div>
                     </div>
 

@@ -23,22 +23,30 @@ export default function RecordedProgramCard({ image, category, title, days, vide
           {category}
         </span>
 
-        <h3 className="font-semibold text-md text-gray-800 mb-3 leading-snug">
+        <h3 className="font-semibold line-clamp-1 text-md text-gray-800 mb-3 leading-snug">
           {title}
         </h3>
 
         <div className="flex flex-col items-start text-sm text-gray-600 gap-1 mb-3">
           <div className="flex items-center gap-1">
             <img src="/assets/sessions/calendar.svg" className="text-gray-500 w-4 h-4" />
-            <span>{days}</span>
+            <span>{days} days</span>
           </div>
           <div className="flex items-center gap-1">
             <img src="/assets/sessions/video.svg" className="text-gray-500 w-4 h-4" />
-            <span>{videos}</span>
+            <span>{videos} videos</span>
           </div>
         </div>
 
-        <p className="text-[#2F6288] font-semibold mb-4">Rs. {price}</p>
+        <p className="text-[#2F6288] font-semibold mb-4">
+          {price
+            ? new Intl.NumberFormat("en-IN", {
+                style: "currency",
+                currency: "INR",
+                maximumFractionDigits: 2,
+              }).format(price)
+            : "Price not available"}
+        </p>
 
         <div className="flex gap-2 mt-auto">
           <button className="flex-1 bg-[#2F6288] text-white text-sm py-2 px-3 rounded-lg flex items-center justify-center gap-1 hover:bg-[#2F6288]/80">

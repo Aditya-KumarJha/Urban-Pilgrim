@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 
-export default function SubscriptionCard() {
+export default function SubscriptionCard({ price }) {
   return (
     <div className="flex justify-start items-start py-4">
       <motion.div
@@ -14,7 +14,15 @@ export default function SubscriptionCard() {
         {/* Price Box */}
         <div className="border rounded-lg p-4 mb-5 bg-white">
           <p className="text-sm font-medium text-gray-700">One Time Purchase</p>
-          <p className="text-2xl font-bold text-[#1F4B6E] mt-1">₹ 1,000.00</p>
+          <p className="text-2xl font-bold text-[#1F4B6E] mt-1">
+            {price
+              ? new Intl.NumberFormat("en-IN", {
+                  style: "currency",
+                  currency: "INR",
+                  maximumFractionDigits: 2,
+                }).format(price)
+              : "Price not available"}
+          </p>
           <p className="text-gray-400 text-sm mt-1">Total</p>
         </div>
 

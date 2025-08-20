@@ -24,15 +24,15 @@ const features = [
   },
 ];
 
-export default function FeatureProgram() {
+export default function FeatureProgram( { features } ) {
   return (
-    <div className="max-w-7xl mx-auto md:px-6 md:py-12 py-8">
+    <div className="xl:min-w-7xl mx-auto md:px-6 md:py-12 py-8">
       <div className="grid md:grid-cols-3 sm:grid-cols-2 gap-6">
-        {features.map((item, idx) => (
+        {features && features.map((item, idx) => (
           <div key={idx} className="bg-white p-6 rounded-xl shadow-md flex flex-col gap-4">
-            <div>{item.icon}</div>
-            <h3 className="text-[#004B6E] font-semibold">{item.title}</h3>
-            <p className="text-gray-600 text-sm">{item.description}</p>
+            <img src={item?.image} alt={item.title} className="w-8 h-8 object-cover" />
+            <h3 className="text-[#004B6E] font-semibold">{item?.title}</h3>
+            <p className="text-gray-600 text-sm">{item?.shortdescription}</p>
           </div>
         ))}
       </div>

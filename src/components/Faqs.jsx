@@ -82,11 +82,21 @@ function Faqs({ faqs }) {
                                         : 'max-h-0 opacity-0'
                                     }`}
                             >
-                                <div className="px-6 pb-6">
-                                    <p className="text-gray-600 leading-relaxed">
-                                        {faq.description}
-                                    </p>
+                               <div className="px-6 pb-6">
+                                    {faq.description?.includes("\n") ? (
+                                        <ul className="list-disc list-inside text-gray-600 leading-relaxed space-y-1">
+                                        {faq.description
+                                            .split("\n")
+                                            .filter(line => line.trim() !== "")
+                                            .map((line, i) => (
+                                            <li key={i}>{line.trim()}</li>
+                                            ))}
+                                        </ul>
+                                    ) : (
+                                        <p className="text-gray-600 leading-relaxed">{faq.description}</p>
+                                    )}
                                 </div>
+
                             </div>
                         </div>
                     ))}
