@@ -1,25 +1,31 @@
+import { useEffect } from "react";
 import Steps from "../../components/Steps";
 import Button from "../../components/ui/button";
 
 export default function JoinAdvisors() {
-    
+
+    useEffect(() => {
+        // Scroll to top on mount
+        window.scrollTo(0, 0);
+    }, []);
+
     const steps = [
-    {
-        title: "Submit Your Application",
-        content: "Use the link at the bottom of this page to complete your application."
-    },
-    {
-        title: "Profile Review (5–7 Days)",
-        content: "Our team will assess your professional experience, domain expertise, and your ability to deliver well-structured, purposeful journeys aligned with Urban Pilgrim’s ethos."
-    },
-    {
-        title: "Concept Presentation",
-        content: "Shortlisted applicants will be invited for a discussion to walk us through your retreat or experience idea, past work, and alignment with our brand vision."
-    },
-    {
-        title: "Onboarding & Launch (Within 5–7 Days)",
-        content: "If selected, we’ll guide you through onboarding, finalize the retreat details, and list your experience for bookings on the platform—with full support from our team."
-    }
+        {
+            title: "Submit Your Application",
+            content: "Use the link at the bottom of this page to complete your application."
+        },
+        {
+            title: "Profile Review (5–7 Days)",
+            content: "Our team will assess your professional experience, domain expertise, and your ability to deliver well-structured, purposeful journeys aligned with Urban Pilgrim’s ethos."
+        },
+        {
+            title: "Concept Presentation",
+            content: "Shortlisted applicants will be invited for a discussion to walk us through your retreat or experience idea, past work, and alignment with our brand vision."
+        },
+        {
+            title: "Onboarding & Launch (Within 5–7 Days)",
+            content: "If selected, we’ll guide you through onboarding, finalize the retreat details, and list your experience for bookings on the platform—with full support from our team."
+        }
     ];
 
 
@@ -38,7 +44,7 @@ export default function JoinAdvisors() {
             </div>
             <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-16 md:py-10">
                 <h2 className="text-3xl text-[#2F6288] font-bold mb-6">
-                Why Join Urban Pilgrim? <span className="bg-[#2F6288] mt-4 max-w-xs w-full h-1 block"></span>
+                    Why Join Urban Pilgrim? <span className="bg-[#2F6288] mt-4 max-w-xs w-full h-1 block"></span>
                 </h2>
                 <div className="border-l-4 border-[#9C4F25] bg-[#FAF8F7] p-6 text-[#1A1A1A] space-y-4 mb-8">
                     <p>
@@ -63,7 +69,7 @@ export default function JoinAdvisors() {
                 </div>
 
                 <h2 className="text-3xl text-[#2F6288] font-bold mb-6">
-                Onboarding Process <span className="bg-[#2F6288] mt-4 max-w-xs w-full h-1 block"></span>
+                    Onboarding Process <span className="bg-[#2F6288] mt-4 max-w-xs w-full h-1 block"></span>
                 </h2>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
                     <div className="flex flex-col justify-between gap-4">

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import NavBar from "./components/navbar/NavBar";
 import Loader from "./components/Loader";
@@ -20,6 +20,8 @@ import Retreatdescription from "./components/pilgrim_retreats/Retreatdescription
 import Admin from "./pages/admin/Admin";
 import ProgramDetails from "./pages/program_details/ProgramDetails";
 import UserDashboard from "./components/UserDashboard";
+import PrivacyPolicy from "./pages/privacy_policy/PrivacyPolicy";
+import YogaDesc from "./components/YogaDesc";
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -46,6 +48,8 @@ function App() {
             <Route path="/joinusadvisors" element={<JoinAdvisors />} />
             <Route path="/whyus" element={<WhyUs />} />
             <Route path="/whoarewe" element={<WhoAreWe />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/yoga/:title" element={<YogaDesc />} />
             <Route path="/cart" element={<CartPage />} />
             <Route path="/session/:sessionId/slots" element={<SessionSlots />} />
             <Route path="/program/:programId/details" element={<ProgramDetails />} />

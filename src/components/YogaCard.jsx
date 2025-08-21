@@ -6,6 +6,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "../services/firebase";
 import { useDispatch } from "react-redux";
 import { setHighlight } from "../features/home_slices/highlightSlice";
+import { useNavigate } from "react-router-dom";
 
 const data = [
     {
@@ -42,11 +43,12 @@ const data = [
 
 export default function YogaCard() {
     const [current, setCurrent] = useState(0);
-    const [isHovered, setIsHovered] = useState(false);
+    // const [isHovered, setIsHovered] = useState(false);
     const total = data.length;
     const [highlightCard, setHighlightCard] = useState([]);
     const uid = "your-unique-id";
     const dispatch = useDispatch();
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchData = async () => {
@@ -80,6 +82,13 @@ export default function YogaCard() {
     const card = data[current];
     const high = highlightCard[current];
 
+    const slugify = (text) =>
+        text
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-") // replace spaces/special chars with `-`
+            .replace(/^-+|-+$/g, "");   // trim starting/ending `-`
+
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 50 }}
@@ -100,15 +109,15 @@ export default function YogaCard() {
                 {/* Content */}
                 <div className="md:w-1/2 w-full p-6 flex md:flex-row flex-col justify-between items-center">
                     <div className="px-4">
-                        <h2 className="text-sm sm:text-xl md:text-2xl font-semibold mb-4">{high?.title}</h2>
-                        <p className="text-xs text-gray-600 mb-6">{high?.description}</p>
-                        <a
-                            href="#"
-                            className="text-[#79534E] md:text-sm text-xs  font-semibold flex items-center gap-2"
+                        <h2 className="text-sm sm:text-xl md:text-2xl line-clamp-2 font-semibold mb-4">{high?.title}</h2>
+                        <p className="text-xs text-gray-600 mb-6 line-clamp-2">{high?.description}</p>
+                        <p
+                            onClick={() => navigate(`/yoga/${slugify(high?.title)}`, {state: {image: high.image, title: high.title, description: high.description}})}
+                            className="text-[#79534E] md:text-sm text-xs cursor-pointer font-semibold flex items-center gap-2"
                         >
                             {card?.linkText}
                             <span className="border-b border-[#79534E] w-6"></span>
-                        </a>
+                        </p>
                     </div>
 
                     {/* Navigation */}

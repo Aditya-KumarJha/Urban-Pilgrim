@@ -4,9 +4,9 @@ import Input_field from "../../components/ui/inputfield";
 import { useEffect, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../services/firebase";
+import { Link } from "react-router-dom";
 
 function Footer() {
-
      const uid = "your-unique-id";
      const [footerData, setFooterData] = useState({});
 
@@ -45,22 +45,22 @@ function Footer() {
 
                <div className="footer-links">
                     <h3 className="font-semibold">{footerData?.heading}</h3>
-                    { footerData?.links && footerData?.links.length > 0 && (
+                    {footerData?.links && footerData?.links.length > 0 && (
                          <div className="links-grid">
                               <div>
-                                   <a href="/joinusguides">{footerData?.links[0]?.menu}</a>
-                                   <a href="/joinusadvisors">{footerData?.links[1]?.menu}</a>
+                                   <Link to="/joinusguides">{footerData?.links[0]?.menu}</Link>
+                                   <Link to="/joinusadvisors">{footerData?.links[1]?.menu}</Link>
                               </div>
                               <div>
-                                   <a href="/whoarewe">{footerData?.links[2]?.menu}</a>
-                                   <a href="/whyus">{footerData?.links[3]?.menu}</a>
+                                   <Link to="/whoarewe">{footerData?.links[2]?.menu}</Link>
+                                   <Link to="/whyus">{footerData?.links[3]?.menu}</Link>
                               </div>
                               <div>
-                                   <a href="#">{footerData?.links[4]?.menu}</a>
-                                   <a href="#">{footerData?.links[5]?.menu}</a>
+                                   <Link to="/privacy-policy">{footerData?.links[4]?.menu}</Link>
+                                   <Link to="#">{footerData?.links[5]?.menu}</Link>
                               </div>
                               <div>
-                                   <a href="/contact">{footerData?.links[6]?.menu}</a>
+                                   <Link to="/contact">{footerData?.links[6]?.menu}</Link>
                               </div>
                          </div>
                     )}

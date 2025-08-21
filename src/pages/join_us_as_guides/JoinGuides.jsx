@@ -2,51 +2,57 @@ import Footer from "../../components/footer";
 import Steps from "../../components/Steps";
 import Button from "../../components/ui/button";
 import SEO from "../../components/SEO.jsx";
+import { useEffect } from "react";
 
 export default function JoinGuides() {
-    
+
+    useEffect(() => {
+        // Scroll to top on mount
+        window.scrollTo(0, 0);
+    }, []);
+
     const steps = [
-      {
-        title: "Submit Your Application",
-        content: "Use the link at the bottom of this page to complete your application."
-      },
-      {
-        title: "Profile Review (5–7 Days)",
-        content: "Our team will carefully assess your experience and expertise."
-      },
-      {
-        title: "Introductory Interaction",
-        content: "If shortlisted, you'll be invited for a brief interview to align on values and offerings."
-      },
-      {
-        title: "Onboarding & Launch (Within 5–7 Days)",
-        content: "Once selected, we’ll guide you through a smooth onboarding process and get your profile ready for bookings."
-      }
+        {
+            title: "Submit Your Application",
+            content: "Use the link at the bottom of this page to complete your application."
+        },
+        {
+            title: "Profile Review (5–7 Days)",
+            content: "Our team will carefully assess your experience and expertise."
+        },
+        {
+            title: "Introductory Interaction",
+            content: "If shortlisted, you'll be invited for a brief interview to align on values and offerings."
+        },
+        {
+            title: "Onboarding & Launch (Within 5–7 Days)",
+            content: "Once selected, we’ll guide you through a smooth onboarding process and get your profile ready for bookings."
+        }
     ];
 
     return (
         <div className=" bg-gradient-to-b from-[#FAF4F0] to-white mt-[100px]">
-            <SEO 
-              title="Become a Wellness Guide | Join Urban Pilgrim"
-              description="Share your expertise as a wellness professional with Urban Pilgrim. Join our platform as a Pilgrim Guide and reach a global audience."
-              keywords="become a wellness guide, join urban pilgrim, wellness instructor opportunities, yoga teacher platform, meditation guide"
-              canonicalUrl="/join_us_as_guides"
-              ogImage="/assets/joinus/joinus.png"
+            <SEO
+                title="Become a Wellness Guide | Join Urban Pilgrim"
+                description="Share your expertise as a wellness professional with Urban Pilgrim. Join our platform as a Pilgrim Guide and reach a global audience."
+                keywords="become a wellness guide, join urban pilgrim, wellness instructor opportunities, yoga teacher platform, meditation guide"
+                canonicalUrl="/join_us_as_guides"
+                ogImage="/assets/joinus/joinus.png"
             />
             <div className="relative w-full mb-10">
                 <img
-                src="/retreats.svg"
-                alt="Guides Header"
-                className="absolute inset-0 w-full h-full object-cover z-0 border-b-2 border-[#ffffff33]"
+                    src="/retreats.svg"
+                    alt="Guides Header"
+                    className="absolute inset-0 w-full h-full object-cover z-0 border-b-2 border-[#ffffff33]"
                 />
                 <div className="relative z-10 px-6 py-10 text-center">
-                <h1 className="text-4xl font-bold mb-4">Urban Pilgrim Guide</h1>
-                <p>Share Your Expertise with a Global Audience</p>
+                    <h1 className="text-4xl font-bold mb-4">Urban Pilgrim Guide</h1>
+                    <p>Share Your Expertise with a Global Audience</p>
                 </div>
             </div>
             <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-16 md:py-10">
                 <h2 className="text-3xl text-[#2F6288] font-bold mb-6">
-                Why Join Urban Pilgrim? <span className="bg-[#2F6288] mt-4 max-w-xs w-full h-1 block"></span>
+                    Why Join Urban Pilgrim? <span className="bg-[#2F6288] mt-4 max-w-xs w-full h-1 block"></span>
                 </h2>
                 <div className="border-l-4 border-[#9C4F25] bg-[#FAF8F7] p-6 text-[#1A1A1A] space-y-4 mb-8">
                     <p>
@@ -60,7 +66,7 @@ export default function JoinGuides() {
                     <p>
                         As a guide, you can focus on what you do best—
                         <span className="font-semibold">
-                        helping others live healthier, more balanced lives
+                            helping others live healthier, more balanced lives
                         </span>
                         —while we handle the rest.
                     </p>
@@ -70,7 +76,7 @@ export default function JoinGuides() {
                     </p>
                 </div>
                 <h2 className="text-3xl text-[#2F6288] font-bold mb-6">
-                Onboarding Process <span className="bg-[#2F6288] mt-4 max-w-xs w-full h-1 block"></span>
+                    Onboarding Process <span className="bg-[#2F6288] mt-4 max-w-xs w-full h-1 block"></span>
                 </h2>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
                     <div className="flex flex-col justify-between gap-4">
