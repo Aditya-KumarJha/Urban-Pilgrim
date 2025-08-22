@@ -19,8 +19,8 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../services/firebase.js";
 
 function Home() {
-    const wrapperRef = useRef(null);
-    const [lineHeight, setLineHeight] = useState(0);
+    // const wrapperRef = useRef(null);
+    // const [lineHeight, setLineHeight] = useState(0);
     const [contentFeatures, setContentFeatures] = useState(null);
     const [contentImage, setContentImage] = useState(null);
     const [Experience, setExperience] = useState(null);
@@ -29,12 +29,12 @@ function Home() {
 
     const cardContainerRef = useRef(null);
     const [progress, setProgress] = useState(0);
-    const controls = useAnimation();
-    const scrollAmount = 300;
+    // const controls = useAnimation();
+    // const scrollAmount = 300;
 
     const uid = "your-unique-id";
 
-    // section 4
+    // content image
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -56,7 +56,7 @@ function Home() {
         fetchData();
     }, []);
 
-    // section 5
+    // experiences/retreat
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -77,7 +77,35 @@ function Home() {
         fetchData();
     }, []);
 
-    // section 6
+    const [experienceData, setExperienceData] = useState(null);
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const slidesRef = doc(db, `pilgrim_retreat/user-uid/retreats/data`);
+                const snapshot = await getDoc(slidesRef);
+
+                if (snapshot.exists()) {
+                    const data = snapshot.data();
+
+                    const retreatsData = Object.keys(data)
+                        .map((key) => ({
+                            id: key,
+                            ...data[key],
+                        }));
+
+                    setExperienceData(retreatsData || null);
+                } else {
+                    console.log("No slides found in Firestore");
+                }
+            } catch (error) {
+                console.error("Error fetching images from Firestore:", error);
+            }
+        };
+
+        fetchData();
+    }, []);
+
+    // sessions
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -98,7 +126,28 @@ function Home() {
         fetchData();
     }, []);
 
-    // section 7
+    const [sessionData, setSessionData] = useState(null);
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const slidesRef = doc(db, `pilgrim_sessions/pilgrim_sessions/sessions/liveSession`);
+                const snapshot = await getDoc(slidesRef);
+
+                if (snapshot.exists()) {
+                    const data = snapshot.data();
+                    setSessionData(data?.slides || []);
+                } else {
+                    console.log("No slides found in Firestore");
+                }
+            } catch (error) {
+                console.error("Error fetching images from Firestore:", error);
+            }
+        };
+
+        fetchData();
+    }, []);
+
+    // guides
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -119,20 +168,43 @@ function Home() {
         fetchData();
     }, []);
 
-    const handleCardScroll = (dir) => {
-        if (cardContainerRef.current) {
-            const container = cardContainerRef.current;
-            const newScroll =
-                dir === "left"
-                    ? container.scrollLeft - scrollAmount
-                    : container.scrollLeft + scrollAmount;
-            container.scrollTo({ left: newScroll, behavior: "smooth" });
+    const [guideData, setGuideData] = useState(null);
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const slidesRef = doc(db, `pilgrim_guides/pilgrim_guides/guides/data`);
+                const snapshot = await getDoc(slidesRef);
 
-            const maxScroll = container.scrollWidth - container.clientWidth;
-            const newProgress = (newScroll / maxScroll) * 100;
-            setProgress(newProgress);
-        }
-    };
+                if (snapshot.exists()) {
+                    const data = snapshot.data();
+                    setGuideData(data?.slides || []);
+                } else {
+                    console.log("No slides found in Firestore");
+                }
+            } catch (error) {
+                console.error("Error fetching images from Firestore:", error);
+            }
+        };
+
+        fetchData();
+    }, []);
+
+
+
+    // const handleCardScroll = (dir) => {
+    //     if (cardContainerRef.current) {
+    //         const container = cardContainerRef.current;
+    //         const newScroll =
+    //             dir === "left"
+    //                 ? container.scrollLeft - scrollAmount
+    //                 : container.scrollLeft + scrollAmount;
+    //         container.scrollTo({ left: newScroll, behavior: "smooth" });
+
+    //         const maxScroll = container.scrollWidth - container.clientWidth;
+    //         const newProgress = (newScroll / maxScroll) * 100;
+    //         setProgress(newProgress);
+    //     }
+    // };
 
     useEffect(() => {
         const container = cardContainerRef.current;
@@ -148,11 +220,11 @@ function Home() {
         return () => container.removeEventListener("scroll", updateProgress);
     }, []);
 
-    const handleScroll = () => {
-        const el = wrapperRef.current;
-        const scrollRatio = el.scrollLeft / (el.scrollWidth - el.clientWidth);
-        setLineHeight(scrollRatio * 300);
-    };
+    // const handleScroll = () => {
+    //     const el = wrapperRef.current;
+    //     const scrollRatio = el.scrollLeft / (el.scrollWidth - el.clientWidth);
+    //     setLineHeight(scrollRatio * 300);
+    // };
 
     const Controls = useAnimation();
     const [Ref, InView] = useInView({
@@ -222,8 +294,11 @@ function Home() {
 
                     {/* Card */}
                     <motion.div className="c5bottom lg:!overflow-visible" initial={{ y: 100, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} viewport={{ once: true, amount: 0.1 }}>
-                        <PersondetailsCard image="/assets/appleimg.png" title="Reboot & Rejuvenate on the Ganges (4 day retreat)" price="Rs.56,997.00" />
-                        <PersondetailsCard image="/assets/yogapeople.png" title="Reboot & Rejuvenate on the Ganges (4 day retreat)" price="Rs.56,997.00" />
+                        {experienceData &&
+                            experienceData.map((experience, index) => (
+                                <PersondetailsCard key={index} image={experience?.pilgrimRetreatCard?.image} title={experience?.pilgrimRetreatCard?.title} price={experience?.pilgrimRetreatCard?.price} />
+                            ))
+                        }
                     </motion.div>
                 </div>
             </div>
@@ -245,9 +320,12 @@ function Home() {
                     {/* Card */}
                     <ViewAll link="/pilgrim_sessions" />
                     <motion.div className="c5bottom lg:!overflow-visible" initial={{ y: 100, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} viewport={{ once: true, amount: 0.1 }}>
-                        <PersondetailsCard image="/assets/Rohini_singh.png" title="Discover your true self - A 28 day program with Rohini Singh Sisodia" price="Rs.14,999.00" />
-                        <PersondetailsCard image="/assets/Anisha.png" title="Let's meditate for an hour - With Anisha" price="Rs.199.00" />
-                        <PersondetailsCard image="/assets/arati_prasad.png" title="Menopausal fitness - A 4 day regime curated by Aarti Prasad" price="Rs.4,000.00" />
+                        {
+                            sessionData &&
+                            sessionData.map((session, index) => (
+                                <PersondetailsCard key={index} image={session?.liveSessionCard?.thumbnail} title={session?.liveSessionCard?.title} price={session?.liveSessionCard?.price} />
+                            ))
+                        }
                     </motion.div>
                 </div>
             </div>
@@ -275,12 +353,14 @@ function Home() {
                         {/* Card */}
                         <ViewAll link="/pilgrim_guides" />
                         <div className="c6bottom lg:!gap-20 lg:!overflow-visible overflow-hidden">
-                            <motion.div initial={{ y: 100, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} viewport={{ once: true, amount: 0.1 }}>
-                                <PersondetailsCard image="/assets/yogaday-img.png" title="Yoga hour - by Manjunath" price="Rs.1000.00" />
-                            </motion.div>
-                            <motion.div initial={{ y: 100, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} viewport={{ once: true, amount: 0.1 }}>
-                                <PersondetailsCard image="/assets/manish_kumar.png" title="Yoga hour - by Manish Kumar (Bihar School of Yoga)" price="Rs.800.00" />
-                            </motion.div>
+                            {
+                                guideData &&
+                                guideData.map((guide, index) => (
+                                    <motion.div key={index} initial={{ y: 100, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} viewport={{ once: true, amount: 0.1 }}>
+                                        <PersondetailsCard image={guide?.guideCard?.thumbnail} title={guide?.guideCard?.title} price={guide?.guideCard?.price} />
+                                    </motion.div>
+                                ))
+                            }
                         </div>
                     </div>
                 </div>
@@ -297,8 +377,3 @@ function Home() {
 }
 
 export default Home;
-
-
-{/* <div><C3_container_data imageCss="lg:max-h-[40px] lg:max-w-[30px] sm:max-h-[40px] sm:max-w-[30px] sm:mt-0 mt-1 max-h-[30px] max-w-[25px]" img="/assets/lotos_icon.svg" heading="Rooted in Indian Wisdom" content="Authentic, not commercialized wellness." /></div> */}
-
-    

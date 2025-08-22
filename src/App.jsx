@@ -22,6 +22,8 @@ import ProgramDetails from "./pages/program_details/ProgramDetails";
 import UserDashboard from "./components/UserDashboard";
 import PrivacyPolicy from "./pages/privacy_policy/PrivacyPolicy";
 import YogaDesc from "./components/YogaDesc";
+import EventDetails from "./components/upcoming_events/EventDetails";
+import LiveDetails from "./pages/program_details/LiveDeatils";
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -52,10 +54,12 @@ function App() {
             <Route path="/yoga/:title" element={<YogaDesc />} />
             <Route path="/cart" element={<CartPage />} />
             <Route path="/session/:sessionId/slots" element={<SessionSlots />} />
+            <Route path="/session/:sessionId/details" element={<LiveDetails />} />
             <Route path="/program/:programId/details" element={<ProgramDetails />} />
             <Route path="/session/:sessionId/slots/description" element={<SessionDescription />} />
             <Route path="/guide/:guideClassName" element={<GuideClassDetails />} />
             <Route path="/pilgrim_retreats/:retreatName" element={<Retreatdescription />} />
+            <Route path="/event/:eventName" element={<EventDetails />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="*" element={<Home replace={'/'} />} />
             <Route path="/userdashboard" element={<UserDashboard />} />

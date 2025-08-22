@@ -1,10 +1,17 @@
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 export default function EventCard({ data }) {
+  const navigate = useNavigate();
   return (
-    <motion.div className="max-w-sm rounded-2xl overflow-hidden bg-gradient-to-b from-[#FDF6F2] to-[#FCEFE6]" style={{
-        boxShadow: "-21px 21px 25.7px 0 rgba(0, 0, 0, 0.25)"
-    }}
-    initial={{ y: 100, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} viewport={{ once: true, amount: 0.1 }}
+    <motion.div
+      className="max-w-sm rounded-2xl overflow-hidden bg-gradient-to-b from-[#FDF6F2] to-[#FCEFE6]"
+      style={{
+        boxShadow: "-21px 21px 25.7px 0 rgba(0, 0, 0, 0.25)",
+      }}
+      initial={{ y: 100, opacity: 0 }}
+      whileInView={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      viewport={{ once: true, amount: 0.1 }}
     >
       <img
         src={data.image}
@@ -24,12 +31,19 @@ export default function EventCard({ data }) {
           ))}
         </div>
 
-        <h3 className="md:text-lg text-sm font-semibold text-[#1A1A1A]">
+        <h3
+          onClick={() => {
+            const slug = data.title.toLowerCase().replace(/\s+/g, "-");
+            navigate(`/event/${slug}`);
+          }}
+          className="md:text-lg text-sm cursor-pointer font-semibold text-[#1A1A1A]"
+        >
           {data.title}
         </h3>
 
         <p className="text-gray-500 text-sm">
-          From <span className="text-black font-semibold">Rs. {data.price}</span>
+          From{" "}
+          <span className="text-black font-semibold">Rs. {data.price}</span>
         </p>
       </div>
     </motion.div>

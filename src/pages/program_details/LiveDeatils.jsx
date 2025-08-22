@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import ProgramSchedule from "../../components/pilgrim_retreats/ProgramSchedule";
 import Faqs from "../../components/Faqs";
 import PilgrimGuide from "../../components/pilgrim_retreats/Pilgrim_Guide";
@@ -12,17 +12,15 @@ import SubscriptionCard from "../../components/pilgrim_sessions/SubscriptionCard
 import ProgramSection from "../../components/pilgrim_sessions/ProgramSection";
 import { useSelector } from "react-redux";
 
-export default function ProgramDetails() {
+export default function LiveDetails() {
     const params = useParams();
     const [programData, setProgramData] = useState(null);
-    const programId = params.programId;
+    const sessionId = params.sessionId;
     const [persons, setPersons] = useState(1);
 
-    console.log("programId: ", programId);
+    console.log("sessionId: ", sessionId);
 
-    const Data = useSelector(
-        (state) => state?.pilgrimRecordedSession?.recordedSessions
-    );
+    const Data = useSelector((state) => state.pilgrimLiveSession.LiveSession);
 
     function normalizeSlug(str) {
         return str
@@ -33,14 +31,14 @@ export default function ProgramDetails() {
     }
 
     useEffect(() => {
-        if (Data && programId) {
+        if (Data && sessionId) {
             const pg = Data.find(
                 (program) =>
-                    normalizeSlug(program?.recordedProgramCard?.title) === normalizeSlug(programId)
+                    normalizeSlug(program?.liveSessionCard?.title) === normalizeSlug(sessionId)
             );
             setProgramData(pg || null);
         }
-    }, [Data, programId]);
+    }, [Data, sessionId]);
 
 
     console.log("programData: ", programData);
@@ -51,13 +49,13 @@ export default function ProgramDetails() {
     return (
         <>
             <SEO
-                title={`${programData?.recordedProgramCard?.title} | Urban Pilgrim`}
-                description={programData?.recordedProgramCard?.description}
-                keywords={`${programData?.recordedProgramCard?.instructor}, wellness program, ${programData?.recordedProgramCard?.duration}, urban pilgrim, self-discovery, meditation, yoga`}
+                title={`${programData?.liveSessionCard?.title} | Urban Pilgrim`}
+                description={programData?.liveSessionCard?.description}
+                keywords={`${programData?.liveSessionCard?.instructor}, wellness program, ${programData?.liveSessionCard?.duration}, urban pilgrim, self-discovery, meditation, yoga`}
                 canonicalUrl={`/program_details?id=${encodeURIComponent(
-                    programData?.recordedProgramCard?.title?.toLowerCase()?.replace(/\s+/g, "-")
+                    programData?.liveSessionCard?.title?.toLowerCase()?.replace(/\s+/g, "-")
                 )}`}
-                ogImage={programData?.recordedProgramCard?.image}
+                ogImage={programData?.liveSessionCard?.image}
                 ogType="product"
             >
                 {/* Additional structured data for programs/products */}
@@ -65,13 +63,13 @@ export default function ProgramDetails() {
                     {JSON.stringify({
                         "@context": "https://schema.org/",
                         "@type": "Product",
-                        name: programData?.recordedProgramCard?.title,
-                        description: programData?.recordedProgramCard?.description,
-                        image: programData?.recordedProgramCard?.image,
+                        name: programData?.liveSessionCard?.title,
+                        description: programData?.liveSessionCard?.description,
+                        image: programData?.liveSessionCard?.image,
                         offers: {
                         "@type": "Offer",
                         priceCurrency: "INR",
-                        price: programData?.recordedProgramCard?.price.replace(/,/g, ""),
+                        price: programData?.liveSessionCard?.price.replace(/,/g, ""),
                         availability: "https://schema.org/InStock",
                         },
                         brand: {
@@ -80,7 +78,7 @@ export default function ProgramDetails() {
                         },
                         instructor: {
                         "@type": "Person",
-                        name: programData?.recordedProgramCard?.instructor,
+                        name: programData?.liveSessionCard?.instructor,
                         },
                     })}
                 </script>
@@ -90,7 +88,7 @@ export default function ProgramDetails() {
             <div className="xl:max-w-7xl lg:max-w-4xl md:max-w-[700px] mx-auto p-6 bg-gradient-to-b from-[#FAF4F0] to-white rounded-2xl shadow-lg grid gap-6 md:mt-[100px] mt-[80px] px-4">
                 <div className="space-y-4">
                     <h2 className="md:text-2xl font-bold text-xl">
-                        {programData?.recordedProgramCard?.title || "Retreat Title"}
+                        {programData?.liveSessionCard?.title || "Retreat Title"}
                     </h2>
                     <ImageGallery images={programData?.oneTimePurchase?.images || []} />
                 </div>
@@ -101,12 +99,12 @@ export default function ProgramDetails() {
                         {/* Price */}
                         <div className="flex text-lg font-semibold text-black">
                             <span>
-                                From {programData?.recordedProgramCard?.price
+                                From {programData?.liveSessionCard?.price
                                     ? new Intl.NumberFormat("en-IN", {
                                         style: "currency",
                                         currency: "INR",
                                         maximumFractionDigits: 2,
-                                    }).format(programData?.recordedProgramCard?.price)
+                                    }).format(programData?.liveSessionCard?.price)
                                     : "Price not available"}
                             </span>
                         </div>
@@ -120,7 +118,7 @@ export default function ProgramDetails() {
                             />
                             Packages:
                             <span className="px-4 py-2 bg-white rounded-lg text-black font-semibold">
-                                {programData?.recordedProgramCard?.days} days
+                                {programData?.liveSessionCard?.days} days
                             </span>
                         </div>
 

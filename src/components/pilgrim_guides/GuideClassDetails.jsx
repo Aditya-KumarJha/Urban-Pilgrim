@@ -13,6 +13,10 @@ export default function GuideClassDetails() {
     const [showModal, setShowModal] = useState(false);
     const [selectedPlan, setSelectedPlan] = useState(null);
 
+    useEffect(() => {
+        window.scrollTo(0, 0);
+    }, []);
+
     const sessions = [
         {
             image: "/assets/Anisha.png",
@@ -89,7 +93,7 @@ export default function GuideClassDetails() {
                     {sessionData?.guideCard?.title}
                 </h1>
                 <p className="text-2xl font-semibold text-gray-800 mt-2">
-                    From <span className="text-4xl">{sessionData?.guideCard?.price &&
+                    From <span className="text-3xl">{sessionData?.guideCard?.price &&
                         `₹ ${Number(sessionData.guideCard.price).toLocaleString("en-IN", {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2
@@ -97,14 +101,15 @@ export default function GuideClassDetails() {
                     </span>
                 </p>
             </div>
-
+            
+            {/* Image and subscription */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-7xl mx-auto px-4 py-10">
                 {/* Image */}
                 <div className="flex-shrink-0">
                     <img
-                        src="https://images.unsplash.com/photo-1529070538774-1843cb3265df"
+                        src={sessionData?.guideCard?.thumbnail}
                         alt="Instructor"
-                        className="rounded-xl h-full object-cover"
+                        className="rounded-xl xl:h-[400px] xl:w-[700px] md:h-[450px] sm:h-[480px] object-cover"
                     />
                 </div>
 
@@ -153,7 +158,7 @@ export default function GuideClassDetails() {
                             <label className="font-medium">No of persons/sessions:</label>
                             <div className="flex items-center border-[#D69A75] border rounded-full px-2">
                                 <button
-                                    className="px-2"
+                                    className="p-2"
                                     onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                                 >
                                     -
@@ -266,11 +271,11 @@ export default function GuideClassDetails() {
             </div>
 
             {/* Recommendations */}
-            <div className="max-w-7xl mx-auto p-4">
+            <div className="max-w-7xl mx-auto my-10 p-4">
                 <h2 className="text-3xl text-[#2F6288] font-bold mb-6">
-                    You May Also Like <span className="bg-[#2F6288] mt-4 w-xs h-1 block"></span>
+                    You May Also Like <span className="bg-[#2F6288] mt-2 w-[88px] h-1 block"></span>
                 </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 mt-10 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {sessions.map((session, index) => (
                         <GuideCard key={index} {...session} />
                     ))}

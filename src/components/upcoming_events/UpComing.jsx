@@ -5,56 +5,67 @@ import SEO from '../SEO';
 import { useEffect, useState } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
+import { useSelector, useDispatch } from 'react-redux';
+import { fetchEventData } from '../../services/upcoming_events/eventService';
+import { setEvents } from '../../features/upcoming_events/eventSlice';
+
 export default function UpComing() {
 
-    const events = [
-        {
-            title: "The Return - A Sacred Immersion",
-            image: "https://picsum.photos/400/300",
-            tags: ["Yoga", "Meditation"],
-            price: "9,999.00",
-        },
-        {
-            title: "Inner Peace Retreat",
-            image: "https://picsum.photos/400/300?random=1",
-            tags: ["Breathwork", "Silence"],
-            price: "12,500.00",
-        },
-        {
-            title: "The Return - A Sacred Immersion",
-            image: "https://picsum.photos/400/300",
-            tags: ["Yoga", "Meditation"],
-            price: "9,999.00",
-        },
-        {
-            title: "Inner Peace Retreat",
-            image: "https://picsum.photos/400/300?random=1",
-            tags: ["Breathwork", "Silence"],
-            price: "12,500.00",
-        },
-        {
-            title: "The Return - A Sacred Immersion",
-            image: "https://picsum.photos/400/300",
-            tags: ["Yoga", "Meditation"],
-            price: "9,999.00",
-        },
-        {
-            title: "Inner Peace Retreat",
-            image: "https://picsum.photos/400/300?random=1",
-            tags: ["Breathwork", "Silence"],
-            price: "12,500.00",
-        },
-    ];
-
-    const uid = "your-unique-id";
+    const uid = "user-uid"; // Updated to match the admin component
+    const dispatch = useDispatch();
 
     const [upcomingEvents, setUpcomingEvents] = useState(null);
+    const [isFetching, setIsFetching] = useState(false);
+    
+    // Fetch events from Redux store
+    const { events, loading, error } = useSelector((state) => state.events);
+
+    // Convert events object to array and filter active events
+    const activeEvents = events && Object.keys(events).length > 0 
+        ? Object.entries(events)
+            .map(([id, eventData]) => ({
+                id,
+                title: eventData?.upcomingSessionCard?.title || 'Event',
+                image: eventData?.upcomingSessionCard?.image || '',
+                tags: eventData?.upcomingSessionCard?.category ? [eventData.upcomingSessionCard.category] : [],
+                price: eventData?.upcomingSessionCard?.price || '0',
+                location: eventData?.upcomingSessionCard?.location || '',
+                link: eventData?.upcomingSessionCard?.title ? 
+                    eventData.upcomingSessionCard.title.replace(/\s+/g, '-') : '',
+                data: eventData
+            }))
+            .filter(event => event.title !== 'Event' && event.image) // Filter out incomplete events
+        : [];
+
+    // Fetch events from service if not in Redux
+    useEffect(() => {
+        const loadEvents = async () => {
+            try {
+                // Only fetch if we don't have events in Redux
+                if (!events || Object.keys(events).length === 0) {
+                    setIsFetching(true);
+                    const fetchedEvents = await fetchEventData(uid);
+                    if (fetchedEvents && Object.keys(fetchedEvents).length > 0) {
+                        // Dispatch events to Redux
+                        dispatch(setEvents(fetchedEvents));
+                    }
+                }
+            } catch (err) {
+                console.error("Error fetching events:", err);
+            } finally {
+                setIsFetching(false);
+            }
+        };
+
+        loadEvents();
+    }, [uid, dispatch]); // Removed events dependency to avoid infinite loop
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const slidesRef = doc(db, `homepage/${uid}/title_description/sectionEight`);
+                const slidesRef = doc(db, `homepage/your-unique-id/title_description/sectionEight`);
                 const snapshot = await getDoc(slidesRef);
+                console.log(snapshot);
 
                 if (snapshot.exists()) {
                     const data = snapshot.data();
@@ -88,15 +99,41 @@ export default function UpComing() {
                     </div>
                 </motion.div>
                 <ViewAll link="/upcoming_events" />
-                <div className="relative -mx-10 ">
-                    <div className="flex py-4 pb-12 overflow-x-scroll overflow-y-hidden no-scrollbar whitespace-nowrap">
-                        {events.map((event, index) => (
-                            <div key={index} className="md:min-w-[448px] min-w-[300px] pl-10">
-                                <EventCard data={event} />
-                            </div>
-                        ))}
+                
+                {/* Loading State */}
+                {(loading || isFetching) && (
+                    <div className="text-center py-8">
+                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#2F6288]"></div>
+                        <p className="mt-2 text-gray-600">Loading events...</p>
                     </div>
-                </div>
+                )}
+
+                {/* Error State */}
+                {error && (
+                    <div className="text-center py-8">
+                        <p className="text-red-600">Error loading events: {error}</p>
+                    </div>
+                )}
+
+                {/* Events Display */}
+                {!loading && !isFetching && !error && (
+                    <div className="relative -mx-10 ">
+                        {activeEvents.length > 0 ? (
+                            <div className="flex py-4 pb-12 overflow-x-scroll overflow-y-hidden no-scrollbar whitespace-nowrap">
+                                {activeEvents.map((event, index) => (
+                                    <div key={event.id || index} className="md:min-w-[448px] min-w-[300px] pl-10">
+                                        <EventCard data={event} />
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-8">
+                                <p className="text-gray-500">No upcoming events available at the moment.</p>
+                                <p className="text-sm text-gray-400 mt-2">Events will appear here once they are added by administrators.</p>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     )

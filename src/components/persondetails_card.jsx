@@ -48,7 +48,15 @@ const PersonDetailsSlider = ({ image, title, price }) => {
                         <div className="flex justify-between items-center mt-2">
                             <p className="text-sm">
                                 <span className="text-[#C0B3B4]">From </span>
-                                <strong>{price}</strong>
+                                <strong>
+                                    {
+                                        price ? new Intl.NumberFormat("en-IN", {
+                                            style: "currency",
+                                            currency: "INR",
+                                            maximumFractionDigits: 0,
+                                        }).format(price)
+                                        : "N/A"}
+                                </strong>
                             </p>
                             <NormalArrowButton
                                 icon={FaChevronRight}

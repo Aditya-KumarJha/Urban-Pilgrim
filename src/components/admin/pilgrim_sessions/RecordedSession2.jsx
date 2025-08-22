@@ -77,7 +77,9 @@ export default function RecordedSession2() {
         },
         // New: One Time Subscription (price only)
         oneTimeSubscription: {
-            price: ""
+            price: "",
+            images: [],
+            videos: []
         },
         // Replaces simple recordedProgramPrograms with richer programSchedule structure
         programSchedule: [],
@@ -218,6 +220,104 @@ export default function RecordedSession2() {
         setFormData((prev) => ({ ...prev, features: updated }));
     };
 
+    // One Time Purchase Image Functions
+    const handleImageUpload = (e) => {
+        const files = Array.from(e.target.files);
+        const allowed = 5 - formData.oneTimePurchase.images.length;
+
+        files.slice(0, allowed).forEach((file) => {
+            const storageRef = ref(storage, `recorded_sessions/oneTimePurchase/${file.name}_${Date.now()}`);
+            const uploadTask = uploadBytesResumable(storageRef, file);
+
+            uploadTask.on(
+                "state_changed",
+                (snapshot) => {
+                    // Optional: progress tracking
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    console.log(`Upload is ${progress}% done`);
+                },
+                (error) => {
+                    console.error("Upload failed:", error);
+                },
+                async () => {
+                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                    const updatedImages = [...formData.oneTimePurchase.images, downloadURL];
+                    handleFieldChange("oneTimePurchase", "images", updatedImages);
+                }
+            );
+        });
+    };
+
+    const removeImage = async (index) => {
+        try {
+            const updated = [...formData.oneTimePurchase.images];
+            const urlToDelete = updated[index];
+
+            // Delete from Firebase Storage
+            const fileRef = ref(storage, urlToDelete);
+            await deleteObject(fileRef);
+
+            // Remove from state
+            updated.splice(index, 1);
+            handleFieldChange("oneTimePurchase", "images", updated);
+        } catch (err) {
+            console.error("Error removing image:", err);
+            // Even if deletion fails, remove from UI
+            const updated = [...formData.oneTimePurchase.images];
+            updated.splice(index, 1);
+            handleFieldChange("oneTimePurchase", "images", updated);
+        }
+    };
+
+    // One Time Purchase Video Functions
+    const handleVideoUpload = (e) => {
+        const files = Array.from(e.target.files);
+        const allowed = 6 - formData.oneTimePurchase.videos.length;
+
+        files.slice(0, allowed).forEach((file) => {
+            const storageRef = ref(storage, `recorded_sessions/oneTimePurchase/videos/${file.name}_${Date.now()}`);
+            const uploadTask = uploadBytesResumable(storageRef, file);
+
+            uploadTask.on(
+                "state_changed",
+                (snapshot) => {
+                    // Optional: track upload progress
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    console.log(`Video upload is ${progress}% done`);
+                },
+                (error) => {
+                    console.error("Video upload failed:", error);
+                },
+                async () => {
+                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                    const updatedVideos = [...formData.oneTimePurchase.videos, downloadURL];
+                    handleFieldChange("oneTimePurchase", "videos", updatedVideos);
+                }
+            );
+        });
+    };
+
+    const removeVideo = async (index) => {
+        try {
+            const updated = [...formData.oneTimePurchase.videos];
+            const urlToDelete = updated[index];
+
+            // Delete from Firebase Storage
+            const fileRef = ref(storage, urlToDelete);
+            await deleteObject(fileRef);
+
+            // Remove from state
+            updated.splice(index, 1);
+            handleFieldChange("oneTimePurchase", "videos", updated);
+        } catch (err) {
+            console.error("Error removing video:", err);
+            // Even if deletion fails, remove from UI
+            const updated = [...formData.oneTimePurchase.videos];
+            updated.splice(index, 1);
+            handleFieldChange("oneTimePurchase", "videos", updated);
+        }
+    };
+
     // Program Schedule (richer structure like retreat form)
     const addProgram = () => {
         setFormData((prev) => ({
@@ -333,8 +433,10 @@ export default function RecordedSession2() {
             programSchedule: slideToEdit?.programSchedule?.length > 0 ? slideToEdit.programSchedule : [],
             features: slideToEdit?.features?.length > 0 ? slideToEdit.features : [],
             oneTimeSubscription: slideToEdit?.oneTimeSubscription ? {
-                price: slideToEdit?.oneTimeSubscription?.price || ""
-            } : { price: "" },
+                price: slideToEdit?.oneTimeSubscription?.price || "",
+                images: Array.isArray(slideToEdit?.oneTimeSubscription?.images) ? slideToEdit?.oneTimeSubscription?.images : [],
+                videos: Array.isArray(slideToEdit?.oneTimeSubscription?.videos) ? slideToEdit?.oneTimeSubscription?.videos : []
+            } : { price: "", images: [], videos: [] },
             aboutProgram: slideToEdit?.aboutProgram ? {
                 title: slideToEdit?.aboutProgram?.title || "",
                 shortDescription: slideToEdit?.aboutProgram?.shortDescription || "",
@@ -373,7 +475,7 @@ export default function RecordedSession2() {
             aboutProgram: { title: "", shortDescription: "", points: [""] },
             programSchedule: [],
             features: [],
-            oneTimeSubscription: { price: "" },
+            oneTimeSubscription: { price: "", images: [], videos: [] },
             faqs: [{ title: "", description: "" }],
             guide: [{ title: "", description: "", image: null }],
             keyHighlights: { title: "", points: [""] },
@@ -495,7 +597,7 @@ export default function RecordedSession2() {
                 aboutProgram: { title: "", shortDescription: "", points: [""] },
                 programSchedule: [],
                 features: [],
-                oneTimeSubscription: { price: "" },
+                oneTimeSubscription: { price: "", images: [], videos: [] },
                 faqs: [{ title: "", description: "" }],
                 guide: [{ title: "", description: "", image: null }],
                 keyHighlights: { title: "", points: [""] },
@@ -744,6 +846,71 @@ export default function RecordedSession2() {
                             onChange={(e) => setFormData(prev => ({ ...prev, oneTimeSubscription: { price: e.target.value } }))}
                             className="text-sm w-full border border-gray-300 p-3 rounded-lg"
                         />
+                    </div>
+
+                    <label className="block font-semibold my-5">Add Images ( Maximum 5 Images )</label>
+                    <div className="mb-6">
+                        {(!formData?.oneTimePurchase?.images || formData?.oneTimePurchase?.images.length < 5) && (
+                            <label className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col 
+                            items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50">
+                                <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-10 h-10 mb-2" />
+                                <span>Click to upload image<br />Size: (1126×626)px</span>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    onChange={handleImageUpload}
+                                    className="hidden"
+                                />
+                            </label>
+                        )}
+
+                        <div className="flex flex-wrap gap-4 mt-4">
+                            {formData?.oneTimePurchase?.images && formData?.oneTimePurchase?.images.map((img, index) => (
+                                <div key={index} className="relative w-40 h-28">
+                                    <img src={img} alt={`img-${index}`} className="w-full h-full object-cover rounded shadow" />
+                                    <button
+                                        onClick={() => removeImage(index)}
+                                        className="absolute top-1 right-1 bg-white border border-gray-300 rounded-full p-1 
+                                        hover:bg-gray-200"
+                                    >
+                                        <FaTimes size={12} />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <label className="block font-semibold my-5">Add Videos ( Maximum 6 Videos )</label>
+                    <div className="mb-4">
+                        {(!formData?.oneTimePurchase?.videos || formData?.oneTimePurchase?.videos.length < 6) && (
+                            <label className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col 
+                            items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50">
+                                <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-10 h-10 mb-2" />
+                                <span>Click to upload Videos</span>
+                                <input
+                                    type="file"
+                                    accept="video/*"
+                                    multiple
+                                    onChange={handleVideoUpload}
+                                    className="hidden"
+                                />
+                            </label>
+                        )}
+                        <div className="flex flex-wrap gap-4 mt-4">
+                            {formData?.oneTimePurchase?.videos && formData?.oneTimePurchase?.videos.map((vid, index) => (
+                                <div key={index} className="relative w-40 h-28 bg-black">
+                                    <video src={vid} controls className="w-full h-full rounded shadow object-cover" />
+                                    <button
+                                        onClick={() => removeVideo(index)}
+                                        className="absolute top-1 right-1 bg-white border border-gray-300 
+                                        rounded-full p-1 hover:bg-gray-200"
+                                    >
+                                        <FaTimes size={12} />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
 

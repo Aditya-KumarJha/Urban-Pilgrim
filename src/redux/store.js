@@ -15,6 +15,7 @@ import pilgrimRetreatReducer from "../features/pilgrim_retreat/pilgrimRetreatSli
 import pilgrimGuidesReducer from "../features/pilgrim_guide/pilgrimGuideSlice";
 import pilgrimLiveSessionReducer from "../features/pilgrim_session/liveSessionsSlice"
 import pilgrimRecordedSessionreducer from "../features/pilgrim_session/recordedSessionSlice"
+import eventReducer from "../features/upcoming_events/eventSlice";
 
 import { 
     persistReducer,
@@ -50,7 +51,8 @@ const rootReducer = combineReducers({
         pilgrimRetreat: pilgrimRetreatReducer,
         pilgrimGuides: pilgrimGuidesReducer,
         pilgrimLiveSession: pilgrimLiveSessionReducer,
-        pilgrimRecordedSession: pilgrimRecordedSessionreducer
+        pilgrimRecordedSession: pilgrimRecordedSessionreducer,
+        events: eventReducer
 })
 
 const persistedReducer = persistReducer(persistConfig, rootReducer)

@@ -6,15 +6,6 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "../services/firebase";
 import { useSelector } from "react-redux";
 
-// const images = [
-//     "/assets/home/bg1.svg",
-//     "/assets/home/carousel2.png",
-//     "/assets/home/carousel3.png",
-//     "/assets/home/carousel4.png",
-//     "/assets/home/carousel5.png",
-//     "/assets/home/carousel6.png",
-// ];
-
 export default function HeroCarousel() {
     const [current, setCurrent] = useState(0);
     const [images, setImages] = useState([]);
@@ -49,7 +40,7 @@ export default function HeroCarousel() {
         };
 
         fetchImages();
-    }, [user.uid]);
+    }, [uid]);
 
     useEffect(() => {
         const interval = setInterval(() => {

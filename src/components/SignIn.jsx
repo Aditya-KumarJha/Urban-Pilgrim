@@ -7,6 +7,7 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { setUser } from "../features/authSlice";
 import { showError, showSuccess } from "../utils/toast";
 import store from "../redux/store";
+import Loader2 from "../components/Loader2"
 
 export default function SignIn({ onClose }) {
     const [email, setEmail] = useState("");
@@ -19,8 +20,8 @@ export default function SignIn({ onClose }) {
 
     const sendOtp = async () => {
         if (!email) return alert("Enter email!");
-        setLoading(true);
         try {
+            setLoading(true);
             const sendOtpFn = httpsCallable(functions, "sendOtp");
             const result = await sendOtpFn({ email });
             console.log("OTP function result:", result.data);
@@ -29,15 +30,15 @@ export default function SignIn({ onClose }) {
         } catch (err) {
             console.error(err);
             showError("Failed to send OTP");
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     const verifyOtp = async () => {
         if (!otp) return alert("Enter OTP!");
-        setLoading(true);
-
         try {
+            setLoading(true);
             const verifyOtpFn = httpsCallable(functions, "verifyOtp");
             const res = await verifyOtpFn({ email, otp });
             console.log("OTP verification result:", res.data);
@@ -75,9 +76,9 @@ export default function SignIn({ onClose }) {
         } catch (err) {
             console.error(err);
             showError("Invalid OTP");
+        } finally {
+            setLoading(false);
         }
-
-        setLoading(false);
     };
 
     return (
@@ -85,7 +86,13 @@ export default function SignIn({ onClose }) {
             <div className="absolute inset-0 bg-black/20 backdrop-blur-sm"></div>
 
             <div className="relative z-10 rounded-2xl bg-white/50 shadow-lg w-full max-w-xl px-8 py-12 text-center">
-                <button className="absolute top-4 right-4 text-gray-500 hover:text-black text-2xl" onClick={onClose}>&times;</button>
+                {loading && (
+                    <div className="absolute inset-0 bg-white/70 rounded-2xl flex items-center justify-center z-20">
+                        <Loader2 />
+                    </div>
+                )}
+
+                <button className="absolute top-4 right-4 text-gray-500 hover:text-black text-2xl" onClick={onClose} disabled={loading}>&times;</button>
 
                 <h2 className="text-3xl font-bold mb-3">Sign in</h2>
                 <p className="text-gray-600 text-sm mb-6">
@@ -100,7 +107,8 @@ export default function SignIn({ onClose }) {
                         placeholder="Enter your email address..."
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full border border-gray-300 rounded-lg px-4 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        disabled={loading}
+                        className="w-full border border-gray-300 rounded-lg px-4 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50"
                     />
                 ) : (
                     <input
@@ -108,16 +116,17 @@ export default function SignIn({ onClose }) {
                         placeholder="Enter OTP..."
                         value={otp}
                         onChange={(e) => setOtp(e.target.value)}
-                        className="w-full border border-gray-300 rounded-lg px-4 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        disabled={loading}
+                        className="w-full border border-gray-300 rounded-lg px-4 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50"
                     />
                 )}
 
                 <button
                     onClick={step === 1 ? sendOtp : verifyOtp}
                     disabled={loading}
-                    className="w-full bg-gradient-to-r from-[#C5703F] to-[#C16A00] text-white font-semibold py-2 rounded-lg hover:from-[#C5703F]/90 hover:to-[#C16A00]/90 transition"
+                    className="w-full bg-gradient-to-r from-[#C5703F] to-[#C16A00] text-white font-semibold py-2 rounded-lg hover:from-[#C5703F]/90 hover:to-[#C16A00]/90 transition disabled:opacity-60"
                 >
-                    {step === 1 ? "Continue →" : "Verify OTP →"}
+                    {loading ? (step === 1 ? "Sending..." : "Verifying...") : (step === 1 ? "Continue →" : "Verify OTP →")}
                 </button>
 
                 <p className="text-xs text-left text-gray-500 mt-4 cursor-pointer hover:underline">
