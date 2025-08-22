@@ -5,7 +5,7 @@ import { db } from "../firebase";
 export const fetchSectionEight = async (uid) => {
     const ref = doc(db, `homepage/${uid}/title_description/sectionEight`);
     const snap = await getDoc(ref);
-    return snap.exists() ? snap.data() : { title: "", description: "", image: null };
+    return snap.exists() ? snap.data() : { title: "", description: "" };
 };
 
 export const saveSectionEight = async (uid, data) => {
