@@ -8,6 +8,8 @@ const Sessions = lazy(() => import("./Sessions"));
 const Guides = lazy(() => import("./Guides"));
 const Events = lazy(() => import("./Events"));
 
+const a = "hello"
+
 // Loading component for admin sections
 const AdminSectionLoader = () => (
   <div className="flex items-center justify-center min-h-[400px]">
