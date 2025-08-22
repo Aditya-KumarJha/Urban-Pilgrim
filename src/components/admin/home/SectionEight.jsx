@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
-import { setLoading, setSectionEight } from "../../../features/home_slices/sectionEightSlice.js";
-import { fetchSectionEight, saveSectionEight } from "../../../services/home_service/sectionEightService.js";
+import { setLoading, setSectionEight } from "../../../features/home_slices/sectionEightSlice";
+import { fetchSectionEight, saveSectionEight } from "../../../services/home_service/section8Service";
 import { showError, showSuccess } from "../../../utils/toast.js";
 
 function SectionEight() {
