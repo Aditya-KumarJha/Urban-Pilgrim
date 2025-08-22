@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { Helmet } from 'react-helmet';
 
 export default function SEO({ 
   title = 'Urban Pilgrim | Wellness Events & Retreats', 
@@ -9,65 +9,36 @@ export default function SEO({
   ogType = 'website',
   children
 }) {
-  useEffect(() => {
-    const siteUrl = window.location.origin;
-    const fullUrl = canonicalUrl ? `${siteUrl}${canonicalUrl}` : siteUrl;
-    const imageUrl = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}`;
-    
-    // Update document title
-    document.title = title;
-    
-    // Update or create meta tags
-    const updateMetaTag = (name, content, property = false) => {
-      const selector = property ? `meta[property="${name}"]` : `meta[name="${name}"]`;
-      let meta = document.querySelector(selector);
-      
-      if (!meta) {
-        meta = document.createElement('meta');
-        if (property) {
-          meta.setAttribute('property', name);
-        } else {
-          meta.setAttribute('name', name);
-        }
-        document.head.appendChild(meta);
-      }
-      meta.setAttribute('content', content);
-    };
-    
-    // Update or create canonical link
-    let canonical = document.querySelector('link[rel="canonical"]');
-    if (!canonical) {
-      canonical = document.createElement('link');
-      canonical.setAttribute('rel', 'canonical');
-      document.head.appendChild(canonical);
-    }
-    canonical.setAttribute('href', fullUrl);
-    
-    // Update meta tags
-    updateMetaTag('description', description);
-    updateMetaTag('keywords', keywords);
-    
-    // Open Graph tags
-    updateMetaTag('og:type', ogType, true);
-    updateMetaTag('og:url', fullUrl, true);
-    updateMetaTag('og:title', title, true);
-    updateMetaTag('og:description', description, true);
-    updateMetaTag('og:image', imageUrl, true);
-    
-    // Twitter tags
-    updateMetaTag('twitter:card', 'summary_large_image');
-    updateMetaTag('twitter:url', fullUrl);
-    updateMetaTag('twitter:title', title);
-    updateMetaTag('twitter:description', description);
-    updateMetaTag('twitter:image', imageUrl);
-    
-    // Cleanup function to restore original title if needed
-    return () => {
-      // Optionally restore original title when component unmounts
-      // document.title = 'Urban Pilgrim | Wellness Events & Retreats';
-    };
-  }, [title, description, keywords, canonicalUrl, ogImage, ogType]);
+  const siteUrl = window.location.origin;
+  const fullUrl = canonicalUrl ? `${siteUrl}${canonicalUrl}` : siteUrl;
+  const imageUrl = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}`;
   
-  // This component doesn't render anything visible
-  return null;
+  return (
+    <Helmet>
+      {/* Basic Meta Tags */}
+      <title>{title}</title>
+      <meta name="description" content={description} />
+      <meta name="keywords" content={keywords} />
+      
+      {/* Canonical Link */}
+      {canonicalUrl && <link rel="canonical" href={fullUrl} />}
+      
+      {/* Open Graph / Facebook */}
+      <meta property="og:type" content={ogType} />
+      <meta property="og:url" content={fullUrl} />
+      <meta property="og:title" content={title} />
+      <meta property="og:description" content={description} />
+      <meta property="og:image" content={imageUrl} />
+      
+      {/* Twitter */}
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:url" content={fullUrl} />
+      <meta name="twitter:title" content={title} />
+      <meta name="twitter:description" content={description} />
+      <meta name="twitter:image" content={imageUrl} />
+      
+      {/* Additional meta tags */}
+      {children}
+    </Helmet>
+  );
 }
