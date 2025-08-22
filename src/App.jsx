@@ -1,29 +1,38 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import NavBar from "./components/navbar/NavBar";
 import Loader from "./components/Loader";
-import Home from "./pages/home";
-import Retreats from "./pages/pilgrim_retreats/Retreats";
-import Sessions from "./pages/pilgrim_sessions/Sessions";
-import Guides from "./pages/pilgrim_guides/Guides";
-import JoinGuides from "./pages/join_us_as_guides/JoinGuides";
-import JoinAdvisors from "./pages/join_us_as_trip_advisors/JoinAdvisors";
-import ContactForm from "./pages/contact/Contact";
-import Footer from "./components/footer";
-import WhyUs from "./pages/whychooseUs/WhyChoseUs";
-import CartPage from "./pages/cart/CartPage";
-import WhoAreWe from "./pages/whoarewe/WhoAreWe";
-import SessionSlots from "./pages/session_slots/SessionSlots";
-import SessionDescription from "./pages/session_slots/SessionDescription";
-import GuideClassDetails from "./components/pilgrim_guides/GuideClassDetails";
-import Retreatdescription from "./components/pilgrim_retreats/Retreatdescription";
-import Admin from "./pages/admin/Admin";
-import ProgramDetails from "./pages/program_details/ProgramDetails";
-import UserDashboard from "./components/UserDashboard";
-import PrivacyPolicy from "./pages/privacy_policy/PrivacyPolicy";
-import YogaDesc from "./components/YogaDesc";
-import EventDetails from "./components/upcoming_events/EventDetails";
-import LiveDetails from "./pages/program_details/LiveDeatils";
+
+// Lazy load all route components
+const Home = lazy(() => import("./pages/home"));
+const Retreats = lazy(() => import("./pages/pilgrim_retreats/Retreats"));
+const Sessions = lazy(() => import("./pages/pilgrim_sessions/Sessions"));
+const Guides = lazy(() => import("./pages/pilgrim_guides/Guides"));
+const JoinGuides = lazy(() => import("./pages/join_us_as_guides/JoinGuides"));
+const JoinAdvisors = lazy(() => import("./pages/join_us_as_trip_advisors/JoinAdvisors"));
+const ContactForm = lazy(() => import("./pages/contact/Contact"));
+const Footer = lazy(() => import("./components/footer"));
+const WhyUs = lazy(() => import("./pages/whychooseUs/WhyChoseUs"));
+const CartPage = lazy(() => import("./pages/cart/CartPage"));
+const WhoAreWe = lazy(() => import("./pages/whoarewe/WhoAreWe"));
+const SessionSlots = lazy(() => import("./pages/session_slots/SessionSlots"));
+const SessionDescription = lazy(() => import("./pages/session_slots/SessionDescription"));
+const GuideClassDetails = lazy(() => import("./components/pilgrim_guides/GuideClassDetails"));
+const Retreatdescription = lazy(() => import("./components/pilgrim_retreats/Retreatdescription"));
+const Admin = lazy(() => import("./pages/admin/Admin"));
+const ProgramDetails = lazy(() => import("./pages/program_details/ProgramDetails"));
+const UserDashboard = lazy(() => import("./components/UserDashboard"));
+const PrivacyPolicy = lazy(() => import("./pages/privacy_policy/PrivacyPolicy"));
+const YogaDesc = lazy(() => import("./components/YogaDesc"));
+const EventDetails = lazy(() => import("./components/upcoming_events/EventDetails"));
+const LiveDetails = lazy(() => import("./pages/program_details/LiveDeatils"));
+
+// Loading component for lazy routes
+const RouteLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#C5703F]"></div>
+  </div>
+);
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -40,30 +49,32 @@ function App() {
       {!loading && (
         <>
           {!isAdminRoute && <NavBar />}
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/pilgrim_retreats" element={<Retreats />} />
-            <Route path="/pilgrim_sessions" element={<Sessions />} />
-            <Route path="/pilgrim_guides" element={<Guides />} />
-            <Route path="/contact" element={<ContactForm />} />
-            <Route path="/joinusguides" element={<JoinGuides />} />
-            <Route path="/joinusadvisors" element={<JoinAdvisors />} />
-            <Route path="/whyus" element={<WhyUs />} />
-            <Route path="/whoarewe" element={<WhoAreWe />} />
-            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-            <Route path="/yoga/:title" element={<YogaDesc />} />
-            <Route path="/cart" element={<CartPage />} />
-            <Route path="/session/:sessionId/slots" element={<SessionSlots />} />
-            <Route path="/session/:sessionId/details" element={<LiveDetails />} />
-            <Route path="/program/:programId/details" element={<ProgramDetails />} />
-            <Route path="/session/:sessionId/slots/description" element={<SessionDescription />} />
-            <Route path="/guide/:guideClassName" element={<GuideClassDetails />} />
-            <Route path="/pilgrim_retreats/:retreatName" element={<Retreatdescription />} />
-            <Route path="/event/:eventName" element={<EventDetails />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="*" element={<Home replace={'/'} />} />
-            <Route path="/userdashboard" element={<UserDashboard />} />
-          </Routes>
+          <Suspense fallback={<RouteLoader />}>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/pilgrim_retreats" element={<Retreats />} />
+              <Route path="/pilgrim_sessions" element={<Sessions />} />
+              <Route path="/pilgrim_guides" element={<Guides />} />
+              <Route path="/contact" element={<ContactForm />} />
+              <Route path="/joinusguides" element={<JoinGuides />} />
+              <Route path="/joinusadvisors" element={<JoinAdvisors />} />
+              <Route path="/whyus" element={<WhyUs />} />
+              <Route path="/whoarewe" element={<WhoAreWe />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/yoga/:title" element={<YogaDesc />} />
+              <Route path="/cart" element={<CartPage />} />
+              <Route path="/session/:sessionId/slots" element={<SessionSlots />} />
+              <Route path="/session/:sessionId/details" element={<LiveDetails />} />
+              <Route path="/program/:programId/details" element={<ProgramDetails />} />
+              <Route path="/session/:sessionId/slots/description" element={<SessionDescription />} />
+              <Route path="/guide/:guideClassName" element={<GuideClassDetails />} />
+              <Route path="/pilgrim_retreats/:retreatName" element={<Retreatdescription />} />
+              <Route path="/event/:eventName" element={<EventDetails />} />
+              <Route path="/admin" element={<Admin />} />
+              <Route path="*" element={<Home replace={'/'} />} />
+              <Route path="/userdashboard" element={<UserDashboard />} />
+            </Routes>
+          </Suspense>
           {!isAdminRoute && <Footer className="mt-10" />}
         </>
       )}
