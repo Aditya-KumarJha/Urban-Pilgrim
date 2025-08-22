@@ -58,7 +58,7 @@ export default function UpComing() {
         };
 
         loadEvents();
-    }, [uid, dispatch]); // Removed events dependency to avoid infinite loop
+    }, [uid, dispatch, events]); // Removed events dependency to avoid infinite loop
 
     useEffect(() => {
         const fetchData = async () => {

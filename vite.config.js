@@ -19,8 +19,12 @@ export default defineConfig({
           if (id.includes('framer-motion') || id.includes('lucide-react') || id.includes('react-icons')) {
             return 'ui-vendor';
           }
-          if (id.includes('react-player') || id.includes('@mux/mux-player-react')) {
-            return 'media-vendor';
+          // Separate media libraries to avoid conflicts
+          if (id.includes('react-player')) {
+            return 'react-player-vendor';
+          }
+          if (id.includes('@mux/mux-player-react')) {
+            return 'mux-player-vendor';
           }
           if (id.includes('firebase')) {
             return 'firebase-vendor';
@@ -49,10 +53,15 @@ export default defineConfig({
         },
       },
     },
-    chunkSizeWarningLimit: 800, // Reduce warning limit to 800KB
+    chunkSizeWarningLimit: 1000, // Increase warning limit to 1MB
     target: 'es2015', // Target modern browsers for better tree-shaking
   },
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom'],
+    exclude: ['@mux/mux-player-react'], // Exclude problematic dependency
+  },
+  define: {
+    // Ensure proper global variable handling
+    global: 'globalThis',
   },
 })

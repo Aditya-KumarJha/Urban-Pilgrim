@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { FiPlay } from "react-icons/fi";
-import ReactPlayer from "react-player";
+// import ReactPlayer from "react-player"; // Temporarily disabled to isolate the issue
 
 const videos = [
   {
@@ -35,7 +35,13 @@ export default function YouTubeVideoPlaylist() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-10">
-      <div className="aspect-video rounded-xl overflow-hidden">
+      <div className="aspect-video rounded-xl overflow-hidden bg-gray-200 flex items-center justify-center">
+        {/* Temporarily disabled ReactPlayer to isolate the issue */}
+        <div className="text-center">
+          <p className="text-gray-600 mb-2">Video player temporarily disabled</p>
+          <p className="text-sm text-gray-500">Current video: {currentVideo.title}</p>
+        </div>
+        {/* 
         <ReactPlayer
           src={currentVideo.src}
           controls
@@ -43,6 +49,7 @@ export default function YouTubeVideoPlaylist() {
           height="100%"
           className="rounded-xl"
         />
+        */}
       </div>
 
       <h3 className="text-lg font-semibold mt-4">

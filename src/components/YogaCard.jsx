@@ -69,7 +69,7 @@ export default function YogaCard() {
         };
 
         fetchData();
-    }, []);
+    }, [dispatch]);
 
     const prevSlide = () => {
         setCurrent((prev) => (prev - 1 + total) % total);
