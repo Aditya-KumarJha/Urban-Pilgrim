@@ -9,37 +9,52 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: (id) => {
-          // Vendor chunks
+          // Core React libraries must be loaded first
           if (id.includes('react') && !id.includes('react-')) {
-            return 'react-vendor';
+            return 'react-core';
           }
+          if (id.includes('react-dom')) {
+            return 'react-dom-core';
+          }
+          if (id.includes('react-router-dom')) {
+            return 'react-router-core';
+          }
+          
+          // Redux and state management
           if (id.includes('@reduxjs') || id.includes('redux-persist')) {
             return 'redux-vendor';
           }
+          
+          // UI libraries - load after React core
           if (id.includes('framer-motion') || id.includes('lucide-react') || id.includes('react-icons')) {
             return 'ui-vendor';
           }
-          // Separate media libraries to avoid conflicts
+          
+          // Media libraries
           if (id.includes('react-player')) {
-            return 'react-player-vendor';
+            return 'media-vendor';
           }
           if (id.includes('@mux/mux-player-react')) {
-            return 'mux-player-vendor';
+            return 'mux-vendor';
           }
+          
+          // Firebase and utilities
           if (id.includes('firebase')) {
             return 'firebase-vendor';
           }
           if (id.includes('axios') || id.includes('uuid') || id.includes('react-hook-form') || id.includes('react-hot-toast')) {
             return 'utils-vendor';
           }
-          // Split large media libraries
+          
+          // Large media libraries
           if (id.includes('dash.all.min')) {
             return 'dash-vendor';
           }
           if (id.includes('hls.js')) {
             return 'hls-vendor';
           }
-          // Split large components
+          
+          // Application chunks
           if (id.includes('Sessions') || id.includes('Retreats') || id.includes('Guides')) {
             return 'main-features';
           }
@@ -53,15 +68,21 @@ export default defineConfig({
         },
       },
     },
-    chunkSizeWarningLimit: 1000, // Increase warning limit to 1MB
-    target: 'es2015', // Target modern browsers for better tree-shaking
+    chunkSizeWarningLimit: 1000,
+    target: 'es2015',
   },
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom'],
-    exclude: ['@mux/mux-player-react'], // Exclude problematic dependency
+    exclude: ['@mux/mux-player-react'],
   },
   define: {
-    // Ensure proper global variable handling
     global: 'globalThis',
+    'process.env.NODE_ENV': '"production"',
+  },
+  resolve: {
+    alias: {
+      'react': 'react',
+      'react-dom': 'react-dom',
+    },
   },
 })

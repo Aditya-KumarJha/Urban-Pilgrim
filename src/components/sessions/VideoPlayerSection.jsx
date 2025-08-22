@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
+// import { motion } from "framer-motion"; // Temporarily disabled to isolate the issue
 import { FiPlay } from "react-icons/fi";
 // import ReactPlayer from "react-player"; // Temporarily disabled to isolate the issue
 
@@ -60,9 +60,8 @@ export default function YouTubeVideoPlaylist() {
         <p className="text-sm font-medium mb-4">All Videos ({videos.length})</p>
         <div className="space-y-3 max-h-[300px] overflow-y-auto">
           {videos.map((video) => (
-            <motion.div
+            <div
               key={video.id}
-              whileHover={{ scale: 1 }}
               onClick={() => setCurrentVideo(video)}
               className="flex items-center gap-4 cursor-pointer rounded-md p-2 hover:bg-gray-100 transition"
             >
@@ -77,7 +76,7 @@ export default function YouTubeVideoPlaylist() {
                 </span>
               </div>
               <p className="text-sm">{video.title}</p>
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>
