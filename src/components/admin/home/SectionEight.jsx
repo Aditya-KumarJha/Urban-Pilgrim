@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
-import { setLoading, setSectionEight } from "../../../features/home_slices/sectionEightSlice";
-import { fetchSectionEight, saveSectionEight } from "../../../services/home_service/sectionEightService";
+import { setLoading, setSectionEight } from "../../../features/home_slices/sectionEightSlice.js";
+import { fetchSectionEight, saveSectionEight } from "../../../services/home_service/sectionEightService.js";
+import { showSuccess } from "../../../utils/toast.js";
 
 function SectionEight() {
-    const [title, setTitle] = useState("It asks: What about me?");
-    const [description, setDescription] = useState(
-        "We live in a world that celebrates hustle—but forgets healing. Every scroll, every deadline, every city noise pulls us outward. Yet somewhere inside, a quieter voice longs to be heard."
-    );
+    const [title, setTitle] = useState("");
+    const [description, setDescription] = useState("");
 
     const dispatch = useDispatch();
     const uid = "your-unique-id";
@@ -35,7 +34,8 @@ function SectionEight() {
     const handleSave = async () => {
         dispatch(setSectionEight({ title, description })); // update store
         await saveSectionEight(uid, { title, description }); // update Firestore
-        console.log("Section 7 data saved successfully", { title, description });
+        console.log("Section 8 data saved successfully", { title, description });
+        showSuccess("Section 8 data saved successfully");
     };
 
     return (
