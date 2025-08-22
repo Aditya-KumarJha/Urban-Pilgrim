@@ -73,7 +73,11 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom'],
-    exclude: ['@mux/mux-player-react'],
+    exclude: [
+      '@mux/mux-player-react',
+      'react-helmet',
+      'react-side-effect'
+    ],
   },
   define: {
     global: 'globalThis',
