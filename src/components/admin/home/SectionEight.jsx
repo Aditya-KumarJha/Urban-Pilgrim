@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
-import { setLoading, setSectionEight } from "../../../features/home_slices/SectionEightSlice";
-import { fetchSectionEight, saveSectionEight } from "../../../services/home_service/SectionEightService";
+import { setLoading, setSectionEight } from "../../../features/home_slices/sectionEightSlice";
+import { fetchSectionEight, saveSectionEight } from "../../../services/home_service/sectionEightService";
 
 function SectionEight() {
     const [title, setTitle] = useState("It asks: What about me?");
