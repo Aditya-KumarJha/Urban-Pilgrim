@@ -1,4 +1,4 @@
-import { Helmet } from 'react-helmet-async';
+import { Helmet } from 'react-helmet';
 
 export default function SEO({ 
   title = 'Urban Pilgrim | Wellness Events & Retreats', 
