@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { setLoading, setSectionEight } from "../../../features/home_slices/sectionEightSlice";
 import { fetchSectionEight, saveSectionEight } from "../../../services/home_service/section8Service";
-import { showError, showSuccess } from "../../../utils/toast.js";
+import { showSuccess } from "../../../utils/toast";
 
 function SectionEight() {
     const [title, setTitle] = useState("");
@@ -13,19 +13,13 @@ function SectionEight() {
 
     useEffect(() => {
         const loadData = async () => {
-            try {
-                dispatch(setLoading(true));
-                const data = await fetchSectionEight(uid);
-                console.log("data from section 8: ", data);
-                setTitle(data?.sectionEight?.title || "");
-                setDescription(data?.sectionEight?.description || "");
-                dispatch(setSectionEight(data.sectionEight));
-                dispatch(setLoading(false));
-            } catch (error) {
-                console.error("Error fetching section 8 data:", error);
-                dispatch(setLoading(false));
-                showError("Failed to load section 8 data");
-            }
+            dispatch(setLoading(true));
+            const data = await fetchSectionEight(uid);
+            console.log("data from section 8: ", data);
+            setTitle(data?.sectionEight?.title || "");
+            setDescription(data?.sectionEight?.description || "");
+            dispatch(setSectionEight(data.sectionEight));
+            dispatch(setLoading(false));
         };
         loadData();
     }, [uid, dispatch]);
