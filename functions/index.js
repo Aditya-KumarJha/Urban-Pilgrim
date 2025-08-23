@@ -188,46 +188,165 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
     );
 
     // =============================
-    // 2) Add user under Program → purchasedUsers
+    // 2) Add user under Program → purchasedUsers for each program type
     // =============================
-    const programRef = db
-        .collection("pilgrim_sessions")
-        .doc("pilgrim_sessions")
-        .collection("sessions")
-        .doc("recordedSession");
-
-    const programSnap = await programRef.get();
-    if (programSnap.exists) {
-        const slides = programSnap.data().slides || [];
-
-        const updatedSlides = slides.map((slide) => {
-            const match = cartData.find(
-                (c) => c?.title === slide?.recordedProgramCard?.title
-            );
-            if (match) {
-                return {
-                    ...slide,
-                    purchasedUsers: [
-                        ...(slide.purchasedUsers || []),
-                        {
-                            uid: userId,
-                            name,
-                            email,
-                            purchasedAt: new Date().toISOString(),
-                            paymentId: paymentResponse.razorpay_payment_id,
-                            orderId: paymentResponse.razorpay_order_id,
-                            ...formData,
-                        },
-                    ],
-                };
+    
+    // Process each program in cartData
+    for (const program of cartData) {
+        try {
+            let programRef;
+            let updateData = {};
+            
+            // Determine program type and set appropriate reference
+            if (program.type === "guide" || program.category === "guide") {
+                // For guides: /pilgrim_guides/pilgrim_guides/guides/data
+                programRef = db
+                    .collection("pilgrim_guides")
+                    .doc("pilgrim_guides")
+                    .collection("guides")
+                    .doc("data");
+                    
+                const guideSnap = await programRef.get();
+                if (guideSnap.exists) {
+                    const guides = guideSnap.data().guides || [];
+                    const updatedGuides = guides.map((guide) => {
+                        if (guide?.title === program.title) {
+                            return {
+                                ...guide,
+                                purchasedUsers: [
+                                    ...(guide.purchasedUsers || []),
+                                    {
+                                        uid: userId,
+                                        name,
+                                        email,
+                                        purchasedAt: new Date().toISOString(),
+                                        paymentId: paymentResponse.razorpay_payment_id,
+                                        orderId: paymentResponse.razorpay_order_id,
+                                        ...formData,
+                                    },
+                                ],
+                            };
+                        }
+                        return guide;
+                    });
+                    updateData = { guides: updatedGuides };
+                }
+                
+            } else if (program.type === "retreat" || program.category === "retreat") {
+                // For retreats: /pilgrim_retreat/user-uid/retreats/data
+                programRef = db
+                    .collection("pilgrim_retreat")
+                    .doc(userId)
+                    .collection("retreats")
+                    .doc("data");
+                    
+                const retreatSnap = await programRef.get();
+                if (retreatSnap.exists) {
+                    const retreats = retreatSnap.data().retreats || [];
+                    const updatedRetreats = retreats.map((retreat) => {
+                        if (retreat?.title === program.title) {
+                            return {
+                                ...retreat,
+                                purchasedUsers: [
+                                    ...(retreat.purchasedUsers || []),
+                                    {
+                                        uid: userId,
+                                        name,
+                                        email,
+                                        purchasedAt: new Date().toISOString(),
+                                        paymentId: paymentResponse.razorpay_payment_id,
+                                        orderId: paymentResponse.razorpay_order_id,
+                                        ...formData,
+                                    },
+                                ],
+                            };
+                        }
+                        return retreat;
+                    });
+                    updateData = { retreats: updatedRetreats };
+                }
+                
+            } else if (program.type === "live" || program.category === "live") {
+                // For live sessions: /pilgrim_sessions/pilgrim_sessions/sessions/liveSession
+                programRef = db
+                    .collection("pilgrim_sessions")
+                    .doc("pilgrim_sessions")
+                    .collection("sessions")
+                    .doc("liveSession");
+                    
+                const liveSnap = await programRef.get();
+                if (liveSnap.exists) {
+                    const slides = liveSnap.data().slides || [];
+                    const updatedSlides = slides.map((slide) => {
+                        if (slide?.liveSessionCard?.title === program.title) {
+                            return {
+                                ...slide,
+                                purchasedUsers: [
+                                    ...(slide.purchasedUsers || []),
+                                    {
+                                        uid: userId,
+                                        name,
+                                        email,
+                                        purchasedAt: new Date().toISOString(),
+                                        paymentId: paymentResponse.razorpay_payment_id,
+                                        orderId: paymentResponse.razorpay_order_id,
+                                        ...formData,
+                                    },
+                                ],
+                            };
+                        }
+                        return slide;
+                    });
+                    updateData = { slides: updatedSlides };
+                }
+                
+            } else if (program.type === "recorded" || program.category === "recorded") {
+                // For recorded sessions: /pilgrim_sessions/pilgrim_sessions/sessions/recordedSession
+                programRef = db
+                    .collection("pilgrim_sessions")
+                    .doc("pilgrim_sessions")
+                    .collection("sessions")
+                    .doc("recordedSession");
+                    
+                const recordedSnap = await programRef.get();
+                if (recordedSnap.exists) {
+                    const slides = recordedSnap.data().slides || [];
+                    const updatedSlides = slides.map((slide) => {
+                        if (slide?.recordedProgramCard?.title === program.title) {
+                            return {
+                                ...slide,
+                                purchasedUsers: [
+                                    ...(slide.purchasedUsers || []),
+                                    {
+                                        uid: userId,
+                                        name,
+                                        email,
+                                        purchasedAt: new Date().toISOString(),
+                                        paymentId: paymentResponse.razorpay_payment_id,
+                                        orderId: paymentResponse.razorpay_order_id,
+                                        ...formData,
+                                    },
+                                ],
+                            };
+                        }
+                        return slide;
+                    });
+                    updateData = { slides: updatedSlides };
+                }
             }
-            return slide;
-        });
-
-        await programRef.update({ slides: updatedSlides });
-    } else {
-        console.log("No such program document!");
-        return;
+            
+            // Update the program document if it exists and has data to update
+            if (programRef && Object.keys(updateData).length > 0) {
+                await programRef.update(updateData);
+                console.log(`Updated ${program.type || program.category} program: ${program.title}`);
+            } else {
+                console.log(`No matching program found for: ${program.title} (${program.type || program.category})`);
+            }
+            
+        } catch (error) {
+            console.error(`Error updating program ${program.title}:`, error);
+            // Continue with other programs even if one fails
+        }
     }
 
     // =============================
@@ -305,9 +424,12 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
     const oauth2Client = await getOAuth2Client();
     const calendar = google.calendar({ version: "v3", auth: oauth2Client });
 
+    console.log("Entering live session loop");
+
     for (const program of cartData) {
         if (program.type === "live" && program.slots?.length) {
             for (const slot of program.slots) {
+                console.log("slot", slot);
                 const slotDate = formatDateWithSuffix(slot.date);
                 const slotTime = `${formatTime(slot.startTime)} - ${formatTime(
                     slot.endTime
@@ -348,9 +470,11 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                     conferenceDataVersion: 1,
                     sendUpdates: "all",
                 });
+                console.log("createdEvent", createdEvent);
 
                 const meetLink =
                     createdEvent.data.conferenceData?.entryPoints?.[0]?.uri;
+                console.log("meetLink", meetLink);
 
                 // Mail with Meet Link
                 const mailHtml = `
@@ -384,6 +508,8 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                         html: mailHtml,
                     });
                 }
+
+                console.log("mail send to all 3 users");
             }
         }
     }

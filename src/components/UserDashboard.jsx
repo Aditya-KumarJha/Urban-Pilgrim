@@ -11,6 +11,7 @@ import { auth } from "../services/firebase";
 import { logout } from "../features/authSlice";
 import { showSuccess } from "../utils/toast";
 import { useNavigate } from "react-router-dom";
+import { clearUserPrograms } from "../features/userProgramsSlice";
 
 const purchases = [
     {
@@ -53,6 +54,7 @@ function Dashboard() {
         try {
             await signOut(auth);
             dispatch(logout());
+            dispatch(clearUserPrograms());
             console.log("Logout successful");
             showSuccess("Logout successful");
             navigate("/");
