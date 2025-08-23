@@ -1,15 +1,37 @@
-import { useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import GuideCard from "./GuideCard";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../../services/firebase";
+import { setGuides } from "../../features/pilgrim_guide/pilgrimGuideSlice"
 
 export default function GuidesDemo() {
 
-    const Data = useSelector(
-        (state) => state?.pilgrimGuides?.guides
-    );
+    const [guideData, setGuideData] = useState(null);
+    const dispatch = useDispatch();
 
-    console.log("Data: ", Data);
-    const sessions = Data?.map((program) => ({
+    useEffect(() => {
+        const fetchLiveSession = async () => {
+            try {
+                const LiveSessionRef = doc(db, `pilgrim_guides/pilgrim_guides/guides/data`);
+                const snapshot = await getDoc(LiveSessionRef);
+
+                if (snapshot.exists()) {
+                    const data = snapshot.data();
+
+                    setGuideData(data.slides || null);
+                    dispatch(setGuides(data?.slides || []));
+                }
+            } catch (error) {
+                console.error("Error fetching live session:", error);
+            }
+        };
+
+        fetchLiveSession();
+    }, [dispatch]);
+
+    console.log("Data: ", guideData);
+    const sessions = guideData?.map((program) => ({
         image: program?.guideCard?.thumbnail,
         category: program?.guideCard?.category,
         title: program?.guideCard?.title,

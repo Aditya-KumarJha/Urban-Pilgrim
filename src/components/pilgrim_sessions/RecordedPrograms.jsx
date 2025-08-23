@@ -1,14 +1,37 @@
-import { useSelector } from "react-redux";
+import { useEffect, useState } from "react";
 import RecordedProgramCard from "./RecordedProgramCard";
+import { useDispatch } from "react-redux";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../../services/firebase";
+import { setRecordedSessions } from "../../features/pilgrim_session/recordedSessionSlice";
 
 export default function RecordedPrograms() {
 
-    const Data = useSelector(
-        (state) => state?.pilgrimRecordedSession?.recordedSessions
-    );
+    const [recordedProgramData, setRecordedProgramData] = useState(null);
+    const dispatch = useDispatch();
 
-    console.log("Data: ", Data);
-    const programs = Data?.map((program) => ({
+    useEffect(() => {
+        const fetchRecordedPrograms = async () => {
+            try {
+                const RecordedProgramsRef = doc(db, `pilgrim_sessions/pilgrim_sessions/sessions/recordedSession`);
+                const snapshot = await getDoc(RecordedProgramsRef);
+
+                if (snapshot.exists()) {
+                    const data = snapshot.data();
+
+                    setRecordedProgramData(data.slides || null);
+                    dispatch(setRecordedSessions(data?.slides || []));
+                }
+            } catch (error) {
+                console.error("Error fetching recorded programs:", error);
+            }
+        };
+
+        fetchRecordedPrograms();
+    }, [dispatch]);
+
+    console.log("Data: ", recordedProgramData);
+    const programs = recordedProgramData?.map((program) => ({
         image: program?.recordedProgramCard?.thumbnail,
         category: program?.recordedProgramCard?.category,
         title: program?.recordedProgramCard?.title,
