@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { useLocation, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import ProgramSchedule from "../../components/pilgrim_retreats/ProgramSchedule";
 import Faqs from "../../components/Faqs";
 import PilgrimGuide from "../../components/pilgrim_retreats/Pilgrim_Guide";
@@ -10,17 +10,34 @@ import FeatureProgram from "../../components/pilgrim_sessions/FeatureProgram";
 import ImageGallery from "../../components/pilgrim_retreats/ImageGallery.jsx";
 import SubscriptionCard from "../../components/pilgrim_sessions/SubscriptionCard";
 import ProgramSection from "../../components/pilgrim_sessions/ProgramSection";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { addToCart } from "../../features/cartSlice.js";
+import { showSuccess } from "../../utils/toast.js";
 
 export default function LiveDetails() {
     const params = useParams();
     const [programData, setProgramData] = useState(null);
     const sessionId = params.sessionId;
     const [persons, setPersons] = useState(1);
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
 
-    console.log("sessionId: ", sessionId);
+    const [showAll, setShowAll] = useState(false);
+
+    const slots = programData?.liveSlots || [];
+    const visibleSlots = showAll ? slots : slots.slice(0, 2);
+
+    useEffect(() => {
+        window.scrollTo(0, 0);
+    }, []);
 
     const Data = useSelector((state) => state.pilgrimLiveSession.LiveSession);
+    const userPrograms = useSelector((state) => state.userProgram);
+
+    // ✅ Check if program already purchased
+    const alreadyPurchased = userPrograms?.some(
+        (program) => program?.title === programData?.liveSessionCard?.title
+    );
 
     function normalizeSlug(str) {
         return str
@@ -40,11 +57,58 @@ export default function LiveDetails() {
         }
     }, [Data, sessionId]);
 
-
-    console.log("programData: ", programData);
+    // console.log("programData: ", programData);
 
     const increment = () => setPersons((prev) => prev + 1);
     const decrement = () => setPersons((prev) => (prev > 1 ? prev - 1 : 1));
+
+    const handleSubscriptionClick = () => {
+        if (!programData) return;
+
+        const cartItem = {
+            id: programData?.liveSessionCard?.title, // use unique id if available
+            title: programData.liveSessionCard?.title,
+            price: programData.oneTimeSubscription?.price,
+            persons,
+            image: programData.liveSessionCard?.thumbnail,
+            quantity: 1, 
+            type: "live",  
+            slots: programData?.liveSlots || [], 
+        };
+
+        dispatch(addToCart(cartItem));
+        console.log("Added to cart:", cartItem);
+        showSuccess("Added to cart!");
+    };
+
+    const redirectToSession = () => {
+        if (!programData) return;
+        // Redirect to the program details page
+        navigate(`/program_details/${normalizeSlug(programData?.liveSessionCard?.title)}`);
+    };
+
+    function formatDateWithSuffix(dateStr) {
+        if (!dateStr) return "Not available";
+        const date = new Date(dateStr);
+        const day = date.getDate();
+
+        const getSuffix = (d) => {
+            if (d > 3 && d < 21) return "th";
+            switch (d % 10) {
+                case 1:
+                    return "st";
+                case 2:
+                    return "nd";
+                case 3:
+                    return "rd";
+                default:
+                    return "th";
+            }
+        };
+
+        const month = date.toLocaleString("en-US", { month: "short" });
+        return `${day}${getSuffix(day)} ${month}`;
+    }
 
     return (
         <>
@@ -67,18 +131,18 @@ export default function LiveDetails() {
                         description: programData?.liveSessionCard?.description,
                         image: programData?.liveSessionCard?.image,
                         offers: {
-                        "@type": "Offer",
-                        priceCurrency: "INR",
-                        price: programData?.liveSessionCard?.price.replace(/,/g, ""),
-                        availability: "https://schema.org/InStock",
+                            "@type": "Offer",
+                            priceCurrency: "INR",
+                            price: programData?.liveSessionCard?.price.replace(/,/g, ""),
+                            availability: "https://schema.org/InStock",
                         },
                         brand: {
-                        "@type": "Brand",
-                        name: "Urban Pilgrim",
+                            "@type": "Brand",
+                            name: "Urban Pilgrim",
                         },
                         instructor: {
-                        "@type": "Person",
-                        name: programData?.liveSessionCard?.instructor,
+                            "@type": "Person",
+                            name: programData?.liveSessionCard?.instructor,
                         },
                     })}
                 </script>
@@ -86,6 +150,7 @@ export default function LiveDetails() {
 
             {/* Main content */}
             <div className="xl:max-w-7xl lg:max-w-4xl md:max-w-[700px] mx-auto p-6 bg-gradient-to-b from-[#FAF4F0] to-white rounded-2xl shadow-lg grid gap-6 md:mt-[100px] mt-[80px] px-4">
+                {/* image section */}
                 <div className="space-y-4">
                     <h2 className="md:text-2xl font-bold text-xl">
                         {programData?.liveSessionCard?.title || "Retreat Title"}
@@ -93,6 +158,7 @@ export default function LiveDetails() {
                     <ImageGallery images={programData?.oneTimePurchase?.images || []} />
                 </div>
 
+                {/* details subscription */}
                 <div className="flex flex-col justify-between">
                     {/* Program details */}
                     <div className="space-y-4 text-gray-700">
@@ -150,7 +216,70 @@ export default function LiveDetails() {
                         </div>
                     </div>
 
-                    <SubscriptionCard price={programData?.oneTimeSubscription?.price} />
+                    {/* time slots */}
+                    <div className="text-[#787B7B] mt-5">
+                        <p>
+                            <span className="font-medium">Program starts - </span>
+                            <span>
+                                {formatDateWithSuffix(programData?.liveSlots?.[0]?.date) || "Not available"}
+                            </span>
+                        </p>
+
+                        <p>
+                            <span className="font-medium">Live sessions with </span>
+                            <span className="font-medium">
+                                {programData?.liveSessionCard?.title?.split("-")[1]?.trim().split(" ")[1]}
+                            </span>{" "}
+                        </p>
+
+                        {visibleSlots.map((slot, index) => (
+                            <div key={index} className="mb-2">
+                                <p className="text-[#787B7B]">
+
+                                    Time -
+                                    <span>
+                                        {slot.startTime
+                                            ? new Date(`1970-01-01T${slot.startTime}`).toLocaleTimeString("en-US", {
+                                                hour: "numeric",
+                                                minute: "2-digit",
+                                                hour12: true,
+                                            })
+                                            : "Not available"}
+                                    </span>{" "}
+                                    -
+                                    <span>
+                                        {slot.endTime
+                                            ? new Date(`1970-01-01T${slot.endTime}`).toLocaleTimeString("en-US", {
+                                                hour: "numeric",
+                                                minute: "2-digit",
+                                                hour12: true,
+                                            })
+                                            : "Not available"}
+                                    </span>
+                                </p>
+                                <p>
+                                    <span className="font-medium">Date - </span>
+                                    <span>{slot.date ? formatDateWithSuffix(slot.date) : "Not available"}</span>
+                                </p>
+                            </div>
+                        ))}
+
+                        {slots.length > 2 && (
+                            <button
+                                onClick={() => setShowAll(!showAll)}
+                                className="text-[#2F5D82] font-medium mt-2 hover:underline"
+                            >
+                                {showAll ? "See Less" : "Show More"}
+                            </button>
+                        )}
+                    </div>
+
+                    <SubscriptionCard
+                        price={programData?.oneTimeSubscription?.price}
+                        handleClick={handleSubscriptionClick}
+                        title={programData?.liveSessionCard?.title}
+                        redirectToProgram={redirectToSession}
+                    />
 
                     <div className="flex flex-col">
                         <p className="text-lg font-semibold text-gray-800 mt-4">

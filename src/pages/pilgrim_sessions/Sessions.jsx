@@ -6,8 +6,15 @@ import SEO from "../../components/SEO.jsx";
 import LiveSessions from "../../components/pilgrim_sessions/LiveSessions";
 import Testimonials from "../../components/Testimonials";
 import RecordedPrograms from "../../components/pilgrim_sessions/RecordedPrograms";
+import { useEffect } from "react";
 
 export default function Sessions() {
+
+    useEffect(() => {
+        window.scrollTo(0, 0);
+    }, []);
+
+
     return (
         <div className="min-h-screen bg-gradient-to-b from-[#FAF4F0] to-white mt-[100px]">
             <SEO

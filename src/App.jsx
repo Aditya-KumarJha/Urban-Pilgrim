@@ -53,10 +53,14 @@ function App() {
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/yoga/:title" element={<YogaDesc />} />
             <Route path="/cart" element={<CartPage />} />
-            <Route path="/session/:sessionId/slots" element={<SessionSlots />} />
+            {/* live session */}
             <Route path="/session/:sessionId/details" element={<LiveDetails />} />
-            <Route path="/program/:programId/details" element={<ProgramDetails />} />
+            <Route path="/session/:sessionId/slots" element={<SessionSlots />} />
             <Route path="/session/:sessionId/slots/description" element={<SessionDescription />} />
+            {/* recorded program */}
+            <Route path="/program/:programId/details" element={<ProgramDetails />} />
+            <Route path="/program/:programId/slots" element={<SessionSlots />} />
+            
             <Route path="/guide/:guideClassName" element={<GuideClassDetails />} />
             <Route path="/pilgrim_retreats/:retreatName" element={<Retreatdescription />} />
             <Route path="/event/:eventName" element={<EventDetails />} />

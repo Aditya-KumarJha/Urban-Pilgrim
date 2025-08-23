@@ -74,6 +74,7 @@ export default function LiveSession2() {
             shortDescription: "",
             points: [""]
         },
+        liveSlots: [{ date: "", startTime: "", endTime: "" }],
         oneTimeSubscription: { price: "", images: [], videos: [] },
         programSchedule: [],
         features: [],
@@ -418,6 +419,7 @@ export default function LiveSession2() {
                 totalprice: slideToEdit?.liveSessionCard?.totalprice || "",
                 description: slideToEdit?.liveSessionCard?.description || "",
             },
+            liveSlots: slideToEdit?.liveSlots?.length > 0 ? slideToEdit.liveSlots : [{ date: "", startTime: "", endTime: "" }],
             faqs: slideToEdit?.faqs?.length > 0 ? slideToEdit.faqs : [{ title: "", description: "" }],
             // Load richer schedule and features when present
             programSchedule: slideToEdit?.programSchedule?.length > 0 ? slideToEdit.programSchedule : [],
@@ -463,6 +465,7 @@ export default function LiveSession2() {
                 description: "",
             },
             aboutProgram: { title: "", shortDescription: "", points: [""] },
+            liveSlots: [],
             programSchedule: [],
             features: [],
             oneTimeSubscription: { price: "", images: [], videos: [] },
@@ -541,6 +544,7 @@ export default function LiveSession2() {
             liveSessionCard: { ...formData.liveSessionCard },
             faqs: [...formData.faqs],
             programSchedule: [...formData.programSchedule],
+            liveSlots: [...formData.liveSlots],
             features: [...formData.features],
             oneTimeSubscription: { ...formData.oneTimeSubscription },
             aboutProgram: { ...formData.aboutProgram },
@@ -584,6 +588,7 @@ export default function LiveSession2() {
                     description: ""
                 },
                 aboutProgram: { title: "", shortDescription: "", points: [""] },
+                liveSlots: [],
                 programSchedule: [],
                 features: [],
                 oneTimeSubscription: { price: "", images: [], videos: [] },
@@ -649,6 +654,25 @@ export default function LiveSession2() {
         } catch (error) {
             console.error("Error removing image:", error);
         }
+    };
+
+    const handleSlotChange = (index, field, value) => {
+        const updated = [...formData.liveSlots];
+        updated[index][field] = value;
+        setFormData((prev) => ({ ...prev, liveSlots: updated }));
+    };
+
+    const addSessionSlot = () => {
+        setFormData((prev) => ({
+            ...prev,
+            liveSlots: [...prev.liveSlots, { date: "", startTime: "", endTime: "" }],
+        }));
+    };
+
+    const removeSessionSlot = (index) => {
+        const updated = [...formData.liveSlots];
+        updated.splice(index, 1);
+        setFormData((prev) => ({ ...prev, liveSlots: updated }));
     };
 
     return (
@@ -820,6 +844,69 @@ export default function LiveSession2() {
                         />
                     </div>
                 </div>   
+
+                {/* Live Slots */}
+                <div className="mb-8">
+                    <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+                        {isEditing ? "Edit Live Slots" : "Live Slots"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
+                    </h2>
+                    <div className="space-y-4">
+                        {formData.liveSlots.map((slot, i) => (
+                            <div key={i} className="border border-gray-200 rounded-lg p-4 space-y-4">
+                                <div className="flex justify-between items-center">
+                                    <p className="font-semibold text-gray-700">Slot {i + 1}</p>
+                                    {formData.liveSlots.length > 1 && (
+                                        <button
+                                            onClick={() => removeSessionSlot(i)}
+                                            className="text-red-500 hover:text-red-700 p-1"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                </div>
+
+                                <label className="block text-md font-semibold text-gray-700 mb-2">Prefered Date</label>
+
+                                <input
+                                    type="date"
+                                    value={slot.date}
+                                    onChange={(e) => handleSlotChange(i, "date", e.target.value)}
+                                    className="sm:flex block w-full border border-gray-300 p-3 rounded-lg "
+                                />
+
+                                <div className="grid sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-md font-semibold text-gray-700 mb-2">Start Time</label>
+                                        <input
+                                            type="time"
+                                            value={slot.startTime}
+                                            onChange={(e) => handleSlotChange(i, "startTime", e.target.value)}
+                                            className="text-sm w-full border border-gray-300 p-3 rounded-lg "
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-md font-semibold text-gray-700 mb-2">End Time</label>
+                                        <input
+                                            type="time"
+                                            value={slot.endTime}
+                                            onChange={(e) => handleSlotChange(i, "endTime", e.target.value)}
+                                            className="text-sm w-full border border-gray-300 p-3 rounded-lg "
+                                        />
+                                    </div>
+                                </div>
+
+                                {errors[`slot_${i}`] && <p className="text-red-500 text-sm">{errors[`slot_${i}`]}</p>}
+                            </div>
+                        ))}
+
+                        <button
+                            onClick={addSessionSlot}
+                            className="text-sm w-full px-4 py-3 bg-[#2F6288] text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                        >
+                            Add New Slot
+                        </button>
+                    </div>
+                </div>
 
                 {/* One Time Subscription (price only) */}
                 <div className="mb-8">

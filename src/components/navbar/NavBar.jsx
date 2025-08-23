@@ -21,6 +21,9 @@ const NavBar = () => {
     const user = useSelector((state) => state.auth.user);
     const [navbarData, setNavbarData] = useState([]);
 
+    const cartItems = useSelector((state) => state.cart.items);
+    const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+
     const uid = "your-unique-id"
 
     // const [userData, setUserData] = useState(null);
@@ -137,10 +140,17 @@ const NavBar = () => {
                 )}
 
                 {/* 🛒 Cart */}
-                <FiShoppingCart
-                    className="user-icon cursor-pointer"
-                    onClick={() => navigate("/cart")}
-                />
+                <div className="relative">
+                    <FiShoppingCart
+                        className="user-icon cursor-pointer"
+                        onClick={() => navigate("/cart")}
+                    />
+                    {itemCount > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs animate-bounce p-1 size-3 flex items-center justify-center rounded-full">
+                            {itemCount}
+                        </span>
+                    )}
+                </div>
 
                 {/* ☰ Mobile Menu */}
                 <motion.div

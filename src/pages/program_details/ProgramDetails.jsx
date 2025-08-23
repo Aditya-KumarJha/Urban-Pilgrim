@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import ProgramSchedule from "../../components/pilgrim_retreats/ProgramSchedule";
 import Faqs from "../../components/Faqs";
 import PilgrimGuide from "../../components/pilgrim_retreats/Pilgrim_Guide";
@@ -11,18 +11,23 @@ import ImageGallery from "../../components/pilgrim_retreats/ImageGallery.jsx";
 import SubscriptionCard from "../../components/pilgrim_sessions/SubscriptionCard";
 import ProgramSection from "../../components/pilgrim_sessions/ProgramSection";
 import { useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
+import { addToCart } from "../../features/cartSlice.js"
+import { showSuccess } from "../../utils/toast.js"
 
 export default function ProgramDetails() {
     const params = useParams();
     const [programData, setProgramData] = useState(null);
     const programId = params.programId;
     const [persons, setPersons] = useState(1);
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
 
-    console.log("programId: ", programId);
+    useEffect(() => {
+        window.scrollTo(0, 0);
+    }, []);
 
-    const Data = useSelector(
-        (state) => state?.pilgrimRecordedSession?.recordedSessions
-    );
+    const Data = useSelector((state) => state?.pilgrimRecordedSession?.recordedSessions);
 
     function normalizeSlug(str) {
         return str
@@ -42,11 +47,34 @@ export default function ProgramDetails() {
         }
     }, [Data, programId]);
 
-
-    console.log("programData: ", programData);
+    // console.log("programData: ", programData);
 
     const increment = () => setPersons((prev) => prev + 1);
     const decrement = () => setPersons((prev) => (prev > 1 ? prev - 1 : 1));
+
+    const handleSubscriptionClick = () => {
+        if (!programData) return;
+
+        const cartItem = {
+            id: programData.recordedProgramCard?.title, // use unique id if available
+            title: programData.recordedProgramCard?.title,
+            price: programData.oneTimeSubscription?.price,
+            persons,
+            image: programData.recordedProgramCard?.thumbnail,
+            quantity: 1, 
+            type: "recorded",  
+        };
+
+        dispatch(addToCart(cartItem));
+        console.log("Added to cart:", cartItem);
+        showSuccess("Added to cart!");
+    };
+
+    const redirectToProgram = () => {
+        if (!programData) return;
+        // Redirect to the program details page
+        navigate(`/program_details/${normalizeSlug(programData?.recordedProgramCard?.title)}`);
+    };
 
     return (
         <>
@@ -69,18 +97,18 @@ export default function ProgramDetails() {
                         description: programData?.recordedProgramCard?.description,
                         image: programData?.recordedProgramCard?.image,
                         offers: {
-                        "@type": "Offer",
-                        priceCurrency: "INR",
-                        price: programData?.recordedProgramCard?.price.replace(/,/g, ""),
-                        availability: "https://schema.org/InStock",
+                            "@type": "Offer",
+                            priceCurrency: "INR",
+                            price: programData?.recordedProgramCard?.price.replace(/,/g, ""),
+                            availability: "https://schema.org/InStock",
                         },
                         brand: {
-                        "@type": "Brand",
-                        name: "Urban Pilgrim",
+                            "@type": "Brand",
+                            name: "Urban Pilgrim",
                         },
                         instructor: {
-                        "@type": "Person",
-                        name: programData?.recordedProgramCard?.instructor,
+                            "@type": "Person",
+                            name: programData?.recordedProgramCard?.instructor,
                         },
                     })}
                 </script>
@@ -88,6 +116,7 @@ export default function ProgramDetails() {
 
             {/* Main content */}
             <div className="xl:max-w-7xl lg:max-w-4xl md:max-w-[700px] mx-auto p-6 bg-gradient-to-b from-[#FAF4F0] to-white rounded-2xl shadow-lg grid gap-6 md:mt-[100px] mt-[80px] px-4">
+                {/* image gallery */}
                 <div className="space-y-4">
                     <h2 className="md:text-2xl font-bold text-xl">
                         {programData?.recordedProgramCard?.title || "Retreat Title"}
@@ -152,7 +181,12 @@ export default function ProgramDetails() {
                         </div>
                     </div>
 
-                    <SubscriptionCard price={programData?.oneTimeSubscription?.price} />
+                    <SubscriptionCard 
+                        price={programData?.oneTimeSubscription?.price} 
+                        handleClick={handleSubscriptionClick} 
+                        title={programData?.recordedProgramCard?.title}
+                        redirectToProgram={redirectToProgram}
+                    />
 
                     <div className="flex flex-col">
                         <p className="text-lg font-semibold text-gray-800 mt-4">
