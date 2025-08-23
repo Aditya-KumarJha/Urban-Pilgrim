@@ -4,17 +4,18 @@ const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
 const Razorpay = require("razorpay");
 const { google } = require("googleapis");
+require("dotenv").config();
 const cors = require("cors")({ origin: true });
 
 admin.initializeApp();
 const db = admin.firestore();
 
-const gmailEmail = "nabinagrawal64@gmail.com";
-const gmailPassword = "ehhhfqgdjkqsykuv";
+const gmailEmail = process.env.APP_GMAIL || "";
+const gmailPassword = process.env.APP_GMAIL_PASSWORD || "";
 
 const razorpay = new Razorpay({
-    key_id: "rzp_test_5Qxb0fQ1nBKqtZ",
-    key_secret: "P5jUmWpLEhbO6xwedDb55jZr",
+    key_id: process.env.RAZORPAY_KEY_ID || "",
+    key_secret: process.env.RAZORPAY_KEY_SECRET || "",
 });
 
 // Configure email transporter (using Gmail/SendGrid/etc)
@@ -373,13 +374,13 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
 
     async function getOAuth2Client() {
         const oauth2Client = new google.auth.OAuth2(
-            "747989822476-imovatiemei2rcivhe3k7rjbdg92t8u6.apps.googleusercontent.com",
-            "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",
-            "https://developers.google.com/oauthplayground" // redirect URI
+            process.env.GOOGLE_CLIENT_ID,
+            process.env.GOOGLE_CLIENT_SECRET,
+            process.env.GOOGLE_REDIRECT_URI
         );
 
         oauth2Client.setCredentials({
-            refresh_token: "1//04BACbcnUSWeSCgYIARAAGAQSNwF-L9IrBM36T44YgPSbKvWkN9MkQUMmNJkAjS5kCrEHJ4fwpcIPFyDwzVeKpEzjJNVLesRi98I",
+            refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
         });
 
         return oauth2Client;
