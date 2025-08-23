@@ -48,7 +48,7 @@ export default function LiveSessions() {
                 </h2>
 
                 <div className="grid grid-cols-1 mt-10 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {sessions.map((session, index) => (
+                    {sessions && sessions.map((session, index) => (
                         <LiveSessionCard key={index} {...session} />
                     ))}
                 </div>
