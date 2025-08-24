@@ -68,12 +68,13 @@ export default function LiveDetails() {
         const cartItem = {
             id: programData?.liveSessionCard?.title, // use unique id if available
             title: programData.liveSessionCard?.title,
-            price: programData.oneTimeSubscription?.price,
+            price: programData?.oneTimeSubscription?.price,
             persons,
-            image: programData.liveSessionCard?.thumbnail,
-            quantity: 1, 
-            type: "live",  
-            slots: programData?.liveSlots || [], 
+            image: programData?.liveSessionCard?.thumbnail,
+            quantity: 1,
+            type: "live",
+            organizer: programData?.organizer,
+            slots: programData?.liveSlots || [],
         };
 
         dispatch(addToCart(cartItem));

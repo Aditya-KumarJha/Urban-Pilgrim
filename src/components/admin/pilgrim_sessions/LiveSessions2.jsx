@@ -69,6 +69,13 @@ export default function LiveSession2() {
             totalprice: "",
             description: ""
         },
+        organizer: {
+            name: "",
+            email: "",
+            address: "",
+            googleMeetLink: "",
+            contactNumber: ""
+        },
         aboutProgram: {
             title: "",
             shortDescription: "",
@@ -465,6 +472,7 @@ export default function LiveSession2() {
                 description: "",
             },
             aboutProgram: { title: "", shortDescription: "", points: [""] },
+            organizer: { name: "", email: "", address: "", googleMeetLink: "", contactNumber: "" },
             liveSlots: [],
             programSchedule: [],
             features: [],
@@ -491,6 +499,9 @@ export default function LiveSession2() {
         if (!formData.liveSessionCard.days || isNaN(formData.liveSessionCard.days)) newErrors.days = "Number of days is required";
         if (!formData.liveSessionCard.videos || isNaN(formData.liveSessionCard.videos)) newErrors.videos = "Number of videos is required";
         if (!isPriceValid(formData.liveSessionCard.totalprice)) newErrors.totalprice = "Invalid Total Price";
+        if (!formData.organizer.name) newErrors.organizerName = "Organizer name is required";
+        if (!formData.organizer.email) newErrors.organizerEmail = "Organizer email is required";
+        if (!formData.organizer.googleMeetLink) newErrors.organizerGoogleMeetLink = "Organizer Google Meet link is required";
 
         formData.faqs.forEach((faq, i) => {
             if (!faq.title || !faq.description) {
@@ -542,6 +553,7 @@ export default function LiveSession2() {
 
         const newCard = {
             liveSessionCard: { ...formData.liveSessionCard },
+            organizer: { ...formData.organizer },
             faqs: [...formData.faqs],
             programSchedule: [...formData.programSchedule],
             liveSlots: [...formData.liveSlots],
@@ -588,6 +600,7 @@ export default function LiveSession2() {
                     description: ""
                 },
                 aboutProgram: { title: "", shortDescription: "", points: [""] },
+                organizer: { name: "", email: "", address: "", googleMeetLink: "", contactNumber: "" },
                 liveSlots: [],
                 programSchedule: [],
                 features: [],
@@ -844,6 +857,74 @@ export default function LiveSession2() {
                         />
                     </div>
                 </div>   
+
+                {/* Organizer Information */}
+                <div className="mb-8">
+                    <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+                        {isEditing ? "Edit Organizer Information" : "Organizer Information"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
+                    </h2>
+                    
+                    <div className="grid sm:grid-cols-2 gap-4">
+                        {/* Organizer Name */}
+                        <div className="mb-4">
+                            <label className="block text-md font-semibold text-gray-700 mb-2">Organizer Name</label>
+                            <input
+                                placeholder="Enter Organizer Name"
+                                value={formData?.organizer?.name}
+                                onChange={(e) => handleFieldChange("organizer", "name", e.target.value)}
+                                className="text-sm w-full border border-gray-300 p-3 rounded-lg"
+                            />
+                        </div>
+
+                        {/* Organizer Email */}
+                        <div className="mb-4">
+                            <label className="block text-md font-semibold text-gray-700 mb-2">Organizer Email</label>
+                            <input
+                                placeholder="Enter Organizer Email"
+                                type="email"
+                                value={formData?.organizer?.email}
+                                onChange={(e) => handleFieldChange("organizer", "email", e.target.value)}
+                                className="text-sm w-full border border-gray-300 p-3 rounded-lg"
+                            />
+                        </div>
+
+                        {/* Contact Number */}
+                        <div className="mb-4">
+                            <label className="block text-md font-semibold text-gray-700 mb-2">Contact Number</label>
+                            <input
+                                placeholder="Enter Contact Number"
+                                type="tel"
+                                value={formData?.organizer?.contactNumber}
+                                onChange={(e) => handleFieldChange("organizer", "contactNumber", e.target.value)}
+                                className="text-sm w-full border border-gray-300 p-3 rounded-lg"
+                            />
+                        </div>
+
+                        {/* Google Meet Link */}
+                        <div className="mb-4">
+                            <label className="block text-md font-semibold text-gray-700 mb-2">Google Meet Link</label>
+                            <input
+                                placeholder="Enter Google Meet Link"
+                                type="url"
+                                value={formData?.organizer?.googleMeetLink}
+                                onChange={(e) => handleFieldChange("organizer", "googleMeetLink", e.target.value)}
+                                className="text-sm w-full border border-gray-300 p-3 rounded-lg"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Organizer Address */}
+                    <div className="mb-4">
+                        <label className="block text-md font-semibold text-gray-700 mb-2">Organizer Address</label>
+                        <textarea
+                            placeholder="Enter Organizer Address"
+                            rows={3}
+                            value={formData?.organizer?.address}
+                            onChange={(e) => handleFieldChange("organizer", "address", e.target.value)}
+                            className="text-sm w-full border border-gray-300 p-3 rounded-lg"
+                        />
+                    </div>
+                </div>
 
                 {/* Live Slots */}
                 <div className="mb-8">

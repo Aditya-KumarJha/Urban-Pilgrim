@@ -412,12 +412,13 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
             process.env.GOOGLE_REDIRECT_URI
         );
 
-        oAuth2Client.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN });
+        oAuth2Client.setCredentials({
+            refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
+        });
 
         const calendar = google.calendar({ version: "v3", auth: oAuth2Client });
         const organizerCalendar = adminEmail; // urbanpilgrim25@gmail.com
-
-        console.log("Google Calendar:", calendar);
+        console.log("cart Data:", cartData);
 
         for (const program of cartData) {
             if (
@@ -432,9 +433,13 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                         `${slot.date}T${slot.endTime}:00`
                     );
 
+                    console.log("organizer data:", program);
                     const event = {
                         summary: program.title,
-                        description: `Live session booking for ${program.title}\nPersons: ${program.persons}`,
+                        description: `Live session booking for ${program.title}
+                                        Persons: ${program.persons}
+                                        Join here: ${program?.organizer?.googleMeetLink}`,
+                        location: program?.organizer?.googleMeetLink,
                         start: {
                             dateTime: startDateTime.toISOString(),
                             timeZone: "Asia/Kolkata",
@@ -443,28 +448,27 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                             dateTime: endDateTime.toISOString(),
                             timeZone: "Asia/Kolkata",
                         },
-                        attendees: [{ email }, { email: adminEmail }],
-                        conferenceData: {
-                            createRequest: {
-                                requestId: `${program.id}-${Date.now()}`,
-                                conferenceSolutionKey: { type: "hangoutsMeet" },
-                            },
-                        },
+                        attendees: [
+                            { email },
+                            { email: adminEmail },
+                            { email: program?.organizer?.email },
+                        ],
                     };
 
-                    console.log("Google Calendar event:", event);
-
                     const createdEvent = await calendar.events.insert({
-                        calendarId: "urbanpilgrim25@gmail.com",
+                        calendarId: organizerCalendar,
                         resource: event,
-                        conferenceDataVersion: 1,
                         sendUpdates: "all",
                     });
 
-                    console.log("Created Google Calendar event:", createdEvent.data);
+                    console.log(
+                        "Created Google Calendar event:",
+                        createdEvent.data
+                    );
 
-                    const meetLink =
-                        createdEvent.data.conferenceData?.entryPoints?.[0]?.uri;
+                    // const meetLink = createdEvent.data.conferenceData?.entryPoints?.[0]?.uri;
+                    const meetLink = program?.organizer?.googleMeetLink;
+                    console.log("Google Meet Link:", meetLink);
 
                     const mailHtml = `<h2>Booking Confirmed: ${program.title}</h2>
                             <p><b>Date:</b> ${slot.date}</p>
@@ -472,16 +476,11 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                             <p><b>Persons:</b> ${program.persons}</p>
                             <p><b>Google Meet Link:</b> <a href="${meetLink}" target="_blank">${meetLink}</a></p>`;
 
-                    await transporter.sendMail({
-                        from: gmailEmail,
-                        to: email,
-                        subject: `Your Live Session Booking - ${program.title}`,
-                        html: mailHtml,
-                    });
+                    // Mail send to admin
                     await transporter.sendMail({
                         from: gmailEmail,
                         to: adminEmail,
-                        subject: `New Live Session Booking - ${program.title}`,
+                        subject: `A user is booked a live session - ${program.title}`,
                         html: mailHtml,
                     });
                 }

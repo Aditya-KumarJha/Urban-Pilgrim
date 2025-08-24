@@ -5,6 +5,7 @@ import Retreats from "./Retreats";
 import Sessions from "./Sessions";
 import Guides from "./Guides";
 import Events from "./Events";
+import Bundles from "./Bundles";
 
 export default function Admin() {
   const [activeSection, setActiveSection] = useState("home");
@@ -19,6 +20,8 @@ export default function Admin() {
         return <Guides />;
       case "events":
         return <Events />;
+      case "bundles":
+        return <Bundles />;
       case "home":
       default:
         return <Home />;
