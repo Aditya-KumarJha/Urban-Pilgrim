@@ -3,19 +3,23 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
 const Razorpay = require("razorpay");
+
 const { google } = require("googleapis");
+const { OAuth2Client } = require("google-auth-library");
 require("dotenv").config();
+
 const cors = require("cors")({ origin: true });
 
 admin.initializeApp();
 const db = admin.firestore();
 
-const gmailEmail = process.env.APP_GMAIL || "";
-const gmailPassword = process.env.APP_GMAIL_PASSWORD || "";
+const serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT);
+const gmailEmail = "nabinagrawal64@gmail.com";
+const gmailPassword = "ehhhfqgdjkqsykuv";
 
 const razorpay = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID || "",
-    key_secret: process.env.RAZORPAY_KEY_SECRET || "",
+    key_id: "rzp_test_5Qxb0fQ1nBKqtZ",
+    key_secret: "P5jUmWpLEhbO6xwedDb55jZr",
 });
 
 // Configure email transporter (using Gmail/SendGrid/etc)
@@ -160,360 +164,337 @@ exports.createOrder = functions.https.onCall(async (data, context) => {
 });
 
 exports.confirmPayment = functions.https.onCall(async (data, context) => {
-    console.log("data from confirmPayment", data.data);
-    const { userId, email, name, cartData, total, paymentResponse, formData } =
-        data.data;
-    const adminEmail = "urbanpilgrim25@gmail.com";
+    try {
+        const {
+            userId,
+            email,
+            name,
+            cartData,
+            total,
+            paymentResponse,
+            formData,
+        } = data.data;
 
-    // =============================
-    // 1) Save in user’s Firestore
-    // =============================
-    const userRef = db
-        .collection("users")
-        .doc(userId)
-        .collection("info")
-        .doc("details");
+        const adminEmail = "urbanpilgrim25@gmail.com";
 
-    await userRef.set(
-        {
-            yourPrograms: admin.firestore.FieldValue.arrayUnion(
-                ...cartData.map((item) => ({
-                    ...item,
-                    purchasedAt: new Date().toISOString(),
-                    paymentId: paymentResponse.razorpay_payment_id,
-                    orderId: paymentResponse.razorpay_order_id,
-                }))
-            ),
-        },
-        { merge: true }
-    );
+        // ------------------------
+        // 1) Save purchase in user's Firestore
+        // ------------------------
+        const userRef = db
+            .collection("users")
+            .doc(userId)
+            .collection("info")
+            .doc("details");
+        await userRef.set(
+            {
+                yourPrograms: admin.firestore.FieldValue.arrayUnion(
+                    ...cartData.map((item) => ({
+                        ...item,
+                        purchasedAt: new Date().toISOString(),
+                        paymentId: paymentResponse.razorpay_payment_id,
+                        orderId: paymentResponse.razorpay_order_id,
+                    }))
+                ),
+            },
+            { merge: true }
+        );
 
-    // =============================
-    // 2) Add user under Program → purchasedUsers for each program type
-    // =============================
-    
-    // Process each program in cartData
-    for (const program of cartData) {
-        try {
-            let programRef;
-            let updateData = {};
-            
-            // Determine program type and set appropriate reference
-            if (program.type === "guide" || program.category === "guide") {
-                // For guides: /pilgrim_guides/pilgrim_guides/guides/data
-                programRef = db
-                    .collection("pilgrim_guides")
-                    .doc("pilgrim_guides")
-                    .collection("guides")
-                    .doc("data");
-                    
-                const guideSnap = await programRef.get();
-                if (guideSnap.exists) {
-                    const guides = guideSnap.data().guides || [];
-                    const updatedGuides = guides.map((guide) => {
-                        if (guide?.title === program.title) {
-                            return {
-                                ...guide,
-                                purchasedUsers: [
-                                    ...(guide.purchasedUsers || []),
-                                    {
-                                        uid: userId,
-                                        name,
-                                        email,
-                                        purchasedAt: new Date().toISOString(),
-                                        paymentId: paymentResponse.razorpay_payment_id,
-                                        orderId: paymentResponse.razorpay_order_id,
-                                        ...formData,
-                                    },
-                                ],
-                            };
-                        }
-                        return guide;
-                    });
-                    updateData = { guides: updatedGuides };
+        // ------------------------
+        // 2) Update each program document
+        // ------------------------
+        for (const program of cartData) {
+            try {
+                let programRef;
+                let updateData = {};
+
+                if (program.type === "guide" || program.category === "guide") {
+                    programRef = db
+                        .collection("pilgrim_guides")
+                        .doc("pilgrim_guides")
+                        .collection("guides")
+                        .doc("data");
+                    const guideSnap = await programRef.get();
+                    if (guideSnap.exists) {
+                        const guides = guideSnap.data().guides || [];
+                        const updatedGuides = guides.map((guide) => {
+                            if (guide?.title === program.title) {
+                                return {
+                                    ...guide,
+                                    purchasedUsers: [
+                                        ...(guide.purchasedUsers || []),
+                                        {
+                                            uid: userId,
+                                            name,
+                                            email,
+                                            purchasedAt:
+                                                new Date().toISOString(),
+                                            paymentId:
+                                                paymentResponse.razorpay_payment_id,
+                                            orderId:
+                                                paymentResponse.razorpay_order_id,
+                                            ...formData,
+                                        },
+                                    ],
+                                };
+                            }
+                            return guide;
+                        });
+                        updateData = { guides: updatedGuides };
+                    }
+                } else if (
+                    program.type === "retreat" ||
+                    program.category === "retreat"
+                ) {
+                    programRef = db
+                        .collection("pilgrim_retreat")
+                        .doc(userId)
+                        .collection("retreats")
+                        .doc("data");
+                    const retreatSnap = await programRef.get();
+                    if (retreatSnap.exists) {
+                        const retreats = retreatSnap.data().retreats || [];
+                        const updatedRetreats = retreats.map((retreat) => {
+                            if (retreat?.title === program.title) {
+                                return {
+                                    ...retreat,
+                                    purchasedUsers: [
+                                        ...(retreat.purchasedUsers || []),
+                                        {
+                                            uid: userId,
+                                            name,
+                                            email,
+                                            purchasedAt:
+                                                new Date().toISOString(),
+                                            paymentId:
+                                                paymentResponse.razorpay_payment_id,
+                                            orderId:
+                                                paymentResponse.razorpay_order_id,
+                                            ...formData,
+                                        },
+                                    ],
+                                };
+                            }
+                            return retreat;
+                        });
+                        updateData = { retreats: updatedRetreats };
+                    }
+                } else if (
+                    program.type === "live" ||
+                    program.category === "live"
+                ) {
+                    programRef = db
+                        .collection("pilgrim_sessions")
+                        .doc("pilgrim_sessions")
+                        .collection("sessions")
+                        .doc("liveSession");
+                    const liveSnap = await programRef.get();
+                    if (liveSnap.exists) {
+                        const slides = liveSnap.data().slides || [];
+                        const updatedSlides = slides.map((slide) => {
+                            if (
+                                slide?.liveSessionCard?.title === program.title
+                            ) {
+                                return {
+                                    ...slide,
+                                    purchasedUsers: [
+                                        ...(slide.purchasedUsers || []),
+                                        {
+                                            uid: userId,
+                                            name,
+                                            email,
+                                            purchasedAt:
+                                                new Date().toISOString(),
+                                            paymentId:
+                                                paymentResponse.razorpay_payment_id,
+                                            orderId:
+                                                paymentResponse.razorpay_order_id,
+                                            ...formData,
+                                        },
+                                    ],
+                                };
+                            }
+                            return slide;
+                        });
+                        updateData = { slides: updatedSlides };
+                    }
+                } else if (
+                    program.type === "recorded" ||
+                    program.category === "recorded"
+                ) {
+                    programRef = db
+                        .collection("pilgrim_sessions")
+                        .doc("pilgrim_sessions")
+                        .collection("sessions")
+                        .doc("recordedSession");
+                    const recordedSnap = await programRef.get();
+                    if (recordedSnap.exists) {
+                        const slides = recordedSnap.data().slides || [];
+                        const updatedSlides = slides.map((slide) => {
+                            if (
+                                slide?.recordedProgramCard?.title ===
+                                program.title
+                            ) {
+                                return {
+                                    ...slide,
+                                    purchasedUsers: [
+                                        ...(slide.purchasedUsers || []),
+                                        {
+                                            uid: userId,
+                                            name,
+                                            email,
+                                            purchasedAt:
+                                                new Date().toISOString(),
+                                            paymentId:
+                                                paymentResponse.razorpay_payment_id,
+                                            orderId:
+                                                paymentResponse.razorpay_order_id,
+                                            ...formData,
+                                        },
+                                    ],
+                                };
+                            }
+                            return slide;
+                        });
+                        updateData = { slides: updatedSlides };
+                    }
                 }
-                
-            } else if (program.type === "retreat" || program.category === "retreat") {
-                // For retreats: /pilgrim_retreat/user-uid/retreats/data
-                programRef = db
-                    .collection("pilgrim_retreat")
-                    .doc(userId)
-                    .collection("retreats")
-                    .doc("data");
-                    
-                const retreatSnap = await programRef.get();
-                if (retreatSnap.exists) {
-                    const retreats = retreatSnap.data().retreats || [];
-                    const updatedRetreats = retreats.map((retreat) => {
-                        if (retreat?.title === program.title) {
-                            return {
-                                ...retreat,
-                                purchasedUsers: [
-                                    ...(retreat.purchasedUsers || []),
-                                    {
-                                        uid: userId,
-                                        name,
-                                        email,
-                                        purchasedAt: new Date().toISOString(),
-                                        paymentId: paymentResponse.razorpay_payment_id,
-                                        orderId: paymentResponse.razorpay_order_id,
-                                        ...formData,
-                                    },
-                                ],
-                            };
-                        }
-                        return retreat;
-                    });
-                    updateData = { retreats: updatedRetreats };
+
+                if (programRef && Object.keys(updateData).length > 0) {
+                    await programRef.update(updateData);
+                    console.log(
+                        `Updated ${program.type || program.category} program: ${
+                            program.title
+                        }`
+                    );
                 }
-                
-            } else if (program.type === "live" || program.category === "live") {
-                // For live sessions: /pilgrim_sessions/pilgrim_sessions/sessions/liveSession
-                programRef = db
-                    .collection("pilgrim_sessions")
-                    .doc("pilgrim_sessions")
-                    .collection("sessions")
-                    .doc("liveSession");
-                    
-                const liveSnap = await programRef.get();
-                if (liveSnap.exists) {
-                    const slides = liveSnap.data().slides || [];
-                    const updatedSlides = slides.map((slide) => {
-                        if (slide?.liveSessionCard?.title === program.title) {
-                            return {
-                                ...slide,
-                                purchasedUsers: [
-                                    ...(slide.purchasedUsers || []),
-                                    {
-                                        uid: userId,
-                                        name,
-                                        email,
-                                        purchasedAt: new Date().toISOString(),
-                                        paymentId: paymentResponse.razorpay_payment_id,
-                                        orderId: paymentResponse.razorpay_order_id,
-                                        ...formData,
-                                    },
-                                ],
-                            };
-                        }
-                        return slide;
-                    });
-                    updateData = { slides: updatedSlides };
-                }
-                
-            } else if (program.type === "recorded" || program.category === "recorded") {
-                // For recorded sessions: /pilgrim_sessions/pilgrim_sessions/sessions/recordedSession
-                programRef = db
-                    .collection("pilgrim_sessions")
-                    .doc("pilgrim_sessions")
-                    .collection("sessions")
-                    .doc("recordedSession");
-                    
-                const recordedSnap = await programRef.get();
-                if (recordedSnap.exists) {
-                    const slides = recordedSnap.data().slides || [];
-                    const updatedSlides = slides.map((slide) => {
-                        if (slide?.recordedProgramCard?.title === program.title) {
-                            return {
-                                ...slide,
-                                purchasedUsers: [
-                                    ...(slide.purchasedUsers || []),
-                                    {
-                                        uid: userId,
-                                        name,
-                                        email,
-                                        purchasedAt: new Date().toISOString(),
-                                        paymentId: paymentResponse.razorpay_payment_id,
-                                        orderId: paymentResponse.razorpay_order_id,
-                                        ...formData,
-                                    },
-                                ],
-                            };
-                        }
-                        return slide;
-                    });
-                    updateData = { slides: updatedSlides };
-                }
+            } catch (err) {
+                console.error(`Error updating program ${program.title}:`, err);
             }
-            
-            // Update the program document if it exists and has data to update
-            if (programRef && Object.keys(updateData).length > 0) {
-                await programRef.update(updateData);
-                console.log(`Updated ${program.type || program.category} program: ${program.title}`);
-            } else {
-                console.log(`No matching program found for: ${program.title} (${program.type || program.category})`);
-            }
-            
-        } catch (error) {
-            console.error(`Error updating program ${program.title}:`, error);
-            // Continue with other programs even if one fails
         }
-    }
 
-    // =============================
-    // 3) Helper functions for formatting
-    // =============================
-    function formatDateWithSuffix(dateStr) {
-        const date = new Date(dateStr);
-        const day = date.getDate();
-        const suffix =
-            day > 3 && day < 21
-                ? "th"
-                : ["st", "nd", "rd"][((day % 10) - 1) % 3] || "th";
-        const month = date.toLocaleString("en-US", { month: "short" });
-        return `${day}${suffix} ${month}`;
-    }
+        // ------------------------
+        // 3) Send Emails
+        // ------------------------
+        const programList = cartData
+            .map((p) => `${p.title} (₹${p.price} x${p.quantity})`)
+            .join(", ");
 
-    function formatTime(timeStr) {
-        return new Date(`1970-01-01T${timeStr}`).toLocaleTimeString("en-US", {
-            hour: "numeric",
-            minute: "2-digit",
-            hour12: true,
+        // Email to user
+        await transporter.sendMail({
+            from: gmailEmail,
+            to: email,
+            subject: "Urban Pilgrim - Purchase Confirmation",
+            html: `<h2>Hi ${name},</h2>
+                <p>Thank you for your purchase. You bought:</p>
+                <p><b>${programList}</b></p>
+                <p>Total Paid: ₹${total}</p>
+                <p>Payment ID: ${paymentResponse.razorpay_payment_id}</p>`,
         });
-    }
 
-    async function getOAuth2Client() {
-        const oauth2Client = new google.auth.OAuth2(
+        // Email to admin
+        await transporter.sendMail({
+            from: gmailEmail,
+            to: adminEmail,
+            subject: "New Program Purchase - Urban Pilgrim",
+            html: `<h3>New Purchase</h3>
+                <p>User: ${name} (${email})</p>
+                <p>Programs: ${programList}</p>
+                <p>Total: ₹${total}</p>
+                <p>Payment ID: ${paymentResponse.razorpay_payment_id}</p>`,
+        });
+
+        // ------------------------
+        // 4) Google Calendar for live sessions
+        // ------------------------
+        const oAuth2Client = new OAuth2Client(
             process.env.GOOGLE_CLIENT_ID,
             process.env.GOOGLE_CLIENT_SECRET,
             process.env.GOOGLE_REDIRECT_URI
         );
 
-        oauth2Client.setCredentials({
-            refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
-        });
+        oAuth2Client.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN });
 
-        return oauth2Client;
-    }
+        const calendar = google.calendar({ version: "v3", auth: oAuth2Client });
+        const organizerCalendar = adminEmail; // urbanpilgrim25@gmail.com
 
-    // =============================
-    // 4) Emails
-    // =============================
-    const programList = cartData
-        .map((p) => `${p.title} (₹${p.price} x${p.quantity})`)
-        .join(", ");
+        console.log("Google Calendar:", calendar);
 
-    // Generic Purchase Email to User
-    await transporter.sendMail({
-        from: gmailEmail,
-        to: email,
-        subject: "Urban Pilgrim - Purchase Confirmation",
-        html: `
-            <h2>Hi ${name},</h2>
-            <p>Thank you for your purchase. You successfully bought:</p>
-            <p><b>${programList}</b></p>
-            <p>Total Paid: ₹${total}</p>
-            <p>Payment ID: ${paymentResponse.razorpay_payment_id}</p>
-        `,
-    });
+        for (const program of cartData) {
+            if (
+                (program.type === "live" || program.category === "live") &&
+                program.slots?.length
+            ) {
+                for (const slot of program.slots) {
+                    const startDateTime = new Date(
+                        `${slot.date}T${slot.startTime}:00`
+                    );
+                    const endDateTime = new Date(
+                        `${slot.date}T${slot.endTime}:00`
+                    );
 
-    // Generic Email to Admin
-    await transporter.sendMail({
-        from: gmailEmail,
-        to: adminEmail,
-        subject: "New Program Purchase - Urban Pilgrim",
-        html: `
-            <h3>New Purchase</h3>
-            <p>User: ${name} (${email})</p>
-            <p>Programs: ${programList}</p>
-            <p>Total: ₹${total}</p>
-            <p>Payment ID: ${paymentResponse.razorpay_payment_id}</p>
-        `,
-    });
-
-    // 4) Handle Live Sessions → Google Calendar
-    const oauth2Client = await getOAuth2Client();
-    const calendar = google.calendar({ version: "v3", auth: oauth2Client });
-
-    console.log("Entering live session loop");
-
-    for (const program of cartData) {
-        if (program.type === "live" && program.slots?.length) {
-            for (const slot of program.slots) {
-                console.log("slot", slot);
-                const slotDate = formatDateWithSuffix(slot.date);
-                const slotTime = `${formatTime(slot.startTime)} - ${formatTime(
-                    slot.endTime
-                )}`;
-
-                const startDateTime = new Date(
-                    `${slot.date}T${slot.startTime}:00`
-                );
-                const endDateTime = new Date(`${slot.date}T${slot.endTime}:00`);
-
-                const event = {
-                    summary: program.title,
-                    description: `Live session booking for ${program.title}\nPersons: ${program.persons}`,
-                    start: {
-                        dateTime: startDateTime.toISOString(),
-                        timeZone: "Asia/Kolkata",
-                    },
-                    end: {
-                        dateTime: endDateTime.toISOString(),
-                        timeZone: "Asia/Kolkata",
-                    },
-                    attendees: [
-                        { email }, // user
-                        { email: adminEmail }, // admin
-                        { email: program.organizerEmail }, // organizer
-                    ],
-                    conferenceData: {
-                        createRequest: {
-                            requestId: `${program.id}-${Date.now()}`,
-                            conferenceSolutionKey: { type: "hangoutsMeet" },
+                    const event = {
+                        summary: program.title,
+                        description: `Live session booking for ${program.title}\nPersons: ${program.persons}`,
+                        start: {
+                            dateTime: startDateTime.toISOString(),
+                            timeZone: "Asia/Kolkata",
                         },
-                    },
-                };
+                        end: {
+                            dateTime: endDateTime.toISOString(),
+                            timeZone: "Asia/Kolkata",
+                        },
+                        attendees: [{ email }, { email: adminEmail }],
+                        conferenceData: {
+                            createRequest: {
+                                requestId: `${program.id}-${Date.now()}`,
+                                conferenceSolutionKey: { type: "hangoutsMeet" },
+                            },
+                        },
+                    };
 
-                const createdEvent = await calendar.events.insert({
-                    calendarId: program.organizerEmail, // event hosted by organizer
-                    resource: event,
-                    conferenceDataVersion: 1,
-                    sendUpdates: "all",
-                });
-                console.log("createdEvent", createdEvent);
+                    console.log("Google Calendar event:", event);
 
-                const meetLink =
-                    createdEvent.data.conferenceData?.entryPoints?.[0]?.uri;
-                console.log("meetLink", meetLink);
+                    const createdEvent = await calendar.events.insert({
+                        calendarId: "urbanpilgrim25@gmail.com",
+                        resource: event,
+                        conferenceDataVersion: 1,
+                        sendUpdates: "all",
+                    });
 
-                // Mail with Meet Link
-                const mailHtml = `
-                    <h2>Booking Confirmed: ${program.title}</h2>
-                    <p><b>Date:</b> ${slotDate}</p>
-                    <p><b>Time:</b> ${slotTime}</p>
-                    <p><b>Persons:</b> ${program.persons}</p>
-                    <p><b>Google Meet Link:</b> <a href="${meetLink}" target="_blank">${meetLink}</a></p>
-                `;
+                    console.log("Created Google Calendar event:", createdEvent.data);
 
-                await transporter.sendMail({
-                    from: gmailEmail,
-                    to: email,
-                    subject: `Your Live Session Booking - ${program.title}`,
-                    html: mailHtml,
-                });
+                    const meetLink =
+                        createdEvent.data.conferenceData?.entryPoints?.[0]?.uri;
 
-                await transporter.sendMail({
-                    from: gmailEmail,
-                    to: adminEmail,
-                    subject: `New Live Session Booking - ${program.title}`,
-                    html: mailHtml,
-                });
+                    const mailHtml = `<h2>Booking Confirmed: ${program.title}</h2>
+                            <p><b>Date:</b> ${slot.date}</p>
+                            <p><b>Time:</b> ${slot.startTime} - ${slot.endTime}</p>
+                            <p><b>Persons:</b> ${program.persons}</p>
+                            <p><b>Google Meet Link:</b> <a href="${meetLink}" target="_blank">${meetLink}</a></p>`;
 
-                if (program.organizerEmail) {
                     await transporter.sendMail({
                         from: gmailEmail,
-                        // to: program.organizerEmail,
-                        to: "pradhansambit2005@gmail.com",
-                        subject: `New Booking for Your Session - ${program.title}`,
+                        to: email,
+                        subject: `Your Live Session Booking - ${program.title}`,
+                        html: mailHtml,
+                    });
+                    await transporter.sendMail({
+                        from: gmailEmail,
+                        to: adminEmail,
+                        subject: `New Live Session Booking - ${program.title}`,
                         html: mailHtml,
                     });
                 }
-
-                console.log("mail send to all 3 users");
+                console.log("All events created successfully");
             }
         }
-    }
 
-    return { success: true };
+        return {
+            status: "success",
+            message: "Payment confirmed and booking saved",
+        };
+    } catch (error) {
+        console.error("confirmPayment Error:", error);
+        return { status: "error", message: error.message };
+    }
 });
