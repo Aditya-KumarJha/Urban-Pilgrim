@@ -62,7 +62,7 @@ export default function CartItem({ item, onRemove, onQuantityChange, onPersonsCh
                 </p>
                 {(quantity > 1 || persons > 1) && (
                     <p className="text-xs text-gray-500">
-                        ₹ {item.price.toLocaleString()} each × {persons} persons × {quantity} qty
+                        ₹ {item?.price?.toLocaleString()} each × {persons} persons × {quantity} qty
                     </p>
                 )}
             </div>

@@ -15,7 +15,7 @@ export default function GuideClassDetails() {
     const [quantity, setQuantity] = useState(1);
     const [showModal, setShowModal] = useState(false);
     const [showCalendar, setShowCalendar] = useState(false);
-    const [selectedPlan, setSelectedPlan] = useState(null);
+    const [selectedPlan, setSelectedPlan] = useState("monthly");
     const [subscriptionType, setSubscriptionType] = useState(null);
     const [availableSlots, setAvailableSlots] = useState([]);
 

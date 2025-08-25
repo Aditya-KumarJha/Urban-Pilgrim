@@ -10,7 +10,6 @@ export default function CalendarModal({
     sessionData, 
     selectedPlan, 
     mode,
-    onAddToCart,
     availableSlots = []
 }) {
     console.log("sessionData", sessionData);
