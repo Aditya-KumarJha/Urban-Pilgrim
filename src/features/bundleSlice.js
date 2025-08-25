@@ -57,6 +57,7 @@ const bundleSlice = createSlice({
         },
         addProgramToVariant: (state, action) => {
             const { variant, program } = action.payload;
+            
             if (variant === 'variant1' && state.bundleForm.variant1.programs.length < 3) {
                 state.bundleForm.variant1.programs.push(program);
             } else if (variant === 'variant2' && state.bundleForm.variant2.programs.length < 5) {

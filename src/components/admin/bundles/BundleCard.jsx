@@ -71,76 +71,89 @@ export default function BundleCard({ bundle, onEdit, onDelete }) {
             {/* Bundle Variants */}
             <div className="p-6 space-y-6">
                 {/* Variant 1 - 3 Programs */}
-                <div className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-semibold text-gray-900 flex items-center gap-2">
-                            <Users className="w-4 h-4 text-[#2F6288]" />
-                            3 Programs Bundle
-                        </h4>
-                        <span className="text-sm text-gray-500">
-                            {bundle.variant1?.programs?.length || 0}/3 programs
-                        </span>
+                {bundle.variant1 && bundle.variant1.programs && bundle.variant1.programs.length > 0 && (
+                    <div className="border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-3">
+                            <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                                <Users className="w-4 h-4 text-[#2F6288]" />
+                                3 Programs Bundle
+                            </h4>
+                            <span className="text-sm text-gray-500">
+                                {bundle.variant1.programs.length}/3 programs
+                            </span>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4 mb-3">
+                            <div className="text-center">
+                                <p className="text-sm text-gray-600">Original Price</p>
+                                <p className="text-lg font-bold text-gray-900">
+                                    ₹{bundle.variant1.totalPrice || 0}
+                                </p>
+                            </div>
+                            <div className="text-center">
+                                <p className="text-sm text-gray-600">Bundle Price</p>
+                                <p className="text-lg font-bold text-[#2F6288]">
+                                    ₹{bundle.variant1.price || 0}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        {variant1Savings.percentage > 0 && (
+                            <div className="text-center p-2 bg-green-50 rounded-lg">
+                                <p className="text-sm text-green-700">
+                                    Save ₹{variant1Savings.amount} ({variant1Savings.percentage}% off)
+                                </p>
+                            </div>
+                        )}
                     </div>
-                    
-                    <div className="grid grid-cols-2 gap-4 mb-3">
-                        <div className="text-center">
-                            <p className="text-sm text-gray-600">Original Price</p>
-                            <p className="text-lg font-bold text-gray-900">
-                                ₹{bundle.variant1?.totalPrice || 0}
-                            </p>
-                        </div>
-                        <div className="text-center">
-                            <p className="text-sm text-gray-600">Bundle Price</p>
-                            <p className="text-lg font-bold text-[#2F6288]">
-                                ₹{bundle.variant1?.price || 0}
-                            </p>
-                        </div>
-                    </div>
-                    
-                    {variant1Savings.percentage > 0 && (
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
-                            <p className="text-sm text-green-700">
-                                Save ₹{variant1Savings.amount} ({variant1Savings.percentage}% off)
-                            </p>
-                        </div>
-                    )}
-                </div>
+                )}
 
                 {/* Variant 2 - 5 Programs */}
-                <div className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-semibold text-gray-900 flex items-center gap-2">
-                            <Users className="w-4 h-4 text-[#2F6288]" />
-                            5 Programs Bundle
-                        </h4>
-                        <span className="text-sm text-gray-500">
-                            {bundle.variant2?.programs?.length || 0}/5 programs
-                        </span>
+                {bundle.variant2 && bundle.variant2.programs && bundle.variant2.programs.length > 0 && (
+                    <div className="border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-3">
+                            <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                                <Users className="w-4 h-4 text-[#2F6288]" />
+                                5 Programs Bundle
+                            </h4>
+                            <span className="text-sm text-gray-500">
+                                {bundle.variant2.programs.length}/5 programs
+                            </span>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4 mb-3">
+                            <div className="text-center">
+                                <p className="text-sm text-gray-600">Original Price</p>
+                                <p className="text-lg font-bold text-gray-900">
+                                    ₹{bundle.variant2.totalPrice || 0}
+                                </p>
+                            </div>
+                            <div className="text-center">
+                                <p className="text-sm text-gray-600">Bundle Price</p>
+                                <p className="text-lg font-bold text-[#2F6288]">
+                                    ₹{bundle.variant2.price || 0}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        {variant2Savings.percentage > 0 && (
+                            <div className="text-center p-2 bg-green-50 rounded-lg">
+                                <p className="text-sm text-green-700">
+                                    Save ₹{variant2Savings.amount} ({variant2Savings.percentage}% off)
+                                </p>
+                            </div>
+                        )}
                     </div>
-                    
-                    <div className="grid grid-cols-2 gap-4 mb-3">
-                        <div className="text-center">
-                            <p className="text-sm text-gray-600">Original Price</p>
-                            <p className="text-lg font-bold text-gray-900">
-                                ₹{bundle.variant2?.totalPrice || 0}
-                            </p>
-                        </div>
-                        <div className="text-center">
-                            <p className="text-sm text-gray-600">Bundle Price</p>
-                            <p className="text-lg font-bold text-[#2F6288]">
-                                ₹{bundle.variant2?.price || 0}
-                            </p>
-                        </div>
+                )}
+
+                {/* No Variants Message */}
+                {(!bundle.variant1 || !bundle.variant1.programs || bundle.variant1.programs.length === 0) && 
+                 (!bundle.variant2 || !bundle.variant2.programs || bundle.variant2.programs.length === 0) && (
+                    <div className="text-center py-8 text-gray-500">
+                        <Package className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                        <p>No bundle variants configured</p>
                     </div>
-                    
-                    {variant2Savings.percentage > 0 && (
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
-                            <p className="text-sm text-green-700">
-                                Save ₹{variant2Savings.amount} ({variant2Savings.percentage}% off)
-                            </p>
-                        </div>
-                    )}
-                </div>
+                )}
 
                 {/* Bundle Details */}
                 <div className="space-y-3">
