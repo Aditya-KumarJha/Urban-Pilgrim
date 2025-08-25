@@ -8,6 +8,7 @@ import { v4 as uuidv4 } from "uuid";
 import { deleteSlideByIndex, fetchGuideData, saveOrUpdateGuideData } from "../../../services/pilgrim_guide/guideService";
 import { useDispatch, useSelector } from "react-redux";
 import { setGuides } from "../../../features/pilgrim_guide/pilgrimGuideSlice";
+import { showSuccess, showError } from "../../../utils/toast"
 
 const ItemType = "SLIDE";
 
@@ -71,12 +72,51 @@ export default function GuideForm() {
             occupancy: "",
             showOccupancy: false
         },
-        monthlySubscription: {
-            price: "",
-            discount: "",
-            description: ""
+        online: {
+            monthly: {
+                price: "",
+                discount: "",
+                description: "",
+                slots: []
+            },
+            quarterly: {
+                price: "",
+                discount: "",
+                description: "",
+                slots: []
+            },
+            oneTime: {
+                price: "",
+                description: "",
+                slots: []
+            }
         },
-        oneTimePurchase: { price: "" },
+        offline: {
+            monthly: {
+                price: "",
+                discount: "",
+                description: "",
+                slots: []
+            },
+            quarterly: {
+                price: "",
+                discount: "",
+                description: "",
+                slots: []
+            },
+            oneTime: {
+                price: "",
+                description: "",
+                slots: []
+            }
+        },
+        organizer: {
+            name: "",
+            email: "",
+            address: "",
+            googleMeetLink: "",
+            contactNumber: ""
+        },
         session: {
             sessiondescription: "",
             images: [],
@@ -85,11 +125,6 @@ export default function GuideForm() {
             description: "",
             freeTrialVideo: null
         },
-        guideSlots: [{
-            date: "",
-            startTime: "",
-            endTime: ""
-        }],
         slides: [],
     });
     const dispatch = useDispatch();
@@ -110,16 +145,33 @@ export default function GuideForm() {
         "Mental Wellness",
         "Ritual Pandits"
     ]);
-    const subCategories = ["Online", "Offline", "both"];
+    // const subCategories = ["Online", "Offline", "both"];
 
-    const handleFieldChange = (section, field, value) => {
-        setFormData((prev) => ({
-            ...prev,
-            [section]: {
-                ...prev[section],
-                [field]: value,
-            },
-        }));
+    const handleFieldChange = (section, field, value, mode = null, subscriptionType = null) => {
+        setFormData((prev) => {
+            if (mode && subscriptionType) {
+                // Handle nested structure for online/offline subscriptions
+                return {
+                    ...prev,
+                    [mode]: {
+                        ...prev[mode],
+                        [subscriptionType]: {
+                            ...prev[mode][subscriptionType],
+                            [field]: value,
+                        },
+                    },
+                };
+            } else {
+                // Handle regular sections
+                return {
+                    ...prev,
+                    [section]: {
+                        ...prev[section],
+                        [field]: value,
+                    },
+                };
+            }
+        });
     };
 
     const handleFileUpload = async (file) => {
@@ -168,23 +220,95 @@ export default function GuideForm() {
         setDragActive(false);
     };
 
-    const handleSlotChange = (index, field, value) => {
-        const updated = [...formData.guideSlots];
-        updated[index][field] = value;
-        setFormData((prev) => ({ ...prev, guideSlots: updated }));
+    // Generic slot management functions
+    const handleSlotChange = (mode, subscriptionType, index, field, value) => {
+        setFormData((prev) => {
+            const updated = { ...prev };
+            const slots = [...updated[mode][subscriptionType].slots];
+            slots[index][field] = value;
+            updated[mode][subscriptionType].slots = slots;
+            return updated;
+        });
     };
 
-    const addSessionSlot = () => {
-        setFormData((prev) => ({
-            ...prev,
-            guideSlots: [...prev.guideSlots, { date: "", startTime: "", endTime: "" }],
-        }));
+    const addSlot = (mode, subscriptionType) => {
+        const newSlot = mode === 'Online' 
+            ? { date: "", startTime: "", endTime: "" }
+            : { date: "", startTime: "", endTime: "", location: "" };
+            
+        setFormData((prev) => {
+            const updated = { ...prev };
+            updated[mode.toLowerCase()][subscriptionType].slots = [
+                ...updated[mode.toLowerCase()][subscriptionType].slots,
+                newSlot
+            ];
+            return updated;
+        });
     };
 
-    const removeSessionSlot = (index) => {
-        const updated = [...formData.guideSlots];
-        updated.splice(index, 1);
-        setFormData((prev) => ({ ...prev, guideSlots: updated }));
+    const removeSlot = (mode, subscriptionType, index) => {
+        setFormData((prev) => {
+            const updated = { ...prev };
+            const slots = [...updated[mode.toLowerCase()][subscriptionType].slots];
+            slots.splice(index, 1);
+            updated[mode.toLowerCase()][subscriptionType].slots = slots;
+            return updated;
+        });
+    };
+
+    // Initialize slots for each subscription type
+    const initializeSlots = (mode, subscriptionType) => {
+        if (formData[mode.toLowerCase()][subscriptionType].slots.length === 0) {
+            addSlot(mode, subscriptionType);
+        }
+    };
+
+    // Session slot management functions
+    const handleSessionSlotChange = (mode, index, field, value) => {
+        setFormData((prev) => {
+            const updated = { ...prev };
+            const slots = [...updated.session[`${mode.toLowerCase()}Slots`]];
+            slots[index][field] = value;
+            updated.session[`${mode.toLowerCase()}Slots`] = slots;
+            return updated;
+        });
+    };
+
+    const addSessionSlot = (mode) => {
+        setFormData((prev) => {
+            const updated = { ...prev };
+            const newSlot = mode === "Online" 
+                ? { date: "", startTime: "", endTime: "" }
+                : { date: "", startTime: "", endTime: "", location: "" };
+            console.log("newSlot", newSlot);
+            updated.session[`${mode.toLowerCase()}Slots`] = [
+                ...(updated.session[`${mode.toLowerCase()}Slots`] || []), newSlot
+            ];
+            return updated;
+        });
+    };
+
+    const removeSessionSlot = (mode, index) => {
+        setFormData((prev) => {
+            const updated = { ...prev };
+            const slots = [...updated.session[`${mode.toLowerCase()}Slots`]];
+            slots.splice(index, 1);
+            updated.session[`${mode.toLowerCase()}Slots`] = slots;
+            return updated;
+        });
+    };
+
+    // Additional slot handlers for backward compatibility and specific use cases
+    const handleOnlineSlotChange = (index, field, value) => {
+        handleSessionSlotChange("Online", index, field, value);
+    };
+
+    const addOfflineSlot = () => {
+        addSessionSlot("Offline");
+    };
+
+    const addOnlineSlot = () => {
+        addSessionSlot("Online");
     };
 
     const moveSlide = async (from, to) => {
@@ -252,13 +376,48 @@ export default function GuideForm() {
                 occupancy: slideToEdit?.guideCard?.occupancy || "",
                 showOccupancy: slideToEdit?.guideCard?.showOccupancy || false,
             },
-            monthlySubscription: {
-                price: slideToEdit?.monthlySubscription?.price || "",
-                discount: slideToEdit?.monthlySubscription?.discount || "",
-                description: slideToEdit?.monthlySubscription?.description || "",
+            organizer: {
+                name: slideToEdit?.organizer?.name || "",
+                email: slideToEdit?.organizer?.email || "",
+                address: slideToEdit?.organizer?.address || "",
+                googleMeetLink: slideToEdit?.organizer?.googleMeetLink || "",
+                contactNumber: slideToEdit?.organizer?.contactNumber || "",
             },
-            oneTimePurchase: {
-                price: slideToEdit?.oneTimePurchase?.price || "",
+            online: {
+                monthly: {
+                    price: slideToEdit?.online?.monthly?.price || "",
+                    discount: slideToEdit?.online?.monthly?.discount || "",
+                    description: slideToEdit?.online?.monthly?.description || "",
+                    slots: slideToEdit?.online?.monthly?.slots || []
+                },
+                quarterly: {
+                    price: slideToEdit?.online?.quarterly?.price || "",
+                    discount: slideToEdit?.online?.quarterly?.discount || "",
+                    slots: slideToEdit?.online?.quarterly?.slots || [],
+                    description: slideToEdit?.online?.quarterly?.description || ""
+                },
+                oneTime: {
+                    price: slideToEdit?.online?.oneTime?.price || "",
+                    slots: slideToEdit?.online?.oneTime?.slots || [],
+                }
+            },
+            offline: {
+                monthly: {
+                    price: slideToEdit?.offline?.monthly?.price || "",
+                    discount: slideToEdit?.offline?.monthly?.discount || "",
+                    slots: slideToEdit?.offline?.monthly?.slots || [],
+                    description: slideToEdit?.offline?.monthly?.description || ""
+                },
+                quarterly: {
+                    price: slideToEdit?.offline?.quarterly?.price || "",
+                    discount: slideToEdit?.offline?.quarterly?.discount || "",
+                    slots: slideToEdit?.offline?.quarterly?.slots || [],
+                    description: slideToEdit?.offline?.quarterly?.description || ""
+                },
+                oneTime: {
+                    price: slideToEdit?.offline?.oneTime?.price || "",
+                    slots: slideToEdit?.offline?.oneTime?.slots || []
+                }
             },
             session: {
                 sessiondescription: slideToEdit?.session?.sessiondescription || "",
@@ -268,9 +427,6 @@ export default function GuideForm() {
                 description: slideToEdit?.session?.description || "",
                 freeTrialVideo: slideToEdit?.session?.freeTrialVideo || null,
             },
-            guideSlots: slideToEdit?.guideSlots?.length > 0
-                ? slideToEdit?.guideSlots
-                : [{ date: "", startTime: "", endTime: "" }],
             slides: slideToEdit?.slides || []
         }));
 
@@ -300,11 +456,54 @@ export default function GuideForm() {
                 price: "",
                 thumbnail: null,
                 occupancy: "",
+                showOccupancy: false
             },
-            monthlySubscription: { price: "", discount: "", description: "" },
-            oneTimePurchase: { price: "" },
-            session: { sessiondescription: "", images: [], videos: [], title: "", description: "", freeTrialVideo: null },
-            guideSlots: [{ date: "", startTime: "", endTime: "" }],
+            online: {
+                monthly: {
+                    price: "",
+                    discount: "",
+                    description: "",
+                    slots: [{ date: "", startTime: "", endTime: "" }]
+                },
+                quarterly: {
+                    price: "",  
+                    discount: "",
+                    description: "",
+                    slots: [{ date: "", startTime: "", endTime: "" }]
+                },
+                oneTime: {
+                    price: "",
+                    slots: [{ date: "", startTime: "", endTime: "" }]
+                }
+            },
+            offline: {
+                monthly: {
+                    price: "",
+                    discount: "",
+                    description: "",    
+                    slots: [{ date: "", startTime: "", endTime: "" }]
+                },
+                quarterly: {
+                    price: "",
+                    discount: "",
+                    description: "",
+                    slots: [{ date: "", startTime: "", endTime: "" }]
+                },
+                oneTime: {
+                    price: "",
+                    slots: [{ date: "", startTime: "", endTime: "" }]   
+                }
+            },
+            organizer: { name: "", email: "", address: "", googleMeetLink: "", contactNumber: "" },
+            session: {
+                sessiondescription: "",
+                images: [],
+                videos: [],
+                title: "",
+                description: "",
+                freeTrialVideo: null
+            },
+            guideSlots: [{ date: "", startTime: "", endTime: "" }]
         }));
     };
 
@@ -315,24 +514,42 @@ export default function GuideForm() {
         }
     };
 
-    const validateFields = () => {
-        const newErrors = {};
+    // const validateFields = () => {
+    //     const newErrors = {};
 
-        const isPriceValid = (value) => /^\d+(\.\d{1,2})?$/.test(value.trim());
+    //     const isPriceValid = (value) => /^\d+(\.\d{1,2})?$/.test(value.trim());
 
-        if (!formData.guideCard.title) newErrors.title = "Title is required";
-        if (!formData.guideCard.category) newErrors.category = "Category required";
-        if (!isPriceValid(formData.guideCard.price)) newErrors.guidePrice = "Invalid Price";
+    //     if (!formData.guideCard.title) newErrors.title = "Title is required";
+    //     if (!formData.guideCard.category) newErrors.category = "Category required";
+    //     if (!isPriceValid(formData.guideCard.price)) newErrors.guidePrice = "Invalid Price";
 
-        if (!isPriceValid(formData.monthlySubscription.price)) newErrors.monthlyPrice = "Invalid Price";
-        if (formData.monthlySubscription.discount && isNaN(formData.monthlySubscription.discount))
-            newErrors.monthlyDiscount = "Discount must be number";
+    //     // Validate nested subscription prices
+    //     if (!isPriceValid(formData.online.monthly.price)) newErrors.monthlyOnlinePrice = "Invalid Monthly Online Price";
+    //     if (formData.online.monthly.discount && isNaN(formData.online.monthly.discount))
+    //         newErrors.monthlyOnlineDiscount = "Online Monthly Discount must be number";
 
-        if (!isPriceValid(formData.oneTimePurchase.price)) newErrors.oneTimePrice = "Invalid Price";
+    //     if (!isPriceValid(formData.offline.monthly.price)) newErrors.monthlyOfflinePrice = "Invalid Monthly Offline Price";
+    //     if (formData.offline.monthly.discount && isNaN(formData.offline.monthly.discount))
+    //         newErrors.monthlyOfflineDiscount = "Offline Monthly Discount must be number";
 
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
-    };
+    //     if (!isPriceValid(formData.online.quarterly.price)) newErrors.quarterlyOnlinePrice = "Invalid Quarterly Online Price";
+    //     if (formData.online.quarterly.discount && isNaN(formData.online.quarterly.discount))
+    //         newErrors.quarterlyOnlineDiscount = "Online Quarterly Discount must be number";
+
+    //     if (!isPriceValid(formData.offline.quarterly.price)) newErrors.quarterlyOfflinePrice = "Invalid Quarterly Offline Price";
+    //     if (formData.offline.quarterly.discount && isNaN(formData.offline.quarterly.discount))
+    //         newErrors.quarterlyOfflineDiscount = "Offline Quarterly Discount must be number";
+
+    //     if (!formData.organizer.name) newErrors.organizerName = "Organizer name is required";
+    //     if (!formData.organizer.email) newErrors.organizerEmail = "Organizer email is required";
+    //     if (!formData.organizer.googleMeetLink) newErrors.organizerGoogleMeetLink = "Google Meet link is required";
+
+    //     if (!isPriceValid(formData.online.oneTime.price)) newErrors.oneTimeOnlinePrice = "Invalid Online One-Time Price";
+    //     if (!isPriceValid(formData.offline.oneTime.price)) newErrors.oneTimeOfflinePrice = "Invalid Offline One-Time Price";
+
+    //     setErrors(newErrors);
+    //     return Object.keys(newErrors).length === 0;
+    // };
 
     useEffect(() => {
         const loadCards = async () => {
@@ -361,17 +578,17 @@ export default function GuideForm() {
     }, [uid]);
 
     const onSaveRetreat = async () => {
-        if (!validateFields()) {
-            alert("Fix validation errors");
-            return;
-        }
+        // if (!validateFields()) {
+        //     alert("Fix validation errors");
+        //     return;
+        // }
 
         const newCard = {
             guideCard: { ...formData.guideCard },
-            monthlySubscription: { ...formData.monthlySubscription },
-            oneTimePurchase: { ...formData.oneTimePurchase },
+            organizer: { ...formData.organizer },
+            online: { ...formData.online },
+            offline: { ...formData.offline },
             session: { ...formData.session },
-            guideSlots: [...formData.guideSlots],
             slides: [
                 {
                     title: formData.guideCard.title,
@@ -405,6 +622,7 @@ export default function GuideForm() {
             // Save full updated guides array to Firestore
             const status = await saveOrUpdateGuideData(uid, "slides", updatedGuides);
             console.log(`Firestore ${status} successfully`);
+            showSuccess("Session saved successfully");
 
             // Reset local form state
             setFormData({
@@ -417,8 +635,39 @@ export default function GuideForm() {
                     occupancy: "",
                     showOccupancy: false
                 },
-                monthlySubscription: { price: "", discount: "", description: "" },
-                oneTimePurchase: { price: "" },
+                online: {
+                    monthly: {
+                        price: "",
+                        discount: "",
+                        slots: [{ date: "", startTime: "", endTime: "" }]
+                    },
+                    quarterly: {
+                        price: "",
+                        discount: "",
+                        slots: [{ date: "", startTime: "", endTime: "" }]
+                    },
+                    oneTime: {
+                        price: "",
+                        slots: [{ date: "", startTime: "", endTime: "" }]
+                    }
+                },
+                offline: {
+                    monthly: {
+                        price: "",
+                        discount: "",
+                        slots: [{ date: "", startTime: "", endTime: "" }]
+                    },
+                    quarterly: {
+                        price: "",
+                        discount: "",
+                        slots: [{ date: "", startTime: "", endTime: "" }]
+                    },
+                    oneTime: {
+                        price: "",
+                        slots: [{ date: "", startTime: "", endTime: "" }]
+                    }
+                },
+                organizer: { name: "", email: "", address: "", googleMeetLink: "", contactNumber: "" },
                 session: {
                     sessiondescription: "",
                     images: [],
@@ -427,14 +676,13 @@ export default function GuideForm() {
                     description: "",
                     freeTrialVideo: null
                 },
-                guideSlots: [{ date: "", startTime: "", endTime: "" }]
             });
             setIsEditing(false);
             setEditIndex(null);
 
         } catch (err) {
             console.error("Error saving retreat:", err);
-            alert("Error saving retreat data. Please try again.");
+            showError("Error saving retreat data. Please try again.");
         }
     };
 
@@ -505,7 +753,7 @@ export default function GuideForm() {
         const filesToProcess = files.slice(0, remainingSlots);
 
         for (const file of filesToProcess) {
-            if (file.type.startsWith('video/')) {
+            if (file?.type.startsWith('video/')) {
                 try {
                     const storageRef = ref(storage, `videos/${Date.now()}-${file.name}`);
                     await uploadBytes(storageRef, file);
@@ -600,7 +848,7 @@ export default function GuideForm() {
                     <div className="mb-6">
                         <h3 className="block text-md font-semibold text-gray-700 mb-2">Add Thumbnail</h3>
                         <div
-                            className={`border-2 border-dashed h-40 rounded mb-4 flex items-center justify-center cursor-pointer transition-colors ${dragActive ? 'border-[#2F6288] bg-[#2F6288]' : 'border-gray-300 hover:bg-gray-50'
+                            className={`border-2 border-dashed h-40 rounded mb-4 flex items-center justify-center cursor-pointer transition-colors ${dragActive ? 'border-[#2F6288] bg-[#2F6288]/10' : 'border-gray-300 hover:bg-gray-50'
                                 }`}
                             onDrop={handleDrop}
                             onDragOver={handleDragOver}
@@ -675,29 +923,30 @@ export default function GuideForm() {
                                 className="text-sm px-4 py-2 rounded-full border border-gray-300 text-[#2F6288] hover:bg-[#2F6288] hover:text-white flex items-center gap-2"
                             >
                                 <Plus className="w-4 h-4" />
-                                Add New Category
+                                Add New
                             </button>
                         </div>
-                        {errors.category && <p className="text-red-500 text-sm">{errors.category}</p>}
+                        {errors.category && <p className="text-red-500 text-sm mt-1">{errors.category}</p>}
                     </div>
 
-                    {/* Sub-Category Selection */}
+                    {/* Sub Category (Mode Selection) */}
                     <div className="mb-4">
-                        <label className="block text-md font-semibold text-gray-700 mb-2">Select Sub-Category</label>
+                        <label className="block text-md font-semibold text-gray-700 mb-2">Select Mode</label>
                         <div className="flex flex-wrap gap-3 mb-3">
-                            {subCategories.map((subCat, index) => (
+                            {["Online", "Offline", "Both"].map((mode) => (
                                 <button
-                                    key={index}
-                                    onClick={() => handleFieldChange("guideCard", "subCategory", subCat)}
-                                    className={`text-sm px-4 py-2 rounded-full border transition-colors ${formData.guideCard.subCategory === subCat
+                                    key={mode}
+                                    onClick={() => handleFieldChange("guideCard", "subCategory", mode)}
+                                    className={`text-sm px-4 py-2 rounded-full border transition-colors ${formData?.guideCard?.subCategory === mode
                                         ? 'bg-[#2F6288] text-white border-[#2F6288]'
                                         : 'bg-white text-gray-700 border-gray-300 hover:border-[#2F6288]'
                                         }`}
                                 >
-                                    {subCat}
+                                    {mode}
                                 </button>
                             ))}
                         </div>
+                        {errors.subCategory && <p className="text-red-500 text-sm mt-1">{errors.subCategory}</p>}
                     </div>
 
                     {/* Price */}
@@ -706,7 +955,7 @@ export default function GuideForm() {
                         <input
                             placeholder="Enter Price"
                             type="number"
-                            value={formData.guideCard.price}
+                            value={formData?.guideCard?.price}
                             onChange={(e) => handleFieldChange("guideCard", "price", e.target.value)}
                             className="text-sm w-full border border-gray-300 p-3 rounded-lg "
                         />
@@ -727,17 +976,17 @@ export default function GuideForm() {
                                 <input
                                     id="guide-session-date"
                                     type="text"
-                                    value={formData.guideCard.occupancy}
+                                    value={formData?.guideCard?.occupancy}
                                     onChange={(e) =>
                                         handleFieldChange("guideCard", "occupancy", e.target.value)
                                     }
-                                    className={`text-sm w-full border border-gray-300 p-3 rounded-lg pr-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer ${!formData.guideCard.occupancy ? 'text-transparent' : 'text-black'
+                                    className={`text-sm w-full border border-gray-300 p-3 rounded-lg pr-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer ${!formData?.guideCard?.occupancy ? 'text-transparent' : 'text-black'
                                         }`}
                                     aria-describedby="date-help-text"
                                 />
 
                                 {/* Custom placeholder text */}
-                                {!formData.guideCard.occupancy && (
+                                {!formData?.guideCard?.occupancy && (
                                     <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none z-5">
                                         Single
                                     </span>
@@ -749,7 +998,7 @@ export default function GuideForm() {
                         <label className="flex items-center gap-2 text-sm text-gray-600">
                             <input
                                 type="checkbox"
-                                checked={formData.guideCard.showOccupancy}
+                                checked={formData?.guideCard?.showOccupancy}
                                 onChange={(e) =>
                                     handleFieldChange("guideCard", "showOccupancy", e.target.checked)
                                 }
@@ -761,62 +1010,685 @@ export default function GuideForm() {
                     </div>
                 </div>
 
-                {/* Monthly Subscription */}
+                {/* Conditional Subscription Plans based on SubCategory (Mode) */}
+                {formData?.guideCard?.subCategory && (formData?.guideCard?.subCategory === "Online" || formData?.guideCard?.subCategory === "Both") && (
+                    <>
+                        {/* Monthly Online Subscription */}
+                        <div className="mb-8">
+                            <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+                                {isEditing ? "Edit Monthly Online Subscription" : "Monthly Online Subscription"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
+                            </h2>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-md font-semibold text-gray-700 mb-2">Monthly Online Subscription Price</label>
+                                    <input
+                                        placeholder="Enter Price"
+                                        type="number"
+                                        value={formData?.online?.monthly?.price}
+                                        onChange={(e) => handleFieldChange(null, "price", e.target.value, "online", "monthly")}
+                                        className="text-sm w-full border border-gray-300 p-3 rounded-lg "
+                                    />
+                                    {errors.monthlyOnlinePrice && <p className="text-red-500 text-sm mt-1">{errors.monthlyOnlinePrice}</p>}
+                                </div>
+
+                                <div>
+                                    <label className="block text-md font-semibold text-gray-700 mb-2">Monthly Online Subscription Discount</label>
+                                    <input
+                                        type="number"
+                                        placeholder="Enter Discount Percentage"
+                                        value={formData?.online?.monthly?.discount}
+                                        onChange={(e) => handleFieldChange(null, "discount", e.target.value, "online", "monthly")}
+                                        className="text-sm w-full border border-gray-300 p-3 rounded-lg "
+                                    />
+                                    {errors.monthlyOnlineDiscount && <p className="text-red-500 text-sm mt-1">{errors.monthlyOnlineDiscount}</p>}
+                                </div>
+
+                                <div>
+                                    <label className="block text-md font-semibold text-gray-700 mb-2">Monthly Online Subscription Description</label>
+                                    <textarea
+                                        placeholder="Enter Description"
+                                        value={formData.online.monthly.description}
+                                        onChange={(e) => handleFieldChange(null, "description", e.target.value, "online", "monthly")}
+                                        className="text-sm w-full border border-gray-300 p-3 rounded-lg  h-24 resize-none"
+                                    />
+                                </div>
+
+                                {/* Monthly Online Slots */}
+                                <div className="mt-6">
+                                    <h3 className="text-lg font-semibold text-gray-700 mb-4">Monthly Online Slots</h3>
+                                    <div className="space-y-4">
+                                        {formData?.online?.monthly?.slots?.length === 0 && initializeSlots("online", "monthly")}
+                                        {formData?.online?.monthly?.slots && formData?.online?.monthly?.slots?.map((slot, i) => (
+                                            <div key={i} className="border border-gray-200 rounded-lg p-4 space-y-4 bg-blue-50">
+                                                <div className="flex justify-between items-center">
+                                                    <p className="font-semibold text-gray-700">Online Slot {i + 1}</p>
+                                                    {formData?.online?.monthly?.slots?.length > 1 && (
+                                                        <button
+                                                            onClick={() => removeSlot("online", "monthly", i)}
+                                                            className="text-red-500 hover:text-red-700 p-1"
+                                                            title="Remove Slot"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                                                        <input
+                                                            type="date"
+                                                            value={slot?.date}
+                                                            onChange={(e) => handleSlotChange("online", "monthly", i, "date", e.target.value)}
+                                                            className="text-sm w-full border border-gray-300 p-2 rounded-lg"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                                                        <input
+                                                            type="time"
+                                                            value={slot?.startTime}
+                                                            onChange={(e) => handleSlotChange("online", "monthly", i, "startTime", e.target.value)}
+                                                            className="text-sm w-full border border-gray-300 p-2 rounded-lg"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                                                        <input
+                                                            type="time"
+                                                            value={slot?.endTime}
+                                                            onChange={(e) => handleSlotChange("online", "monthly", i, "endTime", e.target.value)}
+                                                            className="text-sm w-full border border-gray-300 p-2 rounded-lg"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        <button
+                                            onClick={() => addSlot("online", "monthly")}
+                                            className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-[#2F6288] hover:text-[#2F6288] transition-colors flex items-center justify-center gap-2"
+                                        >
+                                            <Plus className="w-4 h-4" />
+                                            Add Online Slot
+                                        </button>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </>
+                )}
+
+                {formData?.guideCard?.subCategory && (formData?.guideCard?.subCategory === "Offline" || formData?.guideCard?.subCategory === "Both") && (
+                    <>
+                        {/* Monthly Offline Subscription */}
+                        <div className="mb-8">
+                            <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+                                {isEditing ? "Edit Monthly Offline Subscription" : "Monthly Offline Subscription"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
+                            </h2>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-md font-semibold text-gray-700 mb-2">Monthly Offline Subscription Price</label>
+                                    <input
+                                        placeholder="Enter Price"
+                                        type="number"
+                                        value={formData?.offline?.monthly?.price}
+                                        onChange={(e) => handleFieldChange(null, "price", e.target.value, "offline", "monthly")}
+                                        className="text-sm w-full border border-gray-300 p-3 rounded-lg "
+                                    />
+                                    {errors.monthlyOfflinePrice && <p className="text-red-500 text-sm mt-1">{errors.monthlyOfflinePrice}</p>}
+                                </div>
+
+                                <div>
+                                    <label className="block text-md font-semibold text-gray-700 mb-2">Monthly Offline Subscription Discount</label>
+                                    <input
+                                        type="number"
+                                        placeholder="Enter Discount Percentage"
+                                        value={formData?.offline?.monthly?.discount}
+                                        onChange={(e) => handleFieldChange(null, "discount", e.target.value, "offline", "monthly")}
+                                        className="text-sm w-full border border-gray-300 p-3 rounded-lg "
+                                    />
+                                    {errors.monthlyOfflineDiscount && <p className="text-red-500 text-sm mt-1">{errors.monthlyOfflineDiscount}</p>}
+                                </div>
+
+                                <div>
+                                    <label className="block text-md font-semibold text-gray-700 mb-2">Monthly Offline Subscription Description</label>
+                                    <textarea
+                                        placeholder="Enter Description"
+                                        value={formData.offline.monthly.description}
+                                        onChange={(e) => handleFieldChange(null, "description", e.target.value, "offline", "monthly")}
+                                        className="text-sm w-full border border-gray-300 p-3 rounded-lg  h-24 resize-none"
+                                    />
+                                </div>
+
+                                {/* Monthly Offline Slots */}
+                                <div className="mt-6">
+                                    <h3 className="text-lg font-semibold text-gray-700 mb-4">Monthly Offline Slots</h3>
+                                    <div className="space-y-4">
+                                        {formData?.offline?.monthly?.slots?.length === 0 && initializeSlots("offline", "monthly")}
+                                        {formData?.offline?.monthly?.slots && formData?.offline?.monthly?.slots?.map((slot, i) => (
+                                            <div key={i} className="border border-gray-200 rounded-lg p-4 space-y-4 bg-green-50">
+                                                <div className="flex justify-between items-center">
+                                                    <p className="font-semibold text-gray-700">Offline Slot {i + 1}</p>
+                                                    {formData?.offline?.monthly?.slots?.length > 1 && (
+                                                        <button
+                                                            onClick={() => removeSlot("offline", "monthly", i)}
+                                                            className="text-red-500 hover:text-red-700 p-1"
+                                                            title="Remove Slot"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                                                        <input
+                                                            type="date"
+                                                            value={slot.date}
+                                                            onChange={(e) => handleSlotChange("offline", "monthly", i, "date", e.target.value)}
+                                                            className="text-sm w-full border border-gray-300 p-2 rounded-lg"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                                                        <input
+                                                            type="time"
+                                                            value={slot.startTime}
+                                                            onChange={(e) => handleSlotChange("offline", "monthly", i, "startTime", e.target.value)}
+                                                            className="text-sm w-full border border-gray-300 p-2 rounded-lg"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                                                        <input
+                                                            type="time"
+                                                            value={slot.endTime}
+                                                            onChange={(e) => handleSlotChange("offline", "monthly", i, "endTime", e.target.value)}
+                                                            className="text-sm w-full border border-gray-300 p-2 rounded-lg"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Enter location"
+                                                            value={slot.location}
+                                                            onChange={(e) => handleSlotChange("offline", "monthly", i, "location", e.target.value)}
+                                                            className="text-sm w-full border border-gray-300 p-2 rounded-lg"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        <button
+                                            onClick={() => addSlot("offline", "monthly")}
+                                            className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-[#2F6288] hover:text-[#2F6288] transition-colors flex items-center justify-center gap-2"
+                                        >
+                                            <Plus className="w-4 h-4" />
+                                            Add Offline Slot
+                                        </button>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </>
+                )}
+
+                {/* Quarterly Online Subscription */}
+                {formData?.guideCard?.subCategory && (formData?.guideCard?.subCategory === "Online" || formData?.guideCard?.subCategory === "Both") && (
+                    <div className="mb-8">
+                        <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+                            {isEditing ? "Edit Quarterly Online Subscription" : "Quarterly Online Subscription"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
+                        </h2>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-md font-semibold text-gray-700 mb-2">Quarterly Online Subscription Price</label>
+                                <input
+                                    placeholder="Enter Price"
+                                    type="number"
+                                    value={formData?.online?.quarterly?.price}
+                                    onChange={(e) => handleFieldChange(null, "price", e.target.value, "online", "quarterly")}
+                                    className="text-sm w-full border border-gray-300 p-3 rounded-lg "
+                                />
+                                {errors?.quarterlyOnlinePrice && <p className="text-red-500 text-sm mt-1">{errors?.quarterlyOnlinePrice}</p>}
+                            </div>
+
+                            <div>
+                                <label className="block text-md font-semibold text-gray-700 mb-2">Quarterly Online Subscription Discount</label>
+                                <input
+                                    type="number"
+                                    placeholder="Enter Discount Percentage"
+                                    value={formData?.online?.quarterly?.discount}
+                                    onChange={(e) => handleFieldChange(null, "discount", e.target.value, "online", "quarterly")}
+                                    className="text-sm w-full border border-gray-300 p-3 rounded-lg "
+                                />
+                                {errors?.quarterlyOnlineDiscount && <p className="text-red-500 text-sm mt-1">{errors?.quarterlyOnlineDiscount}</p>}
+                            </div>
+
+                            <div>
+                                <label className="block text-md font-semibold text-gray-700 mb-2">Quarterly Online Subscription Description</label>
+                                <textarea
+                                    placeholder="Enter Description"
+                                    value={formData?.online?.quarterly?.description}
+                                    onChange={(e) => handleFieldChange(null, "description", e.target.value, "online", "quarterly")}
+                                    className="text-sm w-full border border-gray-300 p-3 rounded-lg  h-24 resize-none"
+                                />
+                            </div>
+
+                            {/* Quarterly Online Slots */}
+                            <div className="mt-6">
+                                <h3 className="text-lg font-semibold text-gray-700 mb-4">Quarterly Online Slots</h3>
+                                <div className="space-y-4">
+                                    {formData?.online?.quarterly?.slots?.length === 0 && initializeSlots("online", "quarterly")}
+                                    {formData?.online?.quarterly?.slots && formData?.online?.quarterly?.slots?.map((slot, i) => (
+                                        <div key={i} className="border border-gray-200 rounded-lg p-4 space-y-4 bg-blue-50">
+                                            <div className="flex justify-between items-center">
+                                                <p className="font-semibold text-gray-700">Online Slot {i + 1}</p>
+                                                {formData?.online?.quarterly?.slots?.length > 1 && (
+                                                    <button
+                                                        onClick={() => removeSlot("online", "quarterly", i)}
+                                                        className="text-red-500 hover:text-red-700 p-1"
+                                                        title="Remove Slot"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                                                    <input
+                                                        type="date"
+                                                        value={slot.date}
+                                                        onChange={(e) => handleSlotChange("online", "quarterly", i, "date", e.target.value)}
+                                                        className="text-sm w-full border border-gray-300 p-2 rounded-lg"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                                                    <input
+                                                        type="time"
+                                                        value={slot.startTime}
+                                                        onChange={(e) => handleSlotChange("online", "quarterly", i, "startTime", e.target.value)}
+                                                        className="text-sm w-full border border-gray-300 p-2 rounded-lg"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                                                    <input
+                                                        type="time"
+                                                        value={slot.endTime}
+                                                        onChange={(e) => handleSlotChange("online", "quarterly", i, "endTime", e.target.value)}
+                                                        className="text-sm w-full border border-gray-300 p-2 rounded-lg"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <button
+                                        onClick={() => addSlot("online", "quarterly")}
+                                        className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-[#2F6288] hover:text-[#2F6288] transition-colors flex items-center justify-center gap-2"
+                                    >
+                                        <Plus className="w-4 h-4" />
+                                        Add Online Slot
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Quarterly Offline Subscription */}
+                {formData.guideCard.subCategory && (formData.guideCard.subCategory === "Offline" || formData.guideCard.subCategory === "Both") && (
+                    <div className="mb-8">
+                        <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+                            {isEditing ? "Edit Quarterly Offline Subscription" : "Quarterly Offline Subscription"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
+                        </h2>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-md font-semibold text-gray-700 mb-2">Quarterly Offline Subscription Price</label>
+                                <input
+                                    placeholder="Enter Price"
+                                    type="number"
+                                    value={formData.offline.quarterly.price}
+                                    onChange={(e) => handleFieldChange(null, "price", e.target.value, "offline", "quarterly")}
+                                    className="text-sm w-full border border-gray-300 p-3 rounded-lg "
+                                />
+                                {errors.quarterlyOfflinePrice && <p className="text-red-500 text-sm mt-1">{errors.quarterlyOfflinePrice}</p>}
+                            </div>
+
+                            <div>
+                                <label className="block text-md font-semibold text-gray-700 mb-2">Quarterly Offline Subscription Discount</label>
+                                <input
+                                    type="number"
+                                    placeholder="Enter Discount Percentage"
+                                    value={formData.offline.quarterly.discount}
+                                    onChange={(e) => handleFieldChange(null, "discount", e.target.value, "offline", "quarterly")}
+                                    className="text-sm w-full border border-gray-300 p-3 rounded-lg "
+                                />
+                                {errors.quarterlyOfflineDiscount && <p className="text-red-500 text-sm mt-1">{errors.quarterlyOfflineDiscount}</p>}
+                            </div>
+
+                            <div>
+                                <label className="block text-md font-semibold text-gray-700 mb-2">Quarterly Offline Subscription Description</label>
+                                <textarea
+                                    placeholder="Enter Description"
+                                    value={formData.offline.quarterly.description}
+                                    onChange={(e) => handleFieldChange(null, "description", e.target.value, "offline", "quarterly")}
+                                    className="text-sm w-full border border-gray-300 p-3 rounded-lg  h-24 resize-none"
+                                />
+                            </div>
+
+                            {/* Quarterly Offline Slots */}
+                            <div className="mt-6">
+                                <h3 className="text-lg font-semibold text-gray-700 mb-4">Quarterly Offline Slots</h3>
+                                <div className="space-y-4">
+                                    {formData.offline.quarterly.slots.length === 0 && initializeSlots("offline", "quarterly")}
+                                    {formData.offline.quarterly.slots.map((slot, i) => (
+                                        <div key={i} className="border border-gray-200 rounded-lg p-4 space-y-4 bg-green-50">
+                                            <div className="flex justify-between items-center">
+                                                <p className="font-semibold text-gray-700">Offline Slot {i + 1}</p>
+                                                {formData.offline.quarterly.slots.length > 1 && (
+                                                    <button
+                                                        onClick={() => removeSlot("offline", "quarterly", i)}
+                                                        className="text-red-500 hover:text-red-700 p-1"
+                                                        title="Remove Slot"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                                                    <input
+                                                        type="date"
+                                                        value={slot.date}
+                                                        onChange={(e) => handleSlotChange("offline", "quarterly", i, "date", e.target.value)}
+                                                        className="text-sm w-full border border-gray-300 p-2 rounded-lg"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                                                    <input
+                                                        type="time"
+                                                        value={slot.startTime}
+                                                        onChange={(e) => handleSlotChange("offline", "quarterly", i, "startTime", e.target.value)}
+                                                        className="text-sm w-full border border-gray-300 p-2 rounded-lg"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                                                    <input
+                                                        type="time"
+                                                        value={slot.endTime}
+                                                        onChange={(e) => handleSlotChange("offline", "quarterly", i, "endTime", e.target.value)}
+                                                        className="text-sm w-full border border-gray-300 p-2 rounded-lg"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Enter location"
+                                                        value={slot.location}
+                                                        onChange={(e) => handleSlotChange("offline", "quarterly", i, "location", e.target.value)}
+                                                        className="text-sm w-full border border-gray-300 p-2 rounded-lg"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <button
+                                        onClick={addOfflineSlot}
+                                        className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-[#2F6288] hover:text-[#2F6288] transition-colors flex items-center justify-center gap-2"
+                                    >
+                                        <Plus className="w-4 h-4" />
+                                        Add Offline Slot
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* One-Time Online Purchase */}
+                {formData?.guideCard?.subCategory && (formData?.guideCard?.subCategory === "Online" || formData?.guideCard?.subCategory === "Both") && (
+                    <div className="mb-8">
+                        <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+                            {isEditing ? "Edit One-Time Online Purchase" : "One-Time Online Purchase"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
+                        </h2>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-md font-semibold text-gray-700 mb-2">One-Time Online Purchase Price</label>
+                                <input
+                                    placeholder="Enter Price"
+                                    type="number"
+                                    value={formData?.online?.oneTime?.price}
+                                    onChange={(e) => handleFieldChange(null, "price", e.target.value, "online", "oneTime")}
+                                    className="text-sm w-full border border-gray-300 p-3 rounded-lg "
+                                />
+                                {errors.oneTimeOnlinePrice && <p className="text-red-500 text-sm mt-1">{errors.oneTimeOnlinePrice}</p>}
+                            </div>
+
+                            {/* One-Time Online Slots */}
+                            <div className="mt-6">
+                                <h3 className="text-lg font-semibold text-gray-700 mb-4">One-Time Online Slots</h3>
+                                <div className="space-y-4">
+                                    {formData?.online?.oneTime?.slots?.length === 0 && initializeSlots("online", "oneTime")}
+                                    {formData?.online?.oneTime?.slots && formData?.online?.oneTime?.slots.map((slot, i) => (
+                                        <div key={i} className="border border-gray-200 rounded-lg p-4 space-y-4 bg-blue-50">
+                                            <div className="flex justify-between items-center">
+                                                <p className="font-semibold text-gray-700">Online Slot {i + 1}</p>
+                                                {formData?.online?.oneTime?.slots && formData?.online?.oneTime?.slots.length > 1 && (
+                                                    <button
+                                                        onClick={() => removeSlot("online", "oneTime", i)}
+                                                        className="text-red-500 hover:text-red-700 p-1"
+                                                        title="Remove Slot"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                                                    <input
+                                                        type="date"
+                                                        value={slot?.date}
+                                                        onChange={(e) => handleSlotChange("online", "oneTime", i, "date", e.target.value)}
+                                                        className="text-sm w-full border border-gray-300 p-2 rounded-lg"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                                                    <input
+                                                        type="time"
+                                                        value={slot?.startTime}
+                                                        onChange={(e) => handleSlotChange("online", "oneTime", i, "startTime", e.target.value)}
+                                                        className="text-sm w-full border border-gray-300 p-2 rounded-lg"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                                                    <input
+                                                        type="time"
+                                                        value={slot?.endTime}
+                                                        onChange={(e) => handleSlotChange("online", "oneTime", i, "endTime", e.target.value)}
+                                                        className="text-sm w-full border border-gray-300 p-2 rounded-lg"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <button
+                                        onClick={() => addSlot("online", "oneTime")}
+                                        className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-[#2F6288] hover:text-[#2F6288] transition-colors flex items-center justify-center gap-2"
+                                    >
+                                        <Plus className="w-4 h-4" />
+                                        Add Online Slot
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* One-Time Offline Purchase */}
+                {formData?.guideCard?.subCategory && (formData?.guideCard?.subCategory === "Offline" || formData?.guideCard?.subCategory === "Both") && (
+                    <div className="mb-8">
+                        <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+                            {isEditing ? "Edit One-Time Offline Purchase" : "One-Time Offline Purchase"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
+                        </h2>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-md font-semibold text-gray-700 mb-2">One-Time Offline Purchase Price</label>
+                                <input
+                                    placeholder="Enter Price"
+                                    type="number"
+                                    value={formData?.offline?.oneTime?.price}
+                                    onChange={(e) => handleFieldChange(null, "price", e.target.value, "offline", "oneTime")}
+                                    className="text-sm w-full border border-gray-300 p-3 rounded-lg "
+                                />
+                                {errors.oneTimeOfflinePrice && <p className="text-red-500 text-sm mt-1">{errors.oneTimeOfflinePrice}</p>}
+                            </div>
+
+                            {/* One-Time Offline Slots */}
+                            <div className="mt-6">
+                                <h3 className="text-lg font-semibold text-gray-700 mb-4">One-Time Offline Slots</h3>
+                                <div className="space-y-4">
+                                    {formData?.offline?.oneTime?.slots?.length === 0 && initializeSlots("offline", "oneTime")}
+                                    {formData?.offline?.oneTime?.slots && formData?.offline?.oneTime?.slots.map((slot, i) => (
+                                        <div key={i} className="border border-gray-200 rounded-lg p-4 space-y-4 bg-green-50">
+                                            <div className="flex justify-between items-center">
+                                                <p className="font-semibold text-gray-700">Offline Slot {i + 1}</p>
+                                                {formData?.offline?.oneTime?.slots?.length > 1 && (
+                                                    <button
+                                                        onClick={() => removeSlot("offline", "oneTime", i)}
+                                                        className="text-red-500 hover:text-red-700 p-1"
+                                                        title="Remove Slot"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                                                    <input
+                                                        type="date"
+                                                        value={slot?.date}
+                                                        onChange={(e) => handleSlotChange("offline", "oneTime", i, "date", e.target.value)}
+                                                        className="text-sm w-full border border-gray-300 p-2 rounded-lg"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                                                    <input
+                                                        type="time"
+                                                        value={slot?.startTime}
+                                                        onChange={(e) => handleSlotChange("offline", "oneTime", i, "startTime", e.target.value)}
+                                                        className="text-sm w-full border border-gray-300 p-2 rounded-lg"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                                                    <input
+                                                        type="time"
+                                                        value={slot?.endTime}
+                                                        onChange={(e) => handleSlotChange("offline", "oneTime", i, "endTime", e.target.value)}
+                                                        className="text-sm w-full border border-gray-300 p-2 rounded-lg"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Enter location"
+                                                        value={slot?.location}
+                                                        onChange={(e) => handleSlotChange("offline", "oneTime", i, "location", e.target.value)}
+                                                        className="text-sm w-full border border-gray-300 p-2 rounded-lg"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <button
+                                        onClick={addOfflineSlot}
+                                        className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-[#2F6288] hover:text-[#2F6288] transition-colors flex items-center justify-center gap-2"
+                                    >
+                                        <Plus className="w-4 h-4" />
+                                        Add Offline Slot
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Organizer Information */}
                 <div className="mb-8">
                     <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
-                        {isEditing ? "Edit Monthly Subscription" : "Monthly Subscription"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
+                        {isEditing ? "Edit Organizer Information" : "Organizer Information"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
                     </h2>
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-md font-semibold text-gray-700 mb-2">Monthly Subscription Price</label>
+                            <label className="block text-md font-semibold text-gray-700 mb-2">Organizer Name</label>
                             <input
-                                placeholder="Enter Price"
-                                type="number"
-                                value={formData.monthlySubscription.price}
-                                onChange={(e) => handleFieldChange("monthlySubscription", "price", e.target.value)}
+                                placeholder="Enter Organizer Name"
+                                type="text"
+                                value={formData?.organizer?.name}
+                                onChange={(e) => handleFieldChange("organizer", "name", e.target.value)}
                                 className="text-sm w-full border border-gray-300 p-3 rounded-lg "
                             />
-                            {errors.monthlyPrice && <p className="text-red-500 text-sm mt-1">{errors.monthlyPrice}</p>}
+                            {errors?.organizerName && <p className="text-red-500 text-sm mt-1">{errors?.organizerName}</p>}
                         </div>
 
                         <div>
-                            <label className="block text-md font-semibold text-gray-700 mb-2">Monthly Subscription Discount</label>
+                            <label className="block text-md font-semibold text-gray-700 mb-2">Organizer Email</label>
                             <input
-                                type="number"
-                                placeholder="Enter Discount Percentage"
-                                value={formData.monthlySubscription.discount}
-                                onChange={(e) => handleFieldChange("monthlySubscription", "discount", e.target.value)}
+                                placeholder="Enter Organizer Email"
+                                type="email"
+                                value={formData?.organizer?.email}
+                                onChange={(e) => handleFieldChange("organizer", "email", e.target.value)}
                                 className="text-sm w-full border border-gray-300 p-3 rounded-lg "
                             />
-                            {errors.monthlyDiscount && <p className="text-red-500 text-sm mt-1">{errors.monthlyDiscount}</p>}
+                            {errors?.organizerEmail && <p className="text-red-500 text-sm mt-1">{errors?.organizerEmail}</p>}
                         </div>
 
                         <div>
-                            <label className="block text-md font-semibold text-gray-700 mb-2">Monthly Subscription Description</label>
+                            <label className="block text-md font-semibold text-gray-700 mb-2">Organizer Address</label>
                             <textarea
-                                placeholder="Enter Description"
-                                value={formData.monthlySubscription.description}
-                                onChange={(e) => handleFieldChange("monthlySubscription", "description", e.target.value)}
+                                placeholder="Enter Organizer Address"
+                                value={formData?.organizer?.address}
+                                onChange={(e) => handleFieldChange("organizer", "address", e.target.value)}
                                 className="text-sm w-full border border-gray-300 p-3 rounded-lg  h-24 resize-none"
                             />
                         </div>
-                    </div>
-                </div>
 
-                {/* One Time Purchase */}
-                <div className="mb-8">
-                    <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
-                        {isEditing ? "Edit One Time Purchase" : "One Time Purchase"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
-                    </h2>
-                    <div>
-                        <label className="block text-md font-semibold text-gray-700 mb-2">One TIme Purchase Per Month Price</label>
-                        <input
-                            placeholder="Enter Price"
-                            value={formData.oneTimePurchase.price}
-                            onChange={(e) => handleFieldChange("oneTimePurchase", "price", e.target.value)}
-                            className="text-sm w-full border border-gray-300 p-3 rounded-lg "
-                        />
-                        {errors.oneTimePrice && <p className="text-red-500 text-sm mt-1">{errors.oneTimePrice}</p>}
+                        <div>
+                            <label className="block text-md font-semibold text-gray-700 mb-2">Google Meet Link</label>
+                            <input
+                                placeholder="Enter Google Meet Link"
+                                type="url"
+                                value={formData?.organizer?.googleMeetLink}
+                                onChange={(e) => handleFieldChange("organizer", "googleMeetLink", e.target.value)}
+                                className="text-sm w-full border border-gray-300 p-3 rounded-lg "
+                            />
+                            {errors?.organizerGoogleMeetLink && <p className="text-red-500 text-sm mt-1">{errors?.organizerGoogleMeetLink}</p>}
+                        </div>
+
+                        <div>
+                            <label className="block text-md font-semibold text-gray-700 mb-2">Contact Number</label>
+                            <input
+                                placeholder="Enter Contact Number"
+                                type="tel"
+                                value={formData?.organizer?.contactNumber}
+                                onChange={(e) => handleFieldChange("organizer", "contactNumber", e.target.value)}
+                                className="text-sm w-full border border-gray-300 p-3 rounded-lg "
+                            />
+                        </div>
                     </div>
                 </div>
 
@@ -829,7 +1701,7 @@ export default function GuideForm() {
                         <label className="block text-md font-semibold text-gray-700 mb-2">Session Description</label>
                         <textarea
                             placeholder="Enter Description"
-                            value={formData.session.sessiondescription}
+                            value={formData?.session?.sessiondescription}
                             onChange={(e) => handleFieldChange("session", "sessiondescription", e.target.value)}
                             className="text-sm w-full border border-gray-300 p-3 rounded-lg  h-32 resize-none"
                         />
@@ -837,7 +1709,7 @@ export default function GuideForm() {
 
                     <label className="block font-semibold mb-2">Add Images ( Maximum 11 Images )</label>
                     <div className="mb-6">
-                        {formData.session.images.length < 11 && (
+                        {formData?.session?.images && formData?.session?.images?.length < 11 && (
                             <label className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50">
                                 <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-10 h-10 mb-2" />
                                 <span>Click to upload image<br />Size: (610 X 515)px</span>
@@ -851,7 +1723,7 @@ export default function GuideForm() {
                             </label>
                         )}
                         <div className="flex flex-wrap gap-4 mt-4">
-                            {formData.session.images.map((img, index) => (
+                            {formData?.session?.images && formData?.session?.images.map((img, index) => (
                                 <div key={index} className="relative w-40 h-28">
                                     <img src={img} alt={`img-${index}`} className="w-full h-full object-cover rounded shadow" />
                                     <button
@@ -867,7 +1739,7 @@ export default function GuideForm() {
 
                     <label className="block font-semibold mb-2">Add Videos ( Maximum 6 Videos )</label>
                     <div className="mb-4">
-                        {formData.session.videos.length < 6 && (
+                        {formData?.session?.videos && formData?.session?.videos.length < 6 && (
                             <label className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50">
                                 <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-10 h-10 mb-2" />
                                 <span>Click to upload Videos</span>
@@ -881,7 +1753,7 @@ export default function GuideForm() {
                             </label>
                         )}
                         <div className="flex flex-wrap gap-4 mt-4">
-                            {formData.session.videos.map((vid, index) => (
+                            {formData?.session && formData?.session?.videos.map((vid, index) => (
                                 <div key={index} className="relative w-40 h-28 bg-black">
                                     <video src={vid} controls className="w-full h-full rounded shadow object-cover" />
                                     <button
@@ -901,18 +1773,18 @@ export default function GuideForm() {
                             <input
                                 type="text"
                                 placeholder="Enter Title"
-                                value={formData.session.title}
+                                value={formData?.session?.title}
                                 onChange={(e) => handleFieldChange("session", "title", e.target.value)}
                                 className="text-sm w-full border border-gray-300 p-3 rounded-lg "
                             />
-                            {errors.monthlyDiscount && <p className="text-red-500 text-sm mt-1">{errors.monthlyDiscount}</p>}
+                            {errors?.monthlyDiscount && <p className="text-red-500 text-sm mt-1">{errors?.monthlyDiscount}</p>}
                         </div>
 
                         <div>
                             <label className="block text-md font-semibold text-gray-700 mb-2">Description</label>
                             <textarea
                                 placeholder="Enter Description"
-                                value={formData.session.description}
+                                value={formData?.session?.description}
                                 onChange={(e) => handleFieldChange("session", "description", e.target.value)}
                                 className="text-sm w-full border border-gray-300 p-3 rounded-lg  h-24 resize-none"
                             />
@@ -928,10 +1800,10 @@ export default function GuideForm() {
                                 onDragLeave={handleDragLeave}
                                 onClick={() => document.getElementById('free-trial-upload').click()}
                             >
-                                {formData.session.freeTrialVideo ? (
+                                {formData?.session && formData?.session?.freeTrialVideo ? (
                                     <div className="relative h-full flex items-center">
                                         <video
-                                            src={formData.session.freeTrialVideo}
+                                            src={formData?.session?.freeTrialVideo}
                                             className="h-full object-contain rounded"
                                             controls
                                         />
@@ -964,68 +1836,149 @@ export default function GuideForm() {
                     </div>
                 </div>
 
-                {/* Guide Slots */}
-                <div className="mb-8">
-                    <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
-                        {isEditing ? "Edit Guide Slots" : "Guide Slots"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
-                    </h2>
-                    <div className="space-y-4">
-                        {formData.guideSlots.map((slot, i) => (
-                            <div key={i} className="border border-gray-200 rounded-lg p-4 space-y-4">
-                                <div className="flex justify-between items-center">
-                                    <p className="font-semibold text-gray-700">Slot {i + 1}</p>
-                                    {formData.guideSlots.length > 1 && (
-                                        <button
-                                            onClick={() => removeSessionSlot(i)}
-                                            className="text-red-500 hover:text-red-700 p-1"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    )}
+                {/* Dynamic Guide Slots based on Sub-Category */}
+                {formData?.guideCard?.subCategory && (
+                    <div className="mb-8">
+                        <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+                            {isEditing ? "Edit Guide Slots" : "Guide Slots"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
+                        </h2>
+                        
+                        {/* Online Slots */}
+                        {(formData?.guideCard?.subCategory === "Online" || formData?.guideCard?.subCategory === "both") && (
+                            <div className="mb-6">
+                                <h3 className="text-lg font-semibold text-gray-700 mb-4">Session Online Slots</h3>
+                                <div className="space-y-4">
+                                    {formData?.session?.onlineSlots && formData.session.onlineSlots.map((slot, i) => (
+                                        <div key={i} className="border border-gray-200 rounded-lg p-4 space-y-4 bg-blue-50">
+                                            <div className="flex justify-between items-center">
+                                                <p className="font-semibold text-gray-700">Online Slot {i + 1}</p>
+                                                {formData.session.onlineSlots.length > 1 && (
+                                                    <button
+                                                        onClick={() => removeSessionSlot("online", i)}
+                                                        className="text-red-500 hover:text-red-700 p-1"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            <label className="block text-md font-semibold text-gray-700 mb-2">Preferred Date</label>
+                                            <input
+                                                type="date"
+                                                value={slot.date}
+                                                onChange={(e) => handleOnlineSlotChange(i, "date", e.target.value)}
+                                                className="sm:flex block w-full border border-gray-300 p-3 rounded-lg"
+                                            />
+
+                                            <div className="grid sm:grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-md font-semibold text-gray-700 mb-2">Start Time</label>
+                                                    <input
+                                                        type="time"
+                                                        value={slot.startTime}
+                                                        onChange={(e) => handleOnlineSlotChange(i, "startTime", e.target.value)}
+                                                        className="text-sm w-full border border-gray-300 p-3 rounded-lg"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-md font-semibold text-gray-700 mb-2">End Time</label>
+                                                    <input
+                                                        type="time"
+                                                        value={slot.endTime}
+                                                        onChange={(e) => handleOnlineSlotChange(i, "endTime", e.target.value)}
+                                                        className="text-sm w-full border border-gray-300 p-3 rounded-lg"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+
+                                    <button
+                                        onClick={addOnlineSlot}
+                                        className="text-sm w-full px-4 py-3 text-white rounded-lg transition-colors flex items-center justify-center gap-2 hover:opacity-90"
+                                        style={{ backgroundColor: 'rgb(47, 98, 136)' }}
+                                    >
+                                        <Plus className="w-4 h-4" />
+                                        Add Online Slot
+                                    </button>
                                 </div>
-
-                                <label className="block text-md font-semibold text-gray-700 mb-2">Prefered Date</label>
-
-                                <input
-                                    type="date"
-                                    value={slot.date}
-                                    onChange={(e) => handleSlotChange(i, "date", e.target.value)}
-                                    className="sm:flex block w-full border border-gray-300 p-3 rounded-lg "
-                                />
-
-                                <div className="grid sm:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-md font-semibold text-gray-700 mb-2">Start Time</label>
-                                        <input
-                                            type="time"
-                                            value={slot.startTime}
-                                            onChange={(e) => handleSlotChange(i, "startTime", e.target.value)}
-                                            className="text-sm w-full border border-gray-300 p-3 rounded-lg "
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-md font-semibold text-gray-700 mb-2">End Time</label>
-                                        <input
-                                            type="time"
-                                            value={slot.endTime}
-                                            onChange={(e) => handleSlotChange(i, "endTime", e.target.value)}
-                                            className="text-sm w-full border border-gray-300 p-3 rounded-lg "
-                                        />
-                                    </div>
-                                </div>
-
-                                {errors[`slot_${i}`] && <p className="text-red-500 text-sm">{errors[`slot_${i}`]}</p>}
                             </div>
-                        ))}
+                        )}
 
-                        <button
-                            onClick={addSessionSlot}
-                            className="text-sm w-full px-4 py-3 bg-[#2F6288] text-white rounded-lg transition-colors flex items-center justify-center gap-2"
-                        >
-                            Add New Slot
-                        </button>
+                        {/* Offline Slots */}
+                        {(formData?.guideCard?.subCategory === "Offline" || formData?.guideCard?.subCategory === "both") && (
+                            <div className="mb-6">
+                                <h3 className="text-lg font-semibold text-gray-700 mb-4">Session Offline Slots</h3>
+                                <div className="space-y-4">
+                                    {formData?.guideCard?.subCategory && formData?.session?.offlineSlots?.map((slot, i) => (
+                                        <div key={i} className="border border-gray-200 rounded-lg p-4 space-y-4 bg-green-50">
+                                            <div className="flex justify-between items-center">
+                                                <p className="font-semibold text-gray-700">Offline Slot {i + 1}</p>
+                                                {formData?.session?.offlineSlots.length > 1 && (
+                                                    <button
+                                                        onClick={() => removeSessionSlot("offline", i)}
+                                                        className="text-red-500 hover:text-red-700 p-1"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            <label className="block text-md font-semibold text-gray-700 mb-2">Preferred Date</label>
+                                            <input
+                                                type="date"
+                                                value={slot.date}
+                                                onChange={(e) => handleSlotChange(i, "date", e.target.value)}
+                                                className="sm:flex block w-full border border-gray-300 p-3 rounded-lg"
+                                            />
+
+                                            <div className="grid sm:grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-md font-semibold text-gray-700 mb-2">Start Time</label>
+                                                    <input
+                                                        type="time"
+                                                        value={slot.startTime}
+                                                        onChange={(e) => handleSlotChange("offline", "quarterly", i, "startTime", e.target.value)}
+                                                        className="text-sm w-full border border-gray-300 p-3 rounded-lg"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-md font-semibold text-gray-700 mb-2">End Time</label>
+                                                    <input
+                                                        type="time"
+                                                        value={slot.endTime}
+                                                        onChange={(e) => handleSlotChange("offline", "quarterly", i, "endTime", e.target.value)}
+                                                        className="text-sm w-full border border-gray-300 p-3 rounded-lg"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-md font-semibold text-gray-700 mb-2">Location</label>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Enter location for offline session"
+                                                    value={slot.location}
+                                                    onChange={(e) => handleSlotChange(i, "location", e.target.value)}
+                                                    className="text-sm w-full border border-gray-300 p-3 rounded-lg"
+                                                />
+                                            </div>
+                                        </div>
+                                    ))}
+
+                                    <button
+                                        onClick={addOfflineSlot}
+                                        className="text-sm w-full px-4 py-3 text-white rounded-lg transition-colors flex items-center justify-center gap-2 hover:opacity-90"
+                                        style={{ backgroundColor: 'rgb(47, 98, 136)' }}
+                                    >
+                                        <Plus className="w-4 h-4" />
+                                        Add Offline Slot
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
-                </div>
+                )}
 
                 {/* Save Button */}
                 <div className="flex gap-4">

@@ -3,12 +3,16 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
 const Razorpay = require("razorpay");
+const express = require("express");
 
 const { google } = require("googleapis");
 const { OAuth2Client } = require("google-auth-library");
 require("dotenv").config();
 
 const cors = require("cors")({ origin: true });
+
+// Import routes
+const slotsRoutes = require("./routes/slots");
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -497,3 +501,280 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
         return { status: "error", message: error.message };
     }
 });
+
+// Get available slots for a guide
+exports.getGuideSlots = functions.https.onCall(async (data, context) => {
+    try {
+        const { guideId, mode, plan } = data;
+        
+        if (!guideId || !mode) {
+            throw new functions.https.HttpsError(
+                'invalid-argument',
+                'Missing required parameters: guideId and mode'
+            );
+        }
+
+        // Fetch slots from Firestore
+        const slotsRef = db.collection('guide_slots')
+            .where('guideId', '==', guideId)
+            .where('mode', '==', mode.toLowerCase());
+        
+        const slotsSnapshot = await slotsRef.get();
+        
+        if (slotsSnapshot.empty) {
+            return { slots: [] };
+        }
+
+        const slots = [];
+        slotsSnapshot.forEach(doc => {
+            const slotData = doc.data();
+            slots.push({
+                id: doc.id,
+                ...slotData,
+                // Convert Firestore timestamp to ISO string if needed
+                date: slotData.date?.toDate?.() ? slotData.date.toDate().toISOString().split('T')[0] : slotData.date
+            });
+        });
+
+        // Filter slots based on plan type if needed
+        let filteredSlots = slots;
+        if (plan) {
+            filteredSlots = slots.filter(slot => 
+                slot.availableForPlans?.includes(plan) || !slot.availableForPlans
+            );
+        }
+
+        // Sort by date and time
+        filteredSlots.sort((a, b) => {
+            const dateA = new Date(`${a.date} ${a.time}`);
+            const dateB = new Date(`${b.date} ${b.time}`);
+            return dateA - dateB;
+        });
+
+        return { slots: filteredSlots };
+    } catch (error) {
+        console.error('Error fetching slots:', error);
+        throw new functions.https.HttpsError('internal', 'Failed to fetch slots');
+    }
+});
+
+// Book a guide slot
+exports.bookGuideSlot = functions.https.onCall(async (data, context) => {
+    try {
+        const { 
+            slotId, 
+            guideId, 
+            userId, 
+            userDetails, 
+            sessionData, 
+            selectedPlan, 
+            mode 
+        } = data;
+
+        if (!slotId || !guideId || !userDetails) {
+            throw new functions.https.HttpsError(
+                'invalid-argument',
+                'Missing required booking information'
+            );
+        }
+
+        // Start a transaction
+        const batch = db.batch();
+
+        // Update slot availability
+        const slotRef = db.collection('guide_slots').doc(slotId);
+        batch.update(slotRef, { 
+            available: false,
+            bookedBy: userId,
+            bookedAt: new Date(),
+            bookingDetails: {
+                userDetails,
+                selectedPlan,
+                mode
+            }
+        });
+
+        // Create booking record
+        const bookingRef = db.collection('guide_bookings').doc();
+        const bookingData = {
+            id: bookingRef.id,
+            slotId,
+            guideId,
+            userId,
+            userDetails,
+            sessionData,
+            selectedPlan,
+            mode,
+            status: 'confirmed',
+            createdAt: new Date(),
+            updatedAt: new Date()
+        };
+        batch.set(bookingRef, bookingData);
+
+        // Commit transaction
+        await batch.commit();
+
+        // Send confirmation emails
+        await sendGuideBookingEmails(bookingData);
+
+        return { 
+            success: true, 
+            bookingId: bookingRef.id,
+            message: 'Booking confirmed successfully' 
+        };
+    } catch (error) {
+        console.error('Error booking slot:', error);
+        throw new functions.https.HttpsError('internal', 'Failed to book slot');
+    }
+});
+
+// Send guide booking confirmation emails
+async function sendGuideBookingEmails(bookingData) {
+    try {
+        const { 
+            userDetails, 
+            sessionData, 
+            selectedPlan, 
+            mode,
+            slotId 
+        } = bookingData;
+
+        // Get slot details
+        const slotDoc = await db.collection('guide_slots').doc(slotId).get();
+        const slotData = slotDoc.data();
+
+        // Get guide details
+        const guideDoc = await db.collection('pilgrim_guides').doc(bookingData.guideId).get();
+        const guideData = guideDoc.data();
+
+        const emailData = {
+            // User details
+            userName: userDetails.name,
+            userEmail: userDetails.email,
+            userPhone: userDetails.phone,
+            
+            // Session details
+            sessionTitle: sessionData?.session?.title || 'Guide Session',
+            sessionDescription: sessionData?.session?.sessiondescription || '',
+            guideName: guideData?.session?.title || 'Guide',
+            
+            // Booking details
+            planType: selectedPlan,
+            mode: mode,
+            date: slotData?.date,
+            time: slotData?.time,
+            duration: slotData?.duration || 60,
+            timezone: 'Asia/Calcutta',
+            
+            // Booking metadata
+            bookingId: bookingData.id,
+            bookingDate: new Date().toLocaleDateString('en-IN'),
+            bookingTime: new Date().toLocaleTimeString('en-IN')
+        };
+
+        const adminEmail = "urbanpilgrim25@gmail.com";
+
+        // Send email to user
+        await transporter.sendMail({
+            from: gmailEmail,
+            to: userDetails.email,
+            subject: `Booking Confirmation - ${emailData.sessionTitle}`,
+            html: generateGuideBookingEmail('user', emailData)
+        });
+
+        // Send email to organizer/guide (if email exists)
+        if (guideData?.organizer?.email) {
+            await transporter.sendMail({
+                from: gmailEmail,
+                to: guideData.organizer.email,
+                subject: `New Booking - ${emailData.sessionTitle}`,
+                html: generateGuideBookingEmail('organizer', emailData)
+            });
+        }
+
+        // Send email to admin
+        await transporter.sendMail({
+            from: gmailEmail,
+            to: adminEmail,
+            subject: `New Guide Booking - ${emailData.sessionTitle}`,
+            html: generateGuideBookingEmail('admin', emailData)
+        });
+
+        console.log('Guide booking confirmation emails sent successfully');
+    } catch (error) {
+        console.error('Error sending guide booking emails:', error);
+        // Don't throw error as booking is already confirmed
+    }
+}
+
+// Generate email content for guide bookings
+function generateGuideBookingEmail(type, data) {
+    switch (type) {
+        case 'user':
+            return `
+                <h2>Booking Confirmation</h2>
+                <p>Dear ${data.userName},</p>
+                <p>Your booking has been confirmed for <strong>${data.sessionTitle}</strong></p>
+                
+                <h3>Booking Details:</h3>
+                <ul>
+                    <li><strong>Session:</strong> ${data.sessionTitle}</li>
+                    <li><strong>Guide:</strong> ${data.guideName}</li>
+                    <li><strong>Mode:</strong> ${data.mode}</li>
+                    <li><strong>Plan:</strong> ${data.planType}</li>
+                    <li><strong>Date:</strong> ${data.date}</li>
+                    <li><strong>Time:</strong> ${data.time}</li>
+                    <li><strong>Duration:</strong> ${data.duration} minutes</li>
+                    <li><strong>Timezone:</strong> ${data.timezone}</li>
+                    <li><strong>Booking ID:</strong> ${data.bookingId}</li>
+                </ul>
+                
+                <p>We look forward to your session!</p>
+                <p>Best regards,<br>Urban Pilgrim Team</p>
+            `;
+            
+        case 'organizer':
+            return `
+                <h2>New Booking Notification</h2>
+                <p>You have received a new booking for <strong>${data.sessionTitle}</strong></p>
+                
+                <h3>Booking Details:</h3>
+                <ul>
+                    <li><strong>Student:</strong> ${data.userName}</li>
+                    <li><strong>Email:</strong> ${data.userEmail}</li>
+                    <li><strong>Phone:</strong> ${data.userPhone}</li>
+                    <li><strong>Mode:</strong> ${data.mode}</li>
+                    <li><strong>Plan:</strong> ${data.planType}</li>
+                    <li><strong>Date:</strong> ${data.date}</li>
+                    <li><strong>Time:</strong> ${data.time}</li>
+                    <li><strong>Duration:</strong> ${data.duration} minutes</li>
+                    <li><strong>Booking ID:</strong> ${data.bookingId}</li>
+                </ul>
+                
+                <p>Please prepare for the session accordingly.</p>
+            `;
+            
+        case 'admin':
+            return `
+                <h2>New Guide Booking</h2>
+                <p>A new booking has been made for <strong>${data.sessionTitle}</strong></p>
+                
+                <h3>Booking Details:</h3>
+                <ul>
+                    <li><strong>Student:</strong> ${data.userName} (${data.userEmail})</li>
+                    <li><strong>Phone:</strong> ${data.userPhone}</li>
+                    <li><strong>Guide:</strong> ${data.guideName}</li>
+                    <li><strong>Mode:</strong> ${data.mode}</li>
+                    <li><strong>Plan:</strong> ${data.planType}</li>
+                    <li><strong>Date:</strong> ${data.date}</li>
+                    <li><strong>Time:</strong> ${data.time}</li>
+                    <li><strong>Duration:</strong> ${data.duration} minutes</li>
+                    <li><strong>Booking ID:</strong> ${data.bookingId}</li>
+                    <li><strong>Booked on:</strong> ${data.bookingDate} at ${data.bookingTime}</li>
+                </ul>
+            `;
+            
+        default:
+            return '<p>Booking confirmation</p>';
+    }
+}

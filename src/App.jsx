@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
+import { CartProvider } from "./context/CartContext";
 import NavBar from "./components/navbar/NavBar";
 import Loader from "./components/Loader";
 import Home from "./pages/home";
@@ -31,47 +32,49 @@ function App() {
   const isAdminRoute = location.pathname === "/admin" || location.pathname === "/userdashboard";
 
   return (
-    <div className="relative">
-      {/* Loader overlay */}
-      {loading && <Loader onFinish={() => setLoading(false)} />}
-      {loading && isAdminRoute && <div className="hidden">{setLoading(false)}</div>}
+    <CartProvider>
+      <div className="relative">
+        {/* Loader overlay */}
+        {loading && <Loader onFinish={() => setLoading(false)} />}
+        {loading && isAdminRoute && <div className="hidden">{setLoading(false)}</div>}
 
-      {/* Only show navbar & routes once loader is done */}
-      {!loading && (
-        <>
-          {!isAdminRoute && <NavBar />}
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/pilgrim_retreats" element={<Retreats />} />
-            <Route path="/pilgrim_sessions" element={<Sessions />} />
-            <Route path="/pilgrim_guides" element={<Guides />} />
-            <Route path="/contact" element={<ContactForm />} />
-            <Route path="/joinusguides" element={<JoinGuides />} />
-            <Route path="/joinusadvisors" element={<JoinAdvisors />} />
-            <Route path="/whyus" element={<WhyUs />} />
-            <Route path="/whoarewe" element={<WhoAreWe />} />
-            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-            <Route path="/yoga/:title" element={<YogaDesc />} />
-            <Route path="/cart" element={<CartPage />} />
-            {/* live session */}
-            <Route path="/session/:sessionId/details" element={<LiveDetails />} />
-            <Route path="/session/:sessionId/slots" element={<SessionSlots />} />
-            <Route path="/session/:sessionId/slots/description" element={<SessionDescription />} />
-            {/* recorded program */}
-            <Route path="/program/:programId/details" element={<ProgramDetails />} />
-            <Route path="/program/:programId/slots" element={<SessionSlots />} />
-            
-            <Route path="/guide/:guideClassName" element={<GuideClassDetails />} />
-            <Route path="/pilgrim_retreats/:retreatName" element={<Retreatdescription />} />
-            <Route path="/event/:eventName" element={<EventDetails />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="*" element={<Home replace={'/'} />} />
-            <Route path="/userdashboard" element={<UserDashboard />} />
-          </Routes>
-          {!isAdminRoute && <Footer className="mt-10" />}
-        </>
-      )}
-    </div>
+        {/* Only show navbar & routes once loader is done */}
+        {!loading && (
+          <>
+            {!isAdminRoute && <NavBar />}
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/pilgrim_retreats" element={<Retreats />} />
+              <Route path="/pilgrim_sessions" element={<Sessions />} />
+              <Route path="/pilgrim_guides" element={<Guides />} />
+              <Route path="/contact" element={<ContactForm />} />
+              <Route path="/joinusguides" element={<JoinGuides />} />
+              <Route path="/joinusadvisors" element={<JoinAdvisors />} />
+              <Route path="/whyus" element={<WhyUs />} />
+              <Route path="/whoarewe" element={<WhoAreWe />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/yoga/:title" element={<YogaDesc />} />
+              <Route path="/cart" element={<CartPage />} />
+              {/* live session */}
+              <Route path="/session/:sessionId/details" element={<LiveDetails />} />
+              <Route path="/session/:sessionId/slots" element={<SessionSlots />} />
+              <Route path="/session/:sessionId/slots/description" element={<SessionDescription />} />
+              {/* recorded program */}
+              <Route path="/program/:programId/details" element={<ProgramDetails />} />
+              <Route path="/program/:programId/slots" element={<SessionSlots />} />
+              
+              <Route path="/guide/:guideClassName" element={<GuideClassDetails />} />
+              <Route path="/pilgrim_retreats/:retreatName" element={<Retreatdescription />} />
+              <Route path="/event/:eventName" element={<EventDetails />} />
+              <Route path="/admin" element={<Admin />} />
+              <Route path="*" element={<Home replace={'/'} />} />
+              <Route path="/userdashboard" element={<UserDashboard />} />
+            </Routes>
+            {!isAdminRoute && <Footer className="mt-10" />}
+          </>
+        )}
+      </div>
+    </CartProvider>
   );
 }
 

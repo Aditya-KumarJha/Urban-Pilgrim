@@ -26,6 +26,12 @@ export default function Retreatdescription() {
     const [showBundlesPopup, setShowBundlesPopup] = useState(false);
     const uid = "user-uid";
 
+    const normalize = (str) =>
+        str
+            ?.toLowerCase()
+            .trim()
+            .replace(/[-\s]+/g, " "); 
+
     useEffect(() => {
         const fetchRetreat = async () => {
             try {
@@ -41,8 +47,10 @@ export default function Retreatdescription() {
                             ...data[key],
                         }));
 
+                    console.log("All retreats:", retreatsData);
+
                     const found = retreatsData.find(
-                        (r) => r.pilgrimRetreatCard?.title?.toLowerCase() === formattedTitle.toLowerCase()
+                        (r) => normalize(r.pilgrimRetreatCard?.title) === normalize(formattedTitle)
                     );
                     console.log("Found retreat:", found);
 
