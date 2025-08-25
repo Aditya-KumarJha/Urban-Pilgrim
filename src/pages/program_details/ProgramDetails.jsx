@@ -14,12 +14,14 @@ import { useSelector } from "react-redux";
 import { useDispatch } from "react-redux";
 import { addToCart } from "../../features/cartSlice.js"
 import { showSuccess } from "../../utils/toast.js"
+import BundlesPopup from "../../components/pilgrim_retreats/BundlesPopup.jsx";
 
 export default function ProgramDetails() {
     const params = useParams();
     const [programData, setProgramData] = useState(null);
     const programId = params.programId;
     const [persons, setPersons] = useState(1);
+    const [showBundlesPopup, setShowBundlesPopup] = useState(false);
     const dispatch = useDispatch();
     const navigate = useNavigate();
 
@@ -53,6 +55,11 @@ export default function ProgramDetails() {
     const decrement = () => setPersons((prev) => (prev > 1 ? prev - 1 : 1));
 
     const handleSubscriptionClick = () => {
+        // Show bundles popup instead of directly adding to cart
+        setShowBundlesPopup(true);
+    };
+
+    const handleDirectAddToCart = () => {
         if (!programData) return;
 
         const cartItem = {
@@ -233,6 +240,23 @@ export default function ProgramDetails() {
                     />
                 </motion.div>
             </div>
+
+            {/* Bundles Popup */}
+            <BundlesPopup 
+                isOpen={showBundlesPopup}
+                onClose={() => setShowBundlesPopup(false)}
+                retreatData={{
+                    id: programData?.recordedProgramCard?.title,
+                    pilgrimRetreatCard: {
+                        title: programData?.recordedProgramCard?.title,
+                        price: programData?.oneTimeSubscription?.price,
+                        location: programData?.recordedProgramCard?.location
+                    },
+                    oneTimePurchase: {
+                        images: [programData?.recordedProgramCard?.thumbnail]
+                    }
+                }}
+            />
         </>
     );
 }

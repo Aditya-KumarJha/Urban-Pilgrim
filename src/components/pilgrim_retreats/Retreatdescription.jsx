@@ -15,6 +15,7 @@ import { useEffect, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import WeatherSection from "./WeatherSection";
+import BundlesPopup from "./BundlesPopup";
 
 export default function Retreatdescription() {
 
@@ -22,6 +23,7 @@ export default function Retreatdescription() {
     const formattedTitle = retreatName.replace(/-/g, " ");
     console.log("title from params: ", formattedTitle);
     const [retreatData, setRetreatData] = useState(null);
+    const [showBundlesPopup, setShowBundlesPopup] = useState(false);
     const uid = "user-uid";
 
     useEffect(() => {
@@ -123,7 +125,10 @@ export default function Retreatdescription() {
                     
                     {/* Book Now button */}
                     <div className="flex justify-end items-end w-full gap-4 mt-6">
-                        <Button btn_name={"Book Now"} />
+                        <Button 
+                            btn_name={"Book Now"} 
+                            onClick={() => setShowBundlesPopup(true)}
+                        />
                     </div>
 
                     {/* Program Schedule */}
@@ -153,6 +158,13 @@ export default function Retreatdescription() {
                     <PersondetailsCard image="/assets/arati_prasad.png" title="Menopausal fitness - A 4 day regime curated by Aarti Prasad" price="Rs.4,000.00" />
                 </motion.div>
             </div>
+
+            {/* Bundles Popup */}
+            <BundlesPopup 
+                isOpen={showBundlesPopup}
+                onClose={() => setShowBundlesPopup(false)}
+                retreatData={retreatData}
+            />
         </>
     );
 }

@@ -1,16 +1,14 @@
 import React from 'react'
 import "./button.css";
-function button({ btn_name, className }) {
+function button({ btn_name, className, onClick, ...props }) {
   return (
-    <div >
+    <div onClick={onClick} {...props}>
       <div className={`btn_parent ${className}`}>
         <div className="btn_name ">
           {btn_name}
         </div>
       </div>
     </div>
-
-
   )
 }
 
