@@ -11,15 +11,21 @@ export const saveOrUpdateGuideData = async (uid, arrayName, newArray) => {
     if (!uid) throw new Error("User ID is required");
     console.log("Saving guide array:", JSON.stringify(newArray, null, 2));
 
+    // Add createdAt timestamp if not present
+    const dataWithTimestamp = {
+        ...newArray,
+        createdAt: newArray.createdAt || new Date().toISOString()
+    };
+
     // Correct Firestore path
     const docRef = doc(db, "pilgrim_guides", uid, "guides", "data");
 
     try {
-        await updateDoc(docRef, { [arrayName]: newArray });
+        await updateDoc(docRef, { [arrayName]: dataWithTimestamp });
         return "updated";
     } catch (error) {
         if (error.code === "not-found" || error.message.includes("No document to update")) {
-            await setDoc(docRef, { [arrayName]: newArray });
+            await setDoc(docRef, { [arrayName]: dataWithTimestamp });
             return "created";
         } else {
             console.error("Error saving/updating guide data:", error);

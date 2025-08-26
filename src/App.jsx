@@ -7,6 +7,7 @@ import Home from "./pages/home";
 import Retreats from "./pages/pilgrim_retreats/Retreats";
 import Sessions from "./pages/pilgrim_sessions/Sessions";
 import Guides from "./pages/pilgrim_guides/Guides";
+import UpcomingEvents from "./pages/upcoming_events/UpcomingEvents";
 import JoinGuides from "./pages/join_us_as_guides/JoinGuides";
 import JoinAdvisors from "./pages/join_us_as_trip_advisors/JoinAdvisors";
 import ContactForm from "./pages/contact/Contact";
@@ -47,6 +48,7 @@ function App() {
               <Route path="/pilgrim_retreats" element={<Retreats />} />
               <Route path="/pilgrim_sessions" element={<Sessions />} />
               <Route path="/pilgrim_guides" element={<Guides />} />
+              <Route path="/upcoming_events" element={<UpcomingEvents />} />
               <Route path="/contact" element={<ContactForm />} />
               <Route path="/joinusguides" element={<JoinGuides />} />
               <Route path="/joinusadvisors" element={<JoinAdvisors />} />
