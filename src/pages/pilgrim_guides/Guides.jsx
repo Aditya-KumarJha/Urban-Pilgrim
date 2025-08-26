@@ -5,12 +5,27 @@ import SEO from "../../components/SEO.jsx";
 import GuidesDemo from "../../components/pilgrim_guides/GuidesDemo";
 import WhyChooseUs from "../../components/pilgrim_guides/WhyChooseUs";
 import Testimonials from "../../components/Testimonials";
-import { useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 export default function Guides() {
+  const [filters, setFilters] = useState({
+    category: '',
+    mode: '',
+    experience: '',
+    price: '',
+    availability: ''
+  });
 
   useEffect(() => {
     window.scrollTo(0, 0);
+  }, []);
+
+  const handleFiltersChange = useCallback((newFilters) => {
+    setFilters(prev => ({ ...prev, ...newFilters }));
+  }, []);
+
+  const handleCategoryChange = useCallback((category) => {
+    setFilters(prev => ({ ...prev, category }));
   }, []);
 
   return (
@@ -34,7 +49,7 @@ export default function Guides() {
             <p>Find the teacher who resonates with your path</p>
             <WhyChooseUs />
             <div className="flex justify-between items-center flex-wrap gap-4 my-8">
-              <FilterBar />
+              <FilterBar onFiltersChange={handleFiltersChange} />
               <div className="flex items-center gap-2">
                 <span className="text-sm">Sort By:</span>
                 <button className="px-4 py-1 text-black border-2 border-[#00000033] rounded-full text-sm flex items-center gap-2">
@@ -44,10 +59,10 @@ export default function Guides() {
             </div>
           </div>
           <div className="absolute w-full -translate-y-1/3 px-4">
-            <CategorySelector />
+            <CategorySelector onCategoryChange={handleCategoryChange} />
           </div>
         </div>
-        <GuidesDemo />
+        <GuidesDemo filters={filters} />
       </div>
       <Testimonials />
     </>

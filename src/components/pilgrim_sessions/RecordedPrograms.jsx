@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import RecordedProgramCard from "./RecordedProgramCard";
 import { useDispatch } from "react-redux";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { setRecordedSessions } from "../../features/pilgrim_session/recordedSessionSlice";
 
-export default function RecordedPrograms() {
+export default function RecordedPrograms({ filters = {} }) {
 
     const [recordedProgramData, setRecordedProgramData] = useState(null);
     const dispatch = useDispatch();
@@ -30,7 +30,6 @@ export default function RecordedPrograms() {
         fetchRecordedPrograms();
     }, [dispatch]);
 
-    console.log("Data: ", recordedProgramData);
     const programs = recordedProgramData?.map((program) => ({
         image: program?.recordedProgramCard?.thumbnail,
         category: program?.recordedProgramCard?.category,
@@ -38,7 +37,67 @@ export default function RecordedPrograms() {
         days: program?.recordedProgramCard?.days,
         videos: program?.recordedProgramCard?.videos,
         price: program?.recordedProgramCard?.price,
+        features: program?.recordedProgramCard?.features,
+        duration: program?.recordedProgramCard?.duration,
+        mode: program?.recordedProgramCard?.subCategory,
     }));
+
+    // Filter programs based on applied filters
+    const filteredPrograms = useMemo(() => {
+        if (!programs?.length) return [];
+
+        return programs.filter(program => {
+            // Category filter
+            if (filters.category && program?.category) {
+                if (program.category.toLowerCase() !== filters.category.toLowerCase()) {
+                    return false;
+                }
+            }
+
+
+            // Type filter (only show if type is 'recorded' or no type filter)
+            if (filters.type && filters.type.toLowerCase() !== 'recorded') {
+                return false;
+            }
+
+            // Mode filter (check subCategory field)
+            if (filters.mode && program?.mode) {
+                if (program.mode.toLowerCase() !== filters.mode.toLowerCase()) {
+                    return false;
+                }
+            }
+
+            // Price filter
+            if (filters.price && program?.price) {
+                const price = parseFloat(program.price);
+                
+                switch (filters.price) {
+                    case 'Under ₹1,000':
+                        if (price >= 1000) return false;
+                        break;
+                    case '₹1,000-₹2,500':
+                        if (price < 1000 || price > 2500) return false;
+                        break;
+                    case '₹2,500-₹5,000':
+                        if (price < 2500 || price > 5000) return false;
+                        break;
+                    case '₹5,000+':
+                        if (price < 5000) return false;
+                        break;
+                }
+            }
+
+            // Duration filter
+            if (filters.duration && program?.duration) {
+                if (!program.duration.toLowerCase().includes(filters.duration.toLowerCase())) {
+                    return false;
+                }
+            }
+
+            return true;
+        });
+        
+    }, [programs, filters]);
 
     return (
         <section className="px-6 py-12 text-gray-900">
@@ -48,7 +107,7 @@ export default function RecordedPrograms() {
                 </h2>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {programs && programs.map((program, index) => (
+                    {filteredPrograms && filteredPrograms.map((program, index) => (
                         <RecordedProgramCard key={index} {...program} />
                     ))}
                 </div>

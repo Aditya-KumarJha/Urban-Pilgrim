@@ -4,13 +4,22 @@ import RetreatList from "../../components/pilgrim_retreats/RetreatList";
 import { MdKeyboardArrowDown } from "react-icons/md";
 import Testimonials from "../../components/Testimonials";
 import SEO from "../../components/SEO.jsx";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function Retreats() {
+    const [filters, setFilters] = useState({});
 
     useEffect(() => {
         window.scrollTo(0, 0);
     }, []);
+
+    const handleFiltersChange = (newFilters) => {
+        setFilters(prev => ({ ...prev, ...newFilters }));
+    };
+
+    const handleCategoryChange = (category) => {
+        setFilters(prev => ({ ...prev, category }));
+    };
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-[#FAF4F0] to-white mt-[100px]">
@@ -30,7 +39,7 @@ export default function Retreats() {
                 <div className="relative z-10 px-6 py-10 text-center">
                     <h1 className="text-4xl font-bold mb-4">Pilgrim Retreats</h1>
                     <div className="flex justify-between items-center flex-wrap gap-4 my-8">
-                        <FilterBar />
+                        <FilterBar onFiltersChange={handleFiltersChange} />
                         <div className="flex items-center gap-2">
                             <span className="text-sm">Sort By:</span>
                             <button className="px-4 py-1 text-black border-2 border-[#00000033] rounded-full text-sm flex items-center gap-2">
@@ -40,10 +49,12 @@ export default function Retreats() {
                     </div>
                 </div>
                 <div className="absolute w-full -translate-y-1/3 px-4">
-                    <CategorySelector />
+                    <CategorySelector 
+                        onCategoryChange={handleCategoryChange} 
+                    />
                 </div>
             </div>
-            <RetreatList />
+            <RetreatList filters={filters} />
             <Testimonials />
         </div>
     );

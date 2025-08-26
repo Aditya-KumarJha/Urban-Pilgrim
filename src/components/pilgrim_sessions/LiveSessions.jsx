@@ -1,11 +1,11 @@
 import { useDispatch } from "react-redux";
 import LiveSessionCard from "./LiveSessionCard";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { setLiveSessions } from "../../features/pilgrim_session/liveSessionsSlice";
 
-export default function LiveSessions() {
+export default function LiveSessions({ filters = {} }) {
 
     const [liveSessionData, setLiveSessionData] = useState(null);
     const dispatch = useDispatch();
@@ -30,7 +30,6 @@ export default function LiveSessions() {
         fetchLiveSession();
     }, [dispatch]);
 
-    console.log("Data: ", liveSessionData);
     const sessions = liveSessionData?.map((program) => ({
         image: program?.liveSessionCard?.thumbnail,
         category: program?.liveSessionCard?.category,
@@ -38,7 +37,67 @@ export default function LiveSessions() {
         days: program?.liveSessionCard?.days,
         videos: program?.liveSessionCard?.videos,
         price: program?.liveSessionCard?.price,
+        features: program?.liveSessionCard?.features,
+        duration: program?.liveSessionCard?.duration,
+        mode: program?.liveSessionCard?.subCategory,
     }));
+
+    // Filter sessions based on applied filters
+    const filteredSessions = useMemo(() => {
+        if (!sessions?.length) return [];
+
+        return sessions.filter(session => {
+            // Category filter
+            if (filters.category && session?.category) {
+                if (session.category.toLowerCase() !== filters.category.toLowerCase()) {
+                    return false;
+                }
+            }
+
+
+            // Type filter (only show if type is 'live' or no type filter)
+            if (filters.type && filters.type.toLowerCase() !== 'live') {
+                return false;
+            }
+
+            // Mode filter (check subCategory field)
+            if (filters.mode && session?.mode) {
+                if (session.mode.toLowerCase() !== filters.mode.toLowerCase()) {
+                    return false;
+                }
+            }
+
+            // Price filter
+            if (filters.price && session?.price) {
+                const price = parseFloat(session.price);
+                
+                switch (filters.price) {
+                    case 'Under ₹1,000':
+                        if (price >= 1000) return false;
+                        break;
+                    case '₹1,000-₹2,500':
+                        if (price < 1000 || price > 2500) return false;
+                        break;
+                    case '₹2,500-₹5,000':
+                        if (price < 2500 || price > 5000) return false;
+                        break;
+                    case '₹5,000+':
+                        if (price < 5000) return false;
+                        break;
+                }
+            }
+
+            // Duration filter
+            if (filters.duration && session?.duration) {
+                if (!session.duration.toLowerCase().includes(filters.duration.toLowerCase())) {
+                    return false;
+                }
+            }
+
+            return true;
+        });
+        
+    }, [sessions, filters]);
 
     return (
         <section className="px-6 py-12 text-gray-900">
@@ -48,7 +107,7 @@ export default function LiveSessions() {
                 </h2>
 
                 <div className="grid grid-cols-1 mt-10 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {sessions && sessions.map((session, index) => (
+                    {filteredSessions && filteredSessions.map((session, index) => (
                         <LiveSessionCard key={index} {...session} />
                     ))}
                 </div>

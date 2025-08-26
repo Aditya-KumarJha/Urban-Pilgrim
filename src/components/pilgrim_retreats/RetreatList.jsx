@@ -1,28 +1,11 @@
 import RetreatCard from "./RetreatCard";
-import { useEffect, useState } from "react";
-import { doc, getDoc } from "firebase/firestore";
+import { useEffect, useState, useMemo } from "react";
+import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { useDispatch } from "react-redux";
 import { setRetreatData } from "../../features/pilgrim_retreat/pilgrimRetreatSlice"
 
-
-// const retreats = [
-//     {
-//         title: "Reboot & Rejuvenate in the Himalayas (4 day retreat)",
-//         location: "Bhubaneswar, Odisha",
-//         price: "74,999.00",
-//         image: "https://picsum.photos/200",
-//     },
-//     {
-//         title: "Soul reboot on the Ganges (4 day retreat)",
-//         location: "Bhubaneswar, Odisha",
-//         price: "74,999.00",
-//         image: "https://picsum.photos/200",
-//     },
-// ];
-
-export default function RetreatList() {
-
+export default function RetreatList({ filters = {} }) {
     const [retreats, setRetreats] = useState([]);
     const uid = "user-uid";
     const dispatch = useDispatch();
@@ -30,19 +13,27 @@ export default function RetreatList() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const retreatRef = doc(db, `pilgrim_retreat/${uid}/retreats/data`);
-                const snapshot = await getDoc(retreatRef);
+                const retreatsRef = collection(db, `pilgrim_retreat/${uid}/retreats`);
+                const snapshot = await getDocs(retreatsRef);
 
-                if (snapshot.exists()) {
-                    const data = snapshot.data();
-
-                    // convert object to array with index
-                    const retreatsData = Object.keys(data)
-                        .sort((a, b) => Number(a) - Number(b)) 
-                        .map((key) => ({
-                            id: key,
-                            ...data[key],
-                        }));
+                if (!snapshot.empty) {
+                    const retreatsData = [];
+                    
+                    snapshot.forEach((doc) => {
+                        if (doc.id === 'data') {
+                            // Handle the 'data' document which contains numbered retreat objects
+                            const data = doc.data();
+                            Object.keys(data)
+                                .sort((a, b) => Number(a) - Number(b))
+                                .forEach((key) => {
+                                    retreatsData.push({
+                                        id: key,
+                                        ...data[key],
+                                    });
+                                });
+                        }
+                    });
+                    console.log(retreatsData);
 
                     setRetreats(retreatsData || []);
                     dispatch(setRetreatData(retreatsData || []));
@@ -57,11 +48,94 @@ export default function RetreatList() {
         if (uid) fetchData();
     }, [uid, dispatch]);
 
+    // Filter retreats based on applied filters
+    const filteredRetreats = useMemo(() => {
+        if (!retreats.length) return [];
+
+        return retreats.filter(retreat => {
+            // Category filter
+            if (filters.category && retreat?.pilgrimRetreatCard?.category) {
+                if (retreat.pilgrimRetreatCard.category.toLowerCase() !== filters.category.toLowerCase()) {
+                    return false;
+                }
+            }
+
+            // Features filter
+            if (filters.features && retreat?.features) {
+                const hasMatchingFeature = retreat.features.some(feature => {
+                    if (typeof feature === 'string') {
+                        return feature.toLowerCase().includes(filters.features.toLowerCase());
+                    }
+                    if (feature?.title) {
+                        return feature.title.toLowerCase().includes(filters.features.toLowerCase());
+                    }
+                    return false;
+                });
+                if (!hasMatchingFeature) return false;
+            }
+
+            // Location filter
+            if (filters.location && retreat?.location) {
+                if (filters.location === 'Others') {
+                    // For "Others", check if location doesn't match any of the specific locations
+                    const specificLocations = ['Chandigarh', 'Rishikesh', 'Kangra', 'Varanasi'];
+                    const matchesSpecificLocation = specificLocations.some(location => 
+                        retreat.location.toLowerCase().includes(location.toLowerCase())
+                    );
+                    if (matchesSpecificLocation) return false;
+                } else {
+                    // For specific locations, check if retreat location includes the filter
+                    if (!retreat.location.toLowerCase().includes(filters.location.toLowerCase())) {
+                        return false;
+                    }
+                }
+            }
+
+            // Price filter
+            if (filters.price && retreat?.pilgrimRetreatCard?.price) {
+                const price = parseFloat(retreat.pilgrimRetreatCard.price);
+                console.log("price",price);
+                
+                switch (filters.price) {
+                    case 'Under ₹10,000':
+                        if (price >= 10000) return false;
+                        break;
+                    case '₹10,000-₹25,000':
+                        if (price < 10000 || price > 25000) return false;
+                        break;
+                    case '₹25,000-₹50,000':
+                        if (price < 25000 || price > 50000) return false;
+                        break;
+                    case '₹50,000+':
+                        if (price < 50000) return false;
+                        break;
+                }
+            }
+
+            return true;
+        });
+
+    }, [retreats, filters]);
+
     return (
-        <div className="md:flex md:flex-wrap grid sm:grid-cols-2 gap-8 px-6 py-4 pt-10 md:pt-4 ">
-            {retreats.map((retreat) => (
-                <RetreatCard key={retreat.id} retreat={retreat} />
-            ))}
+        <div className="space-y-4">
+            {filteredRetreats.length === 0 ? (
+                <div className="text-center py-12">
+                    <p className="text-gray-500 text-lg">No retreats found matching your filters.</p>
+                    <p className="text-gray-400 text-sm mt-2">Try adjusting your filter criteria.</p>
+                </div>
+            ) : (
+                <>
+                    <div className="text-sm text-gray-600 p-6">
+                        Showing {filteredRetreats.length} of {retreats.length} retreats
+                    </div>
+                    <div className="md:px-10 px-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {filteredRetreats.map((retreat) => (
+                            <RetreatCard key={retreat.id} retreat={retreat} />
+                        ))}
+                    </div>
+                </>
+            )}
         </div>
     );
 

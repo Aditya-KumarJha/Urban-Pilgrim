@@ -1,11 +1,11 @@
 import { useDispatch } from "react-redux";
 import GuideCard from "./GuideCard";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { setGuides } from "../../features/pilgrim_guide/pilgrimGuideSlice"
 
-export default function GuidesDemo() {
+export default function GuidesDemo({ filters = {} }) {
 
     const [guideData, setGuideData] = useState(null);
     const dispatch = useDispatch();
@@ -30,13 +30,66 @@ export default function GuidesDemo() {
         fetchLiveSession();
     }, [dispatch]);
 
-    console.log("Data: ", guideData);
-    const sessions = guideData?.map((program) => ({
+    const guides = guideData?.map((program) => ({
         image: program?.guideCard?.thumbnail,
         category: program?.guideCard?.category,
         title: program?.guideCard?.title,
         price: program?.guideCard?.price,
+        mode: program?.guideCard?.subCategory,
+        experience: program?.guideCard?.experience,
+        availability: program?.guideCard?.availability,
     }));
+
+    // Filter guides based on applied filters
+    const filteredGuides = useMemo(() => {
+        if (!guides?.length) return [];
+
+        return guides.filter(guide => {
+            // Category filter
+            if (filters.category && guide?.category) {
+                if (guide.category.toLowerCase() !== filters.category.toLowerCase()) {
+                    return false;
+                }
+            }
+
+            // Mode filter
+            if (filters.mode && guide?.mode) {
+                if (guide.mode.toLowerCase() !== filters.mode.toLowerCase()) {
+                    return false;
+                }
+            }
+
+            // Price filter
+            if (filters.price && guide?.price) {
+                const price = parseFloat(guide.price);
+                
+                switch (filters.price) {
+                    case 'Under ₹1,000/hr':
+                        if (price >= 1000) return false;
+                        break;
+                    case '₹1,000-₹2,500/hr':
+                        if (price < 1000 || price > 2500) return false;
+                        break;
+                    case '₹2,500-₹5,000/hr':
+                        if (price < 2500 || price > 5000) return false;
+                        break;
+                    case '₹5,000+/hr':
+                        if (price < 5000) return false;
+                        break;
+                }
+            }
+
+            // Availability filter
+            if (filters.availability && guide?.availability) {
+                if (!guide.availability.toLowerCase().includes(filters.availability.toLowerCase())) {
+                    return false;
+                }
+            }
+
+            return true;
+        });
+        
+    }, [guides, filters]);
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -46,8 +99,8 @@ export default function GuidesDemo() {
         <section className="px-6 py-12 text-gray-900">
             <div className="max-w-7xl mx-auto">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {sessions && sessions.map((session, index) => (
-                        <GuideCard key={index} {...session} />
+                    {filteredGuides && filteredGuides.map((guide, index) => (
+                        <GuideCard key={index} {...guide} />
                     ))}
                 </div>
             </div>
