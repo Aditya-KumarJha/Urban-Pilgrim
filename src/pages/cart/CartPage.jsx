@@ -124,8 +124,6 @@ export default function CartPage() {
 		return <Loader2 />
 	}
 
-
-
 	return (
 		<div className="min-h-screen px-4 md:px-12 py-10 mt-[100px]">
 			<SEO title="Your Cart | Urban Pilgrim" description="View and manage your cart." />

@@ -1,34 +1,21 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FaSearch, FaChevronDown } from "react-icons/fa";
 import { IoIosArrowForward, IoIosArrowDown } from "react-icons/io";
 import { TbUserSquareRounded } from "react-icons/tb";
 import { BsNut } from "react-icons/bs";
 import { HiMenu } from "react-icons/hi";
 import Pagination from "./Pagination";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { signOut } from "firebase/auth";
-import { auth } from "../services/firebase";
+import { auth, db } from "../services/firebase";
 import { logout } from "../features/authSlice";
 import { showSuccess } from "../utils/toast";
 import { useNavigate } from "react-router-dom";
-import { clearUserPrograms } from "../features/userProgramsSlice";
+import { clearUserPrograms, setUserPrograms } from "../features/userProgramsSlice";
+import { doc, getDoc } from "firebase/firestore";
+import { clearAllEvents } from "../features/eventsSlice";
 
-const purchases = [
-    {
-        session: "Discover your true...",
-        date: "12-06-2025",
-        category: "Yoga, Meditation",
-        price: 74999.0,
-        status: "Completed",
-    },
-    {
-        session: "Discover your true...",
-        date: "12-06-2025",
-        category: "Yoga",
-        price: 74999.0,
-        status: "Failed",
-    },
-];
+// Mock data removed - will use Redux data instead
 
 const StatusBadge = ({ status }) => {
     const colors =
@@ -47,20 +34,85 @@ const StatusBadge = ({ status }) => {
 
 function Dashboard() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [filteredPrograms, setFilteredPrograms] = useState([]);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [loading, setLoading] = useState(true);
+    
     const dispatch = useDispatch();
     const navigate = useNavigate();
+    
+    // Get data from Redux store
+    const userPrograms = useSelector((state) => state.userProgram);
+    const currentUser = useSelector((state) => state.auth.user);
+
+    // Fetch user programs from Firestore
+    useEffect(() => {
+        const fetchUserPrograms = async () => {
+            if (!currentUser?.uid) {
+                setLoading(false);
+                return;
+            }
+
+            try {
+                const userRef = doc(db, "users", currentUser.uid, "info", "details");
+                const userSnap = await getDoc(userRef);
+
+                if (userSnap.exists()) {
+                    const userData = userSnap.data();
+                    const programs = userData.yourPrograms || [];
+                    dispatch(setUserPrograms(programs));
+                } else {
+                    dispatch(setUserPrograms([]));
+                }
+            } catch (error) {
+                console.error("Error fetching user programs:", error);
+                dispatch(setUserPrograms([]));
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchUserPrograms();
+    }, [currentUser?.uid, dispatch]);
+
+    // Filter programs based on search term
+    useEffect(() => {
+        if (!userPrograms) {
+            setFilteredPrograms([]);
+            return;
+        }
+
+        const filtered = userPrograms.filter(program => 
+            program.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            program.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            program.type?.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+        setFilteredPrograms(filtered);
+    }, [userPrograms, searchTerm]);
 
     const handleLogout = async () => {
         try {
             await signOut(auth);
             dispatch(logout());
             dispatch(clearUserPrograms());
+            dispatch(clearAllEvents());
             console.log("Logout successful");
             showSuccess("Logout successful");
             navigate("/");
         } catch (err) {
             console.error("Logout failed:", err);
         }
+    };
+
+    // Format program data for display
+    const formatProgramData = (program) => {
+        return {
+            session: program.title || "Unknown Program",
+            date: program.purchasedAt ? new Date(program.purchasedAt).toLocaleDateString('en-GB') : "N/A",
+            category: program.category || program.type || "General",
+            price: program.price || 0,
+            status: program.paymentId ? "Completed" : "Pending"
+        };
     };
 
     return (
@@ -110,14 +162,24 @@ function Dashboard() {
 
                 <div className="flex justify-between items-center p-4 sm:p-6 mt-auto">
                     <div>
-                        <p className="text-gray-800 font-medium text-xs sm:text-sm">Evano</p>
+                        <p className="text-gray-800 font-medium text-xs sm:text-sm">
+                        {(() => {
+                            let username = currentUser?.email?.split("@")[0] || "";
+                            
+                            // Remove all trailing digits or special chars (like ., _, - etc.)
+                            username = username.replace(/[\d\W]+$/g, "");
+                            
+                            // Capitalize first letter
+                            return username.charAt(0).toUpperCase() + username.slice(1);
+                        })()}
+                        </p>
                         <button
                             onClick={handleLogout}
                             className="mt-1 text-xs sm:text-sm text-red-600 hover:text-red-700 font-medium"
                         >
                             Log out
                         </button>
-                        <p className="text-gray-500 text-[10px] sm:text-xs">evano@gmail.com</p>
+                        <p className="text-gray-500 text-[10px] sm:text-xs">{currentUser?.email}</p>
                     </div>
                     <IoIosArrowDown className="text-gray-600 cursor-pointer text-base sm:text-xl" />
                 </div>
@@ -144,7 +206,16 @@ function Dashboard() {
                             <HiMenu className="w-6 h-6" />
                         </button>
                         <h1 className="text-xl font-semibold flex-1 text-center lg:text-left lg:text-2xl">
-                            Hello Evano 👋🏻,
+                            Hello {" "}
+                            {(() => {
+                                let username = currentUser?.email?.split("@")[0] || "";
+                                
+                                // Remove all trailing digits or special chars (like ., _, - etc.)
+                                username = username.replace(/[\d\W]+$/g, "");
+                                
+                                // Capitalize first letter
+                                return username.charAt(0).toUpperCase() + username.slice(1);
+                            })()} 👋🏻
                         </h1>
                     </div>
 
@@ -154,6 +225,8 @@ function Dashboard() {
                         <input
                             type="text"
                             placeholder="Search"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
                             className="ml-2 flex-1 bg-transparent focus:outline-none focus:ring-0 text-sm placeholder-gray-400"
                         />
                     </div>
@@ -171,7 +244,9 @@ function Dashboard() {
                                 <FaSearch className="text-gray-400" />
                                 <input
                                     type="text"
-                                    placeholder="Search"
+                                    placeholder="Search programs..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
                                     className="ml-2 flex-1 bg-transparent focus:outline-none focus:ring-0 text-sm placeholder-gray-400"
                                 />
                             </div>
@@ -187,44 +262,71 @@ function Dashboard() {
 
                     {/* Table */}
                     <div className="overflow-x-auto text-nowrap mt-12">
-                        <table className="w-full text-left text-sm min-w-[600px]">
-                            <thead className="bg-white border-b">
-                                <tr className="text-[#B5B7C0]">
-                                    <th className="px-6 py-3 font-medium">Session Name</th>
-                                    <th className="px-6 py-3 font-medium">Date</th>
-                                    <th className="px-6 py-3 font-medium">Category</th>
-                                    <th className="px-6 py-3 font-medium">Price</th>
-                                    <th className="px-6 py-3 font-medium">Payment Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {purchases.map((p, i) => (
-                                    <tr key={i} className="border-b hover:bg-gray-50">
-                                        <td className="px-6 py-4">{p.session}</td>
-                                        <td className="px-6 py-4">{p.date}</td>
-                                        <td className="px-6 py-4">{p.category}</td>
-                                        <td className="px-6 py-4 font-semibold">
-                                            ₹{" "}
-                                            {p.price.toLocaleString("en-IN", {
-                                                minimumFractionDigits: 2,
-                                            })}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <StatusBadge status={p.status} />
-                                        </td>
+                        {loading ? (
+                            <div className="flex justify-center items-center py-12">
+                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C16A00]"></div>
+                                <span className="ml-3 text-gray-600">Loading your programs...</span>
+                            </div>
+                        ) : filteredPrograms.length === 0 ? (
+                            <div className="text-center py-12">
+                                <div className="text-gray-400 text-lg mb-2">📚</div>
+                                <p className="text-gray-600 text-lg font-medium">No programs found</p>
+                                <p className="text-gray-500 text-sm mt-1">
+                                    {searchTerm ? "Try adjusting your search terms" : "You haven't purchased any programs yet"}
+                                </p>
+                            </div>
+                        ) : (
+                            <table className="w-full text-left text-sm min-w-[600px]">
+                                <thead className="bg-white border-b">
+                                    <tr className="text-[#B5B7C0]">
+                                        <th className="px-6 py-3 font-medium">Session Name</th>
+                                        <th className="px-6 py-3 font-medium">Date</th>
+                                        <th className="px-6 py-3 font-medium">Category</th>
+                                        <th className="px-6 py-3 font-medium">Price</th>
+                                        <th className="px-6 py-3 font-medium">Payment Status</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {filteredPrograms.map((program, i) => {
+                                        const formattedProgram = formatProgramData(program);
+                                        return (
+                                            <tr key={i} className="border-b hover:bg-gray-50">
+                                                <td className="px-6 py-4" title={formattedProgram.session}>
+                                                    {formattedProgram.session.length > 30 
+                                                        ? `${formattedProgram.session.substring(0, 30)}...` 
+                                                        : formattedProgram.session}
+                                                </td>
+                                                <td className="px-6 py-4">{formattedProgram.date}</td>
+                                                <td className="px-6 py-4">{formattedProgram.category}</td>
+                                                <td className="px-6 py-4 font-semibold">
+                                                    ₹{" "}
+                                                    {Number(formattedProgram.price).toLocaleString("en-IN", {
+                                                        minimumFractionDigits: 2,
+                                                    })}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <StatusBadge status={formattedProgram.status} />
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        )}
                     </div>
 
                     {/* Pagination */}
-                    <div className="flex flex-col sm:flex-row justify-between items-center mt-4 gap-3 px-2">
-                        <span className="text-[#B5B7C0] text-sm text-center sm:text-left">
-                            Showing data 1 to 8 of 256K entries
-                        </span>
-                        <Pagination totalPages={3} />
-                    </div>
+                    {filteredPrograms.length > 0 && (
+                        <div className="flex flex-col sm:flex-row justify-between items-center mt-4 gap-3 px-2">
+                            <span className="text-[#B5B7C0] text-sm text-center sm:text-left">
+                                Showing {filteredPrograms.length} of {userPrograms.length} {userPrograms.length === 1 ? 'program' : 'programs'}
+                                {searchTerm && ` matching "${searchTerm}"`}
+                            </span>
+                            {filteredPrograms.length > 10 && (
+                                <Pagination totalPages={Math.ceil(filteredPrograms.length / 10)} />
+                            )}
+                        </div>
+                    )}
                 </div>
             </main>
         </div>

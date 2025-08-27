@@ -352,7 +352,7 @@ function Home() {
 
                         {/* Card */}
                         <ViewAll link="/pilgrim_guides" />
-                        <div className="c6bottom lg:!gap-20 lg:!overflow-visible overflow-hidden">
+                        <div className="c6bottom lg:!gap-10 lg:!overflow-visible overflow-hidden">
                             {
                                 guideData &&
                                 guideData.map((guide, index) => (

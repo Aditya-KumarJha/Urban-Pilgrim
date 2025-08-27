@@ -14,6 +14,9 @@ import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../services/firebase";
+import { useSelector, useDispatch } from "react-redux";
+import { fetchAllEvents } from "../../utils/fetchEvents";
+import EventCard from "../upcoming_events/EventCard";
 import WeatherSection from "./WeatherSection";
 import BundlesPopup from "./BundlesPopup";
 
@@ -25,6 +28,10 @@ export default function Retreatdescription() {
     const [retreatData, setRetreatData] = useState(null);
     const [showBundlesPopup, setShowBundlesPopup] = useState(false);
     const uid = "user-uid";
+    const dispatch = useDispatch();
+    
+    // Get events from Redux store
+    const { allEvents } = useSelector((state) => state.allEvents);
 
     const normalize = (str) =>
         str
@@ -63,6 +70,21 @@ export default function Retreatdescription() {
 
         if (retreatName && uid) fetchRetreat();
     }, [retreatName, formattedTitle]);
+
+    // Fetch all events if not already loaded
+    useEffect(() => {
+        const loadEvents = async () => {
+            if (!allEvents || Object.keys(allEvents).length === 0) {
+                try {
+                    await fetchAllEvents(dispatch);
+                } catch (error) {
+                    console.error("Error fetching events:", error);
+                }
+            }
+        };
+        
+        loadEvents();
+    }, [dispatch, allEvents]);
 
     return (
         <>
@@ -160,10 +182,43 @@ export default function Retreatdescription() {
                     You May Also Like
                 </h2>
 
-                <motion.div className="c5bottom" initial={{ y: 100, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} viewport={{ once: true, amount: 0.1 }}>
-                    <PersondetailsCard image="/assets/Rohini_singh.png" title="Discover your true self - A 28 day program with Rohini Singh Sisodia" price="Rs.14,999.00" />
-                    <PersondetailsCard image="/assets/Anisha.png" title="Let's meditate for an hour - With Anisha" price="Rs.199.00" />
-                    <PersondetailsCard image="/assets/arati_prasad.png" title="Menopausal fitness - A 4 day regime curated by Aarti Prasad" price="Rs.4,000.00" />
+                <motion.div 
+                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" 
+                    initial={{ y: 100, opacity: 0 }} 
+                    whileInView={{ y: 0, opacity: 1 }} 
+                    transition={{ duration: 0.5, ease: "easeOut" }} 
+                    viewport={{ once: true, amount: 0.1 }}
+                >
+                    {allEvents && Object.keys(allEvents).length > 0 ? (
+                        Object.entries(allEvents)
+                            .filter(([id, eventData]) => {
+                                // Filter out the current retreat and show only first 3 events
+                                const currentRetreatTitle = retreatData?.pilgrimRetreatCard?.title?.toLowerCase();
+                                const eventTitle = eventData?.upcomingSessionCard?.title?.toLowerCase();
+                                return eventTitle !== currentRetreatTitle && eventData?.upcomingSessionCard?.image;
+                            })
+                            .slice(0, 3)
+                            .sort(() => Math.random() - 0.5) // Randomize the order
+                            .map(([id, eventData]) => {
+                                console.log(eventData)
+                                return (
+                                    <PersondetailsCard 
+                                        key={id}
+                                        image={eventData?.upcomingSessionCard?.image || '/assets/default-event.png'}
+                                        title={eventData?.upcomingSessionCard?.title || 'Event'}
+                                        price={`${eventData?.upcomingSessionCard?.price || '0'}`}
+                                        type={eventData?.type || 'retreat'}
+                                    />
+                                );
+                            })
+                    ) : (
+                        // Fallback to original cards if no events loaded
+                        <>
+                            <PersondetailsCard image="/assets/Rohini_singh.png" title="Discover your true self - A 28 day program with Rohini Singh Sisodia" price="Rs.14,999.00" />
+                            <PersondetailsCard image="/assets/Anisha.png" title="Let's meditate for an hour - With Anisha" price="Rs.199.00" />
+                            <PersondetailsCard image="/assets/arati_prasad.png" title="Menopausal fitness - A 4 day regime curated by Aarti Prasad" price="Rs.4,000.00" />
+                        </>
+                    )}
                 </motion.div>
             </div>
 

@@ -62,7 +62,7 @@ export default function CartItem({ item, onRemove, onQuantityChange, onPersonsCh
                 </p>
                 {(quantity > 1 || persons > 1) && (
                     <p className="text-xs text-gray-500">
-                        ₹ {item?.price?.toLocaleString()} each × {persons} persons × {quantity} qty
+                        ₹ {item?.price?.toLocaleString()} each × {persons} persons
                     </p>
                 )}
             </div>
@@ -77,29 +77,7 @@ export default function CartItem({ item, onRemove, onQuantityChange, onPersonsCh
                 >
                     <FiTrash2 size={18} />
                 </button>
-
-                {/* Quantity Controls */}
-                <div className="flex items-center gap-2 border rounded-lg">
-                    <button
-                        onClick={handleDecrementQty}
-                        disabled={quantity <= 1}
-                        className="p-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        aria-label="Decrease quantity"
-                    >
-                        <FiMinus size={14} />
-                    </button>
-                    <span className="px-3 py-1 text-sm font-medium min-w-[2rem] text-center">
-                        {quantity}
-                    </span>
-                    <button
-                        onClick={handleIncrementQty}
-                        className="p-2 transition-colors"
-                        aria-label="Increase quantity"
-                    >
-                        <FiPlus size={14} />
-                    </button>
-                </div>
-
+                
                 {/* Persons Controls */}
                 <div className="flex items-center gap-2 border rounded-lg">
                     <button

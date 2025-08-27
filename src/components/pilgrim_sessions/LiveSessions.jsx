@@ -54,7 +54,6 @@ export default function LiveSessions({ filters = {} }) {
                 }
             }
 
-
             // Type filter (only show if type is 'live' or no type filter)
             if (filters.type && filters.type.toLowerCase() !== 'live') {
                 return false;

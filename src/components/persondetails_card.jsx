@@ -2,10 +2,35 @@ import { motion } from "framer-motion";
 import { FaChevronRight } from "react-icons/fa";
 import NormalArrowButton from "./ui/NormalArrowButton"; // adjust if needed
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-const PersonDetailsSlider = ({ image, title, price }) => {
+const PersonDetailsSlider = ({ image, title, price, type="" }) => {
 
     const [isLargeScreen, setIsLargeScreen] = useState(false);
+    const navigate = useNavigate();
+
+    const handleNavigation = () => {
+        const slug = title.replace(/\s+/g, '-').toLowerCase();
+        
+        switch (type) {
+            case 'retreat':
+                navigate(`/pilgrim_retreats/${slug}`);
+                break;
+            case 'guide':
+                navigate(`/guide/${slug}`);
+                break;
+            case 'live-session':
+                navigate(`/session/${slug}/details`);
+                break;
+            case 'recorded-session':
+                navigate(`/program/${slug}/details`);
+                break;
+            default:
+                // Fallback navigation
+                navigate(`/event/${slug}`);
+                break;
+        }
+    };
 
     useEffect(() => {
         const checkScreen = () => {
@@ -62,6 +87,7 @@ const PersonDetailsSlider = ({ image, title, price }) => {
                                 icon={FaChevronRight}
                                 dir={-1}
                                 className="size-8"
+                                onClick={handleNavigation}
                             />
                         </div>
                     </div>

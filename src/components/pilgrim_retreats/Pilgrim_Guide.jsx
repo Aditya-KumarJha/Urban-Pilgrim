@@ -5,7 +5,7 @@ const PilgrimGuide = ({ guides }) => {
                 <img
                     src={guides?.image}
                     alt="Pilgrim Guide"
-                    className="w-auto md:h-full md:max-h-none max-h-90 rounded-lg shadow-lg object-cover"
+                    className="w-full aspect-[3/4] md:w-2/7 md:h-full md:max-h-none max-h-90 rounded-lg shadow-lg object-cover"
                 />
 
                 <div className="text-sm leading-relaxed">
@@ -24,7 +24,6 @@ const PilgrimGuide = ({ guides }) => {
                                     </p>
                                 );
                             })}
-
                     </p>
                 </div>
             </div>

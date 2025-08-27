@@ -11,6 +11,7 @@ export default function BundlesPopup({ isOpen, onClose, retreatData }) {
     const [loading, setLoading] = useState(true);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [bundlesPerView, setBundlesPerView] = useState(3);
+    const [expandedBundles, setExpandedBundles] = useState({});
     const dispatch = useDispatch();
 
     useEffect(() => {
@@ -84,6 +85,13 @@ export default function BundlesPopup({ isOpen, onClose, retreatData }) {
         }
     };
 
+    const toggleExpand = (bundleId, variant) => {
+        setExpandedBundles(prev => ({
+            ...prev,
+            [`${bundleId}-${variant}`]: !prev[`${bundleId}-${variant}`]
+        }));
+    };      
+
     const visibleBundles = bundles.slice(currentIndex, currentIndex + bundlesPerView);
 
     if (!isOpen) return null;
@@ -110,7 +118,7 @@ export default function BundlesPopup({ isOpen, onClose, retreatData }) {
                             <div className="flex items-center gap-2 sm:gap-3">
                                 <Package className="w-6 h-6 sm:w-8 sm:h-8" />
                                 <div>
-                                    <h2 className="text-lg sm:text-2xl font-bold">Special Bundles</h2>
+                                    <h2 className="text-lg sm:text-2xl font-bold">Bundles</h2>
                                     <p className="text-blue-100 text-sm sm:text-base hidden sm:block">Save more with our curated bundles</p>
                                 </div>
                             </div>
@@ -180,6 +188,7 @@ export default function BundlesPopup({ isOpen, onClose, retreatData }) {
 
                                                 {/* Variants */}
                                                 <div className="space-y-2 sm:space-y-4">
+                                                    {/* Variant 1 */}
                                                     {bundle.variant1 && bundle.variant1.programs?.length > 0 && (
                                                         <div className="border border-gray-200 rounded-lg p-3 sm:p-4">
                                                             <div className="flex items-center justify-between mb-1 sm:mb-3">
@@ -188,19 +197,30 @@ export default function BundlesPopup({ isOpen, onClose, retreatData }) {
                                                                     {bundle.variant1.programs.length}
                                                                 </span>
                                                             </div>
+                                                            {/* Variant 1 Programs */}
                                                             <div className="space-y-0.5 sm:space-y-2 mb-1 sm:mb-3">
-                                                                {bundle.variant1.programs.slice(0, 2).map((program, index) => (
+                                                                {(expandedBundles[`${bundle.id}-variant1`] 
+                                                                    ? bundle.variant1.programs 
+                                                                    : bundle.variant1.programs.slice(0, 2)
+                                                                ).map((program, index) => (
                                                                     <div key={index} className="flex items-center gap-1 sm:gap-2 text-xs text-gray-600">
                                                                         <div className="w-1 h-1 sm:w-2 sm:h-2 bg-[#2F6288] rounded-full flex-shrink-0"></div>
                                                                         <span className="truncate text-xs">{program.title}</span>
                                                                     </div>
                                                                 ))}
+
                                                                 {bundle.variant1.programs.length > 2 && (
-                                                                    <div className="text-xs text-gray-500 text-center">
-                                                                        +{bundle.variant1.programs.length - 2} more
-                                                                    </div>
+                                                                    <button
+                                                                        onClick={() => toggleExpand(bundle.id, "variant1")}
+                                                                        className="text-xs text-blue-600 hover:underline text-center w-full"
+                                                                    >
+                                                                        {expandedBundles[`${bundle.id}-variant1`] 
+                                                                            ? "Show less" 
+                                                                            : `+${bundle.variant1.programs.length - 2} more`}
+                                                                    </button>
                                                                 )}
                                                             </div>
+
                                                             <div className="flex items-center justify-between mb-1 sm:mb-3">
                                                                 <div className="text-left">
                                                                     <div className="text-sm sm:text-2xl font-bold text-[#2F6288]">
@@ -227,7 +247,8 @@ export default function BundlesPopup({ isOpen, onClose, retreatData }) {
                                                         </div>
                                                     )}
 
-                                                    {bundle.variant2 && bundle.variant2.programs?.length > 0 && (
+                                                    {/* Variant 2 */}
+                                                    {bundle?.variant2 && bundle?.variant2?.programs?.length > 0 && (
                                                         <div className="border border-gray-200 rounded-md sm:rounded-lg p-2 sm:p-4">
                                                             <div className="flex items-center justify-between mb-1 sm:mb-3">
                                                                 <h4 className="font-semibold text-gray-800 text-xs sm:text-base truncate pr-1 flex-1">{bundle.variant2.name}</h4>
@@ -235,19 +256,30 @@ export default function BundlesPopup({ isOpen, onClose, retreatData }) {
                                                                     {bundle.variant2.programs.length}
                                                                 </span>
                                                             </div>
+                                                            {/* Variant 2 Programs */}
                                                             <div className="space-y-0.5 sm:space-y-2 mb-1 sm:mb-3">
-                                                                {bundle.variant2.programs.slice(0, 2).map((program, index) => (
+                                                                {(expandedBundles[`${bundle.id}-variant2`] 
+                                                                    ? bundle.variant2.programs 
+                                                                    : bundle.variant2.programs.slice(0, 2)
+                                                                ).map((program, index) => (
                                                                     <div key={index} className="flex items-center gap-1 sm:gap-2 text-xs text-gray-600">
-                                                                        <div className="w-1 h-1 sm:w-2 sm:h-2 bg-[#2F6288] rounded-full flex-shrink-0"></div>
-                                                                        <span className="truncate text-xs">{program.title}</span>
+                                                                    <div className="w-1 h-1 sm:w-2 sm:h-2 bg-[#2F6288] rounded-full flex-shrink-0"></div>
+                                                                    <span className="truncate text-xs">{program.title}</span>
                                                                     </div>
                                                                 ))}
-                                                                {bundle.variant2.programs.length > 2 && (
-                                                                    <div className="text-xs text-gray-500 text-center">
-                                                                        +{bundle.variant2.programs.length - 2} more
-                                                                    </div>
+
+                                                                {bundle?.variant2?.programs?.length > 2 && (
+                                                                    <button
+                                                                    onClick={() => toggleExpand(bundle.id, "variant2")}
+                                                                    className="text-xs text-blue-600 hover:underline text-center w-full"
+                                                                    >
+                                                                    {expandedBundles[`${bundle.id}-variant2`] 
+                                                                        ? "Show less" 
+                                                                        : `+${bundle.variant2.programs.length - 2} more`}
+                                                                    </button>
                                                                 )}
                                                             </div>
+
                                                             <div className="flex items-center justify-between mb-1 sm:mb-3">
                                                                 <div className="text-left">
                                                                     <div className="text-sm sm:text-2xl font-bold text-[#2F6288]">
@@ -300,17 +332,19 @@ export default function BundlesPopup({ isOpen, onClose, retreatData }) {
                     </div>
 
                     {/* Footer */}
-                    <div className="bg-gray-50 px-2 sm:px-6 py-2 sm:py-4 border-t flex-shrink-0">
+                    <div className="bg-gray-50 px-2 sm:px-6 py-3 sm:py-5 border-t flex-shrink-0">
                         <div className="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-4">
                             <div className="text-xs sm:text-sm text-gray-600 text-center sm:text-left">
-                                <p>✨ Save up to {Math.max(...bundles.map(b => b.discount || 0))}% with our bundles</p>
+                                <p className="font-medium">
+                                    {retreatData?.pilgrimRetreatCard?.title || "Spiritual Program"}
+                                </p>
                             </div>
                             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
                                 <button
                                     onClick={onClose}
                                     className="px-3 sm:px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-xs sm:text-base"
                                 >
-                                    Continue Shopping
+                                    Browse More Options
                                 </button>
                                 <button
                                     onClick={() => {

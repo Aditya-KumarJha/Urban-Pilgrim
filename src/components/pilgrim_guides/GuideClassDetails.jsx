@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
 import { FiChevronDown } from "react-icons/fi";
 import GuideCard from "./GuideCard";
+import { motion } from "framer-motion";
 import SlotModal from "./SlotModal";
 import CalendarModal from "./CalendarModal";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { useParams } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
+import { fetchAllEvents } from "../../utils/fetchEvents";
+import { useDispatch, useSelector } from "react-redux";
+import PersondetailsCard from "../../components/persondetails_card";
 
 export default function GuideClassDetails() {
     const { addToCart } = useCart();
@@ -15,9 +19,12 @@ export default function GuideClassDetails() {
     const [quantity, setQuantity] = useState(1);
     const [showModal, setShowModal] = useState(false);
     const [showCalendar, setShowCalendar] = useState(false);
-    const [selectedPlan, setSelectedPlan] = useState(null);
+    const [selectedPlan, setSelectedPlan] = useState("");
     const [subscriptionType, setSubscriptionType] = useState(null);
     const [availableSlots, setAvailableSlots] = useState([]);
+    const [mainImage, setMainImage] = useState('');
+    const [galleryImages, setGalleryImages] = useState([]);
+    const dispatch = useDispatch();
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -45,6 +52,24 @@ export default function GuideClassDetails() {
         },
     ];
 
+    // Get events from Redux store
+    const { allEvents } = useSelector((state) => state.allEvents);
+    
+    // Fetch all events if not already loaded
+    useEffect(() => {
+        const loadEvents = async () => {
+            if (!allEvents || Object.keys(allEvents).length === 0) {
+                try {
+                    await fetchAllEvents(dispatch);
+                } catch (error) {
+                    console.error("Error fetching events:", error);
+                }
+            }
+        };
+
+        loadEvents();
+    }, [dispatch, allEvents]);
+
     const { guideClassName } = useParams();
     const formattedTitle = guideClassName.replace(/-/g, " ");
     const [sessionData, setSessionData] = useState(null);
@@ -53,13 +78,28 @@ export default function GuideClassDetails() {
     // Auto-set subscription type based on availability
     useEffect(() => {
         if (sessionData) {
-            // Check for online/offline monthly subscriptions first
+            const availablePlans = [];
+            
+            // Check which plans are available
             if (sessionData.online?.monthly?.price || sessionData.offline?.monthly?.price) {
-                setSubscriptionType("monthly");
-            } else if (sessionData.online?.quarterly?.price || sessionData.offline?.quarterly?.price) {
-                setSubscriptionType("quarterly");
-            } else if (sessionData.online?.oneTime?.price || sessionData.offline?.oneTime?.price) {
-                setSubscriptionType("oneTime");
+                availablePlans.push("monthly");
+            }
+            if (sessionData.online?.quarterly?.price || sessionData.offline?.quarterly?.price) {
+                availablePlans.push("quarterly");
+            }
+            if (sessionData.online?.oneTime?.price || sessionData.offline?.oneTime?.price) {
+                availablePlans.push("oneTime");
+            }
+            
+            // If only one plan is available, auto-select it
+            if (availablePlans.length === 1) {
+                setSubscriptionType(availablePlans[0]);
+                setSelectedPlan(availablePlans[0]);
+            }
+            // If multiple plans available, don't auto-select (let user choose)
+            else if (availablePlans.length > 1) {
+                setSubscriptionType(null);
+                setSelectedPlan("");
             }
         }
     }, [sessionData]);
@@ -85,6 +125,15 @@ export default function GuideClassDetails() {
                     );
 
                     setSessionData(found || null);
+
+                    // Extract and set gallery images from session.images
+                    if (found?.session?.images && Array.isArray(found.session.images)) {
+                        setGalleryImages(found.session.images);
+                        setMainImage(found?.guideCard?.thumbnail || found.session.images[0] || '');
+                    } else {
+                        setMainImage(found?.guideCard?.thumbnail || '');
+                        setGalleryImages([]);
+                    }
                 }
             } catch (error) {
                 console.error("Error fetching session:", error);
@@ -156,12 +205,36 @@ export default function GuideClassDetails() {
             {/* Image and subscription */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-7xl mx-auto px-4 py-10">
                 {/* Image */}
-                <div className="flex-shrink-0">
+                <div className="flex-shrink-0 space-y-4">
+                    {/* Main Image */}
                     <img
-                        src={sessionData?.guideCard?.thumbnail}
+                        src={mainImage || sessionData?.guideCard?.thumbnail}
                         alt="Instructor"
                         className="rounded-xl xl:h-[400px] xl:w-[700px] md:h-[450px] sm:h-[480px] object-cover"
                     />
+                    
+                    {/* Gallery Images */}
+                    {galleryImages.length > 0 && (
+                        <div className="flex gap-3 overflow-x-auto pb-2">
+                            {/* Main thumbnail */}
+                            <img
+                                src={sessionData?.guideCard?.thumbnail}
+                                alt="Main thumbnail"
+                                className="w-20 h-20 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0"
+                                onClick={() => setMainImage(sessionData?.guideCard?.thumbnail)}
+                            />
+                            {/* Gallery thumbnails */}
+                            {galleryImages.map((image, index) => (
+                                <img
+                                    key={index}
+                                    src={image}
+                                    alt={`Gallery ${index + 1}`}
+                                    className="w-20 h-20 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0"
+                                    onClick={() => setMainImage(image)}
+                                />
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 {/* Subscription and mode */}
@@ -539,16 +612,50 @@ export default function GuideClassDetails() {
 
             </div>
 
-            {/* Recommendations */}
-            <div className="max-w-7xl mx-auto my-10 p-4">
+            
+            {/* You may also like */}
+            <div className="max-w-7xl mx-auto p-6 bg-white rounded-2xl grid gap-6 px-4">
                 <h2 className="text-3xl text-[#2F6288] font-bold mb-6">
-                    You May Also Like <span className="bg-[#2F6288] mt-2 w-[88px] h-1 block"></span>
+                    You May Also Like
                 </h2>
-                <div className="grid grid-cols-1 mt-10 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {sessions.map((session, index) => (
-                        <GuideCard key={index} {...session} />
-                    ))}
-                </div>
+
+                <motion.div 
+                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" 
+                    initial={{ y: 100, opacity: 0 }} 
+                    whileInView={{ y: 0, opacity: 1 }} 
+                    transition={{ duration: 0.5, ease: "easeOut" }} 
+                    viewport={{ once: true, amount: 0.1 }}
+                >
+                    {allEvents && Object.keys(allEvents).length > 0 ? (
+                        Object.entries(allEvents)
+                            .filter(([id, eventData]) => {
+                                // Filter out the current live session and show events with images
+                                const currentSessionTitle = sessionData?.liveSessionCard?.title?.toLowerCase();
+                                const eventTitle = eventData?.upcomingSessionCard?.title?.toLowerCase();
+                                return eventTitle !== currentSessionTitle && eventData?.upcomingSessionCard?.image;
+                            })
+                            .sort(() => Math.random() - 0.5) // Randomize the order
+                            .slice(0, 3)
+                            .map(([id, eventData]) => {
+                                return (
+                                    <PersondetailsCard 
+                                        key={id}
+                                        image={eventData?.upcomingSessionCard?.image || '/assets/default-event.png'}
+                                        title={eventData?.upcomingSessionCard?.title || 'Event'}
+                                        price={`${eventData?.upcomingSessionCard?.price || '0'}`}
+                                        type={eventData?.type || 'live-session'}
+                                    />
+                                );
+                            })
+                    ) : (
+                        // Fallback to original cards if no events loaded
+                        <>
+                            <PersondetailsCard image="/assets/Rohini_singh.png" title="Discover your true self - A 28 day program with Rohini Singh Sisodia" price="Rs.14,999.00" />
+                            <PersondetailsCard image="/assets/Anisha.png" title="Let's meditate for an hour - With Anisha" price="Rs.199.00" />
+                            <PersondetailsCard image="/assets/arati_prasad.png" title="Menopausal fitness - A 4 day regime curated by Aarti Prasad" price="Rs.4,000.00" />
+                        </>
+                    )}
+                </motion.div>
             </div>
 
             {showModal && <SlotModal onClose={() => setShowModal(false)} />}

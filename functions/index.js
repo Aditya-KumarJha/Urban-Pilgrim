@@ -14,12 +14,12 @@ admin.initializeApp();
 const db = admin.firestore();
 
 const serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT);
-const gmailEmail = "nabinagrawal64@gmail.com";
-const gmailPassword = "ehhhfqgdjkqsykuv";
+const gmailEmail = process.env.APP_GMAIL;
+const gmailPassword = process.env.APP_GMAIL_PASSWORD;
 
 const razorpay = new Razorpay({
-    key_id: "rzp_test_5Qxb0fQ1nBKqtZ",
-    key_secret: "P5jUmWpLEhbO6xwedDb55jZr",
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
 // Configure email transporter (using Gmail/SendGrid/etc)
@@ -47,10 +47,52 @@ exports.sendOtp = functions.https.onCall(async (data, context) => {
 
     // Send OTP email
     await transporter.sendMail({
-        from: "nabinagrawal64@gmail.com",
+        from: gmailEmail,
         to: email,
-        subject: "Your OTP Code",
-        text: `Your OTP code is ${Otp}. It will expire in 5 minutes.`,
+        subject: "Your Urban Pilgrim Verification Code",
+        html: `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Urban Pilgrim OTP</title>
+            </head>
+            <body style="margin: 0; padding: 0; font-family: 'Arial', sans-serif; background-color: #f4f4f4;">
+                <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+                    <!-- Header -->
+                    <div style="background: linear-gradient(135deg, #2F6288 0%, #C5703F 100%); padding: 30px 20px; text-align: center;">
+                        <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">Urban Pilgrim</h1>
+                        <p style="color: #ffffff; margin: 10px 0 0 0; opacity: 0.9; font-size: 16px;">Your Spiritual Journey Awaits</p>
+                    </div>
+                    
+                    <!-- Content -->
+                    <div style="padding: 40px 30px;">
+                        <div style="text-align: center; margin-bottom: 30px;">
+                            <h2 style="color: #2F6288; margin: 0 0 10px 0; font-size: 24px;">Verification Code</h2>
+                            <p style="color: #666; margin: 0; font-size: 16px;">Enter this code to complete your login</p>
+                        </div>
+                        
+                        <!-- OTP Code -->
+                        <div style="background: #f8f9fa; border: 2px dashed #C5703F; border-radius: 12px; padding: 25px; text-align: center; margin: 30px 0;">
+                            <div style="font-size: 36px; font-weight: bold; color: #2F6288; letter-spacing: 8px; font-family: 'Courier New', monospace;">${Otp}</div>
+                        </div>
+                        
+                        <div style="text-align: center; margin: 30px 0;">
+                            <p style="color: #666; margin: 0 0 10px 0; font-size: 14px;">This code will expire in <strong style="color: #C5703F;">5 minutes</strong></p>
+                            <p style="color: #999; margin: 0; font-size: 13px;">If you didn't request this code, please ignore this email.</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Footer -->
+                    <div style="background: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #eee;">
+                        <p style="color: #999; margin: 0; font-size: 12px;">© 2024 Urban Pilgrim. All rights reserved.</p>
+                        <p style="color: #999; margin: 5px 0 0 0; font-size: 12px;">This is an automated message, please do not reply.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `,
     });
 
     return { success: true };
@@ -165,15 +207,7 @@ exports.createOrder = functions.https.onCall(async (data, context) => {
 
 exports.confirmPayment = functions.https.onCall(async (data, context) => {
     try {
-        const {
-            userId,
-            email,
-            name,
-            cartData,
-            total,
-            paymentResponse,
-            formData,
-        } = data.data;
+        const { userId, email, name, cartData, total, paymentResponse, formData, } = data.data;
 
         const adminEmail = "urbanpilgrim25@gmail.com";
 
@@ -390,24 +424,125 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
         await transporter.sendMail({
             from: gmailEmail,
             to: email,
-            subject: "Urban Pilgrim - Purchase Confirmation",
-            html: `<h2>Hi ${name},</h2>
-                <p>Thank you for your purchase. You bought:</p>
-                <p><b>${programList}</b></p>
-                <p>Total Paid: ₹${total}</p>
-                <p>Payment ID: ${paymentResponse.razorpay_payment_id}</p>`,
+            subject: "Purchase Confirmed - Urban Pilgrim",
+            html: `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="utf-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Purchase Confirmation</title>
+                </head>
+                <body style="margin: 0; padding: 0; font-family: 'Arial', sans-serif; background-color: #f4f4f4;">
+                    <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+                        <!-- Header -->
+                        <div style="background: linear-gradient(135deg, #2F6288 0%, #C5703F 100%); padding: 30px 20px; text-align: center;">
+                            <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">Urban Pilgrim</h1>
+                            <p style="color: #ffffff; margin: 10px 0 0 0; opacity: 0.9; font-size: 16px;">Your Spiritual Journey Begins</p>
+                        </div>
+                        
+                        <!-- Content -->
+                        <div style="padding: 20px 30px 40px;">
+                            <h2 style="color: #2F6288; text-align: center; margin: 20px 0; font-size: 24px;">Purchase Confirmed!</h2>
+                            <p style="color: #666; text-align: center; margin: 0 0 30px 0; font-size: 16px;">Hi ${name}, thank you for choosing Urban Pilgrim for your spiritual journey.</p>
+                            
+                            <!-- Purchase Details -->
+                            <div style="background: #f8f9fa; border-radius: 12px; padding: 25px; margin: 25px 0;">
+                                <h3 style="color: #2F6288; margin: 0 0 15px 0; font-size: 18px;">📋 Purchase Details</h3>
+                                <div style="border-left: 4px solid #C5703F; padding-left: 15px; margin: 15px 0;">
+                                    <p style="color: #333; margin: 0; font-size: 15px; line-height: 1.6;">${programList}</p>
+                                </div>
+                                
+                                <div style="border-top: 1px solid #eee; padding-top: 15px; margin-top: 20px;">
+                                    <div style="display: flex; justify-content: space-between; margin: 8px 0;">
+                                        <span style="color: #666; font-size: 14px;">Total Amount:</span>
+                                        <span style="color: #2F6288; font-weight: bold; font-size: 18px;">₹${total}</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; margin: 8px 0;">
+                                        <span style="color: #666; font-size: 14px;">Payment ID:</span>
+                                        <span style="color: #666; font-size: 14px; font-family: monospace;">${paymentResponse.razorpay_payment_id}</span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; margin: 8px 0;">
+                                        <span style="color: #666; font-size: 14px;">Purchase Date:</span>
+                                        <span style="color: #666; font-size: 14px;">${new Date().toLocaleDateString('en-IN')}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Next Steps -->
+                            <div style="background: linear-gradient(135deg, #2F6288, #C5703F); border-radius: 12px; padding: 20px; margin: 25px 0; text-align: center;">
+                                <h3 style="color: #ffffff; margin: 0 0 10px 0; font-size: 18px;">🚀 What's Next?</h3>
+                                <p style="color: #ffffff; margin: 0; opacity: 0.9; font-size: 14px;">You'll receive separate emails with session details and calendar invites for your programs.</p>
+                            </div>
+                            
+                            <div style="text-align: center; margin: 30px 0;">
+                                <p style="color: #666; margin: 0; font-size: 14px;">Need help? Contact us at <a href="mailto:urbanpilgrim25@gmail.com" style="color: #C5703F;">urbanpilgrim25@gmail.com</a></p>
+                            </div>
+                        </div>
+                        
+                        <!-- Footer -->
+                        <div style="background: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #eee;">
+                            <p style="color: #999; margin: 0; font-size: 12px;">© 2024 Urban Pilgrim. All rights reserved.</p>
+                            <p style="color: #999; margin: 5px 0 0 0; font-size: 12px;">Thank you for being part of our spiritual community.</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `,
         });
 
         // Email to admin
         await transporter.sendMail({
             from: gmailEmail,
             to: adminEmail,
-            subject: "New Program Purchase - Urban Pilgrim",
-            html: `<h3>New Purchase</h3>
-                <p>User: ${name} (${email})</p>
-                <p>Programs: ${programList}</p>
-                <p>Total: ₹${total}</p>
-                <p>Payment ID: ${paymentResponse.razorpay_payment_id}</p>`,
+            subject: "New Purchase Alert - Urban Pilgrim",
+            html: `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="utf-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>New Purchase Alert</title>
+                </head>
+                <body style="margin: 0; padding: 0; font-family: 'Arial', sans-serif; background-color: #f4f4f4;">
+                    <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+                        <!-- Header -->
+                        <div style="background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%); padding: 25px 20px; text-align: center;">
+                            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">New Purchase Alert</h1>
+                            <p style="color: #ffffff; margin: 10px 0 0 0; opacity: 0.9; font-size: 14px;">Urban Pilgrim Admin Dashboard</p>
+                        </div>
+                        
+                        <!-- Content -->
+                        <div style="padding: 30px;">
+                            <div style="background: #f8f9fa; border-left: 4px solid #4CAF50; padding: 20px; margin: 20px 0; border-radius: 8px;">
+                                <h3 style="color: #2E7D32; margin: 0 0 15px 0; font-size: 18px;">Customer Information</h3>
+                                <p style="color: #333; margin: 5px 0; font-size: 15px;"><strong>Name:</strong> ${name}</p>
+                                <p style="color: #333; margin: 5px 0; font-size: 15px;"><strong>Email:</strong> <a href="mailto:${email}" style="color: #4CAF50;">${email}</a></p>
+                            </div>
+                            
+                            <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 20px; margin: 20px 0; border-radius: 8px;">
+                                <h3 style="color: #856404; margin: 0 0 15px 0; font-size: 18px;">Purchase Details</h3>
+                                <p style="color: #333; margin: 10px 0; font-size: 15px; line-height: 1.6;">${programList}</p>
+                                <div style="border-top: 1px solid #ffeaa7; padding-top: 15px; margin-top: 15px;">
+                                    <p style="color: #333; margin: 5px 0; font-size: 16px;"><strong>Total Amount: ₹${total}</strong></p>
+                                    <p style="color: #666; margin: 5px 0; font-size: 14px;">Payment ID: <code style="background: #f1f1f1; padding: 2px 6px; border-radius: 4px;">${paymentResponse.razorpay_payment_id}</code></p>
+                                    <p style="color: #666; margin: 5px 0; font-size: 14px;">Date: ${new Date().toLocaleString('en-IN')}</p>
+                                </div>
+                            </div>
+                            
+                            <div style="text-align: center; margin: 25px 0;">
+                                <p style="color: #666; margin: 0; font-size: 14px;">Please follow up with the customer for session scheduling if required.</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Footer -->
+                        <div style="background: #f8f9fa; padding: 15px; text-align: center; border-top: 1px solid #eee;">
+                            <p style="color: #999; margin: 0; font-size: 12px;">Urban Pilgrim Admin Notification System</p>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `,
         });
 
         // ------------------------
@@ -468,26 +603,66 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                         sendUpdates: "all",
                     });
 
-                    console.log(
-                        "Created Google Calendar event:",
-                        createdEvent.data
-                    );
-
                     // const meetLink = createdEvent.data.conferenceData?.entryPoints?.[0]?.uri;
                     const meetLink = program?.organizer?.googleMeetLink;
                     console.log("Google Meet Link:", meetLink);
 
-                    const mailHtml = `<h2>Booking Confirmed: ${program.title}</h2>
-                            <p><b>Date:</b> ${slot.date}</p>
-                            <p><b>Time:</b> ${slot.startTime} - ${slot.endTime}</p>
-                            <p><b>Persons:</b> ${program.persons}</p>
-                            <p><b>Google Meet Link:</b> <a href="${meetLink}" target="_blank">${meetLink}</a></p>`;
+                    const mailHtml = `
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta charset="utf-8">
+                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                            <title>Live Session Booking</title>
+                        </head>
+                        <body style="margin: 0; padding: 0; font-family: 'Arial', sans-serif; background-color: #f4f4f4;">
+                            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+                                <!-- Header -->
+                                <div style="background: linear-gradient(135deg, #2F6288 0%, #C5703F 100%); padding: 25px 20px; text-align: center;">
+                                    <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Live Session Confirmed</h1>
+                                    <p style="color: #ffffff; margin: 10px 0 0 0; opacity: 0.9; font-size: 16px;">${program.title}</p>
+                                </div>
+                                
+                                <!-- Content -->
+                                <div style="padding: 30px;">
+                                    <div style="background: #f8f9fa; border-radius: 12px; padding: 25px; margin: 20px 0;">
+                                        <div style="margin: 15px 0;">
+                                            <span style="color: #666; font-size: 14px; display: block; margin-bottom: 5px;">Date</span>
+                                            <span style="color: #333; font-size: 16px; font-weight: bold;">${slot.date}</span>
+                                        </div>
+                                        <div style="margin: 15px 0;">
+                                            <span style="color: #666; font-size: 14px; display: block; margin-bottom: 5px;">Time</span>
+                                            <span style="color: #333; font-size: 16px; font-weight: bold;">${slot.startTime} - ${slot.endTime}</span>
+                                        </div>
+                                        <div style="margin: 15px 0;">
+                                            <span style="color: #666; font-size: 14px; display: block; margin-bottom: 5px;">Participants</span>
+                                            <span style="color: #333; font-size: 16px; font-weight: bold;">${program.persons}</span>
+                                        </div>
+                                        <div style="margin: 15px 0;">
+                                            <span style="color: #666; font-size: 14px; display: block; margin-bottom: 5px;">🔗 Meeting Link</span>
+                                            <a href="${meetLink}" target="_blank" style="color: #C5703F; font-size: 16px; font-weight: bold; text-decoration: none;">${meetLink}</a>
+                                        </div>
+                                    </div>
+                                    
+                                    <div style="background: linear-gradient(135deg, #2F6288, #C5703F); border-radius: 12px; padding: 20px; margin: 25px 0; text-align: center;">
+                                        <p style="color: #ffffff; margin: 0; font-size: 14px;">Calendar invite has been sent to all participants</p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Footer -->
+                                <div style="background: #f8f9fa; padding: 15px; text-align: center; border-top: 1px solid #eee;">
+                                    <p style="color: #999; margin: 0; font-size: 12px;">Urban Pilgrim Live Sessions</p>
+                                </div>
+                            </div>
+                        </body>
+                        </html>
+                    `;
 
                     // Mail send to admin
                     await transporter.sendMail({
                         from: gmailEmail,
                         to: adminEmail,
-                        subject: `A user is booked a live session - ${program.title}`,
+                        subject: `🎯 Live Session Booked - ${program.title}`,
                         html: mailHtml,
                     });
                 }
@@ -513,7 +688,7 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                     endDateTime.setHours(endDateTime.getHours() + 1);
                 }
 
-                console.log("Guide organizer data:", program);
+                // console.log("Guide organizer data:", program);
                 const event = {
                     summary: `Guide Session: ${program.title}`,
                     description: `Guide session booking for ${program.title}
@@ -553,46 +728,85 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                 const meetLink = program?.organizer?.googleMeetLink || 'TBD';
                 console.log("Guide Meet Link:", meetLink);
 
-                const guideMailHtml = `<h2>Guide Session Booking Confirmed: ${program.title}</h2>
-                        <p><b>Date:</b> ${program.date}</p>
-                        <p><b>Time:</b> ${program.slot.time}${program.slot.endTime ? ` - ${program.slot.endTime}` : ' (1 hour)'}</p>
-                        <p><b>Mode:</b> ${program.mode}</p>
-                        <p><b>Subscription Type:</b> ${program.subscriptionType}</p>
-                        <p><b>Duration:</b> ${program.slot.duration || 60} minutes</p>
-                        ${program.mode === 'Online' ? 
-                            `<p><b>Google Meet Link:</b> <a href="${meetLink}" target="_blank">${meetLink}</a></p>` :
-                            `<p><b>Location:</b> ${program.slot.location || 'In-person session'}</p>`
-                        }`;
-
-                // Mail to user
-                await transporter.sendMail({
-                    from: gmailEmail,
-                    to: email,
-                    subject: `Guide Session Confirmed - ${program.title}`,
-                    html: guideMailHtml,
-                });
+                const guideMailHtml = `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset="utf-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <title>Guide Session Booking</title>
+                    </head>
+                    <body style="margin: 0; padding: 0; font-family: 'Arial', sans-serif; background-color: #f4f4f4;">
+                        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+                            <!-- Header -->
+                            <div style="background: linear-gradient(135deg, #2F6288 0%, #C5703F 100%); padding: 25px 20px; text-align: center;">
+                                <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Guide Session Booked</h1>
+                                <p style="color: #ffffff; margin: 10px 0 0 0; opacity: 0.9; font-size: 16px;">${program.title}</p>
+                            </div>
+                            
+                            <!-- Customer Info -->
+                            <div style="background: #e3f2fd; padding: 20px; margin: 0;">
+                                <h3 style="color: #1976d2; margin: 0 0 10px 0; font-size: 16px;">Customer Information</h3>
+                                <p style="color: #333; margin: 5px 0; font-size: 14px;"><strong>Name:</strong> ${name}</p>
+                                <p style="color: #333; margin: 5px 0; font-size: 14px;"><strong>Email:</strong> <a href="mailto:${email}" style="color: #1976d2;">${email}</a></p>
+                            </div>
+                            
+                            <!-- Content -->
+                            <div style="padding: 30px;">
+                                <div style="background: #f8f9fa; border-radius: 12px; padding: 25px; margin: 20px 0;">
+                                    <div style="margin: 15px 0;">
+                                        <span style="color: #666; font-size: 14px; display: block; margin-bottom: 5px;">Date</span>
+                                        <span style="color: #333; font-size: 16px; font-weight: bold;">${program.date}</span>
+                                    </div>
+                                    <div style="margin: 15px 0;">
+                                        <span style="color: #666; font-size: 14px; display: block; margin-bottom: 5px;">Time</span>
+                                        <span style="color: #333; font-size: 16px; font-weight: bold;">${program.slot.time}${program.slot.endTime ? ` - ${program.slot.endTime}` : ' (1 hour)'}</span>
+                                    </div>
+                                    <div style="margin: 15px 0;">
+                                        <span style="color: #666; font-size: 14px; display: block; margin-bottom: 5px;">Mode</span>
+                                        <span style="color: #333; font-size: 16px; font-weight: bold;">${program.mode}</span>
+                                    </div>
+                                    <div style="margin: 15px 0;">
+                                        <span style="color: #666; font-size: 14px; display: block; margin-bottom: 5px;">Subscription</span>
+                                        <span style="color: #333; font-size: 16px; font-weight: bold;">${program.subscriptionType}</span>
+                                    </div>
+                                    <div style="margin: 15px 0;">
+                                        <span style="color: #666; font-size: 14px; display: block; margin-bottom: 5px;"> Duration</span>
+                                        <span style="color: #333; font-size: 16px; font-weight: bold;">${program.slot.duration || 60} minutes</span>
+                                    </div>
+                                    ${program.mode === 'Online' ? 
+                                        `<div style="margin: 15px 0;">
+                                            <span style="color: #666; font-size: 14px; display: block; margin-bottom: 5px;">🔗 Meeting Link</span>
+                                            <a href="${meetLink}" target="_blank" style="color: #C5703F; font-size: 16px; font-weight: bold; text-decoration: none;">${meetLink}</a>
+                                        </div>` :
+                                        `<div style="margin: 15px 0;">
+                                            <span style="color: #666; font-size: 14px; display: block; margin-bottom: 5px;">Location</span>
+                                            <span style="color: #333; font-size: 16px; font-weight: bold;">${program.slot.location || 'In-person session'}</span>
+                                        </div>`
+                                    }
+                                </div>
+                                
+                                <div style="background: linear-gradient(135deg, #2F6288, #C5703F); border-radius: 12px; padding: 20px; margin: 25px 0; text-align: center;">
+                                    <p style="color: #ffffff; margin: 0; font-size: 14px;">Calendar invite has been sent to all participants</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Footer -->
+                            <div style="background: #f8f9fa; padding: 15px; text-align: center; border-top: 1px solid #eee;">
+                                <p style="color: #999; margin: 0; font-size: 12px;">Urban Pilgrim Guide Sessions</p>
+                            </div>
+                        </div>
+                    </body>
+                    </html>
+                `;
 
                 // Mail to admin
                 await transporter.sendMail({
                     from: gmailEmail,
                     to: adminEmail,
-                    subject: `New Guide Session Booking - ${program.title}`,
-                    html: `<h3>New Guide Session Booking</h3>
-                            <p>User: ${name} (${email})</p>
-                            ${guideMailHtml}`,
+                    subject: `🧘‍♀️ Guide Session Booked - ${program.title}`,
+                    html: guideMailHtml,
                 });
-
-                // Mail to organizer (if different from admin)
-                if (program?.organizer?.email && program.organizer.email !== adminEmail) {
-                    await transporter.sendMail({
-                        from: gmailEmail,
-                        to: program.organizer.email,
-                        subject: `New Guide Session Booking - ${program.title}`,
-                        html: `<h3>You have a new guide session booking!</h3>
-                                <p>Student: ${name} (${email})</p>
-                                ${guideMailHtml}`,
-                    });
-                }
 
                 console.log("Guide session emails sent successfully");
             }
