@@ -277,13 +277,14 @@ export default function LiveSession2() {
         setFormData((prev) => ({ ...prev, programSchedule: updated }));
     };
 
-    // One Time Purchase Image Functions
+    // Thubmnail Image Functions
     const handleImageUpload = (e) => {
+        e.stopPropagation();
         const files = Array.from(e.target.files);
-        const allowed = 5 - formData.oneTimePurchase.images.length;
-
+        const allowed = 5 - (formData?.oneTimeSubscription?.images?.length || 0);
+      
         files.slice(0, allowed).forEach((file) => {
-            const storageRef = ref(storage, `live_sessions/oneTimePurchase/${file.name}_${Date.now()}`);
+            const storageRef = ref(storage, `live_sessions/thumbnail_image/${file.name}_${Date.now()}`);
             const uploadTask = uploadBytesResumable(storageRef, file);
 
             uploadTask.on(
@@ -298,8 +299,8 @@ export default function LiveSession2() {
                 },
                 async () => {
                     const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                    const updatedImages = [...formData.oneTimePurchase.images, downloadURL];
-                    handleFieldChange("oneTimePurchase", "images", updatedImages);
+                    const updatedImages = [...formData.oneTimeSubscription.images, downloadURL];
+                    handleFieldChange("oneTimeSubscription", "images", updatedImages);
                 }
             );
         });
@@ -307,7 +308,7 @@ export default function LiveSession2() {
 
     const removeImage = async (index) => {
         try {
-            const updated = [...formData.oneTimePurchase.images];
+            const updated = [...formData.oneTimeSubscription.images];
             const urlToDelete = updated[index];
 
             // Delete from Firebase Storage
@@ -316,23 +317,23 @@ export default function LiveSession2() {
 
             // Remove from state
             updated.splice(index, 1);
-            handleFieldChange("oneTimePurchase", "images", updated);
+            handleFieldChange("oneTimeSubscription", "images", updated);
         } catch (err) {
             console.error("Error removing image:", err);
             // Even if deletion fails, remove from UI
-            const updated = [...formData.oneTimePurchase.images];
+            const updated = [...formData.oneTimeSubscription.images];
             updated.splice(index, 1);
-            handleFieldChange("oneTimePurchase", "images", updated);
+            handleFieldChange("oneTimeSubscription", "images", updated);
         }
     };
 
-    // One Time Purchase Video Functions
+    // Thubmnail Video Functions
     const handleVideoUpload = (e) => {
         const files = Array.from(e.target.files);
-        const allowed = 6 - formData.oneTimePurchase.videos.length;
+        const allowed = 6 - formData.oneTimeSubscription.videos.length;
 
         files.slice(0, allowed).forEach((file) => {
-            const storageRef = ref(storage, `live_sessions/oneTimePurchase/videos/${file.name}_${Date.now()}`);
+            const storageRef = ref(storage, `live_sessions/thumbnail_video/videos/${file.name}_${Date.now()}`);
             const uploadTask = uploadBytesResumable(storageRef, file);
 
             uploadTask.on(
@@ -347,8 +348,8 @@ export default function LiveSession2() {
                 },
                 async () => {
                     const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                    const updatedVideos = [...formData.oneTimePurchase.videos, downloadURL];
-                    handleFieldChange("oneTimePurchase", "videos", updatedVideos);
+                    const updatedVideos = [...formData.oneTimeSubscription.videos, downloadURL];
+                    handleFieldChange("oneTimeSubscription", "videos", updatedVideos);
                 }
             );
         });
@@ -356,7 +357,7 @@ export default function LiveSession2() {
 
     const removeVideo = async (index) => {
         try {
-            const updated = [...formData.oneTimePurchase.videos];
+            const updated = [...formData.oneTimeSubscription.videos];
             const urlToDelete = updated[index];
 
             // Delete from Firebase Storage
@@ -365,13 +366,13 @@ export default function LiveSession2() {
 
             // Remove from state
             updated.splice(index, 1);
-            handleFieldChange("oneTimePurchase", "videos", updated);
+            handleFieldChange("oneTimeSubscription", "videos", updated);
         } catch (err) {
             console.error("Error removing video:", err);
             // Even if deletion fails, remove from UI
-            const updated = [...formData.oneTimePurchase.videos];
+            const updated = [...formData.oneTimeSubscription.videos];
             updated.splice(index, 1);
-            handleFieldChange("oneTimePurchase", "videos", updated);
+            handleFieldChange("oneTimeSubscription", "videos", updated);
         }
     };
     
@@ -547,10 +548,10 @@ export default function LiveSession2() {
     }, [uid]);
 
     const onSaveLive = async () => {
-        if (!validateFields()) {
-            alert("Fix validation errors");
-            return;
-        }
+        // if (!validateFields()) {
+        //     alert("Fix validation errors");
+        //     return;
+        // }
 
         const newCard = {
             liveSessionCard: { ...formData.liveSessionCard },
@@ -1022,9 +1023,9 @@ export default function LiveSession2() {
                     </div>
 
                     {/* Images */}
-                    <label className="block font-semibold my-5">Add Images ( Maximum 5 Images )</label>
+                    <label className="block font-semibold my-5">Add Thumbnail Images ( Maximum 5 Images )</label>
                     <div className="mb-6">
-                        {(!formData?.oneTimePurchase?.images || formData?.oneTimePurchase?.images.length < 5) && (
+                        {(!formData?.oneTimeSubscription?.images || formData?.oneTimeSubscription?.images.length < 5) && (
                             <label className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col 
                             items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50">
                                 <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-10 h-10 mb-2" />
@@ -1040,7 +1041,7 @@ export default function LiveSession2() {
                         )}
 
                         <div className="flex flex-wrap gap-4">
-                            {formData?.oneTimePurchase?.images && formData?.oneTimePurchase?.images.map((img, index) => (
+                            {formData?.oneTimeSubscription?.images && formData?.oneTimeSubscription?.images.map((img, index) => (
                                 <div key={index} className="relative w-40 h-28">
                                     <img src={img} alt={`img-${index}`} className="w-full h-full object-cover rounded shadow" />
                                     <button
@@ -1056,9 +1057,9 @@ export default function LiveSession2() {
                     </div>
 
                     {/* Videos */}
-                    <label className="block font-semibold my-5">Add Videos ( Maximum 6 Videos )</label>
+                    <label className="block font-semibold my-5">Add Thumbnail Videos ( Maximum 6 Videos )</label>
                     <div className="mb-4">
-                        {(!formData?.oneTimePurchase?.videos || formData?.oneTimePurchase?.videos.length < 6) && (
+                        {(!formData?.oneTimeSubscription?.videos || formData?.oneTimeSubscription?.videos.length < 6) && (
                             <label className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col 
                             items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50">
                                 <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-10 h-10 mb-2" />
@@ -1073,7 +1074,7 @@ export default function LiveSession2() {
                             </label>
                         )}
                         <div className="flex flex-wrap gap-4 mt-4">
-                            {formData?.oneTimePurchase?.videos && formData?.oneTimePurchase?.videos.map((vid, index) => (
+                            {formData?.oneTimeSubscription?.videos && formData?.oneTimeSubscription?.videos.map((vid, index) => (
                                 <div key={index} className="relative w-40 h-28 bg-black">
                                     <video src={vid} controls className="w-full h-full rounded shadow object-cover" />
                                     <button

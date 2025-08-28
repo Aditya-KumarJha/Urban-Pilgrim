@@ -69,6 +69,7 @@ export default function RecordedSession2() {
             totalprice: "",
             description: ""
         },
+        recordedVideo: [],
         // New: About Program section
         aboutProgram: {
             title: "",
@@ -429,6 +430,9 @@ export default function RecordedSession2() {
                 totalprice: slideToEdit?.recordedProgramCard?.totalprice || "",
                 description: slideToEdit?.recordedProgramCard?.description || "",
             },
+            recordedVideo: Array.isArray(slideToEdit?.recordedVideo) && slideToEdit?.recordedVideo.length > 0 
+                ? slideToEdit.recordedVideo 
+                : [],
             faqs: slideToEdit?.faqs?.length > 0 ? slideToEdit.faqs : [{ title: "", description: "" }],
             // Load richer schedule and features when present
             programSchedule: slideToEdit?.programSchedule?.length > 0 ? slideToEdit.programSchedule : [],
@@ -474,6 +478,7 @@ export default function RecordedSession2() {
                 totalprice: "",
                 description: "",
             },
+            recordedVideo: [],
             aboutProgram: { title: "", shortDescription: "", points: [""] },
             programSchedule: [],
             features: [],
@@ -551,8 +556,9 @@ export default function RecordedSession2() {
 
         const newCard = {
             recordedProgramCard: { ...formData.recordedProgramCard },
+            recordedVideo: [...formData.recordedVideo],
             faqs: [...formData.faqs],
-            // New: richer schedule and features
+            
             programSchedule: [...formData.programSchedule],
             features: [...formData.features],
             oneTimeSubscription: { ...formData.oneTimeSubscription },
@@ -596,6 +602,7 @@ export default function RecordedSession2() {
                     totalprice: "",
                     description: ""
                 },
+                recordedVideo: [],
                 aboutProgram: { title: "", shortDescription: "", points: [""] },
                 programSchedule: [],
                 features: [],
@@ -661,6 +668,82 @@ export default function RecordedSession2() {
             }));
         } catch (error) {
             console.error("Error removing image:", error);
+        }
+    };
+
+    // Recorded Video Handlers
+    const addRecordedVideo = () => {
+        setFormData(prev => ({
+            ...prev,
+            recordedVideo: [...prev.recordedVideo, { title: "", description: "", url: "" }]
+        }));
+    };
+
+    const handleRecordedVideoChange = (index, field, value) => {
+        const updatedVideos = [...formData.recordedVideo];
+        updatedVideos[index][field] = value;
+        setFormData(prev => ({ ...prev, recordedVideo: updatedVideos }));
+    };
+
+    const handleRecordedVideoFileUpload = async (index, file) => {
+        if (!file) return;
+        try {
+            if (!file.type.startsWith("video/")) {
+                alert("Please upload a video file");
+                return;
+            }
+            const filePath = `pilgrim_sessions/recorded_videos/${uuidv4()}_${file.name}`;
+            const storageRef = ref(storage, filePath);
+            
+            const uploadTask = uploadBytesResumable(storageRef, file);
+            
+            uploadTask.on('state_changed',
+                (snapshot) => {
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    console.log('Upload is ' + progress + '% done');
+                },
+                (error) => {
+                    console.error("Error uploading video:", error);
+                    alert("Error uploading video. Please try again.");
+                },
+                async () => {
+                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                    console.log("Video uploaded successfully:", downloadURL);
+                    handleRecordedVideoChange(index, 'url', downloadURL);
+                }
+            );
+        } catch (error) {
+            console.error("Error uploading video:", error);
+            alert("Error uploading video. Please try again.");
+        }
+    };
+
+    const removeRecordedVideo = async (index) => {
+        try {
+            const videoToRemove = formData.recordedVideo[index];
+            if (videoToRemove.url) {
+                const videoRef = ref(storage, videoToRemove.url);
+                await deleteObject(videoRef);
+                console.log("Video deleted from storage:", videoToRemove.url);
+            }
+            const updatedVideos = formData.recordedVideo.filter((_, i) => i !== index);
+            setFormData(prev => ({ ...prev, recordedVideo: updatedVideos }));
+        } catch (error) {
+            console.error("Error removing video:", error);
+        }
+    };
+
+    const removeVideoFile = async (index) => {
+        try {
+            const videoToRemove = formData.recordedVideo[index];
+            if (videoToRemove.url) {
+                const videoRef = ref(storage, videoToRemove.url);
+                await deleteObject(videoRef);
+                console.log("Video file deleted from storage:", videoToRemove.url);
+            }
+            handleRecordedVideoChange(index, 'url', '');
+        } catch (error) {
+            console.error("Error removing video file:", error);
         }
     };
 
@@ -807,19 +890,6 @@ export default function RecordedSession2() {
                         {errors.videos && <p className="text-red-500 text-sm mt-1">{errors.videos}</p>}
                     </div>
 
-                    {/* Total Price */}
-                    <div className="mb-4">
-                        <label className="block text-md font-semibold text-gray-700 mb-2">Total Price</label>
-                        <input
-                            placeholder="Enter Total Price"
-                            type="number"
-                            value={formData.recordedProgramCard.totalprice}
-                            onChange={(e) => handleFieldChange("recordedProgramCard", "totalprice", e.target.value)}
-                            className="text-sm w-full border border-gray-300 p-3 rounded-lg "
-                        />
-                        {errors.totalprice && <p className="text-red-500 text-sm mt-1">{errors.totalprice}</p>}
-                    </div>
-
                     {/* Program Description */}
                     <div className="mb-4">
                         <label className="block text-md font-semibold text-gray-700 mb-2">Program Description</label>
@@ -928,6 +998,93 @@ export default function RecordedSession2() {
                                 </div>
                             ))}
                         </div>
+                    </div>
+                </div>
+
+                {/* Recorded Video Upload Section */}
+                <div className="mb-8">
+                    <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+                        Recorded Videos <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
+                    </h2>
+                    
+                    <div className="space-y-4">
+                        {formData.recordedVideo.map((video, index) => (
+                            <div key={index} className="border border-gray-300 rounded-lg p-4 bg-gray-50">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h4 className="font-semibold text-gray-700">Video {index + 1}</h4>
+                                    <button
+                                        type="button"
+                                        onClick={() => removeRecordedVideo(index)}
+                                        className="text-red-500 hover:text-red-700"
+                                    >
+                                        <FaTimes />
+                                    </button>
+                                </div>
+                                
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-md font-semibold text-gray-700 mb-2">Video Title</label>
+                                        <input
+                                            type="text"
+                                            value={video.title || ""}
+                                            onChange={(e) => handleRecordedVideoChange(index, 'title', e.target.value)}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2F6288]"
+                                            placeholder="Enter video title"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-md font-semibold text-gray-700 mb-2">Description</label>
+                                        <textarea
+                                            value={video.description || ""}
+                                            onChange={(e) => handleRecordedVideoChange(index, 'description', e.target.value)}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2F6288]"
+                                            rows="3"
+                                            placeholder="Enter video description"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block font-semibold mb-2">Upload Video</label>
+                                        <div className="mb-4">
+                                            {!video.url && (
+                                                <label className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col 
+                                                items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50">
+                                                    <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-10 h-10 mb-2" />
+                                                    <span>Click to upload Video</span>
+                                                    <input
+                                                        type="file"
+                                                        accept="video/*"
+                                                        onChange={(e) => handleRecordedVideoFileUpload(index, e.target.files[0])}
+                                                        className="hidden"
+                                                    />
+                                                </label>
+                                            )}
+                                            {video.url && (
+                                                <div className="relative w-40 h-28 bg-black">
+                                                    <video src={video.url} controls className="w-full h-full rounded shadow object-cover" />
+                                                    <button
+                                                        onClick={() => removeVideoFile(index)}
+                                                        className="absolute top-1 right-1 bg-white border border-gray-300 
+                                                        rounded-full p-1 hover:bg-gray-200"
+                                                    >
+                                                        <FaTimes size={12} />
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                        
+                        <button
+                            type="button"
+                            onClick={addRecordedVideo}
+                            className="flex items-center gap-2 px-4 py-2 bg-[#2F6288] text-white rounded-md hover:bg-[#1e4a6b] transition-colors"
+                        >
+                            <FaPlus /> Add Video
+                        </button>
                     </div>
                 </div>
 

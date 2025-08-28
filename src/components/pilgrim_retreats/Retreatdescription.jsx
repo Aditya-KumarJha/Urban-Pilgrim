@@ -111,7 +111,7 @@ export default function Retreatdescription() {
                     <h2 className="md:text-2xl font-bold text-xl">
                         {retreatData?.pilgrimRetreatCard?.title || "Retreat Title"}
                     </h2>
-                    <ImageGallery images={retreatData?.oneTimePurchase?.images || []} />
+                    <ImageGallery images={retreatData?.oneTimePurchase?.images || []} videos={retreatData?.oneTimePurchase?.videos || []} />
                 </div>
 
                 <div className="flex flex-col justify-between">
