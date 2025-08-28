@@ -182,7 +182,7 @@ export default function LiveDetails() {
                     <h2 className="md:text-2xl font-bold text-xl">
                         {programData?.liveSessionCard?.title || "Retreat Title"}
                     </h2>
-                    <ImageGallery images={programData?.oneTimePurchase?.images || []} videos={programData?.oneTimePurchase?.videos || []} />
+                    <ImageGallery images={programData?.oneTimeSubscription?.images || []} videos={programData?.oneTimeSubscription?.videos || []} />
                 </div>
 
                 {/* details subscription */}
@@ -244,62 +244,63 @@ export default function LiveDetails() {
                     </div>
 
                     {/* time slots */}
-                    <div className="text-[#787B7B] mt-5">
-                        <p>
-                            <span className="font-medium">Program starts - </span>
-                            <span>
-                                {formatDateWithSuffix(programData?.liveSlots?.[0]?.date) || "Not available"}
-                            </span>
-                        </p>
+                    {slots.length > 0 && slots.some(slot => slot.date || slot.startTime || slot.endTime) && (
+                        <div className="text-[#787B7B] mt-5">
+                            <p>
+                                <span className="font-medium">Program starts - </span>
+                                <span>
+                                    {formatDateWithSuffix(programData?.liveSlots?.[0]?.date) || "Not available"}
+                                </span>
+                            </p>
 
-                        <p>
-                            <span className="font-medium">Live sessions with </span>
-                            <span className="font-medium">
-                                {programData?.liveSessionCard?.title?.split("-")[1]?.trim().split(" ")[1]}
-                            </span>{" "}
-                        </p>
+                            <p>
+                                <span className="font-medium">Live sessions with </span>
+                                <span className="font-medium">
+                                    {programData?.organizer?.name}
+                                </span>{" "}
+                            </p>
 
-                        {visibleSlots.map((slot, index) => (
-                            <div key={index} className="mb-2">
-                                <p className="text-[#787B7B]">
+                            {visibleSlots.map((slot, index) => (
+                                <div key={index} className="mb-2">
+                                    <p className="text-[#787B7B]">
+                                        Time -
+                                        <span>
+                                            {slot.startTime
+                                                ? new Date(`1970-01-01T${slot.startTime}`).toLocaleTimeString("en-US", {
+                                                    hour: "numeric",
+                                                    minute: "2-digit",
+                                                    hour12: true,
+                                                })
+                                                : "Not available"}
+                                        </span>{" "}
+                                        -
+                                        <span>
+                                            {slot.endTime
+                                                ? new Date(`1970-01-01T${slot.endTime}`).toLocaleTimeString("en-US", {
+                                                    hour: "numeric",
+                                                    minute: "2-digit",
+                                                    hour12: true,
+                                                })
+                                                : "Not available"}
+                                        </span>
+                                    </p>
+                                    <p>
+                                        <span className="font-medium">Date - </span>
+                                        <span>{slot.date ? formatDateWithSuffix(slot.date) : "Not available"}</span>
+                                    </p>
+                                </div>
+                            ))}
 
-                                    Time -
-                                    <span>
-                                        {slot.startTime
-                                            ? new Date(`1970-01-01T${slot.startTime}`).toLocaleTimeString("en-US", {
-                                                hour: "numeric",
-                                                minute: "2-digit",
-                                                hour12: true,
-                                            })
-                                            : "Not available"}
-                                    </span>{" "}
-                                    -
-                                    <span>
-                                        {slot.endTime
-                                            ? new Date(`1970-01-01T${slot.endTime}`).toLocaleTimeString("en-US", {
-                                                hour: "numeric",
-                                                minute: "2-digit",
-                                                hour12: true,
-                                            })
-                                            : "Not available"}
-                                    </span>
-                                </p>
-                                <p>
-                                    <span className="font-medium">Date - </span>
-                                    <span>{slot.date ? formatDateWithSuffix(slot.date) : "Not available"}</span>
-                                </p>
-                            </div>
-                        ))}
-
-                        {slots.length > 2 && (
-                            <button
-                                onClick={() => setShowAll(!showAll)}
-                                className="text-[#2F5D82] font-medium mt-2 hover:underline"
-                            >
-                                {showAll ? "See Less" : "Show More"}
-                            </button>
-                        )}
-                    </div>
+                            {slots.length > 2 && (
+                                <button
+                                    onClick={() => setShowAll(!showAll)}
+                                    className="text-[#2F5D82] font-medium mt-2 hover:underline"
+                                >
+                                    {showAll ? "See Less" : "Show More"}
+                                </button>
+                            )}
+                        </div>
+                    )}
 
                     <SubscriptionCard
                         price={programData?.oneTimeSubscription?.price}
@@ -309,20 +310,27 @@ export default function LiveDetails() {
                         programType="session"
                     />
 
-                    <div className="flex flex-col">
-                        <p className="text-lg font-semibold text-gray-800 mt-4">
-                            Program Schedule
-                        </p>
-                        <ProgramSchedule programSchedules={programData?.programSchedule} />
-                    </div>
+                    {   programData?.programSchedule.length>0 && (
+                            <div className="flex flex-col">
+                                <p className="text-lg font-semibold text-gray-800 mt-4">
+                                    Program Schedule
+                                </p>
+                                <ProgramSchedule programSchedules={programData?.programSchedule} />
+                            </div>
+                        )
+                    }
 
                     <ProgramSection program={programData?.aboutProgram} journey={programData?.keyHighlights} />
                     <FeatureProgram features={programData?.features} />
-                    <Faqs faqs={programData?.faqs} />
+                    { programData?.faqs[0].title !== "" && 
+                        <Faqs faqs={programData?.faqs} />
+                    }
                 </div>
             </div>
 
-            <PilgrimGuide guides={programData?.guide[0]} />
+            {   programData?.guide[0].length > 0 &&
+                <PilgrimGuide guides={programData?.guide[0]} />
+            }
 
             {/* You may also like */}
             <div className="max-w-7xl mx-auto p-6 bg-white rounded-2xl grid gap-6 px-4">
@@ -380,7 +388,7 @@ export default function LiveDetails() {
                         price: programData?.oneTimeSubscription?.price,
                         location: programData?.liveSessionCard?.location
                     },
-                    oneTimePurchase: {
+                    oneTimeSubscription: {
                         images: [programData?.liveSessionCard?.thumbnail]
                     }
                 }}

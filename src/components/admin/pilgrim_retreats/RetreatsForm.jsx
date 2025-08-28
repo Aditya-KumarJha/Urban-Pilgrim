@@ -88,7 +88,7 @@ export default function RetreatsForm() {
             description2: "",
             description3: "",
             dateOptions: [{ start: "", end: "" }],
-            occupancies: ["Single"],
+            occupancies: [{type: "Single", price: ""}],
             showOccupancyInRetreat: false
         },
         features: [],
@@ -202,13 +202,13 @@ export default function RetreatsForm() {
     };
 
     const addOccupancy = () => {
-        const updated = [...formData.session.occupancies, ""];
+        const updated = [...formData.session.occupancies, {type: "", price: ""}];
         handleFieldChange("session", "occupancies", updated);
     };
 
-    const updateOccupancy = (index, value) => {
+    const updateOccupancy = (index, field, value) => {
         const updated = [...formData.session.occupancies];
-        updated[index] = value;
+        updated[index] = { ...updated[index], [field]: value };
         handleFieldChange("session", "occupancies", updated);
     };
 
@@ -653,7 +653,7 @@ export default function RetreatsForm() {
                 description2: "",
                 description3: "",
                 dateOptions: [{ start: "", end: "" }],
-                occupancies: ["Single"],
+                occupancies: [{type: "", price: ""}],
                 showOccupancyInRetreat: false
             },
             features: [],
@@ -1026,14 +1026,22 @@ export default function RetreatsForm() {
                     </div>
                 ))}
                 
-                <label className="block text-md font-semibold text-gray-700 mb-2 mt-4">Occupancy</label>
+                {/* occupency */}
+                <label className="block text-md font-semibold text-gray-700 mb-2 mt-4">Occupancy & Price</label>
                 {formData?.session?.occupancies.map((occ, index) => (
                     <div key={index} className="flex gap-2 mb-2 items-center">
                         <input
                             type="text"
-                            value={occ}
-                            placeholder="Enter Occupancy"
-                            onChange={(e) => updateOccupancy(index, e.target.value)}
+                            value={occ.type || ""}
+                            placeholder="Enter Occupancy Type"
+                            onChange={(e) => updateOccupancy(index, "type", e.target.value)}
+                            className="text-sm w-full border p-3 rounded-lg"
+                        />
+                        <input
+                            type="number"
+                            value={occ.price || ""}
+                            placeholder="Price"
+                            onChange={(e) => updateOccupancy(index, "price", e.target.value)}
                             className="text-sm w-full border p-3 rounded-lg"
                         />
                         {index === formData?.session?.occupancies.length - 1 ? (

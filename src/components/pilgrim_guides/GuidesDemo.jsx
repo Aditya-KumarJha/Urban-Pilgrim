@@ -18,9 +18,9 @@ export default function GuidesDemo({ filters = {}, bestSellingActive = false }) 
 
                 if (snapshot.exists()) {
                     const data = snapshot.data();
-
-                    setGuideData(data.slides || null);
-                    dispatch(setGuides(data?.slides || []));
+                    const slidesArray = Object.values(data.slides || {});
+                    setGuideData(slidesArray || null);
+                    dispatch(setGuides(slidesArray || []));
                 }
             } catch (error) {
                 console.error("Error fetching live session:", error);

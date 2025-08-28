@@ -29,12 +29,20 @@ export default function Retreatdescription() {
     console.log("title from params: ", formattedTitle);
     const [retreatData, setRetreatData] = useState(null);
     const [showBundlesPopup, setShowBundlesPopup] = useState(false);
+    const [selectedOccupancy, setSelectedOccupancy] = useState(null);
     const uid = "user-uid";
     const navigate = useNavigate();
 
     useEffect(() => {
         window.scrollTo(0,0);
     },[])
+
+    // Auto-select first occupancy when retreat data loads
+    useEffect(() => {
+        if (retreatData?.session?.occupancies && retreatData.session.occupancies.length > 0 && !selectedOccupancy) {
+            setSelectedOccupancy(retreatData.session.occupancies[0]);
+        }
+    }, [retreatData, selectedOccupancy]);
     
     // Get user programs from Redux
     const userPrograms = useSelector((state) => state.userProgram);
@@ -115,7 +123,6 @@ export default function Retreatdescription() {
                 </div>
 
                 <div className="flex flex-col justify-between">
-
                     {/* descrition */}
                     <div className="space-y-4 text-gray-700">
                         {/* price */}
@@ -154,15 +161,36 @@ export default function Retreatdescription() {
                         </div>
 
                         {/* occupancy */}
-                        <div className="flex items-center gap-2">
-                            <FaUser className="text-[#C5703F]" />
-                            {
-                                retreatData?.session?.occupancies && 
-                                retreatData?.session?.occupancies.map((occupancy, index) => (
-                                    <span key={index} className="text-sm">Occupancy: {occupancy}</span>
-                                ))
-                            }
-                        </div>
+                        {retreatData?.session?.occupancies && retreatData?.session?.occupancies.length > 0 && (
+                            <div className="flex flex-col gap-3">
+                                <div className="flex items-center gap-2">
+                                    <FaUser className="text-[#C5703F]" />
+                                    <span className="text-sm font-medium">Select Occupancy:</span>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    {retreatData.session.occupancies.map((occupancy, index) => (
+                                        <button
+                                            key={index}
+                                            onClick={() => setSelectedOccupancy(occupancy)}
+                                            className={`px-4 py-2 rounded-lg border transition-all duration-200 text-sm ${
+                                                selectedOccupancy?.type === occupancy.type
+                                                    ? "border-[#C5703F] bg-[#C5703F] text-white shadow-md"
+                                                    : "border-gray-300 bg-white text-gray-700 hover:border-[#C5703F] hover:bg-gray-50"
+                                            }`}
+                                        >
+                                            <div className="text-center">
+                                                <p className="font-semibold">{occupancy.type}</p>
+                                                {occupancy.price && (
+                                                    <p className="text-xs opacity-90">
+                                                        ₹{new Intl.NumberFormat("en-IN").format(occupancy.price)}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
 
                         <div className="flex items-center gap-2">
                             <FaUsers className="text-[#C5703F]" />
@@ -256,6 +284,7 @@ export default function Retreatdescription() {
                 isOpen={showBundlesPopup}
                 onClose={() => setShowBundlesPopup(false)}
                 retreatData={retreatData}
+                selectedOccupancy={selectedOccupancy}
             />
         </>
     );

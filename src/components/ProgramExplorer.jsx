@@ -12,7 +12,7 @@ export default function ProgramExplorer() {
     const sliderRef = useRef(null);
     const dotRefs = useRef([]);
     const [programItems, setProgramItems] = useState([]);
-    const totalSteps = programItems.length;
+    const totalSteps = programItems?.programs?.length || 0;
 
     const uid = "your-unique-id";
 
@@ -47,12 +47,12 @@ export default function ProgramExplorer() {
     };
 
     const nextSlide = () => {
-        const newIndex = (activeIndex + 1) % programItems.length;
+        const newIndex = (activeIndex + 1) % totalSteps;
         scrollToCard(newIndex);
     };
 
     const prevSlide = () => {
-        const newIndex = (activeIndex - 1 + programItems.length) % programItems.length;
+        const newIndex = (activeIndex - 1 + totalSteps) % totalSteps;
         scrollToCard(newIndex);
     };
 

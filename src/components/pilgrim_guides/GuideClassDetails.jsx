@@ -28,7 +28,7 @@ export default function GuideClassDetails() {
     const [galleryImages, setGalleryImages] = useState([]);
     const dispatch = useDispatch();
     const navigate = useNavigate();
-    
+
     // Get user programs from Redux
     const userPrograms = useSelector((state) => state.userProgram);
 
@@ -60,7 +60,7 @@ export default function GuideClassDetails() {
 
     // Get events from Redux store
     const { allEvents } = useSelector((state) => state.allEvents);
-    
+
     // Fetch all events if not already loaded
     useEffect(() => {
         const loadEvents = async () => {
@@ -85,7 +85,7 @@ export default function GuideClassDetails() {
     useEffect(() => {
         if (sessionData) {
             const availablePlans = [];
-            
+
             // Check which plans are available
             if (sessionData.online?.monthly?.price || sessionData.offline?.monthly?.price) {
                 availablePlans.push("monthly");
@@ -96,7 +96,7 @@ export default function GuideClassDetails() {
             if (sessionData.online?.oneTime?.price || sessionData.offline?.oneTime?.price) {
                 availablePlans.push("oneTime");
             }
-            
+
             // If only one plan is available, auto-select it
             if (availablePlans.length === 1) {
                 setSubscriptionType(availablePlans[0]);
@@ -126,18 +126,21 @@ export default function GuideClassDetails() {
                 if (snapshot.exists()) {
                     const data = snapshot.data();
 
-                    const found = data.slides.find(
+                    // Ensure slides is always an array
+                    const slidesArray = Array.isArray(data.slides) ? data.slides : Object.values(data.slides || {});
+
+                    const found = slidesArray.find(
                         (r) => normalize(r?.guideCard?.title) === normalize(formattedTitle)
                     );
 
                     setSessionData(found || null);
 
-                    // Extract and set gallery images from session.images
+                    // Extract and set gallery images
                     if (found?.session?.images && Array.isArray(found.session.images)) {
                         setGalleryImages(found.session.images);
-                        setMainImage(found?.guideCard?.thumbnail || found.session.images[0] || '');
+                        setMainImage(found?.guideCard?.thumbnail || found.session.images[0] || "");
                     } else {
-                        setMainImage(found?.guideCard?.thumbnail || '');
+                        setMainImage(found?.guideCard?.thumbnail || "");
                         setGalleryImages([]);
                     }
                 }
@@ -147,7 +150,7 @@ export default function GuideClassDetails() {
         };
 
         fetchSession();
-    }, [formattedTitle]);
+    }, [formattedTitle, uid]);
 
     useEffect(() => {
         // Assume you already fetched sessionData
@@ -163,10 +166,10 @@ export default function GuideClassDetails() {
     // Function to get slots based on current mode and subscription type
     const getAvailableSlots = () => {
         if (!sessionData || !mode) return [];
-        
+
         const modeKey = mode.toLowerCase(); // "online" or "offline"
         let allSlots = [];
-        
+
         // Get all available slots for the current mode across all subscription types
         if (subscriptionType === "monthly" && sessionData[modeKey]?.monthly?.slots) {
             allSlots = sessionData[modeKey].monthly.slots;
@@ -181,7 +184,7 @@ export default function GuideClassDetails() {
             const oneTimeSlots = sessionData[modeKey]?.oneTime?.slots || [];
             allSlots = [...monthlySlots, ...quarterlySlots, ...oneTimeSlots];
         }
-        
+
         return allSlots;
     };
 
@@ -207,7 +210,7 @@ export default function GuideClassDetails() {
                     </span>
                 </p>
             </div>
-            
+
             {/* Image and subscription */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-7xl mx-auto px-4 py-10">
                 {/* Image */}
@@ -218,7 +221,7 @@ export default function GuideClassDetails() {
                         alt="Instructor"
                         className="rounded-xl xl:h-[400px] xl:w-[700px] md:h-[450px] sm:h-[480px] object-cover"
                     />
-                    
+
                     {/* Gallery Images */}
                     {galleryImages.length > 0 && (
                         <div className="flex gap-3 overflow-x-auto pb-2">
@@ -305,76 +308,73 @@ export default function GuideClassDetails() {
                     </div>
 
                     {/* Subscription Type Selector - Only show if multiple options available */}
-                    {(((sessionData?.online?.monthly?.price || sessionData?.offline?.monthly?.price) && 
-                       (sessionData?.online?.quarterly?.price || sessionData?.offline?.quarterly?.price)) ||
-                      (((sessionData?.online?.monthly?.price || sessionData?.offline?.monthly?.price) || 
-                        (sessionData?.online?.quarterly?.price || sessionData?.offline?.quarterly?.price)) && 
-                       (sessionData?.online?.oneTime?.price || sessionData?.offline?.oneTime?.price))) && (
-                        <div className="max-w-sm">
-                            <h3 className="text-lg font-semibold text-gray-800 mb-4">Choose Plan Type</h3>
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-                                {/* Monthly Option */}
-                                {(sessionData?.online?.monthly?.price || sessionData?.offline?.monthly?.price) && (
-                                    <button
-                                        onClick={() => {
-                                            setSubscriptionType("monthly");
-                                            setSelectedPlan("monthly");
-                                        }}
-                                        className={`p-3 rounded-lg border-2 transition-all duration-200 ${
-                                            subscriptionType === "monthly"
-                                                ? "border-[#2F6288] bg-[#2F6288] text-white shadow-md"
-                                                : "border-gray-300 bg-white text-gray-700 hover:border-[#2F6288] hover:bg-gray-50"
-                                        }`}
-                                    >
-                                        <div className="text-center">
-                                            <p className="font-semibold">Monthly</p>
-                                            <p className="text-xs opacity-90">Flexible</p>
-                                        </div>
-                                    </button>
-                                )}
+                    {(((sessionData?.online?.monthly?.price || sessionData?.offline?.monthly?.price) &&
+                        (sessionData?.online?.quarterly?.price || sessionData?.offline?.quarterly?.price)) ||
+                        (((sessionData?.online?.monthly?.price || sessionData?.offline?.monthly?.price) ||
+                            (sessionData?.online?.quarterly?.price || sessionData?.offline?.quarterly?.price)) &&
+                            (sessionData?.online?.oneTime?.price || sessionData?.offline?.oneTime?.price))) && (
+                            <div className="max-w-sm">
+                                <h3 className="text-lg font-semibold text-gray-800 mb-4">Choose Plan Type</h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+                                    {/* Monthly Option */}
+                                    {(sessionData?.online?.monthly?.price || sessionData?.offline?.monthly?.price) && (
+                                        <button
+                                            onClick={() => {
+                                                setSubscriptionType("monthly");
+                                                setSelectedPlan("monthly");
+                                            }}
+                                            className={`p-3 rounded-lg border-2 transition-all duration-200 ${subscriptionType === "monthly"
+                                                    ? "border-[#2F6288] bg-[#2F6288] text-white shadow-md"
+                                                    : "border-gray-300 bg-white text-gray-700 hover:border-[#2F6288] hover:bg-gray-50"
+                                                }`}
+                                        >
+                                            <div className="text-center">
+                                                <p className="font-semibold">Monthly</p>
+                                                <p className="text-xs opacity-90">Flexible</p>
+                                            </div>
+                                        </button>
+                                    )}
 
-                                {/* Quarterly Option */}
-                                {(sessionData?.online?.quarterly?.price || sessionData?.offline?.quarterly?.price) && (
-                                    <button
-                                        onClick={() => {
-                                            setSubscriptionType("quarterly");
-                                            setSelectedPlan("quarterly");
-                                        }}
-                                        className={`p-3 rounded-lg border-2 transition-all duration-200 ${
-                                            subscriptionType === "quarterly"
-                                                ? "border-[#2F6288] bg-[#2F6288] text-white shadow-md"
-                                                : "border-gray-300 bg-white text-gray-700 hover:border-[#2F6288] hover:bg-gray-50"
-                                        }`}
-                                    >
-                                        <div className="text-center">
-                                            <p className="font-semibold">Quarterly</p>
-                                            <p className="text-xs opacity-90">Save more</p>
-                                        </div>
-                                    </button>
-                                )}
+                                    {/* Quarterly Option */}
+                                    {(sessionData?.online?.quarterly?.price || sessionData?.offline?.quarterly?.price) && (
+                                        <button
+                                            onClick={() => {
+                                                setSubscriptionType("quarterly");
+                                                setSelectedPlan("quarterly");
+                                            }}
+                                            className={`p-3 rounded-lg border-2 transition-all duration-200 ${subscriptionType === "quarterly"
+                                                    ? "border-[#2F6288] bg-[#2F6288] text-white shadow-md"
+                                                    : "border-gray-300 bg-white text-gray-700 hover:border-[#2F6288] hover:bg-gray-50"
+                                                }`}
+                                        >
+                                            <div className="text-center">
+                                                <p className="font-semibold">Quarterly</p>
+                                                <p className="text-xs opacity-90">Save more</p>
+                                            </div>
+                                        </button>
+                                    )}
 
-                                {/* One Time Option */}
-                                {(sessionData?.online?.oneTime?.price || sessionData?.offline?.oneTime?.price) && (
-                                    <button
-                                        onClick={() => {
-                                            setSubscriptionType("oneTime");
-                                            setSelectedPlan("oneTime");
-                                        }}
-                                        className={`p-3 rounded-lg border-2 transition-all duration-200 ${
-                                            subscriptionType === "oneTime"
-                                                ? "border-[#2F6288] bg-[#2F6288] text-white shadow-md"
-                                                : "border-gray-300 bg-white text-gray-700 hover:border-[#2F6288] hover:bg-gray-50"
-                                        }`}
-                                    >
-                                        <div className="text-center">
-                                            <p className="font-semibold">One Time</p>
-                                            <p className="text-xs opacity-90">Pay once</p>
-                                        </div>
-                                    </button>
-                                )}
+                                    {/* One Time Option */}
+                                    {(sessionData?.online?.oneTime?.price || sessionData?.offline?.oneTime?.price) && (
+                                        <button
+                                            onClick={() => {
+                                                setSubscriptionType("oneTime");
+                                                setSelectedPlan("oneTime");
+                                            }}
+                                            className={`p-3 rounded-lg border-2 transition-all duration-200 ${subscriptionType === "oneTime"
+                                                    ? "border-[#2F6288] bg-[#2F6288] text-white shadow-md"
+                                                    : "border-gray-300 bg-white text-gray-700 hover:border-[#2F6288] hover:bg-gray-50"
+                                                }`}
+                                        >
+                                            <div className="text-center">
+                                                <p className="font-semibold">One Time</p>
+                                                <p className="text-xs opacity-90">Pay once</p>
+                                            </div>
+                                        </button>
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
 
                     {/* Pricing Box */}
                     {subscriptionType && (
@@ -569,11 +569,11 @@ export default function GuideClassDetails() {
                                 {(() => {
                                     // Get button configuration based on user ownership
                                     const buttonConfig = getProgramButtonConfig(
-                                        userPrograms, 
-                                        sessionData?.guideCard?.title, 
+                                        userPrograms,
+                                        sessionData?.guideCard?.title,
                                         'guide'
                                     );
-                                    
+
                                     const handleButtonClick = () => {
                                         if (buttonConfig.action === 'view') {
                                             // Navigate to user dashboard or program view
@@ -586,7 +586,7 @@ export default function GuideClassDetails() {
                                             setShowCalendar(true);
                                         }
                                     };
-                                    
+
                                     if (buttonConfig.action === 'view') {
                                         // User already owns this program
                                         return (
@@ -598,7 +598,7 @@ export default function GuideClassDetails() {
                                             </button>
                                         );
                                     }
-                                    
+
                                     // User doesn't own the program - show booking options
                                     return (
                                         <>
@@ -613,13 +613,13 @@ export default function GuideClassDetails() {
 
                                             {mode === "Online" && (
                                                 <>
-                                                    <button 
+                                                    <button
                                                         className="w-full bg-[#2F6288] text-white py-3 px-4 rounded-lg hover:bg-[#2F6288]/90 transition-all duration-200 font-semibold shadow-md hover:shadow-lg"
                                                         onClick={handleButtonClick}
                                                     >
                                                         Book Now - {selectedPlan === "monthly" ? "Monthly" : selectedPlan === "quarterly" ? "Quarterly" : "One Time"}
                                                     </button>
-                                                    <button 
+                                                    <button
                                                         className="w-full border-2 border-[#2F6288] text-[#2F6288] py-3 px-4 rounded-lg hover:bg-[#2F6288] hover:text-white transition-all duration-200 font-semibold"
                                                         onClick={handleButtonClick}
                                                     >
@@ -663,11 +663,11 @@ export default function GuideClassDetails() {
                     You May Also Like
                 </h2>
 
-                <motion.div 
-                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" 
-                    initial={{ y: 100, opacity: 0 }} 
-                    whileInView={{ y: 0, opacity: 1 }} 
-                    transition={{ duration: 0.5, ease: "easeOut" }} 
+                <motion.div
+                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                    initial={{ y: 100, opacity: 0 }}
+                    whileInView={{ y: 0, opacity: 1 }}
+                    transition={{ duration: 0.5, ease: "easeOut" }}
                     viewport={{ once: true, amount: 0.1 }}
                 >
                     {allEvents && Object.keys(allEvents).length > 0 ? (
@@ -682,7 +682,7 @@ export default function GuideClassDetails() {
                             .slice(0, 3)
                             .map(([id, eventData]) => {
                                 return (
-                                    <PersondetailsCard 
+                                    <PersondetailsCard
                                         key={id}
                                         image={eventData?.upcomingSessionCard?.image || '/assets/default-event.png'}
                                         title={eventData?.upcomingSessionCard?.title || 'Event'}

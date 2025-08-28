@@ -8,7 +8,7 @@ export default function ProgramSection( { program, journey } ) {
           {program?.shortDescription}
         </p>
         <ul className="list-disc list-inside space-y-2 text-sm text-gray-800">
-            {program?.points?.map((item, index) => (
+            {program?.points[0] && program?.points?.map((item, index) => (
               <li key={index}>{item}</li>
             ))}
         </ul>

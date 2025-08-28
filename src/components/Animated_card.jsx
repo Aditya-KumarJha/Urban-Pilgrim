@@ -2,10 +2,23 @@ import React, { useState, useEffect } from 'react';
 import "./Animated_card.css";
 import { FaChevronRight } from 'react-icons/fa';
 import { motion } from "framer-motion";
+import { useNavigate } from 'react-router-dom';
 import NormalArrowButton from './ui/NormalArrowButton';
 
 function Animated_card({ image, card_title }) {
     const [isHovered, setIsHovered] = useState(false);
+    const navigate = useNavigate();
+
+    // Handle navigation when arrow button is clicked
+    const handleArrowClick = () => {
+        if (card_title) {
+            const formattedTitle = card_title.replace(/\s+/g, '_');
+            if(formattedTitle === "Pilgrim_wellness_programs"){
+                navigate("/pilgrim_sessions")
+            }
+            else navigate(`/${formattedTitle}`);
+        }
+    };
 
     // Automatically enable hover for mobile screens
     useEffect(() => {
@@ -54,7 +67,7 @@ function Animated_card({ image, card_title }) {
             >
                 <div className="card_content_inner">
                     <div className="card_title">{card_title}</div>
-                    <div className="card_arrow">
+                    <div className="card_arrow" onClick={handleArrowClick}>
                         <NormalArrowButton icon={FaChevronRight} dir={-1} />
                     </div>
                 </div>

@@ -6,7 +6,7 @@ import { addToCart } from "../../features/cartSlice";
 import { fetchAllBundles } from "../../services/bundleService";
 import "./BundlesPopup.css";
 
-export default function BundlesPopup({ isOpen, onClose, retreatData }) {
+export default function BundlesPopup({ isOpen, onClose, retreatData, selectedOccupancy }) {
     const [bundles, setBundles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -353,7 +353,7 @@ export default function BundlesPopup({ isOpen, onClose, retreatData }) {
                                             const cartItem = {
                                                 id: retreatData.id || `retreat-${Date.now()}`,
                                                 title: retreatData.pilgrimRetreatCard?.title || "Retreat",
-                                                price: retreatData.pilgrimRetreatCard?.price || 0,
+                                                price: selectedOccupancy.price,
                                                 image: retreatData.oneTimePurchase?.images?.[0] || "/assets/retreats.svg",
                                                 type: "retreat",
                                                 location: retreatData.pilgrimRetreatCard?.location,
