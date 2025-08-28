@@ -379,7 +379,7 @@ export default function LiveSession2() {
     // Slides ordering & CRUD
     const moveSlide = async (from, to) => {
         try {
-            const updatedPrograms = [...sessions];
+            const updatedPrograms = [...allData];
             let allSlides = updatedPrograms.flatMap(g => g.slides);
             if (from < 0 || from >= allSlides.length || to < 0 || to >= allSlides.length) {
                 console.warn("Invalid slide move indexes");
@@ -400,7 +400,7 @@ export default function LiveSession2() {
         try {
             if (!uid) throw new Error("User not logged in");
             await deleteLiveSessionByIndex(uid, index);
-            const updatedLiveSessions = sessions.filter((_, i) => i !== index);
+            const updatedLiveSessions = allData.filter((_, i) => i !== index);
             dispatch(setLiveSessions(updatedLiveSessions));
             setFormData((prev) => ({
                 ...prev,
@@ -528,13 +528,17 @@ export default function LiveSession2() {
             try {
                 const session = await fetchLiveSessionData(uid);
                 if (session && session.slides) {
-                    setAllData(session.slides || []);
+                    const slidesArray = Object.values(session.slides); // convert object -> array
+              
+                    setAllData(slidesArray);
+                
                     let allSlides = [];
-                    for (const ssn of session.slides) {
+                    for (const ssn of slidesArray) {
                         if (ssn.slides) {
-                            allSlides = [...allSlides, ...ssn.slides];
+                        allSlides = [...allSlides, ...ssn.slides];
                         }
                     }
+                
                     setSlideData(allSlides);
                 } else {
                     setAllData([]);
@@ -543,7 +547,7 @@ export default function LiveSession2() {
             } catch (err) {
                 console.error("Error fetching recorded session data:", err);
             }
-        };
+        }
         loadCards();
     }, [uid]);
 
@@ -575,11 +579,11 @@ export default function LiveSession2() {
             if (!uid) throw new Error("User not logged in");
             let updatedPrograms;
             if (isEditing && editIndex !== null) {
-                updatedPrograms = [...sessions];
+                updatedPrograms = [...allData];
                 updatedPrograms[editIndex] = newCard;
                 console.log("Live Session Updated Successfully");
             } else {
-                updatedPrograms = [...sessions, newCard];
+                updatedPrograms = [...allData, newCard];
                 console.log("Live Session Added Successfully");
             }
 
@@ -831,19 +835,6 @@ export default function LiveSession2() {
                             className="text-sm w-full border border-gray-300 p-3 rounded-lg "
                         />
                         {errors.videos && <p className="text-red-500 text-sm mt-1">{errors.videos}</p>}
-                    </div>
-
-                    {/* Total Price */}
-                    <div className="mb-4">
-                        <label className="block text-md font-semibold text-gray-700 mb-2">Total Price</label>
-                        <input
-                            placeholder="Enter Total Price"
-                            type="number"
-                            value={formData.liveSessionCard.totalprice}
-                            onChange={(e) => handleFieldChange("liveSessionCard", "totalprice", e.target.value)}
-                            className="text-sm w-full border border-gray-300 p-3 rounded-lg "
-                        />
-                        {errors.totalprice && <p className="text-red-500 text-sm mt-1">{errors.totalprice}</p>}
                     </div>
 
                     {/* Program Description */}

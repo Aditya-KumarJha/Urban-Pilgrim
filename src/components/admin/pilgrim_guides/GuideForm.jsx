@@ -559,12 +559,23 @@ export default function GuideForm() {
             try {
                 const guides = await fetchGuideData(uid);
                 console.log("Fetched guide cards:", guides);
-                setAllData(guides.slides || []);
-                console.log("All data loaded:", guides);
+                
+                // Handle both object and array structures
+                let slidesData = [];
                 if (guides.slides) {
+                    // If slides is an object, convert to array
+                    if (typeof guides.slides === 'object' && !Array.isArray(guides.slides)) {
+                        slidesData = Object.values(guides.slides);
+                    } else if (Array.isArray(guides.slides)) {
+                        slidesData = guides.slides;
+                    }
+                }
+                
+                setAllData(slidesData);
+                
+                if (slidesData.length > 0) {
                     let allSlides = [];
-                    for (const guide of guides.slides) {
-                        console.log("Slide data inside:", guide.slides);
+                    for (const guide of slidesData) {
                         if (guide.slides) {
                             allSlides = [...allSlides, ...guide.slides];
                         }

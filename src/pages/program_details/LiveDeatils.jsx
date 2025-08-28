@@ -182,7 +182,7 @@ export default function LiveDetails() {
                     <h2 className="md:text-2xl font-bold text-xl">
                         {programData?.liveSessionCard?.title || "Retreat Title"}
                     </h2>
-                    <ImageGallery images={programData?.oneTimePurchase?.images || []} />
+                    <ImageGallery images={programData?.oneTimePurchase?.images || []} videos={programData?.oneTimePurchase?.videos || []} />
                 </div>
 
                 {/* details subscription */}

@@ -190,6 +190,7 @@ function Home() {
 
                 if (snapshot.exists()) {
                     const data = snapshot.data();
+                    console.log("guide data: ", data.slides)
                     setGuideData(data?.slides || []);
                 } else {
                     console.log("No slides found in Firestore");
@@ -201,6 +202,8 @@ function Home() {
 
         fetchData();
     }, []);
+
+    const guideArray = guideData ? Object.values(guideData) : [];
 
     // const handleCardScroll = (dir) => {
     //     if (cardContainerRef.current) {
@@ -332,7 +335,7 @@ function Home() {
                     <ViewAll link="/pilgrim_sessions" />
                     <motion.div className="c5bottom lg:!overflow-visible" initial={{ y: 100, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} viewport={{ once: true, amount: 0.1 }}>
                         {
-                            sessionData &&
+                            sessionData && sessionData.length > 0 &&
                             sessionData.map((session, index) => (
                                 <PersondetailsCard type="live-session" key={index} image={session?.liveSessionCard?.thumbnail} title={session?.liveSessionCard?.title} price={session?.liveSessionCard?.price} />
                             ))
@@ -371,8 +374,9 @@ function Home() {
                         <ViewAll link="/pilgrim_guides" />
                         <div className="c6bottom lg:!gap-10 lg:!overflow-visible overflow-hidden">
                             {
-                                guideData &&
-                                guideData.map((guide, index) => (
+                                
+                                guideArray &&
+                                guideArray.map((guide, index) => (
                                     <motion.div key={index} initial={{ y: 100, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} viewport={{ once: true, amount: 0.1 }}>
                                         <PersondetailsCard type="guide" image={guide?.guideCard?.thumbnail} title={guide?.guideCard?.title} price={guide?.guideCard?.price} />
                                     </motion.div>

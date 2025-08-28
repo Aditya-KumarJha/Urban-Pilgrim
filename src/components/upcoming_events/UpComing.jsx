@@ -29,7 +29,6 @@ export default function UpComing() {
         today.setHours(0, 0, 0, 0); // Set to start of today
         
         Object.values(events).forEach(eventData => {
-            console.log("eventData", eventData);
             
             const eventType = eventData?.type;
             

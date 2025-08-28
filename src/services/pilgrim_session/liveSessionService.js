@@ -5,11 +5,11 @@ export const saveOrUpdateLiveSessionData = async (uid, arrayName, newArray) => {
     if (!uid) throw new Error("User ID is required");
     console.log("Saving live session array:", JSON.stringify(newArray, null, 2));
 
-    // Add createdAt timestamp if not present
-    const dataWithTimestamp = {
-        ...newArray,
-        createdAt: newArray.createdAt || new Date().toISOString()
-    };
+    // Add createdAt timestamp to each item in the array if not present
+    const dataWithTimestamp = newArray.map(item => ({
+        ...item,
+        createdAt: item.createdAt || new Date().toISOString()
+    }));
 
     // Correct Firestore path
     const docRef = doc(db, "pilgrim_sessions", uid, "sessions", "liveSession");
@@ -45,22 +45,28 @@ export const deleteLiveSessionByIndex = async (uid, index) => {
     try {
         const guideRef = doc(db, `pilgrim_sessions/${uid}/sessions/liveSession`);
         const docSnap = await getDoc(guideRef);
-
+    
         if (!docSnap.exists()) {
             throw new Error("Live session document not found");
         }
-
+    
         const data = docSnap.data();
-        if (!data.slides || !Array.isArray(data.slides)) {
-            throw new Error("live session slides array not found in document");
+    
+        // 🔹 Convert slides into an array, regardless of whether it's stored as object or array
+        const slidesArray = Array.isArray(data.slides)
+            ? data.slides
+            : Object.values(data.slides || {});
+    
+        if (!slidesArray.length) {
+            throw new Error("No slides found in live session document");
         }
-
-        // Filter out the slide at the given index
-        const updatedSession = data.slides.filter((_, i) => i !== index);
-
-        // Update Firestore
+    
+        // 🔹 Remove the slide at given index
+        const updatedSession = slidesArray.filter((_, i) => i !== index);
+    
+        // 🔹 Update Firestore as an array (cleaner going forward)
         await updateDoc(guideRef, { slides: updatedSession });
-
+    
         console.log(`live session at index ${index} deleted successfully`);
         return "deleted";
     } catch (error) {
@@ -68,4 +74,5 @@ export const deleteLiveSessionByIndex = async (uid, index) => {
         throw error;
     }
 };
+    
 
