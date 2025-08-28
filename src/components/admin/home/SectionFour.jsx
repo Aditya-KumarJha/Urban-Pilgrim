@@ -7,6 +7,7 @@ import { useDispatch } from "react-redux";
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { storage } from "../../../services/firebase";
 import { v4 as uuidv4 } from "uuid";
+import { showSuccess } from "../../../utils/toast";
 
 function SectionFour() {
     const [image, setImage] = useState(null);
@@ -105,7 +106,7 @@ function SectionFour() {
         });
         dispatch(setSectionFour({ image, features })); // update store
         await saveSectionFour(uid, { image, features }); // update Firestore
-        console.log("Section 4 data saved successfully", { image, features });
+        showSuccess("Section 4 data saved successfully", { image, features });
     };
 
     const handleDeleteFeature = async (index) => {

@@ -6,8 +6,7 @@ export default function FilterBar({ onFiltersChange, initialFilters = {} }) {
         mode: initialFilters.mode || '',
         type: initialFilters.type || '',
         price: initialFilters.price || '',
-        duration: initialFilters.duration || '',
-        bestSelling: initialFilters.bestSelling || false
+        duration: initialFilters.duration || ''
     });
 
     const [dropdownStates, setDropdownStates] = useState({
@@ -66,8 +65,7 @@ export default function FilterBar({ onFiltersChange, initialFilters = {} }) {
         setFilters({
             type: '',
             price: '',
-            duration: '',
-            bestSelling: false
+            duration: ''
         });
     };
 
@@ -120,19 +118,6 @@ export default function FilterBar({ onFiltersChange, initialFilters = {} }) {
                 {renderDropdown('price', filterOptions.priceRanges)}
                 {renderDropdown('duration', filterOptions.durations)}
                 
-                {/* Best Selling Toggle */}
-                <button
-                    onClick={() => setFilters(prev => ({ ...prev, bestSelling: !prev.bestSelling }))}
-                    className={`px-4 py-1 border-2 rounded-full text-sm flex items-center gap-2 transition-colors ${
-                        filters.bestSelling
-                            ? 'border-yellow-500 bg-yellow-50 text-yellow-700'
-                            : 'border-[#00000033] hover:border-gray-400'
-                    }`}
-                >
-                    <span className="text-lg">🏆</span>
-                    Best Selling
-                </button>
-                
                 {activeFiltersCount > 0 && (
                     <button
                         onClick={clearAllFilters}
@@ -150,18 +135,11 @@ export default function FilterBar({ onFiltersChange, initialFilters = {} }) {
                         (value && value !== false) && (
                             <span
                                 key={key}
-                                className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full ${
-                                    key === 'bestSelling' 
-                                        ? 'bg-yellow-100 text-yellow-800'
-                                        : 'bg-blue-100 text-blue-800'
-                                }`}
+                                className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800"
                             >
-                                {key === 'bestSelling' ? '🏆 Best Selling' : value}
+                                {value}
                                 <button
-                                    onClick={() => key === 'bestSelling' 
-                                        ? setFilters(prev => ({ ...prev, bestSelling: false }))
-                                        : handleFilterSelect(key, value)
-                                    }
+                                    onClick={() => handleFilterSelect(key, value)}
                                     className="hover:text-blue-600"
                                 >
                                     ×

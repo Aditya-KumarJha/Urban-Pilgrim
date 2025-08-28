@@ -429,6 +429,7 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
             try {
                 let programRef;
                 let updateData = {};
+                console.log("program: ", program)
 
                 if (program.type === "guide" || program.category === "guide") {
                     programRef = db
@@ -470,8 +471,11 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                     }
                 } else if (
                     program.type === "retreat" ||
-                    program.category === "retreat"
+                    program.category === "retreat" ||
+                    // Check if it's a retreat by checking if it has an id (retreats use numbered ids)
+                    (program.id && !program.type && !program.category)
                 ) {
+                    console.log("Processing retreat purchase for:", program.title);
                     programRef = db
                         .collection("pilgrim_retreat")
                         .doc("user-uid")
@@ -481,11 +485,15 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                     if (retreatSnap.exists) {
                         const retreatData = retreatSnap.data();
                         const updatedData = { ...retreatData };
+                        console.log("RetreatData from backend: ", retreatData)
                         
                         // Find and update the matching retreat by iterating through numbered keys
+                        let retreatFound = false;
                         Object.keys(retreatData).forEach((key) => {
                             const retreat = retreatData[key];
+                            console.log("Retreat from backend: ", retreat)
                             if (retreat?.pilgrimRetreatCard?.title === program.title) {
+                                console.log("Found matching retreat, updating purchasedUsers");
                                 updatedData[key] = {
                                     ...retreat,
                                     purchasedUsers: [
@@ -504,9 +512,16 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                                         },
                                     ],
                                 };
+                                retreatFound = true;
                             }
                         });
-                        updateData = updatedData;
+                        
+                        if (retreatFound) {
+                            updateData = updatedData;
+                            console.log("UpdateData for retreat: ", updateData);
+                        } else {
+                            console.log("No matching retreat found for title: ", program.title);
+                        }
                     }
                 } else if (
                     program.type === "live" ||

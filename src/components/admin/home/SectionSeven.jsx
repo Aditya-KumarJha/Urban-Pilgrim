@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { setLoading, setSectionSeven } from "../../../features/home_slices/sectionSevenSlice";
 import { fetchSectionSeven, saveSectionSeven } from "../../../services/home_service/sectionSevenService";
+import toast from "react-hot-toast";
 
 function SectionSeven() {
     const [title, setTitle] = useState("It asks: What about me?");
@@ -35,7 +36,7 @@ function SectionSeven() {
     const handleSave = async () => {
         dispatch(setSectionSeven({ title, description })); // update store
         await saveSectionSeven(uid, { title, description }); // update Firestore
-        console.log("Section 7 data saved successfully", { title, description });
+        toast.success("Section 7 data saved successfully", { title, description });
     };
 
     return (

@@ -5,10 +5,7 @@ export default function EventCard({ data }) {
 
     return (
         <motion.div
-            className="max-w-sm rounded-2xl overflow-hidden bg-gradient-to-b from-[#FDF6F2] to-[#FCEFE6]"
-            style={{
-                boxShadow: "-21px 21px 25.7px 0 rgba(0, 0, 0, 0.25)",
-            }}
+            className="max-w-sm rounded-2xl overflow-hidden lg:shadow-[-21px_21px_25.7px_0_rgba(0,0,0,0.25)] bg-gradient-to-b from-[#FDF6F2] to-[#FCEFE6]"
             initial={{ y: 100, opacity: 0 }}
             whileInView={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.5, ease: "easeOut" }}

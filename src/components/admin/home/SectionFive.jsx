@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { setLoading, setSectionFive } from "../../../features/home_slices/sectionFiveSlice";
 import { fetchSectionFive, saveSectionFive } from "../../../services/home_service/sectionFiveService";
+import { showSuccess } from "../../../utils/toast";
 
 function SectionFive() {
     const [title, setTitle] = useState("Book your Pilgrim Experience");
@@ -35,7 +36,7 @@ function SectionFive() {
     const handleSave = async () => {
         dispatch(setSectionFive({ title, description })); // update store
         await saveSectionFive(uid, { title, description }); // update Firestore
-        console.log("Section 5 data saved successfully", { title, description });
+        showSuccess("Section 5 data saved successfully", { title, description });
     };
 
 

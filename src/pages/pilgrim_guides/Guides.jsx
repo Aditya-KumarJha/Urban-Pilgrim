@@ -15,6 +15,7 @@ export default function Guides() {
     price: '',
     availability: ''
   });
+  const [bestSellingActive, setBestSellingActive] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -27,6 +28,10 @@ export default function Guides() {
   const handleCategoryChange = useCallback((category) => {
     setFilters(prev => ({ ...prev, category }));
   }, []);
+
+  const toggleBestSelling = () => {
+    setBestSellingActive(!bestSellingActive);
+  };
 
   return (
     <>
@@ -52,7 +57,14 @@ export default function Guides() {
               <FilterBar onFiltersChange={handleFiltersChange} />
               <div className="flex items-center gap-2">
                 <span className="text-sm">Sort By:</span>
-                <button className="px-4 py-1 text-black border-2 border-[#00000033] rounded-full text-sm flex items-center gap-2">
+                <button 
+                  onClick={toggleBestSelling}
+                  className={`px-4 py-1 border-2 rounded-full text-sm flex items-center gap-2 transition-colors ${
+                    bestSellingActive 
+                      ? 'bg-[#D4A574] text-white border-[#D4A574]' 
+                      : 'text-black border-[#00000033] hover:border-[#D4A574]'
+                  }`}
+                >
                   <img src="/assets/retreats/bookmark.svg" /> Best Selling <MdKeyboardArrowDown />
                 </button>
               </div>
@@ -62,7 +74,7 @@ export default function Guides() {
             <CategorySelector onCategoryChange={handleCategoryChange} />
           </div>
         </div>
-        <GuidesDemo filters={filters} />
+        <GuidesDemo filters={filters} bestSellingActive={bestSellingActive} />
       </div>
       <Testimonials />
     </>

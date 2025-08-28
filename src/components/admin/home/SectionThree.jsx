@@ -10,7 +10,7 @@ import { showSuccess } from "../../../utils/toast";
 
 function SectionThree() {
     const [image, setImage] = useState(null);
-    const [title, setTitle] = useState("Explore our Programs");
+    const [title, setTitle] = useState("Begin your pilgrimage here");
     const [programs, setPrograms] = useState([]);
     const dispatch = useDispatch();
     const uid = "your-unique-id";
@@ -94,9 +94,9 @@ function SectionThree() {
     };
 
     const handleSave = async () => {
-        dispatch(setSectionThree(programs)); // update store
-        await saveSectionThree(uid, programs); // update Firestore
-        console.log("Section 3 data saved successfully", programs);
+        dispatch(setSectionThree({ title, programs })); // update store
+        await saveSectionThree(uid, { title, programs }); // update Firestore
+        console.log("Section 3 data saved successfully", { title, programs });
         showSuccess("Data saved successfully");
     };
 

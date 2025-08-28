@@ -5,7 +5,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { setGuides } from "../../features/pilgrim_guide/pilgrimGuideSlice"
 
-export default function GuidesDemo({ filters = {} }) {
+export default function GuidesDemo({ filters = {}, bestSellingActive = false }) {
 
     const [guideData, setGuideData] = useState(null);
     const dispatch = useDispatch();
@@ -38,13 +38,14 @@ export default function GuidesDemo({ filters = {} }) {
         mode: program?.guideCard?.subCategory,
         experience: program?.guideCard?.experience,
         availability: program?.guideCard?.availability,
+        purchaseCount: Array.isArray(program?.purchasedUsers) ? program.purchasedUsers.length : 0,
     }));
 
-    // Filter guides based on applied filters
+    // Filter and sort guides based on applied filters
     const filteredGuides = useMemo(() => {
         if (!guides?.length) return [];
 
-        return guides.filter(guide => {
+        let filtered = guides.filter(guide => {
             // Category filter
             if (filters.category && guide?.category) {
                 if (guide.category.toLowerCase() !== filters.category.toLowerCase()) {
@@ -88,8 +89,18 @@ export default function GuidesDemo({ filters = {} }) {
 
             return true;
         });
+
+        // Filter and sort by best selling if active
+        if (bestSellingActive) {
+            // Only show items with purchases
+            filtered = filtered.filter(guide => guide.purchaseCount > 0);
+            // Sort by highest purchase count
+            filtered = filtered.sort((a, b) => (b.purchaseCount || 0) - (a.purchaseCount || 0));
+        }
+
+        return filtered;
         
-    }, [guides, filters]);
+    }, [guides, filters, bestSellingActive]);
 
     useEffect(() => {
         window.scrollTo(0, 0);

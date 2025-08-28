@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 
 export default function Retreats() {
     const [filters, setFilters] = useState({});
+    const [bestSellingActive, setBestSellingActive] = useState(false);
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -19,6 +20,10 @@ export default function Retreats() {
 
     const handleCategoryChange = (category) => {
         setFilters(prev => ({ ...prev, category }));
+    };
+
+    const toggleBestSelling = () => {
+        setBestSellingActive(!bestSellingActive);
     };
 
     return (
@@ -42,7 +47,14 @@ export default function Retreats() {
                         <FilterBar onFiltersChange={handleFiltersChange} />
                         <div className="flex items-center gap-2">
                             <span className="text-sm">Sort By:</span>
-                            <button className="px-4 py-1 text-black border-2 border-[#00000033] rounded-full text-sm flex items-center gap-2">
+                            <button 
+                                onClick={toggleBestSelling}
+                                className={`px-4 py-1 border-2 rounded-full text-sm flex items-center gap-2 transition-colors ${
+                                    bestSellingActive 
+                                        ? 'bg-[#D4A574] text-white border-[#D4A574]' 
+                                        : 'text-black border-[#00000033] hover:border-[#D4A574]'
+                                }`}
+                            >
                                 <img src="/assets/retreats/bookmark.svg" /> Best Selling <MdKeyboardArrowDown />
                             </button>
                         </div>
@@ -54,7 +66,7 @@ export default function Retreats() {
                     />
                 </div>
             </div>
-            <RetreatList filters={filters} />
+            <RetreatList filters={filters} bestSellingActive={bestSellingActive} />
             <Testimonials />
         </div>
     );

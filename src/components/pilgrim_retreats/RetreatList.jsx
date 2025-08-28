@@ -5,7 +5,7 @@ import { db } from "../../services/firebase";
 import { useDispatch } from "react-redux";
 import { setRetreatData } from "../../features/pilgrim_retreat/pilgrimRetreatSlice"
 
-export default function RetreatList({ filters = {} }) {
+export default function RetreatList({ filters = {}, bestSellingActive = false }) {
     const [retreats, setRetreats] = useState([]);
     const uid = "user-uid";
     const dispatch = useDispatch();
@@ -29,6 +29,7 @@ export default function RetreatList({ filters = {} }) {
                                     retreatsData.push({
                                         id: key,
                                         ...data[key],
+                                        purchaseCount: Array.isArray(data[key]?.purchasedUsers) ? data[key].purchasedUsers.length : 0,
                                     });
                                 });
                         }
@@ -48,11 +49,11 @@ export default function RetreatList({ filters = {} }) {
         if (uid) fetchData();
     }, [uid, dispatch]);
 
-    // Filter retreats based on applied filters
+    // Filter and sort retreats based on applied filters
     const filteredRetreats = useMemo(() => {
         if (!retreats.length) return [];
 
-        return retreats.filter(retreat => {
+        let filtered = retreats.filter(retreat => {
             // Category filter
             if (filters.category && retreat?.pilgrimRetreatCard?.category) {
                 if (retreat.pilgrimRetreatCard.category.toLowerCase() !== filters.category.toLowerCase()) {
@@ -115,7 +116,17 @@ export default function RetreatList({ filters = {} }) {
             return true;
         });
 
-    }, [retreats, filters]);
+        // Filter and sort by best selling if active
+        if (bestSellingActive) {
+            // Only show items with purchases
+            filtered = filtered.filter(retreat => retreat.purchaseCount > 0);
+            // Sort by highest purchase count
+            filtered = filtered.sort((a, b) => (b.purchaseCount || 0) - (a.purchaseCount || 0));
+        }
+
+        return filtered;
+
+    }, [retreats, filters, bestSellingActive]);
 
     return (
         <div className="space-y-4">

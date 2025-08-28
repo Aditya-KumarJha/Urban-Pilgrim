@@ -5,7 +5,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { setLiveSessions } from "../../features/pilgrim_session/liveSessionsSlice";
 
-export default function LiveSessions({ filters = {} }) {
+export default function LiveSessions({ filters = {}, bestSellingActive = false }) {
 
     const [liveSessionData, setLiveSessionData] = useState(null);
     const dispatch = useDispatch();
@@ -40,13 +40,14 @@ export default function LiveSessions({ filters = {} }) {
         features: program?.liveSessionCard?.features,
         duration: program?.liveSessionCard?.duration,
         mode: program?.liveSessionCard?.subCategory,
+        purchaseCount: Array.isArray(program?.purchasedUsers) ? program.purchasedUsers.length : 0,
     }));
 
-    // Filter sessions based on applied filters
+    // Filter and sort sessions based on applied filters
     const filteredSessions = useMemo(() => {
         if (!sessions?.length) return [];
 
-        return sessions.filter(session => {
+        let filtered = sessions.filter(session => {
             // Category filter
             if (filters.category && session?.category) {
                 if (session.category.toLowerCase() !== filters.category.toLowerCase()) {
@@ -95,8 +96,18 @@ export default function LiveSessions({ filters = {} }) {
 
             return true;
         });
+
+        // Filter and sort by best selling if active
+        if (bestSellingActive) {
+            // Only show items with purchases
+            filtered = filtered.filter(session => session.purchaseCount > 0);
+            // Sort by highest purchase count
+            filtered = filtered.sort((a, b) => (b.purchaseCount || 0) - (a.purchaseCount || 0));
+        }
+
+        return filtered;
         
-    }, [sessions, filters]);
+    }, [sessions, filters, bestSellingActive]);
 
     return (
         <section className="px-6 py-12 text-gray-900">

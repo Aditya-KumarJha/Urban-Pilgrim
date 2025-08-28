@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { setLoading, setSectionSix } from "../../../features/home_slices/sectionSixSlice";
 import { fetchSectionSix, saveSectionSix } from "../../../services/home_service/sectionSixService";
+import { showSuccess } from "../../../utils/toast";
 
 function SectionSix() {
     const [title, setTitle] = useState("Find your Pilgrim Session");
@@ -35,7 +36,7 @@ function SectionSix() {
     const handleSave = async () => {
         dispatch(setSectionSix({ title, description })); // update store
         await saveSectionSix(uid, { title, description }); // update Firestore
-        console.log("Section 6 data saved successfully", { title, description });
+        showSuccess("Section 6 data saved successfully", { title, description });
     };
     
     return (

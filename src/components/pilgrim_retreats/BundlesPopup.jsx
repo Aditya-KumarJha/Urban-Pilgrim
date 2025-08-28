@@ -58,7 +58,7 @@ export default function BundlesPopup({ isOpen, onClose, retreatData }) {
             price: parseFloat(bundle[variant]?.price || 0),
             image: bundle.image || "/assets/package.svg",
             type: "bundle",
-            bundleId: bundle.id,
+            bundleId: bundle?.id,
             variant: variant,
             originalPrice: bundle[variant]?.totalPrice || 0,
             discount: bundle.discount || 0,

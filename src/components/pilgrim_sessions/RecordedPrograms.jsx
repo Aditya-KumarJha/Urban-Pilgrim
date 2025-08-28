@@ -5,7 +5,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { setRecordedSessions } from "../../features/pilgrim_session/recordedSessionSlice";
 
-export default function RecordedPrograms({ filters = {} }) {
+export default function RecordedPrograms({ filters = {}, bestSellingActive = false }) {
 
     const [recordedProgramData, setRecordedProgramData] = useState(null);
     const dispatch = useDispatch();
@@ -40,13 +40,14 @@ export default function RecordedPrograms({ filters = {} }) {
         features: program?.recordedProgramCard?.features,
         duration: program?.recordedProgramCard?.duration,
         mode: program?.recordedProgramCard?.subCategory,
+        purchaseCount: Array.isArray(program?.purchasedUsers) ? program.purchasedUsers.length : 0,
     }));
 
-    // Filter programs based on applied filters
+    // Filter and sort programs based on applied filters
     const filteredPrograms = useMemo(() => {
         if (!programs?.length) return [];
 
-        return programs.filter(program => {
+        let filtered = programs.filter(program => {
             // Category filter
             if (filters.category && program?.category) {
                 if (program.category.toLowerCase() !== filters.category.toLowerCase()) {
@@ -96,8 +97,18 @@ export default function RecordedPrograms({ filters = {} }) {
 
             return true;
         });
+
+        // Filter and sort by best selling if active
+        if (bestSellingActive) {
+            // Only show items with purchases
+            filtered = filtered.filter(program => program.purchaseCount > 0);
+            // Sort by highest purchase count
+            filtered = filtered.sort((a, b) => (b.purchaseCount || 0) - (a.purchaseCount || 0));
+        }
+
+        return filtered;
         
-    }, [programs, filters]);
+    }, [programs, filters, bestSellingActive]);
 
     return (
         <section className="px-6 py-12 text-gray-900">

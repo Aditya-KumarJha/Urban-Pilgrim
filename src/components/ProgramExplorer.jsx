@@ -24,6 +24,7 @@ export default function ProgramExplorer() {
 
                 if (snapshot.exists()) {
                     const data = snapshot.data();
+                    console.log("data: ", data)
                     setProgramItems(data.sectionThree || []);
                 } else {
                     console.log("No slides found in Firestore");
@@ -55,6 +56,8 @@ export default function ProgramExplorer() {
         scrollToCard(newIndex);
     };
 
+    console.log("programItems: ", programItems);
+
     return (
         <motion.div
             className="md:grid md:grid-cols-2 flex flex-col w-full bg-[#f4ede9]"
@@ -75,13 +78,13 @@ export default function ProgramExplorer() {
 
                 <div className="z-10 space-y-6 w-full max-w-md">
                     <h2 className="text-2xl md:text-3xl font-bold text-center text-black">
-                        Explore our Programs
+                        {programItems?.title}
                     </h2>
 
                     <div className="flex gap-6 items-start">
                         {/* Vertical Line */}
                         <div className="flex flex-col mt-4 items-center bg-[#744C44]/30 h-[150px] w-[2px] rounded-lg">
-                            {programItems.map((_, i) => (
+                            {programItems?.programs && programItems?.programs.map((_, i) => (
                                 <div
                                     key={i}
                                     ref={(el) => (dotRefs.current[i] = el)}
@@ -94,7 +97,7 @@ export default function ProgramExplorer() {
 
                         {/* Titles */}
                         <ul className="flex flex-col gap-4 text-base py-4">
-                            {programItems.map((item, i) => (
+                            {programItems?.programs && programItems.programs.map((item, i) => (
                                 <li
                                     key={i}
                                     onClick={() => scrollToCard(i)}
@@ -118,7 +121,7 @@ export default function ProgramExplorer() {
                     className="flex gap-6 bg-none rounded-xl p-2 overflow-x-auto no-scrollbar scroll-smooth items-center"
                     style={{ scrollBehavior: "smooth" }}
                 >
-                    {programItems.map((item, i) => (
+                    {programItems?.programs && programItems?.programs.map((item, i) => (
                         <ProgramCard
                             key={i}
                             image={item?.image}

@@ -10,6 +10,7 @@ import { useEffect, useState, useCallback } from "react";
 
 export default function Sessions() {
     const [filters, setFilters] = useState({});
+    const [bestSellingActive, setBestSellingActive] = useState(false);
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -22,6 +23,10 @@ export default function Sessions() {
     const handleCategoryChange = useCallback((category) => {
         setFilters(prev => ({ ...prev, category }));
     }, []);
+
+    const toggleBestSelling = () => {
+        setBestSellingActive(!bestSellingActive);
+    };
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-[#FAF4F0] to-white mt-[100px]">
@@ -44,7 +49,14 @@ export default function Sessions() {
                         <FilterBar onFiltersChange={handleFiltersChange} />
                         <div className="flex items-center gap-2">
                             <span className="text-sm">Sort By:</span>
-                            <button className="px-4 py-1 text-black border-2 border-[#00000033] rounded-full text-sm flex items-center gap-2">
+                            <button 
+                                onClick={toggleBestSelling}
+                                className={`px-4 py-1 border-2 rounded-full text-sm flex items-center gap-2 transition-colors ${
+                                    bestSellingActive 
+                                        ? 'bg-[#D4A574] text-white border-[#D4A574]' 
+                                        : 'text-black border-[#00000033] hover:border-[#D4A574]'
+                                }`}
+                            >
                                 <img src="/assets/retreats/bookmark.svg" /> Best Selling <MdKeyboardArrowDown />
                             </button>
                         </div>
@@ -54,8 +66,8 @@ export default function Sessions() {
                     <CategorySelector onCategoryChange={handleCategoryChange} />
                 </div>
             </div>
-            <LiveSessions filters={filters} />
-            <RecordedPrograms filters={filters} />
+            <LiveSessions filters={filters} bestSellingActive={bestSellingActive} />
+            <RecordedPrograms filters={filters} bestSellingActive={bestSellingActive} />
             <SubscriptionPlans />
             <Testimonials />
         </div>

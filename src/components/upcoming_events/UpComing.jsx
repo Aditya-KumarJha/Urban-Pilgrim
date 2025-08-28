@@ -188,13 +188,13 @@ export default function UpComing() {
                     <button
                         onClick={() => setShowCalendar(!showCalendar)}
                         className="text-xs md:text-sm w-[200px] lg:hidden
-            bg-gradient-to-b from-[#C5703F] to-[#C16A00] 
-            bg-clip-text text-transparent 
-            border-2 border-[#C5703F] rounded-full 
-            py-1 md:py-2 px-4 lg:px-8 cursor-pointer 
-            transition-all duration-300
-            hover:text-white hover:bg-gradient-to-b hover:from-[#C5703F] hover:to-[#C16A00] hover:bg-clip-border hover:border-white"
-                    >
+                            bg-gradient-to-b from-[#C5703F] to-[#C16A00] 
+                            bg-clip-text text-transparent 
+                            border-2 border-[#C5703F] rounded-full 
+                            py-1 md:py-2 px-4 lg:px-8 cursor-pointer 
+                            transition-all duration-300
+                            hover:text-white hover:bg-gradient-to-b hover:from-[#C5703F] hover:to-[#C16A00] hover:bg-clip-border hover:border-white"
+                        >
                         <span>{showCalendar ? 'Hide Calendar' : 'Show Calendar'}</span>
                     </button>
                 </div>

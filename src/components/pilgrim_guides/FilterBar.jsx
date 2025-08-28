@@ -6,8 +6,7 @@ export default function FilterBar({ onFiltersChange, initialFilters = {} }) {
   const [filters, setFilters] = useState({
     mode: initialFilters.mode || '',
     price: initialFilters.price || '',
-    availability: initialFilters.availability || '',
-    bestSelling: initialFilters.bestSelling || false
+    availability: initialFilters.availability || ''
   });
 
   const [dropdownStates, setDropdownStates] = useState({
@@ -65,8 +64,7 @@ export default function FilterBar({ onFiltersChange, initialFilters = {} }) {
     setFilters({
       mode: '',
       price: '',
-      availability: '',
-      bestSelling: false
+      availability: ''
     });
   };
 
@@ -108,7 +106,7 @@ export default function FilterBar({ onFiltersChange, initialFilters = {} }) {
     );
   };
 
-  const activeFiltersCount = Object.values(filters).filter(value => value !== '' && value !== false).length;
+  const activeFiltersCount = Object.values(filters).filter(value => value !== '').length;
 
   return (
     <div className="space-y-4">
@@ -118,19 +116,6 @@ export default function FilterBar({ onFiltersChange, initialFilters = {} }) {
         {renderDropdown('mode', filterOptions.modes)}
         {renderDropdown('price', filterOptions.priceRanges, '/assets/retreats/rupee.svg')}
         {renderDropdown('availability', filterOptions.availabilities, '/assets/retreats/Availability.svg')}
-        
-        {/* Best Selling Toggle */}
-        <button
-          onClick={() => setFilters(prev => ({ ...prev, bestSelling: !prev.bestSelling }))}
-          className={`px-4 py-1 border-2 rounded-full text-sm flex items-center gap-2 transition-colors ${
-            filters.bestSelling
-              ? 'border-yellow-500 bg-yellow-50 text-yellow-700'
-              : 'border-[#00000033] hover:border-gray-400'
-          }`}
-        >
-          <span className="text-lg">🏆</span>
-          Best Selling
-        </button>
         
         {activeFiltersCount > 0 && (
           <button
@@ -146,21 +131,14 @@ export default function FilterBar({ onFiltersChange, initialFilters = {} }) {
         <div className="flex flex-wrap gap-2">
           <span className="text-sm text-gray-600">Active filters:</span>
           {Object.entries(filters).map(([key, value]) => 
-            (value && value !== false) && (
+            value && (
               <span
                 key={key}
-                className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full ${
-                  key === 'bestSelling' 
-                    ? 'bg-yellow-100 text-yellow-800'
-                    : 'bg-blue-100 text-blue-800'
-                }`}
+                className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800"
               >
-                {key === 'bestSelling' ? '🏆 Best Selling' : value}
+                {value}
                 <button
-                  onClick={() => key === 'bestSelling' 
-                    ? setFilters(prev => ({ ...prev, bestSelling: false }))
-                    : handleFilterSelect(key, value)
-                  }
+                  onClick={() => handleFilterSelect(key, value)}
                   className="hover:text-blue-600"
                 >
                   ×
