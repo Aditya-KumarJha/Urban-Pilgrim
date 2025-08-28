@@ -306,6 +306,7 @@ export default function LiveDetails() {
                         handleClick={handleSubscriptionClick}
                         title={programData?.liveSessionCard?.title}
                         redirectToProgram={redirectToSession}
+                        programType="session"
                     />
 
                     <div className="flex flex-col">

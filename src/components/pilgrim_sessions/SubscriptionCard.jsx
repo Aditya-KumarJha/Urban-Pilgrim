@@ -1,10 +1,10 @@
 import { motion } from "framer-motion";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { Package, ShoppingCart } from "lucide-react";
+import { CloudCog, Package, ShoppingCart } from "lucide-react";
 import { useState } from "react";
 
-export default function SubscriptionCard({ bundle, onAddToCart, isHighestDiscount = false, title = "", price, handleClick = "", redirectToProgram="" }) {
+export default function SubscriptionCard({ bundle, onAddToCart, isHighestDiscount = false, title = "", price, handleClick = "", redirectToProgram="", programType = "session" }) {
     const userPrograms = useSelector((state) => state.userProgram);
     const navigate = useNavigate();
     const [expandedVariants, setExpandedVariants] = useState({});
@@ -238,7 +238,17 @@ export default function SubscriptionCard({ bundle, onAddToCart, isHighestDiscoun
                 >
                     <motion.button
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => navigate("/my-programs")} // 👈 redirect user to My Programs page
+                        onClick={(e) => {
+                            e.stopPropagation(); // Prevent event bubbling
+                            const formattedTitle = title.replace(/\s+/g, '-').toLowerCase();
+                            if (programType === "program") {
+                                // console.log("navigating to", `/program/${formattedTitle}/slots`)
+                                navigate(`/program/${formattedTitle}/slots`);
+                            } else {
+                                // console.log("navigating to", `/session/${formattedTitle}/slots`)
+                                navigate(`/session/${formattedTitle}/slots`);
+                            }
+                        }}
                         className="w-full bg-green-600 text-white font-semibold p-3 rounded-md hover:bg-green-700 transition-colors"
                     >
                         View Program

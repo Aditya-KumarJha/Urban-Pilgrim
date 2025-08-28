@@ -19,6 +19,8 @@ import { fetchAllEvents } from "../../utils/fetchEvents";
 import EventCard from "../upcoming_events/EventCard";
 import WeatherSection from "./WeatherSection";
 import BundlesPopup from "./BundlesPopup";
+import { getProgramButtonConfig } from "../../utils/userProgramUtils";
+import { useNavigate } from "react-router-dom";
 
 export default function Retreatdescription() {
 
@@ -28,6 +30,17 @@ export default function Retreatdescription() {
     const [retreatData, setRetreatData] = useState(null);
     const [showBundlesPopup, setShowBundlesPopup] = useState(false);
     const uid = "user-uid";
+    const navigate = useNavigate();
+    
+    // Get user programs from Redux
+    const userPrograms = useSelector((state) => state.userProgram);
+    
+    // Get button configuration based on user ownership
+    const buttonConfig = getProgramButtonConfig(
+        userPrograms, 
+        retreatData?.pilgrimRetreatCard?.title, 
+        'retreat'
+    );
     const dispatch = useDispatch();
     
     // Get events from Redux store
@@ -153,11 +166,23 @@ export default function Retreatdescription() {
                         </div>
                     </div>
                     
-                    {/* Book Now button */}
+                    {/* Dynamic Action button */}
                     <div className="flex justify-end items-end w-full gap-4 mt-6">
                         <Button 
-                            btn_name={"Book Now"} 
-                            onClick={() => setShowBundlesPopup(true)}
+                            btn_name={buttonConfig.text} 
+                            onClick={() => {
+                                if (buttonConfig.action === 'view') {
+                                    // Navigate to user dashboard or program view
+                                    navigate('/userdashboard');
+                                } else if (buttonConfig.action === 'renew') {
+                                    // Handle renewal
+                                    setShowBundlesPopup(true);
+                                } else {
+                                    // Default booking action
+                                    setShowBundlesPopup(true);
+                                }
+                            }}
+                            className={buttonConfig.className}
                         />
                     </div>
 

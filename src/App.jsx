@@ -82,17 +82,18 @@ function App() {
               {/* live session */}
               <Route path="/session/:sessionId/details" element={<LiveDetails />} />
               <Route path="/session/:sessionId/slots" element={<SessionSlots />} />
-              <Route path="/session/:sessionId/slots/description" element={<SessionDescription />} />
               {/* recorded program */}
               <Route path="/program/:programId/details" element={<ProgramDetails />} />
-              <Route path="/program/:programId/slots" element={<SessionSlots />} />
-              
+              <Route path="/program/:programId/slots" element={<SessionDescription />} />
+              {/* guide */}
               <Route path="/guide/:guideClassName" element={<GuideClassDetails />} />
+              {/* retreat */}
               <Route path="/pilgrim_retreats/:retreatName" element={<Retreatdescription />} />
+              {/* event */}
               <Route path="/event/:eventName" element={<EventDetails />} />
               <Route path="/admin" element={<Admin />} />
-              <Route path="*" element={<Home replace={'/'} />} />
               <Route path="/userdashboard" element={<UserDashboard />} />
+              <Route path="*" element={<Home replace={'/'} />} />
             </Routes>
             {!isAdminRoute && <Footer className="mt-10" />}
           </>

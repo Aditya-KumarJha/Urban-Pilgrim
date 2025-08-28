@@ -1,36 +1,33 @@
 import { useState } from "react";
 import { httpsCallable } from "firebase/functions";
 import { signInWithCustomToken } from "firebase/auth";
-import { auth, db, functions } from "../services/firebase";
+import { auth, db, functions } from "../../services/firebase";
 import { useDispatch } from "react-redux";
-import { doc, getDoc, setDoc } from "firebase/firestore";
-import { setUser } from "../features/authSlice";
-import { setUserPrograms } from "../features/userProgramsSlice";
-import { showError, showSuccess } from "../utils/toast";
-import store from "../redux/store";
-import Loader2 from "../components/Loader2"
+import { doc, getDoc } from "firebase/firestore";
+import { setAdmin } from "../../features/adminAuthSlice";
+import { showError, showSuccess } from "../../utils/toast";
+import Loader2 from "../Loader2";
 
-export default function SignIn({ onClose }) {
+export default function AdminSignIn() {
     const [email, setEmail] = useState("");
     const [otp, setOtp] = useState("");
     const [step, setStep] = useState(1); // 1: enter email, 2: enter OTP
     const [loading, setLoading] = useState(false);
     const dispatch = useDispatch();
 
-    // b123076@iiit-bh.ac.in
-
     const sendOtp = async () => {
         if (!email) return alert("Enter email!");
+
         try {
             setLoading(true);
-            const sendOtpFn = httpsCallable(functions, "sendOtp");
+            const sendOtpFn = httpsCallable(functions, "sendAdminOtp");
             const result = await sendOtpFn({ email });
-            console.log("OTP function result:", result.data);
+            console.log("Admin OTP function result:", result.data);
             setStep(2);
-            showSuccess("OTP sent to your email!");
+            showSuccess("OTP sent to your admin email!");
         } catch (err) {
             console.error(err);
-            showError("Failed to send OTP");
+            showError(err.message || "Failed to send OTP. Please check if you're an authorized admin.");
         } finally {
             setLoading(false);
         }
@@ -40,61 +37,27 @@ export default function SignIn({ onClose }) {
         if (!otp) return alert("Enter OTP!");
         try {
             setLoading(true);
-            const verifyOtpFn = httpsCallable(functions, "verifyOtp");
+            const verifyOtpFn = httpsCallable(functions, "verifyAdminOtp");
             const res = await verifyOtpFn({ email, otp });
-            console.log("OTP verification result:", res.data);
+            console.log("Admin OTP verification result:", res.data);
 
-            // 🔑 Sign in using custom token
+            // Sign in using custom token (admin data is already validated in backend)
             const result = await signInWithCustomToken(auth, res.data.token);
             const user = result.user;
-            console.log("Sign in result:", user);
+            console.log("Admin sign in result:", user);
 
-            // 🔍 Check if user exists in Firestore
-            const userRef = doc(db, "users", user.uid, "info", "details");
-            const userSnap = await getDoc(userRef);
-
-            if (!userSnap.exists()) {
-                // 🆕 Create new user
-                await setDoc(userRef, {
-                    uid: user.uid,
-                    email: user.email,
-                    createdAt: new Date(),
-                });
-                console.log("New user created");
-            } else {
-                console.log("Existing user logged in");
-            }
-
-            dispatch(setUser({
+            // Set admin data from the backend response (no need to check Firestore again)
+            dispatch(setAdmin({
                 uid: user.uid,
                 email: user.email,
+                role: res.data.adminData?.role || 'admin',
+                permissions: res.data.adminData?.permissions || []
             }));
 
-            // 📚 Fetch user programs immediately after login
-            try {
-                const userProgramsRef = doc(db, "users", user.uid, "info", "details");
-                const userProgramsSnap = await getDoc(userProgramsRef);
-                
-                if (userProgramsSnap.exists()) {
-                    const userData = userProgramsSnap.data();
-                    const programs = userData.yourPrograms || [];
-                    dispatch(setUserPrograms(programs));
-                    console.log("User programs loaded on login:", programs);
-                } else {
-                    dispatch(setUserPrograms([]));
-                }
-            } catch (error) {
-                console.error("Error fetching user programs on login:", error);
-                dispatch(setUserPrograms([]));
-            }
-
-            console.log("Redux state after setUser:", store.getState().auth.user);
-
-            showSuccess("Signed in successfully!");
-            onClose();
+            showSuccess("Admin signed in successfully!");
         } catch (err) {
             console.error(err);
-            showError("Invalid OTP");
+            showError(err.message || "Invalid OTP or unauthorized access");
         } finally {
             setLoading(false);
         }
@@ -111,19 +74,17 @@ export default function SignIn({ onClose }) {
                     </div>
                 )}
 
-                <button className="absolute top-4 right-4 text-gray-500 hover:text-black text-2xl" onClick={onClose} disabled={loading}>&times;</button>
-
-                <h2 className="text-3xl font-bold mb-3">Sign in</h2>
+                <h2 className="text-3xl font-bold mb-3">Admin Sign in</h2>
                 <p className="text-gray-600 text-sm mb-6">
                     {step === 1
-                        ? "Enter your email and we’ll send you a verification code"
-                        : "Enter the OTP sent to your email"}
+                        ? "Enter your admin email and we'll send you a verification code"
+                        : "Enter the OTP sent to your admin email"}
                 </p>
 
                 {step === 1 ? (
                     <input
                         type="email"
-                        placeholder="Enter your email address..."
+                        placeholder="Enter your admin email address..."
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         disabled={loading}
@@ -149,7 +110,7 @@ export default function SignIn({ onClose }) {
                 </button>
 
                 <p className="text-xs text-left text-gray-500 mt-4 cursor-pointer hover:underline">
-                    Privacy Policy
+                    Admin Privacy Policy
                 </p>
             </div>
         </div>

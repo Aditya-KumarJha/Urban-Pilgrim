@@ -16,6 +16,7 @@ import { addToCart } from "../../features/cartSlice.js"
 import { showSuccess } from "../../utils/toast.js"
 import BundlesPopup from "../../components/pilgrim_retreats/BundlesPopup.jsx";
 import { fetchAllEvents } from "../../utils/fetchEvents";
+import { getProgramButtonConfig } from "../../utils/userProgramUtils";
 
 export default function ProgramDetails() {
     const params = useParams();
@@ -25,6 +26,9 @@ export default function ProgramDetails() {
     const [showBundlesPopup, setShowBundlesPopup] = useState(false);
     const dispatch = useDispatch();
     const navigate = useNavigate();
+    
+    // Get user programs from Redux
+    const userPrograms = useSelector((state) => state.userProgram);
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -205,12 +209,47 @@ export default function ProgramDetails() {
                         </div>
                     </div>
 
-                    <SubscriptionCard
-                        price={programData?.oneTimeSubscription?.price}
-                        handleClick={handleSubscriptionClick}
-                        title={programData?.recordedProgramCard?.title}
-                        redirectToProgram={redirectToProgram}
-                    />
+                    {(() => {
+                        // Get button configuration based on user ownership
+                        const buttonConfig = getProgramButtonConfig(
+                            userPrograms, 
+                            programData?.recordedProgramCard?.title, 
+                            'program'
+                        );
+                        
+                        if (buttonConfig.action === 'view') {
+                            // User already owns this program - show view button
+                            return (
+                                <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-200">
+                                    <div className="text-center">
+                                        <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                                            You own this program
+                                        </h3>
+                                        <p className="text-sm text-gray-600 mb-4">
+                                            Access your purchased content anytime
+                                        </p>
+                                        <button
+                                            className={`w-full py-3 px-4 rounded-lg transition-all duration-200 font-semibold shadow-md hover:shadow-lg ${buttonConfig.className}`}
+                                            onClick={() => navigate('/dashboard')}
+                                        >
+                                            {buttonConfig.text}
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        }
+                        
+                        // User doesn't own the program - show subscription card
+                        return (
+                            <SubscriptionCard
+                                price={programData?.oneTimeSubscription?.price}
+                                handleClick={handleSubscriptionClick}
+                                title={programData?.recordedProgramCard?.title}
+                                redirectToProgram={redirectToProgram}
+                                programType="program"
+                            />
+                        );
+                    })()}
 
                     <div className="flex flex-col">
                         <p className="text-lg font-semibold text-gray-800 mt-4">

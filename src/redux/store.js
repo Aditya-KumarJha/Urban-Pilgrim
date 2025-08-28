@@ -1,5 +1,6 @@
 import { combineReducers, configureStore } from "@reduxjs/toolkit";
 import authReducer from "../features/authSlice";
+import adminAuthReducer from "../features/adminAuthSlice";
 // import sessionReducer from "../features/sessionSlice";
 // import bookingReducer from "../features/bookingSlice";
 import slidesReducer from "../features/home_slices/slidesSlice";
@@ -41,6 +42,7 @@ const persistConfig = {
 
 const rootReducer = combineReducers({
         auth: authReducer,
+        adminAuth: adminAuthReducer,
         // sessions: sessionReducer,
         sectionOne: sectionOneReducer,
         sectionTwo: sectionTwoReducer,

@@ -45,35 +45,12 @@ function Dashboard() {
     const userPrograms = useSelector((state) => state.userProgram);
     const currentUser = useSelector((state) => state.auth.user);
 
-    // Fetch user programs from Firestore
+    // Set loading to false once user is available (programs already loaded on login)
     useEffect(() => {
-        const fetchUserPrograms = async () => {
-            if (!currentUser?.uid) {
-                setLoading(false);
-                return;
-            }
-
-            try {
-                const userRef = doc(db, "users", currentUser.uid, "info", "details");
-                const userSnap = await getDoc(userRef);
-
-                if (userSnap.exists()) {
-                    const userData = userSnap.data();
-                    const programs = userData.yourPrograms || [];
-                    dispatch(setUserPrograms(programs));
-                } else {
-                    dispatch(setUserPrograms([]));
-                }
-            } catch (error) {
-                console.error("Error fetching user programs:", error);
-                dispatch(setUserPrograms([]));
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchUserPrograms();
-    }, [currentUser?.uid, dispatch]);
+        if (currentUser?.uid) {
+            setLoading(false);
+        }
+    }, [currentUser?.uid]);
 
     // Filter programs based on search term
     useEffect(() => {

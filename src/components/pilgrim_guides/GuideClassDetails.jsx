@@ -11,6 +11,8 @@ import { useCart } from "../../context/CartContext";
 import { fetchAllEvents } from "../../utils/fetchEvents";
 import { useDispatch, useSelector } from "react-redux";
 import PersondetailsCard from "../../components/persondetails_card";
+import { getProgramButtonConfig } from "../../utils/userProgramUtils";
+import { useNavigate } from "react-router-dom";
 
 export default function GuideClassDetails() {
     const { addToCart } = useCart();
@@ -25,6 +27,10 @@ export default function GuideClassDetails() {
     const [mainImage, setMainImage] = useState('');
     const [galleryImages, setGalleryImages] = useState([]);
     const dispatch = useDispatch();
+    const navigate = useNavigate();
+    
+    // Get user programs from Redux
+    const userPrograms = useSelector((state) => state.userProgram);
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -560,31 +566,70 @@ export default function GuideClassDetails() {
 
                             {/* Action Buttons */}
                             <div className="space-y-3 mt-4">
-                                {mode === "Offline" && (
-                                    <button
-                                        className="w-full bg-[#2F6288] text-white py-3 px-4 rounded-lg hover:bg-[#2F6288]/90 transition-all duration-200 font-semibold shadow-md hover:shadow-lg"
-                                        onClick={() => setShowCalendar(true)}
-                                    >
-                                        Schedule Your Time - {selectedPlan === "monthly" ? "Monthly" : selectedPlan === "quarterly" ? "Quarterly" : "One Time"}
-                                    </button>
-                                )}
+                                {(() => {
+                                    // Get button configuration based on user ownership
+                                    const buttonConfig = getProgramButtonConfig(
+                                        userPrograms, 
+                                        sessionData?.guideCard?.title, 
+                                        'guide'
+                                    );
+                                    
+                                    const handleButtonClick = () => {
+                                        if (buttonConfig.action === 'view') {
+                                            // Navigate to user dashboard or program view
+                                            navigate('/userdashboard');
+                                        } else if (buttonConfig.action === 'renew') {
+                                            // Handle renewal - show calendar for rebooking
+                                            setShowCalendar(true);
+                                        } else {
+                                            // Default booking action
+                                            setShowCalendar(true);
+                                        }
+                                    };
+                                    
+                                    if (buttonConfig.action === 'view') {
+                                        // User already owns this program
+                                        return (
+                                            <button
+                                                className={`w-full py-3 px-4 rounded-lg transition-all duration-200 font-semibold shadow-md hover:shadow-lg ${buttonConfig.className}`}
+                                                onClick={handleButtonClick}
+                                            >
+                                                {buttonConfig.text}
+                                            </button>
+                                        );
+                                    }
+                                    
+                                    // User doesn't own the program - show booking options
+                                    return (
+                                        <>
+                                            {mode === "Offline" && (
+                                                <button
+                                                    className="w-full bg-[#2F6288] text-white py-3 px-4 rounded-lg hover:bg-[#2F6288]/90 transition-all duration-200 font-semibold shadow-md hover:shadow-lg"
+                                                    onClick={handleButtonClick}
+                                                >
+                                                    Schedule Your Time - {selectedPlan === "monthly" ? "Monthly" : selectedPlan === "quarterly" ? "Quarterly" : "One Time"}
+                                                </button>
+                                            )}
 
-                                {mode === "Online" && (
-                                    <>
-                                        <button 
-                                            className="w-full bg-[#2F6288] text-white py-3 px-4 rounded-lg hover:bg-[#2F6288]/90 transition-all duration-200 font-semibold shadow-md hover:shadow-lg"
-                                            onClick={() => setShowCalendar(true)}
-                                        >
-                                            Book Now - {selectedPlan === "monthly" ? "Monthly" : selectedPlan === "quarterly" ? "Quarterly" : "One Time"}
-                                        </button>
-                                        <button 
-                                            className="w-full border-2 border-[#2F6288] text-[#2F6288] py-3 px-4 rounded-lg hover:bg-[#2F6288] hover:text-white transition-all duration-200 font-semibold"
-                                            onClick={() => setShowCalendar(true)}
-                                        >
-                                            Get Free Trial
-                                        </button>
-                                    </>
-                                )}
+                                            {mode === "Online" && (
+                                                <>
+                                                    <button 
+                                                        className="w-full bg-[#2F6288] text-white py-3 px-4 rounded-lg hover:bg-[#2F6288]/90 transition-all duration-200 font-semibold shadow-md hover:shadow-lg"
+                                                        onClick={handleButtonClick}
+                                                    >
+                                                        Book Now - {selectedPlan === "monthly" ? "Monthly" : selectedPlan === "quarterly" ? "Quarterly" : "One Time"}
+                                                    </button>
+                                                    <button 
+                                                        className="w-full border-2 border-[#2F6288] text-[#2F6288] py-3 px-4 rounded-lg hover:bg-[#2F6288] hover:text-white transition-all duration-200 font-semibold"
+                                                        onClick={handleButtonClick}
+                                                    >
+                                                        Get Free Trial
+                                                    </button>
+                                                </>
+                                            )}
+                                        </>
+                                    );
+                                })()}
                             </div>
                         </div>
                     )}
@@ -612,7 +657,6 @@ export default function GuideClassDetails() {
 
             </div>
 
-            
             {/* You may also like */}
             <div className="max-w-7xl mx-auto p-6 bg-white rounded-2xl grid gap-6 px-4">
                 <h2 className="text-3xl text-[#2F6288] font-bold mb-6">

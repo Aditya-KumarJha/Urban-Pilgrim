@@ -4,12 +4,7 @@ const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
 const Razorpay = require("razorpay");
 
-// Import subscription cleanup functions
-const {
-    cleanupExpiredSubscriptions,
-    manualCleanupExpiredSubscriptions,
-    checkUserSubscriptionStatus
-} = require('./subscriptionCleanup');
+// Import subscription cleanup functions - moved inline to avoid import issues
 
 const { google } = require("googleapis");
 const { OAuth2Client } = require("google-auth-library");
@@ -38,6 +33,7 @@ const transporter = nodemailer.createTransport({
     },
 });
 
+// User OTP Functions
 exports.sendOtp = functions.https.onCall(async (data, context) => {
     console.log("data from sendOtp", data.data);
     const { email } = data.data;
@@ -93,7 +89,7 @@ exports.sendOtp = functions.https.onCall(async (data, context) => {
                     
                     <!-- Footer -->
                     <div style="background: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #eee;">
-                        <p style="color: #999; margin: 0; font-size: 12px;">© 2024 Urban Pilgrim. All rights reserved.</p>
+                        <p style="color: #999; margin: 0; font-size: 12px;">© 2025 Urban Pilgrim. All rights reserved.</p>
                         <p style="color: #999; margin: 5px 0 0 0; font-size: 12px;">This is an automated message, please do not reply.</p>
                     </div>
                 </div>
@@ -145,6 +141,172 @@ exports.verifyOtp = functions.https.onCall(async (data, context) => {
     await db.collection("emailOtps").doc(email).delete();
 
     return { token };
+});
+
+// Admin OTP Functions
+exports.sendAdminOtp = functions.https.onCall(async (data, context) => {
+    console.log("data from sendAdminOtp", data.data);
+    const { email } = data.data;
+    if (!email)
+        throw new functions.https.HttpsError(
+            "invalid-argument",
+            "Email required"
+        );
+
+    // Check if email is authorized admin email
+    const adminQuery = await db.collection("admins").where("email", "==", email).get();
+    if (adminQuery.empty) {
+        throw new functions.https.HttpsError(
+            "permission-denied",
+            "This email is not authorized as an admin. Please contact the system administrator."
+        );
+    }
+
+    // Check if admin is active
+    const adminData = adminQuery.docs[0].data();
+    if (adminData.isActive === false) {
+        throw new functions.https.HttpsError(
+            "permission-denied",
+            "Admin account is deactivated. Please contact the system administrator."
+        );
+    }
+
+    const Otp = Math.floor(100000 + Math.random() * 900000); // 6-digit OTP
+    const ExpiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
+
+    await db.collection("adminOtps").doc(email).set({ Otp, ExpiresAt });
+
+    // Send OTP email
+    await transporter.sendMail({
+        from: gmailEmail,
+        to: email,
+        subject: "Urban Pilgrim Admin Portal - Verification Code",
+        html: `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Urban Pilgrim Admin OTP</title>
+            </head>
+            <body style="margin: 0; padding: 0; font-family: 'Arial', sans-serif; background-color: #f4f4f4;">
+                <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+                    <!-- Header -->
+                    <div style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); padding: 30px 20px; text-align: center;">
+                        <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">Urban Pilgrim Admin</h1>
+                        <p style="color: #ffffff; margin: 10px 0 0 0; opacity: 0.9; font-size: 16px;">Admin Portal Access</p>
+                    </div>
+                    
+                    <!-- Content -->
+                    <div style="padding: 40px 30px;">
+                        <div style="text-align: center; margin-bottom: 30px;">
+                            <h2 style="color: #1e40af; margin: 0 0 10px 0; font-size: 24px;">Admin Verification Code</h2>
+                            <p style="color: #666666; margin: 0; font-size: 16px; line-height: 1.5;">Enter this code to access the admin dashboard</p>
+                        </div>
+                        
+                        <!-- OTP Display -->
+                        <div style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border: 2px solid #3b82f6; border-radius: 12px; padding: 25px; text-align: center; margin: 30px 0;">
+                            <div style="font-size: 36px; font-weight: bold; color: #1e40af; letter-spacing: 8px; margin-bottom: 10px;">${Otp}</div>
+                            <p style="color: #1e40af; margin: 0; font-size: 14px; font-weight: 500;">This code expires in 5 minutes</p>
+                        </div>
+                        
+                        <!-- Security Notice -->
+                        <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                            <p style="color: #92400e; margin: 0; font-size: 14px; font-weight: 500;">🔒 Security Notice</p>
+                            <p style="color: #92400e; margin: 5px 0 0 0; font-size: 13px;">This is an admin access code. Do not share this code with anyone. All admin access is logged and monitored.</p>
+                        </div>
+                        
+                        <div style="text-align: center; margin-top: 30px;">
+                            <p style="color: #666666; margin: 0; font-size: 14px;">If you didn't request this code, please ignore this email.</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Footer -->
+                    <div style="background-color: #f8fafc; padding: 20px 30px; text-align: center; border-top: 1px solid #e2e8f0;">
+                        <p style="color: #64748b; margin: 0; font-size: 12px;">© 2024 Urban Pilgrim. All rights reserved.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `,
+    });
+
+    return { success: true };
+});
+
+exports.verifyAdminOtp = functions.https.onCall(async (data, context) => {
+    console.log("data from verifyAdminOtp", data.data);
+    const { email, otp } = data.data;
+    const doc = await db.collection("adminOtps").doc(email).get();
+
+    if (!doc.exists) {
+        throw new functions.https.HttpsError(
+            "not-found",
+            "OTP not found or expired"
+        );
+    }
+
+    const { Otp, ExpiresAt } = doc.data();
+
+    if (Date.now() > ExpiresAt) {
+        await db.collection("adminOtps").doc(email).delete();
+        throw new functions.https.HttpsError("deadline-exceeded", "OTP expired");
+    }
+
+    if (parseInt(otp) !== Otp) {
+        throw new functions.https.HttpsError("invalid-argument", "Invalid OTP");
+    }
+
+    // Verify admin exists and get admin data
+    const adminQuery = await db.collection("admins").where("email", "==", email).get();
+    if (adminQuery.empty) {
+        throw new functions.https.HttpsError(
+            "permission-denied",
+            "Admin not found in database"
+        );
+    }
+
+    const adminData = adminQuery.docs[0].data();
+    
+    // Check if admin is active
+    if (adminData.isActive === false) {
+        throw new functions.https.HttpsError(
+            "permission-denied",
+            "Admin account is deactivated"
+        );
+    }
+
+    // Get existing Firebase Auth user (only verify, don't create)
+    let user;
+    try {
+        user = await admin.auth().getUserByEmail(email);
+    } catch (error) {
+        throw new functions.https.HttpsError(
+            "not-found",
+            "Admin user not found in Firebase Auth. Please contact system administrator."
+        );
+    }
+
+    // Generate custom token with admin claims
+    console.log("Generating custom token for admin:", user.uid);
+    const token = await admin.auth().createCustomToken(user.uid, {
+        role: "admin",
+        permissions: adminData.permissions || [],
+        adminLevel: adminData.level || "standard"
+    });
+
+    // Delete OTP after use
+    await db.collection("adminOtps").doc(email).delete();
+
+    return { 
+        token,
+        adminData: {
+            role: adminData.role || 'admin',
+            permissions: adminData.permissions || [],
+            level: adminData.level || 'standard',
+            name: adminData.name
+        }
+    };
 });
 
 exports.sendContactEmail = functions.https.onCall(async (data, context) => {
@@ -851,7 +1013,191 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
     }
 });
 
-// Export subscription cleanup functions
-exports.cleanupExpiredSubscriptions = cleanupExpiredSubscriptions;
-exports.manualCleanupExpiredSubscriptions = manualCleanupExpiredSubscriptions;
-exports.checkUserSubscriptionStatus = checkUserSubscriptionStatus;
+// Subscription Cleanup Functions
+const { onSchedule } = require("firebase-functions/v2/scheduler");
+const { onRequest } = require("firebase-functions/v2/https");
+
+
+/**
+ * Scheduled function to clean up expired subscriptions
+ * Runs daily at 2 AM UTC
+ */
+exports.cleanupExpiredSubscriptions = onSchedule({
+    schedule: "0 2 * * *", // Daily at 2 AM UTC
+    timeZone: "UTC",
+    memory: "256MiB",
+    timeoutSeconds: 540
+}, async (event) => {
+    console.log("Starting expired subscription cleanup...");
+    
+    try {
+        const now = new Date();
+        const batch = db.batch();
+        let cleanupCount = 0;
+        
+        // Get all users
+        const usersSnapshot = await db.collection('users').get();
+        
+        for (const userDoc of usersSnapshot.docs) {
+            const userId = userDoc.id;
+            const userProgramsRef = db.collection('users').doc(userId).collection('programs');
+            const programsSnapshot = await userProgramsRef.get();
+            
+            for (const programDoc of programsSnapshot.docs) {
+                const program = programDoc.data();
+                
+                // Check if program has expiration date and is expired
+                if (program.expirationDate) {
+                    const expirationDate = new Date(program.expirationDate);
+                    
+                    if (now > expirationDate) {
+                        console.log(`Removing expired subscription: ${program.title} for user ${userId}`);
+                        batch.delete(programDoc.ref);
+                        cleanupCount++;
+                    }
+                }
+            }
+        }
+        
+        // Commit all deletions
+        if (cleanupCount > 0) {
+            await batch.commit();
+            console.log(`Successfully cleaned up ${cleanupCount} expired subscriptions`);
+        } else {
+            console.log("No expired subscriptions found");
+        }
+        
+        return { success: true, cleanupCount };
+        
+    } catch (error) {
+        console.error("Error during subscription cleanup:", error);
+        throw error;
+    }
+});
+
+/**
+ * HTTP function to manually trigger subscription cleanup
+ * Useful for testing or manual cleanup
+ */
+exports.manualCleanupExpiredSubscriptions = onRequest({
+    cors: true,
+    memory: "256MiB",
+    timeoutSeconds: 540
+}, async (req, res) => {
+    try {
+        // Verify admin access (you can add authentication here)
+        const { adminKey } = req.body;
+        if (adminKey !== process.env.ADMIN_CLEANUP_KEY) {
+            return res.status(403).json({ error: "Unauthorized" });
+        }
+        
+        console.log("Manual cleanup triggered...");
+        
+        const now = new Date();
+        const batch = db.batch();
+        let cleanupCount = 0;
+        
+        // Get all users
+        const usersSnapshot = await db.collection('users').get();
+        
+        for (const userDoc of usersSnapshot.docs) {
+            const userId = userDoc.id;
+            const userProgramsRef = db.collection('users').doc(userId).collection('programs');
+            const programsSnapshot = await userProgramsRef.get();
+            
+            for (const programDoc of programsSnapshot.docs) {
+                const program = programDoc.data();
+                
+                // Check if program has expiration date and is expired
+                if (program.expirationDate) {
+                    const expirationDate = new Date(program.expirationDate);
+                    
+                    if (now > expirationDate) {
+                        console.log(`Removing expired subscription: ${program.title} for user ${userId}`);
+                        batch.delete(programDoc.ref);
+                        cleanupCount++;
+                    }
+                }
+            }
+        }
+        
+        // Commit all deletions
+        if (cleanupCount > 0) {
+            await batch.commit();
+        }
+        
+        res.json({ 
+            success: true, 
+            message: `Cleaned up ${cleanupCount} expired subscriptions`,
+            cleanupCount 
+        });
+        
+    } catch (error) {
+        console.error("Error during manual cleanup:", error);
+        res.status(500).json({ error: "Cleanup failed", details: error.message });
+    }
+});
+
+/**
+ * Function to check and update user's subscription status
+ * Called when user logs in or accesses programs
+ */
+exports.checkUserSubscriptionStatus = functions.https.onCall(async (data, context) => {
+    try {
+        const { uid } = context.auth;
+        if (!uid) {
+            throw new functions.https.HttpsError(
+                "unauthenticated",
+                "User not authenticated"
+            );
+        }
+        
+        const now = new Date();
+        const userProgramsRef = db.collection('users').doc(uid).collection('programs');
+        const programsSnapshot = await userProgramsRef.get();
+        
+        const activePrograms = [];
+        const expiredPrograms = [];
+        const batch = db.batch();
+        
+        for (const programDoc of programsSnapshot.docs) {
+            const program = { id: programDoc.id, ...programDoc.data() };
+            
+            if (program.expirationDate) {
+                const expirationDate = new Date(program.expirationDate);
+                
+                if (now > expirationDate) {
+                    // Mark as expired and remove
+                    expiredPrograms.push(program);
+                    batch.delete(programDoc.ref);
+                } else {
+                    // Still active
+                    activePrograms.push(program);
+                }
+            } else {
+                // One-time purchase, never expires
+                activePrograms.push(program);
+            }
+        }
+        
+        // Remove expired subscriptions
+        if (expiredPrograms.length > 0) {
+            await batch.commit();
+        }
+        
+        return {
+            activePrograms,
+            expiredPrograms: expiredPrograms.map(p => ({ id: p.id, title: p.title })),
+            message: expiredPrograms.length > 0 
+                ? `${expiredPrograms.length} expired subscription(s) removed`
+                : "All subscriptions are active"
+        };
+        
+    } catch (error) {
+        console.error("Error checking subscription status:", error);
+        throw new functions.https.HttpsError(
+            "internal",
+            "Failed to check subscription status"
+        );
+    }
+});
