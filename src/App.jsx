@@ -27,6 +27,7 @@ import YogaDesc from "./components/YogaDesc";
 import EventDetails from "./components/upcoming_events/EventDetails";
 import LiveDetails from "./pages/program_details/LiveDeatils";
 import Lenis from "@studio-freight/lenis";
+import WhatsAppFloatingButton from "./components/WhatsAppFloatingButton.jsx";
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -65,6 +66,7 @@ function App() {
         {!loading && (
           <>
             {!isAdminRoute && <NavBar />}
+            <WhatsAppFloatingButton />
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/pilgrim_retreats" element={<Retreats />} />
