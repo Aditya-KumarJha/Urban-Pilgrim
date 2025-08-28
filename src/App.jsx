@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import { CartProvider } from "./context/CartContext";
 import NavBar from "./components/navbar/NavBar";
@@ -26,11 +26,33 @@ import PrivacyPolicy from "./pages/privacy_policy/PrivacyPolicy";
 import YogaDesc from "./components/YogaDesc";
 import EventDetails from "./components/upcoming_events/EventDetails";
 import LiveDetails from "./pages/program_details/LiveDeatils";
+import Lenis from "@studio-freight/lenis";
 
 function App() {
   const [loading, setLoading] = useState(true);
   const location = useLocation();
   const isAdminRoute = location.pathname === "/admin" || location.pathname === "/userdashboard";
+
+  
+  useEffect(() => {
+    const lenis = new Lenis({
+        duration: 1.2,
+        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        smooth: true,
+    });
+
+    function raf(time) {
+        lenis.raf(time);
+        requestAnimationFrame(raf);
+    }
+
+    requestAnimationFrame(raf);
+
+    return () => {
+        lenis.destroy();
+    };
+  }, []);
+
 
   return (
     <CartProvider>

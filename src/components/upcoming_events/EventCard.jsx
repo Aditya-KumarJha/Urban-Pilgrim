@@ -3,8 +3,6 @@ import { useNavigate } from "react-router-dom";
 export default function EventCard({ data }) {
     const navigate = useNavigate();
 
-    console.log("data",data);
-
     return (
         <motion.div
             className="max-w-sm rounded-2xl overflow-hidden bg-gradient-to-b from-[#FDF6F2] to-[#FCEFE6]"

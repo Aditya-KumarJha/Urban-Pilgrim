@@ -276,7 +276,7 @@ function Home() {
                 </div>
             </div>
 
-            {/* Book your Pilgrim Experience */}
+            {/* Book your Pilgrim Experience/Retreat */}
             <div className="content5">
                 <div className="c5container">
                     {/* Heading */}
@@ -296,7 +296,7 @@ function Home() {
                     <motion.div className="c5bottom lg:!overflow-visible" initial={{ y: 100, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} viewport={{ once: true, amount: 0.1 }}>
                         {experienceData &&
                             experienceData.map((experience, index) => (
-                                <PersondetailsCard key={index} image={experience?.pilgrimRetreatCard?.image} title={experience?.pilgrimRetreatCard?.title} price={experience?.pilgrimRetreatCard?.price} />
+                                <PersondetailsCard type="retreat" key={index} image={experience?.pilgrimRetreatCard?.image} title={experience?.pilgrimRetreatCard?.title} price={experience?.pilgrimRetreatCard?.price} />
                             ))
                         }
                     </motion.div>
@@ -323,7 +323,7 @@ function Home() {
                         {
                             sessionData &&
                             sessionData.map((session, index) => (
-                                <PersondetailsCard key={index} image={session?.liveSessionCard?.thumbnail} title={session?.liveSessionCard?.title} price={session?.liveSessionCard?.price} />
+                                <PersondetailsCard type="live-session" key={index} image={session?.liveSessionCard?.thumbnail} title={session?.liveSessionCard?.title} price={session?.liveSessionCard?.price} />
                             ))
                         }
                     </motion.div>
@@ -357,7 +357,7 @@ function Home() {
                                 guideData &&
                                 guideData.map((guide, index) => (
                                     <motion.div key={index} initial={{ y: 100, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} viewport={{ once: true, amount: 0.1 }}>
-                                        <PersondetailsCard image={guide?.guideCard?.thumbnail} title={guide?.guideCard?.title} price={guide?.guideCard?.price} />
+                                        <PersondetailsCard type="guide" image={guide?.guideCard?.thumbnail} title={guide?.guideCard?.title} price={guide?.guideCard?.price} />
                                     </motion.div>
                                 ))
                             }

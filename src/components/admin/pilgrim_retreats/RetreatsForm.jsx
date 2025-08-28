@@ -68,7 +68,8 @@ export default function RetreatsForm() {
             location: "",
             price: "",
             category: "",
-            categories: []
+            categories: [],
+            description: ""
         },
         monthlySubscription: {
             price: "",
@@ -78,7 +79,8 @@ export default function RetreatsForm() {
         oneTimePurchase: {
             price: "",
             images: [],
-            videos: []
+            videos: [],
+            description: ""
         },
         session: {
             title: "",
@@ -631,7 +633,8 @@ export default function RetreatsForm() {
                 location: "",
                 price: "",
                 category: "", // Changed from categories array to single category string
-                categories: [] // Keep for backward compatibility if needed
+                categories: [], // Keep for backward compatibility if needed
+                description: ""
             },
             monthlySubscription: {
                 price: "",
@@ -641,7 +644,8 @@ export default function RetreatsForm() {
             oneTimePurchase: {
                 price: "",
                 images: [],
-                videos: []
+                videos: [],
+                description: ""
             },
             session: {
                 title: "",
@@ -805,6 +809,17 @@ export default function RetreatsForm() {
                     onChange={(e) => handleFieldChange("pilgrimRetreatCard", "price", e.target.value)}
                     className="text-sm w-full border p-3 rounded-lg mb-3"
                 />
+
+                {/* Description */}
+                <h3 className="block text-md font-semibold text-gray-700 mb-2">Description</h3>
+                <textarea
+                    placeholder="Enter Description"
+                    value={formData?.pilgrimRetreatCard?.description}
+                    rows={3}
+                    onChange={(e) => handleFieldChange("pilgrimRetreatCard", "description", e.target.value)}
+                    className="text-sm w-full border p-3 rounded-lg mb-3"
+                />
+
             </div>
 
             {/* Monthly Subscription */}
@@ -854,6 +869,15 @@ export default function RetreatsForm() {
                     value={formData?.oneTimePurchase?.price}
                     onChange={(e) => handleFieldChange("oneTimePurchase", "price", e.target.value)}
                     className="text-sm w-full border p-3 rounded-lg mb-6"
+                />
+
+                <label htmlFor="description">Description</label>
+                <textarea
+                    placeholder="Enter Description"
+                    value={formData?.oneTimePurchase?.description}
+                    onChange={(e) => handleFieldChange("oneTimePurchase", "description", e.target.value)}
+                    className="text-sm w-full border p-3 rounded-lg mb-6"
+                    rows={3}
                 />
 
                 <label className="block font-semibold mb-2">Add Images ( Maximum 5 Images )</label>

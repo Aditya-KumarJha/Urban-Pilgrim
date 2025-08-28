@@ -4,6 +4,13 @@ const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
 const Razorpay = require("razorpay");
 
+// Import subscription cleanup functions
+const {
+    cleanupExpiredSubscriptions,
+    manualCleanupExpiredSubscriptions,
+    checkUserSubscriptionStatus
+} = require('./subscriptionCleanup');
+
 const { google } = require("googleapis");
 const { OAuth2Client } = require("google-auth-library");
 require("dotenv").config();
@@ -178,7 +185,7 @@ exports.sendContactEmail = functions.https.onCall(async (data, context) => {
 
     try {
         await transporter.sendMail(mailOptions);
-        return { success: true, message: "Email sent!" }; // ✅ return directly
+        return { success: true, message: "Email sent!" }; // return directly
     } catch (error) {
         console.error("Email error:", error);
         throw new functions.https.HttpsError(
@@ -212,26 +219,46 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
         const adminEmail = "urbanpilgrim25@gmail.com";
 
         // ------------------------
-        // 1) Save purchase in user's Firestore
+        // 1) Save purchase in user's Firestore with expiration data
         // ------------------------
         const userRef = db
             .collection("users")
             .doc(userId)
             .collection("info")
             .doc("details");
-        await userRef.set(
-            {
-                yourPrograms: admin.firestore.FieldValue.arrayUnion(
-                    ...cartData.map((item) => ({
-                        ...item,
-                        purchasedAt: new Date().toISOString(),
-                        paymentId: paymentResponse.razorpay_payment_id,
-                        orderId: paymentResponse.razorpay_order_id,
-                    }))
-                ),
-            },
-            { merge: true }
-        );
+        
+        // Also save individual programs with expiration data
+        const userProgramsRef = db.collection("users").doc(userId).collection("programs");
+        const batch = db.batch();
+        
+        // Save to existing structure for compatibility
+        batch.set(userRef, {
+            yourPrograms: admin.firestore.FieldValue.arrayUnion(
+                ...cartData.map((item) => ({
+                    ...item,
+                    purchasedAt: new Date().toISOString(),
+                    paymentId: paymentResponse.razorpay_payment_id,
+                    orderId: paymentResponse.razorpay_order_id,
+                }))
+            ),
+        }, { merge: true });
+        
+        // Save individual programs with expiration tracking
+        cartData.forEach((item) => {
+            const programDoc = userProgramsRef.doc(item.id);
+            batch.set(programDoc, {
+                ...item,
+                purchasedAt: new Date().toISOString(),
+                paymentId: paymentResponse.razorpay_payment_id,
+                orderId: paymentResponse.razorpay_order_id,
+                // Include expiration data if present
+                ...(item.subscriptionType && { subscriptionType: item.subscriptionType }),
+                ...(item.expirationDate && { expirationDate: item.expirationDate }),
+                isExpired: false
+            });
+        });
+        
+        await batch.commit();
 
         // ------------------------
         // 2) Update each program document
@@ -812,12 +839,19 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
             }
         }
 
-        return {
-            status: "success",
-            message: "Payment confirmed and booking saved",
+        return { 
+            success: true, 
+            message: "Payment confirmed",
+            programsWithExpiration: cartData.filter(item => item.expirationDate).length,
+            totalPrograms: cartData.length
         };
     } catch (error) {
         console.error("confirmPayment Error:", error);
         return { status: "error", message: error.message };
     }
 });
+
+// Export subscription cleanup functions
+exports.cleanupExpiredSubscriptions = cleanupExpiredSubscriptions;
+exports.manualCleanupExpiredSubscriptions = manualCleanupExpiredSubscriptions;
+exports.checkUserSubscriptionStatus = checkUserSubscriptionStatus;

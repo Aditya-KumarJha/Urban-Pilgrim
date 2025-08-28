@@ -6,19 +6,19 @@ export default function CartItem({ item, onRemove, onQuantityChange, onPersonsCh
     const [persons, setPersons] = useState(item.persons || 1);
 
     // ---- QUANTITY HANDLERS ----
-    const handleIncrementQty = () => {
-        const newQuantity = quantity + 1;
-        setQuantity(newQuantity);
-        onQuantityChange?.(item.id, newQuantity);
-    };
+    // const handleIncrementQty = () => {
+    //     const newQuantity = quantity + 1;
+    //     setQuantity(newQuantity);
+    //     onQuantityChange?.(item.id, newQuantity);
+    // };
 
-    const handleDecrementQty = () => {
-        if (quantity > 1) {
-            const newQuantity = quantity - 1;
-            setQuantity(newQuantity);
-            onQuantityChange?.(item.id, newQuantity);
-        }
-    };
+    // const handleDecrementQty = () => {
+    //     if (quantity > 1) {
+    //         const newQuantity = quantity - 1;
+    //         setQuantity(newQuantity);
+    //         onQuantityChange?.(item.id, newQuantity);
+    //     }
+    // };
 
     // ---- PERSONS HANDLERS ----
     const handleIncrementPersons = () => {

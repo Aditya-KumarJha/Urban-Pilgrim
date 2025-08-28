@@ -70,7 +70,8 @@ export default function GuideForm() {
             price: "",
             thumbnail: null,
             occupancy: "",
-            showOccupancy: false
+            showOccupancy: false,
+            description: ""
         },
         online: {
             monthly: {
@@ -375,6 +376,7 @@ export default function GuideForm() {
                 thumbnail: slideToEdit?.guideCard?.thumbnail || null,
                 occupancy: slideToEdit?.guideCard?.occupancy || "",
                 showOccupancy: slideToEdit?.guideCard?.showOccupancy || false,
+                description: slideToEdit?.guideCard?.description || ""
             },
             organizer: {
                 name: slideToEdit?.organizer?.name || "",
@@ -456,7 +458,8 @@ export default function GuideForm() {
                 price: "",
                 thumbnail: null,
                 occupancy: "",
-                showOccupancy: false
+                showOccupancy: false,
+                description: ""
             },
             online: {
                 monthly: {
@@ -633,7 +636,8 @@ export default function GuideForm() {
                     price: "",
                     thumbnail: null,
                     occupancy: "",
-                    showOccupancy: false
+                    showOccupancy: false,
+                    description: ""
                 },
                 online: {
                     monthly: {
@@ -1007,6 +1011,19 @@ export default function GuideForm() {
                             />
                             <span id="show-occupancy-help">Check to display occupancy publicy</span>
                         </label>
+                    </div>
+
+                    {/* Description */}
+                    <div>
+                        <label className="block text-md font-semibold text-gray-700 mb-2">Description</label>
+                        <textarea
+                            placeholder="Enter Description"
+                            value={formData?.guideCard?.description}
+                            onChange={(e) => handleFieldChange("guideCard", "description", e.target.value)}
+                            className="text-sm w-full border border-gray-300 p-3 rounded-lg "
+                            rows={3}
+                        />
+                        {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description}</p>}
                     </div>
                 </div>
 

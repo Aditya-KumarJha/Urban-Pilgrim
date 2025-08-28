@@ -8,7 +8,8 @@ import CheckoutOverlay from "./CheckoutOverlay.jsx"
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../../services/firebase.js";
 import Loader2 from "../../components/Loader2.jsx";
-import { addUserProgram } from "../../features/userProgramsSlice.js";
+import { addUserPrograms } from "../../features/userProgramsSlice.js";
+import { prepareCheckoutData, prepareUserProgramsData } from "../../utils/cartUtils.js";
 
 export default function CartPage() {
 	const cartData = useSelector((state) => state.cart.items);
@@ -61,6 +62,10 @@ export default function CartPage() {
 				return;
 			}
 
+			// Prepare checkout data with expanded bundles
+			const checkoutData = prepareCheckoutData(cartData, formData, user);
+			console.log("Checkout data with expanded bundles:", checkoutData);
+
 			// 1️⃣ Create Razorpay order
 			const createOrder = httpsCallable(functions, "createOrder");
 			const { data: order } = await createOrder({ amount: total });
@@ -74,26 +79,24 @@ export default function CartPage() {
 				description: "Program Purchase",
 				order_id: order.id,
 				handler: async function (response) {
-					// 3️⃣ Confirm on server
+					// 3️⃣ Confirm on server with expanded cart data
 					setLoading(true);
 					const confirmPayment = httpsCallable(functions, "confirmPayment");
 
 					const dataContent = await confirmPayment({
-						userId: user.uid,
-						email: user.email,
-						name: `${formData.firstName} ${formData.lastName}`,
-						cartData,
+						...checkoutData,
 						total,
 						paymentResponse: response,
-						formData,
+						// Send both original and expanded cart data
+						cartData: checkoutData.expandedCartData, // Individual items for processing
+						originalCartData: checkoutData.originalCartData // Original bundles for reference
 					});
 					setLoading(false);
 					console.log("data from confirmPayment: ", dataContent);
 
-					// ✅ update Redux immediately
-					cartData.forEach((program) => {
-						dispatch(addUserProgram(program));
-					});
+					// Add programs to user's purchased programs in Redux with expiration data
+					const userPrograms = prepareUserProgramsData(checkoutData.expandedCartData);
+					dispatch(addUserPrograms(userPrograms));
 
 					dispatch(clearCart());
 

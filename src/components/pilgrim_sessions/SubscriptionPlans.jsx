@@ -1,88 +1,146 @@
-import { FaCheckCircle } from "react-icons/fa";
-import FeatureList from "./FeatureList";
+import { useState, useEffect } from "react";
+import { useDispatch } from "react-redux";
+import { addToCart } from "../../features/cartSlice";
+import { fetchAllBundles } from "../../services/bundleService";
+import SubscriptionCard from "./SubscriptionCard";
+import { Package, ChevronLeft, ChevronRight } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function SubscriptionPlans() {
-  const basicFeatures = [
-    "Access to 5 guided meditations per month",
-    "3 beginner-friendly yoga flows (15–20 mins each)",
-    "Community support via wellness forums",
-    "Basic progress tracking & mindfulness journal",
-    "Limited access to live sessions (1 per month)",
-  ];
+  const [bundles, setBundles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const dispatch = useDispatch();
 
-  const explorerFeatures = [
-    "Unlimited access to 100+ guided meditations",
-    "20+ yoga classes (all levels: gentle, flow, restorative)",
-    "Weekly live sessions (meditation & yoga)",
-    "Personalized wellness tips & monthly challenges",
-    "Progress tracking & downloadable resources",
-  ];
+  useEffect(() => {
+    fetchBundles();
+  }, []);
 
-  const premiumFeatures = [
-    "Everything in Wellness Explorer, plus:",
-    "Unlimited live classes (meditation, yoga, breathwork)",
-    "1 private coaching session/month (yoga or mindfulness)",
-    "Exclusive workshops (sound healing, chakra balancing)",
-    "Exclusive workshops (sound healing, chakra balancing)",
-  ];
+  const fetchBundles = async () => {
+    try {
+      setLoading(true);
+      const fetchedBundles = await fetchAllBundles();
+      // Filter active bundles and sort by discount (highest first)
+      const activeBundles = fetchedBundles
+        .filter(bundle => bundle.isActive)
+        .sort((a, b) => (b.discount || 0) - (a.discount || 0));
+      setBundles(activeBundles);
+    } catch (error) {
+      console.error("Error fetching bundles:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddToCart = (bundle, variant) => {
+    const cartItem = {
+      id: `${bundle.id}-${variant}`,
+      title: `${bundle.name} - ${bundle[variant]?.name}`,
+      price: parseFloat(bundle[variant]?.price || 0),
+      image: bundle.image || "/assets/package.svg",
+      type: "bundle",
+      bundleId: bundle.id,
+      variant: variant,
+      originalPrice: bundle[variant]?.totalPrice || 0,
+      discount: bundle.discount || 0,
+      programs: bundle[variant]?.programs || []
+    };
+    
+    dispatch(addToCart(cartItem));
+    toast.success(`${bundle.name} added to cart!`);
+  };
+
+  const nextSlide = () => {
+    if (bundles.length > 3) {
+      setCurrentIndex((prev) => 
+        prev + 3 >= bundles.length ? 0 : prev + 3
+      );
+    }
+  };
+
+  const prevSlide = () => {
+    if (bundles.length > 3) {
+      setCurrentIndex((prev) => 
+        prev - 3 < 0 ? Math.max(0, bundles.length - 3) : prev - 3
+      );
+    }
+  };
+
+  const visibleBundles = bundles.slice(currentIndex, currentIndex + 3);
 
   return (
     <section className="px-6 py-12 text-gray-900">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-2">Subscriptions & Plans</h2>
+          <h2 className="text-3xl font-bold mb-2">Bundle Packages & Benefits</h2>
           <p className="text-gray-600 mb-10">
-            Find the perfect plan to nurture your mind, body, and soul.
+            Save more with our curated wellness bundles - the perfect combination for your spiritual journey.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Basic Plan */}
-          <div className="border-[3px] border-[#D3C0B5] rounded-xl p-6 bg-gradient-to-b from-[#F9C49C] to-white">
-            <h3 className="text-lg font-semibold mb-1">Basic</h3>
-            <p className="text-3xl font-bold mb-1">₹0</p>
-            <p className="text-sm text-gray-600 mb-4">
-              Ideal for beginners exploring mindfulness and gentle yoga.
-            </p>
-            <button className="w-full text-black border border-[#A35F00] py-2 rounded-md font-medium hover:bg-white/10">
-              Start for Free
-            </button>
-            <FeatureList features={basicFeatures} />
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2F6288]"></div>
           </div>
+        ) : bundles.length === 0 ? (
+          <div className="text-center py-12">
+            <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No bundles available</h3>
+            <p className="text-gray-500">Check back later for special offers!</p>
+          </div>
+        ) : (
+          <div className="relative">
+            {/* Navigation Arrows */}
+            {bundles.length > 3 && (
+              <>
+                <button
+                  onClick={prevSlide}
+                  className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 bg-white rounded-full p-2 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110"
+                >
+                  <ChevronLeft className="w-5 h-5 text-[#2F6288]" />
+                </button>
+                <button
+                  onClick={nextSlide}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 bg-white rounded-full p-2 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110"
+                >
+                  <ChevronRight className="w-5 h-5 text-[#2F6288]" />
+                </button>
+              </>
+            )}
 
-          {/* Wellness Explorer Plan */}
-          <div className="relative border-[3px] border-[#FFC192] rounded-xl p-6 bg-gradient-to-b from-[#1C0F08] to-[#5A422D] text-white shadow-[-16px_16px_18px_rgba(0,0,0,0.25)]">
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 bg-[#BF7444] text-white text-xs font-semibold px-3 py-1 rounded-b-xl">
-              Recommended
+            {/* Horizontal Scroll Container */}
+            <div className="overflow-x-auto scrollbar-hide">
+              <div className="flex gap-6 pb-4" style={{ minWidth: 'fit-content' }}>
+                {visibleBundles.map((bundle, index) => (
+                  <div key={bundle.id} className="flex-shrink-0 w-80">
+                    <SubscriptionCard 
+                      bundle={bundle}
+                      onAddToCart={handleAddToCart}
+                      isHighestDiscount={index === 0 && currentIndex === 0}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
-            <h3 className="text-lg font-semibold my-2">Wellness Explorer</h3>
-            <p className="text-3xl font-bold mb-1">
-              ₹500 <span className="text-base font-normal">per month</span>
-            </p>
-            <p className="text-sm text-white/80 mb-4">
-              Perfect for regular practitioners seeking balance and growth.
-            </p>
-            <button className="w-full bg-[#863D15] hover:bg-[#b7692f] text-white border-[#BC986A] border-2 py-2 rounded-md font-medium">
-              Start 7-Day Free Trial
-            </button>
-            <FeatureList features={explorerFeatures} textColor="text-white" />
-          </div>
 
-          {/* Premium Plan */}
-          <div className="border-[3px] border-[#D3C0B5] rounded-xl p-6 bg-gradient-to-b from-[#F9C49C] to-white">
-            <h3 className="text-lg font-semibold mb-1">Premium</h3>
-            <p className="text-3xl font-bold mb-1">
-              ₹900 <span className="text-base font-normal">per month</span>
-            </p>
-            <p className="text-sm text-gray-600 mb-4">
-              For deep transformation with premium guidance and 1:1 support.
-            </p>
-            <button className="w-full text-black border border-black py-2 rounded-md font-medium hover:bg-white/10">
-              Start 7-Day Free Trial
-            </button>
-            <FeatureList features={premiumFeatures} />
+            {/* Dots Indicator */}
+            {bundles.length > 3 && (
+              <div className="flex justify-center mt-6">
+                {Array.from({ length: Math.ceil(bundles.length / 3) }).map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentIndex(index * 3)}
+                    className={`w-3 h-3 rounded-full mx-1 transition-all duration-200 ${
+                      index === Math.floor(currentIndex / 3)
+                        ? 'bg-[#2F6288] scale-125'
+                        : 'bg-gray-300 hover:bg-gray-400'
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
-        </div>
+        )}
       </div>
     </section>
   );

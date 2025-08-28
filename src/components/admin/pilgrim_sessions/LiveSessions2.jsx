@@ -82,7 +82,7 @@ export default function LiveSession2() {
             points: [""]
         },
         liveSlots: [{ date: "", startTime: "", endTime: "" }],
-        oneTimeSubscription: { price: "", images: [], videos: [] },
+        oneTimeSubscription: { price: "", images: [], videos: [], description: "" },
         programSchedule: [],
         features: [],
         faqs: [{ title: "", description: "" }],
@@ -434,8 +434,9 @@ export default function LiveSession2() {
             oneTimeSubscription: slideToEdit?.oneTimeSubscription ? {
                 price: slideToEdit?.oneTimeSubscription?.price || "",
                 images: Array.isArray(slideToEdit?.oneTimeSubscription?.images) ? slideToEdit?.oneTimeSubscription?.images : [],
-                videos: Array.isArray(slideToEdit?.oneTimeSubscription?.videos) ? slideToEdit?.oneTimeSubscription?.videos : []
-            } : { price: "", images: [], videos: [] },
+                videos: Array.isArray(slideToEdit?.oneTimeSubscription?.videos) ? slideToEdit?.oneTimeSubscription?.videos : [],
+                description: slideToEdit?.oneTimeSubscription?.description || ""
+            } : { price: "", images: [], videos: [], description: "" },
             aboutProgram: slideToEdit?.aboutProgram ? {
                 title: slideToEdit?.aboutProgram?.title || "",
                 shortDescription: slideToEdit?.aboutProgram?.shortDescription || "",
@@ -476,7 +477,7 @@ export default function LiveSession2() {
             liveSlots: [],
             programSchedule: [],
             features: [],
-            oneTimeSubscription: { price: "", images: [], videos: [] },
+            oneTimeSubscription: { price: "", images: [], videos: [], description: "" },
             faqs: [{ title: "", description: "" }],
             guide: [{ title: "", description: "", image: null }],
             keyHighlights: { title: "", points: [""] },
@@ -604,7 +605,7 @@ export default function LiveSession2() {
                 liveSlots: [],
                 programSchedule: [],
                 features: [],
-                oneTimeSubscription: { price: "", images: [], videos: [] },
+                oneTimeSubscription: { price: "", images: [], videos: [], description: "" },
                 faqs: [{ title: "", description: "" }],
                 guide: [{ title: "", description: "", image: null }],
                 keyHighlights: { title: "", points: [""] },
@@ -989,11 +990,13 @@ export default function LiveSession2() {
                     </div>
                 </div>
 
-                {/* One Time Subscription (price only) */}
+                {/* One Time Subscription */}
                 <div className="mb-8">
                     <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
                         One Time Subscription <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
                     </h2>
+
+                    {/* Price */}
                     <div>
                         <label className="block text-md font-semibold text-gray-700 mb-2">Price</label>
                         <input
@@ -1005,6 +1008,20 @@ export default function LiveSession2() {
                         />
                     </div>
 
+                    {/* Description */}
+                    <div>
+                        <label className="block text-md font-semibold text-gray-700 mb-2">Description</label>
+                        <textarea
+                            placeholder="Enter Description"
+                            value={formData?.oneTimeSubscription?.description}
+                            onChange={(e) => handleFieldChange("oneTimeSubscription", "description", e.target.value)}
+                            className="text-sm w-full border border-gray-300 p-3 rounded-lg"
+                            rows={3}
+                        />
+                        {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description}</p>}
+                    </div>
+
+                    {/* Images */}
                     <label className="block font-semibold my-5">Add Images ( Maximum 5 Images )</label>
                     <div className="mb-6">
                         {(!formData?.oneTimePurchase?.images || formData?.oneTimePurchase?.images.length < 5) && (
@@ -1038,6 +1055,7 @@ export default function LiveSession2() {
                         </div>
                     </div>
 
+                    {/* Videos */}
                     <label className="block font-semibold my-5">Add Videos ( Maximum 6 Videos )</label>
                     <div className="mb-4">
                         {(!formData?.oneTimePurchase?.videos || formData?.oneTimePurchase?.videos.length < 6) && (
