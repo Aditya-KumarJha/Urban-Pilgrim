@@ -31,6 +31,10 @@ export default function Retreatdescription() {
     const [showBundlesPopup, setShowBundlesPopup] = useState(false);
     const uid = "user-uid";
     const navigate = useNavigate();
+
+    useEffect(() => {
+        window.scrollTo(0,0);
+    },[])
     
     // Get user programs from Redux
     const userPrograms = useSelector((state) => state.userProgram);

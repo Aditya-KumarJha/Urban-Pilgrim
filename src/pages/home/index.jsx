@@ -127,20 +127,33 @@ function Home() {
     }, []);
 
     const [sessionData, setSessionData] = useState(null);
+    const [recordedSessionData, setRecordedSessionData] = useState(null);
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const slidesRef = doc(db, `pilgrim_sessions/pilgrim_sessions/sessions/liveSession`);
-                const snapshot = await getDoc(slidesRef);
+                // Fetch live sessions
+                const liveSessionRef = doc(db, `pilgrim_sessions/pilgrim_sessions/sessions/liveSession`);
+                const liveSnapshot = await getDoc(liveSessionRef);
 
-                if (snapshot.exists()) {
-                    const data = snapshot.data();
-                    setSessionData(data?.slides || []);
+                if (liveSnapshot.exists()) {
+                    const liveData = liveSnapshot.data();
+                    setSessionData(liveData?.slides || []);
                 } else {
-                    console.log("No slides found in Firestore");
+                    console.log("No live session slides found in Firestore");
+                }
+
+                // Fetch recorded sessions
+                const recordedSessionRef = doc(db, `pilgrim_sessions/pilgrim_sessions/sessions/recordedSession`);
+                const recordedSnapshot = await getDoc(recordedSessionRef);
+
+                if (recordedSnapshot.exists()) {
+                    const recordedData = recordedSnapshot.data();
+                    setRecordedSessionData(recordedData?.slides || []);
+                } else {
+                    console.log("No recorded session slides found in Firestore");
                 }
             } catch (error) {
-                console.error("Error fetching images from Firestore:", error);
+                console.error("Error fetching session data from Firestore:", error);
             }
         };
 
@@ -188,8 +201,6 @@ function Home() {
 
         fetchData();
     }, []);
-
-
 
     // const handleCardScroll = (dir) => {
     //     if (cardContainerRef.current) {
@@ -324,6 +335,12 @@ function Home() {
                             sessionData &&
                             sessionData.map((session, index) => (
                                 <PersondetailsCard type="live-session" key={index} image={session?.liveSessionCard?.thumbnail} title={session?.liveSessionCard?.title} price={session?.liveSessionCard?.price} />
+                            ))
+                        }
+                        {
+                            recordedSessionData &&
+                            recordedSessionData.map((session, index) => (
+                                <PersondetailsCard type="recorded-session" key={index} image={session?.recordedProgramCard?.thumbnail} title={session?.recordedProgramCard?.title} price={session?.recordedProgramCard?.price} />
                             ))
                         }
                     </motion.div>

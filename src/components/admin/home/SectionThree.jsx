@@ -21,7 +21,7 @@ function SectionThree() {
             const data = await fetchSectionThree(uid);
             console.log("data from section 3: ", data);
             dispatch(setSectionThree(data.sectionThree));
-            setPrograms(data.sectionThree || []);
+            setPrograms(data.sectionThree.programs || []);
             dispatch(setLoading(false));
         };
         loadData();
@@ -121,7 +121,7 @@ function SectionThree() {
                 <img src="/assets/admin/edit.svg" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             </div>
 
-            {programs.map((program, index) => (
+            {programs && programs.map((program, index) => (
                 <div key={index} className="mb-6 pt-4 relative">
                     <button
                         onClick={() => handleDeleteProgram(index)}
