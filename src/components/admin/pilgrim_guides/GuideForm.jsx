@@ -80,7 +80,7 @@ export default function GuideForm() {
             price: "",
             thumbnail: null,
             thumbnailType: null,
-            occupancy: "",
+            occupancies: [{ type: "Single", price: "" }],
             showOccupancy: false,
             description: ""
         },
@@ -150,6 +150,14 @@ export default function GuideForm() {
     const [dragActive, setDragActive] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editIndex, setEditIndex] = useState(null);
+    const [thumbnailUploadProgress, setThumbnailUploadProgress] = useState(0);
+    const [isThumbnailUploading, setIsThumbnailUploading] = useState(false);
+    const [sessionImageUploadProgress, setSessionImageUploadProgress] = useState({});
+    const [isSessionImageUploading, setIsSessionImageUploading] = useState({});
+    const [sessionVideoUploadProgress, setSessionVideoUploadProgress] = useState({});
+    const [isSessionVideoUploading, setIsSessionVideoUploading] = useState({});
+    const [freeTrialVideoUploadProgress, setFreeTrialVideoUploadProgress] = useState(0);
+    const [isFreeTrialVideoUploading, setIsFreeTrialVideoUploading] = useState(false);
 
     const [categories, setCategories] = useState([
         "Yoga Guides",
@@ -195,34 +203,45 @@ export default function GuideForm() {
                 return;
             }
 
+            setIsThumbnailUploading(true);
+            setThumbnailUploadProgress(0);
+
             // Create a unique storage path for the file
             const filePath = `pilgrim_guides/thumbnails/${uuidv4()}_${file.name}`;
             const storageRef = ref(storage, filePath);
 
-            // Upload file
-            const snapshot = await uploadBytes(storageRef, file);
-            console.log("File uploaded successfully:", snapshot.metadata.fullPath);
-
-            // Get download URL
-            const downloadURL = await getDownloadURL(storageRef);
+            // Upload file with progress tracking
+            const uploadTask = uploadBytesResumable(storageRef, file);
             
-            // Store both URL and file type for proper detection
-            const mediaData = {
-                url: downloadURL,
-                type: file.type,
-                isVideo: file.type.startsWith('video/')
-            };
-            
-            // Update formData with the media data
-            handleFieldChange("guideCard", "thumbnail", downloadURL);
-            handleFieldChange("guideCard", "thumbnailType", file.type);
-            
-            console.log("Upload complete - downloadURL: ", downloadURL);
-            console.log("File type: ", file.type);
-            console.log("Is video: ", file.type.startsWith('video/'));
+            uploadTask.on('state_changed',
+                (snapshot) => {
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    setThumbnailUploadProgress(Math.round(progress));
+                },
+                (error) => {
+                    console.error("Error uploading file:", error);
+                    setIsThumbnailUploading(false);
+                    setThumbnailUploadProgress(0);
+                    alert("Error uploading file. Please try again.");
+                },
+                async () => {
+                    // Get download URL
+                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                    
+                    // Update formData with the media data
+                    handleFieldChange("guideCard", "thumbnail", downloadURL);
+                    handleFieldChange("guideCard", "thumbnailType", file.type);
+                    
+                    setIsThumbnailUploading(false);
+                    setThumbnailUploadProgress(0);
+                }
+            );
 
         } catch (error) {
             console.error("Error uploading file:", error);
+            setIsThumbnailUploading(false);
+            setThumbnailUploadProgress(0);
+            alert("Error uploading file. Please try again.");
         }
     };
 
@@ -397,7 +416,7 @@ export default function GuideForm() {
                 price: slideToEdit?.guideCard?.price,
                 thumbnail: slideToEdit?.guideCard?.thumbnail || null,
                 thumbnailType: slideToEdit?.guideCard?.thumbnailType || null,
-                occupancy: slideToEdit?.guideCard?.occupancy || "",
+                occupancies: slideToEdit?.guideCard?.occupancies || [{ type: "Single", price: "" }],
                 showOccupancy: slideToEdit?.guideCard?.showOccupancy || false,
                 description: slideToEdit?.guideCard?.description || ""
             },
@@ -681,7 +700,7 @@ export default function GuideForm() {
                     price: "",
                     thumbnail: null,
                     thumbnailType: null,
-                    occupancy: "",
+                    occupancies: [{ type: "Single", price: "" }],
                     showOccupancy: false,
                     description: ""
                 },
@@ -747,29 +766,50 @@ export default function GuideForm() {
                 continue;
             }
 
+            const uploadId = uuidv4();
+            setIsSessionImageUploading(prev => ({ ...prev, [uploadId]: true }));
+            setSessionImageUploadProgress(prev => ({ ...prev, [uploadId]: 0 }));
+
             try {
                 // Create unique path
                 const filePath = `pilgrim_guides/session_images/${uuidv4()}_${file.name}`;
                 const storageRef = ref(storage, filePath);
 
-                // Upload file
-                await uploadBytes(storageRef, file);
-
-                // Get download URL
-                const downloadURL = await getDownloadURL(storageRef);
-                console.log(`Uploaded ${file.name} → ${downloadURL}`);
-
-                // Append image URL to formData
-                setFormData(prev => ({
-                    ...prev,
-                    session: {
-                        ...prev.session,
-                        images: [...prev.session.images, downloadURL]
+                // Upload file with progress tracking
+                const uploadTask = uploadBytesResumable(storageRef, file);
+                
+                uploadTask.on('state_changed',
+                    (snapshot) => {
+                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                        setSessionImageUploadProgress(prev => ({ ...prev, [uploadId]: Math.round(progress) }));
+                    },
+                    (error) => {
+                        console.error(`Error uploading ${file.name}:`, error);
+                        setIsSessionImageUploading(prev => ({ ...prev, [uploadId]: false }));
+                        setSessionImageUploadProgress(prev => ({ ...prev, [uploadId]: 0 }));
+                    },
+                    async () => {
+                        // Get download URL
+                        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                        
+                        // Append image URL to formData
+                        setFormData(prev => ({
+                            ...prev,
+                            session: {
+                                ...prev.session,
+                                images: [...prev.session.images, downloadURL]
+                            }
+                        }));
+                        
+                        setIsSessionImageUploading(prev => ({ ...prev, [uploadId]: false }));
+                        setSessionImageUploadProgress(prev => ({ ...prev, [uploadId]: 0 }));
                     }
-                }));
+                );
 
             } catch (error) {
                 console.error(`Error uploading ${file.name}:`, error);
+                setIsSessionImageUploading(prev => ({ ...prev, [uploadId]: false }));
+                setSessionImageUploadProgress(prev => ({ ...prev, [uploadId]: 0 }));
             }
         }
     };
@@ -804,20 +844,45 @@ export default function GuideForm() {
 
         for (const file of filesToProcess) {
             if (file?.type.startsWith('video/')) {
+                const uploadId = uuidv4();
+                setIsSessionVideoUploading(prev => ({ ...prev, [uploadId]: true }));
+                setSessionVideoUploadProgress(prev => ({ ...prev, [uploadId]: 0 }));
+
                 try {
                     const storageRef = ref(storage, `videos/${Date.now()}-${file.name}`);
-                    await uploadBytes(storageRef, file);
-                    const downloadURL = await getDownloadURL(storageRef);
+                    
+                    // Upload file with progress tracking
+                    const uploadTask = uploadBytesResumable(storageRef, file);
+                    
+                    uploadTask.on('state_changed',
+                        (snapshot) => {
+                            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                            setSessionVideoUploadProgress(prev => ({ ...prev, [uploadId]: Math.round(progress) }));
+                        },
+                        (error) => {
+                            console.error("Error uploading video:", error);
+                            setIsSessionVideoUploading(prev => ({ ...prev, [uploadId]: false }));
+                            setSessionVideoUploadProgress(prev => ({ ...prev, [uploadId]: 0 }));
+                        },
+                        async () => {
+                            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
 
-                    setFormData(prev => ({
-                        ...prev,
-                        session: {
-                            ...prev.session,
-                            videos: [...prev.session.videos, downloadURL]
+                            setFormData(prev => ({
+                                ...prev,
+                                session: {
+                                    ...prev.session,
+                                    videos: [...prev.session.videos, downloadURL]
+                                }
+                            }));
+                            
+                            setIsSessionVideoUploading(prev => ({ ...prev, [uploadId]: false }));
+                            setSessionVideoUploadProgress(prev => ({ ...prev, [uploadId]: 0 }));
                         }
-                    }));
+                    );
                 } catch (error) {
                     console.error("Error uploading video:", error);
+                    setIsSessionVideoUploading(prev => ({ ...prev, [uploadId]: false }));
+                    setSessionVideoUploadProgress(prev => ({ ...prev, [uploadId]: 0 }));
                 }
             }
         }
@@ -853,14 +918,37 @@ export default function GuideForm() {
 
     const handleFreeTrialVideoUpload = async (file) => {
         if (file && file.type.startsWith('video/')) {
+            setIsFreeTrialVideoUploading(true);
+            setFreeTrialVideoUploadProgress(0);
+
             try {
                 const storageRef = ref(storage, `freeTrialVideos/${Date.now()}-${file.name}`);
-                await uploadBytes(storageRef, file);
-                const downloadURL = await getDownloadURL(storageRef);
-
-                handleFieldChange("session", "freeTrialVideo", downloadURL);
+                
+                const uploadTask = uploadBytesResumable(storageRef, file);
+                
+                uploadTask.on('state_changed',
+                    (snapshot) => {
+                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                        setFreeTrialVideoUploadProgress(Math.round(progress));
+                    },
+                    (error) => {
+                        console.error("Error uploading free trial video:", error);
+                        setIsFreeTrialVideoUploading(false);
+                        setFreeTrialVideoUploadProgress(0);
+                        alert("Error uploading video. Please try again.");
+                    },
+                    async () => {
+                        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                        handleFieldChange("session", "freeTrialVideo", downloadURL);
+                        setIsFreeTrialVideoUploading(false);
+                        setFreeTrialVideoUploadProgress(0);
+                    }
+                );
             } catch (error) {
                 console.error("Error uploading free trial video:", error);
+                setIsFreeTrialVideoUploading(false);
+                setFreeTrialVideoUploadProgress(0);
+                alert("Error uploading video. Please try again.");
             }
         }
     };
@@ -870,6 +958,24 @@ export default function GuideForm() {
         setDragActive(false);
         const file = e.dataTransfer.files[0];
         await handleFreeTrialVideoUpload(file);
+    };
+
+    // Occupancy management functions
+    const addOccupancy = () => {
+        const updated = [...formData.guideCard.occupancies, { type: "", price: "" }];
+        handleFieldChange("guideCard", "occupancies", updated);
+    };
+
+    const updateOccupancy = (index, field, value) => {
+        const updated = [...formData.guideCard.occupancies];
+        updated[index] = { ...updated[index], [field]: value };
+        handleFieldChange("guideCard", "occupancies", updated);
+    };
+
+    const removeOccupancy = (index) => {
+        const updated = [...formData.guideCard.occupancies];
+        updated.splice(index, 1);
+        handleFieldChange("guideCard", "occupancies", updated);
     };
 
     return (
@@ -893,17 +999,16 @@ export default function GuideForm() {
                             </button>
                         )}
                     </div>
-
-                    {/* Thumbnail */}
                     <div className="mb-6">
                         <h3 className="block text-md font-semibold text-gray-700 mb-2">Add Thumbnail</h3>
                         <div
-                            className={`border-2 border-dashed h-40 rounded mb-4 flex items-center justify-center cursor-pointer transition-colors ${dragActive ? 'border-[#2F6288] bg-[#2F6288]/10' : 'border-gray-300 hover:bg-gray-50'
+                            className={`border-2 border-dashed h-40 rounded mb-4 flex items-center justify-center cursor-pointer transition-colors ${
+                                dragActive ? 'border-[#2F6288] bg-[#2F6288]/10' : 'border-gray-300 hover:bg-gray-50'
                                 }`}
                             onDrop={handleDrop}
                             onDragOver={handleDragOver}
                             onDragLeave={handleDragLeave}
-                            onClick={() => document.getElementById('thumbnail-upload').click()}
+                            onClick={() => !isThumbnailUploading && document.getElementById('thumbnail-upload').click()}
                         >
                             {formData?.guideCard?.thumbnail ? (
                                 <div className="relative h-full flex items-center">
@@ -933,6 +1038,28 @@ export default function GuideForm() {
                                         <X className="w-4 h-4" />
                                     </button>
                                 </div>
+                            ) : isThumbnailUploading ? (
+                                <div className="text-center flex flex-col items-center">
+                                    <div className="relative w-12 h-12 mb-3">
+                                        <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
+                                        <div 
+                                            className="absolute inset-0 border-4 border-[#2F6288] rounded-full border-t-transparent animate-spin"
+                                            style={{
+                                                background: `conic-gradient(from 0deg, #2F6288 ${thumbnailUploadProgress * 3.6}deg, transparent ${thumbnailUploadProgress * 3.6}deg)`
+                                            }}
+                                        ></div>
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <span className="text-xs font-semibold text-[#2F6288]">{thumbnailUploadProgress}%</span>
+                                        </div>
+                                    </div>
+                                    <p className="text-sm text-[#2F6288] font-medium">Uploading...</p>
+                                    <div className="w-24 bg-gray-200 rounded-full h-2 mt-2">
+                                        <div 
+                                            className="bg-[#2F6288] h-2 rounded-full transition-all duration-300"
+                                            style={{ width: `${thumbnailUploadProgress}%` }}
+                                        ></div>
+                                    </div>
+                                </div>
                             ) : (
                                 <div className="text-center text-sm text-gray-500 flex flex-col items-center">
                                     <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-12 h-12 mb-2" />
@@ -946,6 +1073,7 @@ export default function GuideForm() {
                                 onChange={(e) => handleFileUpload(e.target.files[0])}
                                 className="hidden"
                                 id="thumbnail-upload"
+                                disabled={isThumbnailUploading}
                             />
                         </div>
                     </div>
@@ -1023,51 +1151,55 @@ export default function GuideForm() {
                         {errors.guidePrice && <p className="text-red-500 text-sm mt-1">{errors.guidePrice}</p>}
                     </div>
 
-                    {/* Occupancy */}
+                    {/* Occupancy & Price */}
                     <div className="mb-4">
-                        <label
-                            htmlFor="guide-session-date"
-                            className="block text-md font-semibold text-gray-700 mb-2"
-                        >
-                            Occupany
-                        </label>
-
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="relative w-full">
+                        <label className="block text-md font-semibold text-gray-700 mb-2 mt-4">Occupancy & Price</label>
+                        {formData?.guideCard?.occupancies.map((occ, index) => (
+                            <div key={index} className="flex gap-2 mb-2 items-center">
                                 <input
-                                    id="guide-session-date"
                                     type="text"
-                                    value={formData?.guideCard?.occupancy}
-                                    onChange={(e) =>
-                                        handleFieldChange("guideCard", "occupancy", e.target.value)
-                                    }
-                                    className={`text-sm w-full border border-gray-300 p-3 rounded-lg pr-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer ${!formData?.guideCard?.occupancy ? 'text-transparent' : 'text-black'
-                                        }`}
-                                    aria-describedby="date-help-text"
+                                    value={occ.type || ""}
+                                    placeholder="Enter Occupancy Type"
+                                    onChange={(e) => updateOccupancy(index, "type", e.target.value)}
+                                    className="text-sm w-full border p-3 rounded-lg"
                                 />
-
-                                {/* Custom placeholder text */}
-                                {!formData?.guideCard?.occupancy && (
-                                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none z-5">
-                                        Single
-                                    </span>
+                                <input
+                                    type="number"
+                                    value={occ.price || ""}
+                                    placeholder="Price"
+                                    onChange={(e) => updateOccupancy(index, "price", e.target.value)}
+                                    className="text-sm w-full border p-3 rounded-lg"
+                                />
+                                {index === formData?.guideCard?.occupancies.length - 1 ? (
+                                    <button
+                                        onClick={addOccupancy}
+                                        type="button"
+                                        className="border border-dashed px-2 py-1 rounded text-xl"
+                                    >
+                                        +
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={() => removeOccupancy(index)}
+                                        type="button"
+                                        className="border border-dashed px-2 py-1 rounded text-xl"
+                                    >-</button>
                                 )}
-
                             </div>
-                        </div>
+                        ))}
 
-                        <label className="flex items-center gap-2 text-sm text-gray-600">
+                        <div className="flex items-center gap-2 mt-2">
                             <input
                                 type="checkbox"
+                                id="showOccupancy"
                                 checked={formData?.guideCard?.showOccupancy}
-                                onChange={(e) =>
-                                    handleFieldChange("guideCard", "showOccupancy", e.target.checked)
-                                }
-                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                aria-describedby="show-occupancy-help"
+                                onChange={() => handleFieldChange("guideCard", "showOccupancy", !formData?.guideCard?.showOccupancy)}
+                                className="w-4 h-4"
                             />
-                            <span id="show-occupancy-help">Check to display occupancy publicy</span>
-                        </label>
+                            <label htmlFor="showOccupancy" className="text-sm text-gray-600">
+                                *Tick it to Show Occupancy in Pilgrim Guide
+                            </label>
+                        </div>
                     </div>
 
                     {/* Description */}
@@ -1768,6 +1900,7 @@ export default function GuideForm() {
 
                 {/* Session */}
                 <div className="mb-8">
+                    {/* session title/description */}
                     <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
                         {isEditing ? "Edit Session" : "Session"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
                     </h2>
@@ -1781,6 +1914,7 @@ export default function GuideForm() {
                         />
                     </div>
 
+                    {/* images */}
                     <label className="block font-semibold mb-2">Add Images ( Maximum 11 Images )</label>
                     <div className="mb-6">
                         {formData?.session?.images && formData?.session?.images?.length < 11 && (
@@ -1793,9 +1927,40 @@ export default function GuideForm() {
                                     multiple
                                     onChange={handleImageUpload}
                                     className="hidden"
+                                    disabled={Object.keys(isSessionImageUploading || {}).some(key => isSessionImageUploading[key])}
                                 />
                             </label>
                         )}
+                        
+                        {/* Show upload progress loaders */}
+                        <div className="flex flex-wrap gap-4 mt-4">
+                            {Object.keys(isSessionImageUploading || {}).filter(key => isSessionImageUploading[key]).map(uploadId => (
+                                <div key={uploadId} className="w-40 h-28 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center">
+                                    <div className="text-center flex flex-col items-center">
+                                        <div className="relative w-8 h-8 mb-2">
+                                            <div className="absolute inset-0 border-2 border-gray-200 rounded-full"></div>
+                                            <div 
+                                                className="absolute inset-0 border-2 border-[#2F6288] rounded-full border-t-transparent animate-spin"
+                                                style={{
+                                                    background: `conic-gradient(from 0deg, #2F6288 ${(sessionImageUploadProgress[uploadId] || 0) * 3.6}deg, transparent ${(sessionImageUploadProgress[uploadId] || 0) * 3.6}deg)`
+                                                }}
+                                            ></div>
+                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                <span className="text-xs font-semibold text-[#2F6288]">{sessionImageUploadProgress[uploadId] || 0}%</span>
+                                            </div>
+                                        </div>
+                                        <p className="text-xs text-[#2F6288] font-medium">Uploading...</p>
+                                        <div className="w-16 bg-gray-200 rounded-full h-1 mt-1">
+                                            <div 
+                                                className="bg-[#2F6288] h-1 rounded-full transition-all duration-300"
+                                                style={{ width: `${sessionImageUploadProgress[uploadId] || 0}%` }}
+                                            ></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        
                         <div className="flex flex-wrap gap-4 mt-4">
                             {formData?.session?.images && formData?.session?.images.map((img, index) => (
                                 <div key={index} className="relative w-40 h-28">
@@ -1811,6 +1976,7 @@ export default function GuideForm() {
                         </div>
                     </div>
 
+                    {/* videos */}
                     <label className="block font-semibold mb-2">Add Videos ( Maximum 6 Videos )</label>
                     <div className="mb-4">
                         {formData?.session?.videos && formData?.session?.videos.length < 6 && (
@@ -1823,9 +1989,40 @@ export default function GuideForm() {
                                     multiple
                                     onChange={handleVideoUpload}
                                     className="hidden"
+                                    disabled={Object.keys(isSessionVideoUploading || {}).some(key => isSessionVideoUploading[key])}
                                 />
                             </label>
                         )}
+                        
+                        {/* Show upload progress loaders */}
+                        <div className="flex flex-wrap gap-4 mt-4">
+                            {Object.keys(isSessionVideoUploading || {}).filter(key => isSessionVideoUploading[key]).map(uploadId => (
+                                <div key={uploadId} className="w-40 h-28 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center bg-black">
+                                    <div className="text-center flex flex-col items-center">
+                                        <div className="relative w-8 h-8 mb-2">
+                                            <div className="absolute inset-0 border-2 border-gray-200 rounded-full"></div>
+                                            <div 
+                                                className="absolute inset-0 border-2 border-[#2F6288] rounded-full border-t-transparent animate-spin"
+                                                style={{
+                                                    background: `conic-gradient(from 0deg, #2F6288 ${(sessionVideoUploadProgress[uploadId] || 0) * 3.6}deg, transparent ${(sessionVideoUploadProgress[uploadId] || 0) * 3.6}deg)`
+                                                }}
+                                            ></div>
+                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                <span className="text-xs font-semibold text-white">{sessionVideoUploadProgress[uploadId] || 0}%</span>
+                                            </div>
+                                        </div>
+                                        <p className="text-xs text-white font-medium">Uploading...</p>
+                                        <div className="w-16 bg-gray-600 rounded-full h-1 mt-1">
+                                            <div 
+                                                className="bg-[#2F6288] h-1 rounded-full transition-all duration-300"
+                                                style={{ width: `${sessionVideoUploadProgress[uploadId] || 0}%` }}
+                                            ></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        
                         <div className="flex flex-wrap gap-4 mt-4">
                             {formData?.session && formData?.session?.videos.map((vid, index) => (
                                 <div key={index} className="relative w-40 h-28 bg-black">
@@ -1840,8 +2037,10 @@ export default function GuideForm() {
                             ))}
                         </div>
                     </div>
-
+                    
+                    {/* title/description/free trial video upload */}
                     <div className="mb-6 space-y-4">
+                        {/* title */}
                         <div>
                             <label className="block text-md font-semibold text-gray-700 mb-2">Title</label>
                             <input
@@ -1853,7 +2052,8 @@ export default function GuideForm() {
                             />
                             {errors?.monthlyDiscount && <p className="text-red-500 text-sm mt-1">{errors?.monthlyDiscount}</p>}
                         </div>
-
+                        
+                        {/* description */}
                         <div>
                             <label className="block text-md font-semibold text-gray-700 mb-2">Description</label>
                             <textarea
@@ -1863,16 +2063,18 @@ export default function GuideForm() {
                                 className="text-sm w-full border border-gray-300 p-3 rounded-lg  h-24 resize-none"
                             />
                         </div>
-
+                        
+                        {/* free trial video upload */}
                         <div>
                             <h3 className="block text-md font-semibold text-gray-700 mb-2">Free Trial Video Upload</h3>
                             <div
-                                className={`border-2 border-dashed h-40 rounded mb-4 flex items-center justify-center cursor-pointer transition-colors ${dragActive ? 'border-[#2F6288] bg-[#2F6288]/10' : 'border-gray-300 hover:bg-gray-50'
+                                className={`border-2 border-dashed h-40 rounded mb-4 flex items-center justify-center cursor-pointer transition-colors ${
+                                    dragActive ? 'border-[#2F6288] bg-[#2F6288]/10' : 'border-gray-300 hover:bg-gray-50'
                                     }`}
                                 onDrop={handleFreeTrialDrop}
                                 onDragOver={handleDragOver}
                                 onDragLeave={handleDragLeave}
-                                onClick={() => document.getElementById('free-trial-upload').click()}
+                                onClick={() => !isFreeTrialVideoUploading && document.getElementById('free-trial-upload').click()}
                             >
                                 {formData?.session && formData?.session?.freeTrialVideo ? (
                                     <div className="relative h-full flex items-center">
@@ -1891,6 +2093,28 @@ export default function GuideForm() {
                                             <X className="w-4 h-4" />
                                         </button>
                                     </div>
+                                ) : isFreeTrialVideoUploading ? (
+                                    <div className="text-center flex flex-col items-center">
+                                        <div className="relative w-12 h-12 mb-3">
+                                            <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
+                                            <div 
+                                                className="absolute inset-0 border-4 border-[#2F6288] rounded-full border-t-transparent animate-spin"
+                                                style={{
+                                                    background: `conic-gradient(from 0deg, #2F6288 ${freeTrialVideoUploadProgress * 3.6}deg, transparent ${freeTrialVideoUploadProgress * 3.6}deg)`
+                                                }}
+                                            ></div>
+                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                <span className="text-xs font-semibold text-[#2F6288]">{freeTrialVideoUploadProgress}%</span>
+                                            </div>
+                                        </div>
+                                        <p className="text-sm text-[#2F6288] font-medium">Uploading Video...</p>
+                                        <div className="w-24 bg-gray-200 rounded-full h-2 mt-2">
+                                            <div 
+                                                className="bg-[#2F6288] h-2 rounded-full transition-all duration-300"
+                                                style={{ width: `${freeTrialVideoUploadProgress}%` }}
+                                            ></div>
+                                        </div>
+                                    </div>
                                 ) : (
                                     <div className="text-center text-gray-500 flex flex-col items-center">
                                         <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-12 h-12 mb-2" />
@@ -1904,6 +2128,7 @@ export default function GuideForm() {
                                     onChange={(e) => handleFreeTrialVideoUpload(e.target.files[0])}
                                     className="hidden"
                                     id="free-trial-upload"
+                                    disabled={isFreeTrialVideoUploading}
                                 />
                             </div>
                         </div>

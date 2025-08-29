@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { setFooters, setLoading } from "../../../features/home_slices/footerSlice";
 import { fetchFooter, saveFooterLinks, deleteFooterLink } from "../../../services/home_service/footerService";
+import { showSuccess } from "../../../utils/toast";
 
 function FooterSection() {
     const [footer, setFooter] = useState([]);
@@ -75,7 +76,7 @@ function FooterSection() {
     const handleSave = async () => {
         dispatch(setFooters({ links: footer, heading, description: shortText }));
         await saveFooterLinks(uid, { links: footer, heading, description: shortText });
-        console.log("Footer saved:", { links: footer, heading, description: shortText });
+        showSuccess("Footer saved successfully!");
     };
 
     const handleDeleteFooter = async (index) => {

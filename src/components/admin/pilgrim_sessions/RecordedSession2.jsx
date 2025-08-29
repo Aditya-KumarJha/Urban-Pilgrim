@@ -110,6 +110,16 @@ export default function RecordedSession2() {
     const [editIndex, setEditIndex] = useState(null);
 
     const [categories, setCategories] = useState(["Yoga", "Meditation"]);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [isUploading, setIsUploading] = useState(false);
+    const [imageUploadProgress, setImageUploadProgress] = useState({});
+    const [isImageUploading, setIsImageUploading] = useState({});
+    const [videoUploadProgress, setVideoUploadProgress] = useState({});
+    const [isVideoUploading, setIsVideoUploading] = useState({});
+    const [recordedVideoUploadProgress, setRecordedVideoUploadProgress] = useState({});
+    const [isRecordedVideoUploading, setIsRecordedVideoUploading] = useState({});
+    const [guideImageUploadProgress, setGuideImageUploadProgress] = useState(0);
+    const [isGuideImageUploading, setIsGuideImageUploading] = useState(false);
 
     const handleFieldChange = (section, field, value) => {
         setFormData((prev) => ({
@@ -130,15 +140,35 @@ export default function RecordedSession2() {
                 return;
             }
 
+            setIsUploading(true);
+            setUploadProgress(0);
+
             const filePath = `pilgrim_sessions/thumbnails/${uuidv4()}_${file.name}`;
             const storageRef = ref(storage, filePath);
-            const snapshot = await uploadBytes(storageRef, file);
-            console.log("File uploaded successfully:", snapshot.metadata.fullPath);
-            const downloadURL = await getDownloadURL(storageRef);
-            console.log("Download URL:", downloadURL);
-            handleFieldChange("recordedProgramCard", "thumbnail", downloadURL);
+            const uploadTask = uploadBytesResumable(storageRef, file);
+
+            uploadTask.on(
+                "state_changed",
+                (snapshot) => {
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    setUploadProgress(Math.round(progress));
+                },
+                (error) => {
+                    console.error("Upload failed:", error);
+                    setIsUploading(false);
+                    setUploadProgress(0);
+                },
+                async () => {
+                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                    handleFieldChange("recordedProgramCard", "thumbnail", downloadURL);
+                    setIsUploading(false);
+                    setUploadProgress(0);
+                }
+            );
         } catch (error) {
             console.error("Error uploading file:", error);
+            setIsUploading(false);
+            setUploadProgress(0);
         }
     };
 
@@ -227,24 +257,49 @@ export default function RecordedSession2() {
         const files = Array.from(e.target.files);
         const allowed = 5 - formData.oneTimePurchase.images.length;
 
-        files.slice(0, allowed).forEach((file) => {
+        files.slice(0, allowed).forEach((file, fileIndex) => {
+            const uploadId = `img_${Date.now()}_${fileIndex}`;
+            
+            setIsImageUploading(prev => ({ ...prev, [uploadId]: true }));
+            setImageUploadProgress(prev => ({ ...prev, [uploadId]: 0 }));
+            
             const storageRef = ref(storage, `recorded_sessions/oneTimePurchase/${file.name}_${Date.now()}`);
             const uploadTask = uploadBytesResumable(storageRef, file);
 
             uploadTask.on(
                 "state_changed",
                 (snapshot) => {
-                    // Optional: progress tracking
                     const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                    console.log(`Upload is ${progress}% done`);
+                    setImageUploadProgress(prev => ({ ...prev, [uploadId]: Math.round(progress) }));
                 },
                 (error) => {
                     console.error("Upload failed:", error);
+                    setIsImageUploading(prev => {
+                        const newState = { ...prev };
+                        delete newState[uploadId];
+                        return newState;
+                    });
+                    setImageUploadProgress(prev => {
+                        const newState = { ...prev };
+                        delete newState[uploadId];
+                        return newState;
+                    });
                 },
                 async () => {
                     const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
                     const updatedImages = [...formData.oneTimePurchase.images, downloadURL];
                     handleFieldChange("oneTimePurchase", "images", updatedImages);
+                    
+                    setIsImageUploading(prev => {
+                        const newState = { ...prev };
+                        delete newState[uploadId];
+                        return newState;
+                    });
+                    setImageUploadProgress(prev => {
+                        const newState = { ...prev };
+                        delete newState[uploadId];
+                        return newState;
+                    });
                 }
             );
         });
@@ -276,24 +331,49 @@ export default function RecordedSession2() {
         const files = Array.from(e.target.files);
         const allowed = 6 - formData.oneTimePurchase.videos.length;
 
-        files.slice(0, allowed).forEach((file) => {
+        files.slice(0, allowed).forEach((file, fileIndex) => {
+            const uploadId = `vid_${Date.now()}_${fileIndex}`;
+            
+            setIsVideoUploading(prev => ({ ...prev, [uploadId]: true }));
+            setVideoUploadProgress(prev => ({ ...prev, [uploadId]: 0 }));
+            
             const storageRef = ref(storage, `recorded_sessions/oneTimePurchase/videos/${file.name}_${Date.now()}`);
             const uploadTask = uploadBytesResumable(storageRef, file);
 
             uploadTask.on(
                 "state_changed",
                 (snapshot) => {
-                    // Optional: track upload progress
                     const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                    console.log(`Video upload is ${progress}% done`);
+                    setVideoUploadProgress(prev => ({ ...prev, [uploadId]: Math.round(progress) }));
                 },
                 (error) => {
                     console.error("Video upload failed:", error);
+                    setIsVideoUploading(prev => {
+                        const newState = { ...prev };
+                        delete newState[uploadId];
+                        return newState;
+                    });
+                    setVideoUploadProgress(prev => {
+                        const newState = { ...prev };
+                        delete newState[uploadId];
+                        return newState;
+                    });
                 },
                 async () => {
                     const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
                     const updatedVideos = [...formData.oneTimePurchase.videos, downloadURL];
                     handleFieldChange("oneTimePurchase", "videos", updatedVideos);
+                    
+                    setIsVideoUploading(prev => {
+                        const newState = { ...prev };
+                        delete newState[uploadId];
+                        return newState;
+                    });
+                    setVideoUploadProgress(prev => {
+                        const newState = { ...prev };
+                        delete newState[uploadId];
+                        return newState;
+                    });
                 }
             );
         });
@@ -637,15 +717,38 @@ export default function RecordedSession2() {
                 alert("Please upload an image file");
                 return;
             }
+
+            setIsGuideImageUploading(true);
+            setGuideImageUploadProgress(0);
+
             const filePath = `pilgrim_sessions/meet_guides/${uuidv4()}_${file.name}`;
             const storageRef = ref(storage, filePath);
-            const snapshot = await uploadBytes(storageRef, file);
-            console.log("File uploaded successfully:", snapshot.metadata.fullPath);
-            const downloadURL = await getDownloadURL(storageRef);
-            console.log("Download URL:", downloadURL);
-            handleGuideChange("image", downloadURL);
+            
+            const uploadTask = uploadBytesResumable(storageRef, file);
+            
+            uploadTask.on('state_changed',
+                (snapshot) => {
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    setGuideImageUploadProgress(Math.round(progress));
+                },
+                (error) => {
+                    console.error("Error uploading file:", error);
+                    setIsGuideImageUploading(false);
+                    setGuideImageUploadProgress(0);
+                    alert("Error uploading image. Please try again.");
+                },
+                async () => {
+                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                    handleGuideChange("image", downloadURL);
+                    setIsGuideImageUploading(false);
+                    setGuideImageUploadProgress(0);
+                }
+            );
         } catch (error) {
             console.error("Error uploading file:", error);
+            setIsGuideImageUploading(false);
+            setGuideImageUploadProgress(0);
+            alert("Error uploading image. Please try again.");
         }
     };
 
@@ -692,6 +795,10 @@ export default function RecordedSession2() {
                 alert("Please upload a video file");
                 return;
             }
+
+            setIsRecordedVideoUploading(prev => ({ ...prev, [index]: true }));
+            setRecordedVideoUploadProgress(prev => ({ ...prev, [index]: 0 }));
+
             const filePath = `pilgrim_sessions/recorded_videos/${uuidv4()}_${file.name}`;
             const storageRef = ref(storage, filePath);
             
@@ -700,20 +807,25 @@ export default function RecordedSession2() {
             uploadTask.on('state_changed',
                 (snapshot) => {
                     const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                    console.log('Upload is ' + progress + '% done');
+                    setRecordedVideoUploadProgress(prev => ({ ...prev, [index]: Math.round(progress) }));
                 },
                 (error) => {
                     console.error("Error uploading video:", error);
+                    setIsRecordedVideoUploading(prev => ({ ...prev, [index]: false }));
+                    setRecordedVideoUploadProgress(prev => ({ ...prev, [index]: 0 }));
                     alert("Error uploading video. Please try again.");
                 },
                 async () => {
                     const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                    console.log("Video uploaded successfully:", downloadURL);
                     handleRecordedVideoChange(index, 'url', downloadURL);
+                    setIsRecordedVideoUploading(prev => ({ ...prev, [index]: false }));
+                    setRecordedVideoUploadProgress(prev => ({ ...prev, [index]: 0 }));
                 }
             );
         } catch (error) {
             console.error("Error uploading video:", error);
+            setIsRecordedVideoUploading(prev => ({ ...prev, [index]: false }));
+            setRecordedVideoUploadProgress(prev => ({ ...prev, [index]: 0 }));
             alert("Error uploading video. Please try again.");
         }
     };
@@ -753,6 +865,7 @@ export default function RecordedSession2() {
 
                 {/* Recorded Program Card */}
                 <div className="mb-8">
+                    {/* title */}
                     <div className="flex justify-between items-center mb-0">
                         <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl">
                             {isEditing ? "Edit Recorded Program Card" : "Recorded Program Card"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
@@ -796,6 +909,28 @@ export default function RecordedSession2() {
                                         <X className="w-4 h-4" />
                                     </button>
                                 </div>
+                            ) : isUploading ? (
+                                <div className="text-center flex flex-col items-center">
+                                    <div className="relative w-12 h-12 mb-3">
+                                        <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
+                                        <div 
+                                            className="absolute inset-0 border-4 border-[#2F6288] rounded-full border-t-transparent animate-spin"
+                                            style={{
+                                                background: `conic-gradient(from 0deg, #2F6288 ${uploadProgress * 3.6}deg, transparent ${uploadProgress * 3.6}deg)`
+                                            }}
+                                        ></div>
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <span className="text-xs font-semibold text-[#2F6288]">{uploadProgress}%</span>
+                                        </div>
+                                    </div>
+                                    <p className="text-sm text-[#2F6288] font-medium">Uploading Thumbnail...</p>
+                                    <div className="w-24 bg-gray-200 rounded-full h-2 mt-2">
+                                        <div 
+                                            className="bg-[#2F6288] h-2 rounded-full transition-all duration-300"
+                                            style={{ width: `${uploadProgress}%` }}
+                                        ></div>
+                                    </div>
+                                </div>
                             ) : (
                                 <div className="text-center text-gray-500 flex flex-col items-center">
                                     <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-12 h-12 mb-2" />
@@ -809,6 +944,7 @@ export default function RecordedSession2() {
                                 onChange={(e) => handleFileUpload(e.target.files[0])}
                                 className="hidden"
                                 id="thumbnail-recorded2-upload"
+                                disabled={isUploading}
                             />
                         </div>
                     </div>
@@ -937,8 +1073,7 @@ export default function RecordedSession2() {
                     <label className="block font-semibold my-5">Add Images ( Maximum 5 Images )</label>
                     <div className="mb-6">
                         {(!formData?.oneTimePurchase?.images || formData?.oneTimePurchase?.images.length < 5) && (
-                            <label className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col 
-                            items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50">
+                            <label className={`w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50 ${Object.keys(isImageUploading || {}).length > 0 ? 'pointer-events-none opacity-75' : ''}`}>
                                 <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-10 h-10 mb-2" />
                                 <span>Click to upload image<br />Size: (1126×626)px</span>
                                 <input
@@ -947,9 +1082,41 @@ export default function RecordedSession2() {
                                     multiple
                                     onChange={handleImageUpload}
                                     className="hidden"
+                                    disabled={Object.keys(isImageUploading || {}).length > 0}
                                 />
                             </label>
                         )}
+
+                        {/* Upload Progress Indicators */}
+                        {Object.entries(isImageUploading || {}).map(([uploadId, isUploading]) => {
+                            if (!isUploading) return null;
+                            const progress = imageUploadProgress[uploadId] || 0;
+                            return (
+                                <div key={uploadId} className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center mt-4">
+                                    <div className="text-center flex flex-col items-center">
+                                        <div className="relative w-12 h-12 mb-3">
+                                            <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
+                                            <div 
+                                                className="absolute inset-0 border-4 border-[#2F6288] rounded-full border-t-transparent animate-spin"
+                                                style={{
+                                                    background: `conic-gradient(from 0deg, #2F6288 ${progress * 3.6}deg, transparent ${progress * 3.6}deg)`
+                                                }}
+                                            ></div>
+                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                <span className="text-xs font-semibold text-[#2F6288]">{progress}%</span>
+                                            </div>
+                                        </div>
+                                        <p className="text-sm text-[#2F6288] font-medium">Uploading Image...</p>
+                                        <div className="w-24 bg-gray-200 rounded-full h-2 mt-2">
+                                            <div 
+                                                className="bg-[#2F6288] h-2 rounded-full transition-all duration-300"
+                                                style={{ width: `${progress}%` }}
+                                            ></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
 
                         <div className="flex flex-wrap gap-4 mt-4">
                             {formData?.oneTimePurchase?.images && formData?.oneTimePurchase?.images.map((img, index) => (
@@ -971,8 +1138,7 @@ export default function RecordedSession2() {
                     <label className="block font-semibold my-5">Add Videos ( Maximum 6 Videos )</label>
                     <div className="mb-4">
                         {(!formData?.oneTimePurchase?.videos || formData?.oneTimePurchase?.videos.length < 6) && (
-                            <label className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col 
-                            items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50">
+                            <label className={`w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50 ${Object.keys(isVideoUploading || {}).length > 0 ? 'pointer-events-none opacity-75' : ''}`}>
                                 <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-10 h-10 mb-2" />
                                 <span>Click to upload Videos</span>
                                 <input
@@ -981,9 +1147,42 @@ export default function RecordedSession2() {
                                     multiple
                                     onChange={handleVideoUpload}
                                     className="hidden"
+                                    disabled={Object.keys(isVideoUploading || {}).length > 0}
                                 />
                             </label>
                         )}
+
+                        {/* Upload Progress Indicators */}
+                        {Object.entries(isVideoUploading || {}).map(([uploadId, isUploading]) => {
+                            if (!isUploading) return null;
+                            const progress = videoUploadProgress[uploadId] || 0;
+                            return (
+                                <div key={uploadId} className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center mt-4">
+                                    <div className="text-center flex flex-col items-center">
+                                        <div className="relative w-12 h-12 mb-3">
+                                            <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
+                                            <div 
+                                                className="absolute inset-0 border-4 border-[#2F6288] rounded-full border-t-transparent animate-spin"
+                                                style={{
+                                                    background: `conic-gradient(from 0deg, #2F6288 ${progress * 3.6}deg, transparent ${progress * 3.6}deg)`
+                                                }}
+                                            ></div>
+                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                <span className="text-xs font-semibold text-[#2F6288]">{progress}%</span>
+                                            </div>
+                                        </div>
+                                        <p className="text-sm text-[#2F6288] font-medium">Uploading Video...</p>
+                                        <div className="w-24 bg-gray-200 rounded-full h-2 mt-2">
+                                            <div 
+                                                className="bg-[#2F6288] h-2 rounded-full transition-all duration-300"
+                                                style={{ width: `${progress}%` }}
+                                            ></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+
                         <div className="flex flex-wrap gap-4 mt-4">
                             {formData?.oneTimePurchase?.videos && formData?.oneTimePurchase?.videos.map((vid, index) => (
                                 <div key={index} className="relative w-40 h-28 bg-black">
@@ -1047,7 +1246,7 @@ export default function RecordedSession2() {
                                     <div>
                                         <label className="block font-semibold mb-2">Upload Video</label>
                                         <div className="mb-4">
-                                            {!video.url && (
+                                            {!video.url && !isRecordedVideoUploading[index] && (
                                                 <label className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col 
                                                 items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50">
                                                     <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-10 h-10 mb-2" />
@@ -1057,8 +1256,34 @@ export default function RecordedSession2() {
                                                         accept="video/*"
                                                         onChange={(e) => handleRecordedVideoFileUpload(index, e.target.files[0])}
                                                         className="hidden"
+                                                        disabled={isRecordedVideoUploading[index]}
                                                     />
                                                 </label>
+                                            )}
+                                            {isRecordedVideoUploading[index] && (
+                                                <div className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center">
+                                                    <div className="text-center flex flex-col items-center">
+                                                        <div className="relative w-12 h-12 mb-3">
+                                                            <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
+                                                            <div 
+                                                                className="absolute inset-0 border-4 border-[#2F6288] rounded-full border-t-transparent animate-spin"
+                                                                style={{
+                                                                    background: `conic-gradient(from 0deg, #2F6288 ${(recordedVideoUploadProgress[index] || 0) * 3.6}deg, transparent ${(recordedVideoUploadProgress[index] || 0) * 3.6}deg)`
+                                                                }}
+                                                            ></div>
+                                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                                <span className="text-xs font-semibold text-[#2F6288]">{recordedVideoUploadProgress[index] || 0}%</span>
+                                                            </div>
+                                                        </div>
+                                                        <p className="text-sm text-[#2F6288] font-medium">Uploading Video...</p>
+                                                        <div className="w-24 bg-gray-200 rounded-full h-2 mt-2">
+                                                            <div 
+                                                                className="bg-[#2F6288] h-2 rounded-full transition-all duration-300"
+                                                                style={{ width: `${recordedVideoUploadProgress[index] || 0}%` }}
+                                                            ></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             )}
                                             {video.url && (
                                                 <div className="relative w-40 h-28 bg-black">
@@ -1499,6 +1724,30 @@ export default function RecordedSession2() {
                                     <X size={14} />
                                 </button>
                             </div>
+                        ) : isGuideImageUploading ? (
+                            <div className="max-w-xs aspect-square border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center mb-4">
+                                <div className="text-center flex flex-col items-center">
+                                    <div className="relative w-12 h-12 mb-3">
+                                        <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
+                                        <div 
+                                            className="absolute inset-0 border-4 border-[#2F6288] rounded-full border-t-transparent animate-spin"
+                                            style={{
+                                                background: `conic-gradient(from 0deg, #2F6288 ${guideImageUploadProgress * 3.6}deg, transparent ${guideImageUploadProgress * 3.6}deg)`
+                                            }}
+                                        ></div>
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <span className="text-xs font-semibold text-[#2F6288]">{guideImageUploadProgress}%</span>
+                                        </div>
+                                    </div>
+                                    <p className="text-sm text-[#2F6288] font-medium">Uploading Image...</p>
+                                    <div className="w-24 bg-gray-200 rounded-full h-2 mt-2">
+                                        <div 
+                                            className="bg-[#2F6288] h-2 rounded-full transition-all duration-300"
+                                            style={{ width: `${guideImageUploadProgress}%` }}
+                                        ></div>
+                                    </div>
+                                </div>
+                            </div>
                         ) : (
                             <div className="mb-4">
                                 <label
@@ -1518,6 +1767,7 @@ export default function RecordedSession2() {
                                         accept="image/*"
                                         onChange={(e) => handleGuideImageChange(e.target.files[0])}
                                         className="hidden"
+                                        disabled={isGuideImageUploading}
                                     />
                                 </label>
                             </div>

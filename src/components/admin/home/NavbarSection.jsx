@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { deleteNavbarLink, navbarService, saveNavbarLinks } from "../../../services/home_service/navbar";
 import { setNavbars, setLoading } from "../../../features/home_slices/navbarSlice";
+import { showSuccess } from "../../../utils/toast";
 
 
 function NavbarSection() {
@@ -49,6 +50,7 @@ function NavbarSection() {
         dispatch(setNavbars(navbar));
         await saveNavbarLinks(uid, navbar);
         console.log("Navbar links saved successfully", navbar);
+        showSuccess("Navbar links saved successfully!");
     };
 
     const handleDeleteNavbar = async (index) => {

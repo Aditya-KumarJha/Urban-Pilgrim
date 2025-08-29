@@ -146,6 +146,8 @@ export default function RetreatsForm() {
                 }
 
                 try {
+                    setFormData(prev => ({ ...prev, isCardUploading: true, cardUploadProgress: 0 }));
+                    
                     const storageRef = ref(storage, `pilgrimCards/${file.name}_${Date.now()}`);
                     const uploadTask = uploadBytesResumable(storageRef, file);
 
@@ -153,16 +155,20 @@ export default function RetreatsForm() {
                         "state_changed",
                         (snapshot) => {
                             const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                            setFormData(prev => ({ ...prev, cardUploadProgress: Math.round(progress) }));
                             console.log("Upload is " + progress + "% done");
                         },
                         (error) => {
                             console.error("Upload failed:", error);
+                            setFormData(prev => ({ ...prev, isCardUploading: false, cardUploadProgress: 0 }));
                         },
                         async () => {
                             // Upload complete
                             const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
                             handleFieldChange("pilgrimRetreatCard", "image", downloadURL);
                             handleFieldChange("pilgrimRetreatCard", "thumbnailType", file.type);
+                            
+                            setFormData(prev => ({ ...prev, isCardUploading: false, cardUploadProgress: 0 }));
                             
                             console.log("Upload complete - downloadURL: ", downloadURL);
                             console.log("File type: ", file.type);
@@ -171,6 +177,7 @@ export default function RetreatsForm() {
                     );
                 } catch (err) {
                     console.error("Error uploading file:", err);
+                    setFormData(prev => ({ ...prev, isCardUploading: false, cardUploadProgress: 0 }));
                 }
             }
         },
@@ -412,24 +419,57 @@ export default function RetreatsForm() {
         const files = Array.from(e.target.files);
         const allowed = 5 - formData.oneTimePurchase.images.length;
 
-        files.slice(0, allowed).forEach((file) => {
+        files.slice(0, allowed).forEach((file, fileIndex) => {
+            const uploadId = `img_${Date.now()}_${fileIndex}`;
+            
+            setFormData(prev => ({
+                ...prev,
+                isImageUploading: { ...prev.isImageUploading, [uploadId]: true },
+                imageUploadProgress: { ...prev.imageUploadProgress, [uploadId]: 0 }
+            }));
+            
             const storageRef = ref(storage, `oneTimePurchase/${file.name}_${Date.now()}`);
             const uploadTask = uploadBytesResumable(storageRef, file);
 
             uploadTask.on(
                 "state_changed",
                 (snapshot) => {
-                    // Optional: progress tracking
                     const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                    console.log(`Upload is ${progress}% done`);
+                    setFormData(prev => ({
+                        ...prev,
+                        imageUploadProgress: { ...prev.imageUploadProgress, [uploadId]: Math.round(progress) }
+                    }));
                 },
                 (error) => {
                     console.error("Upload failed:", error);
+                    setFormData(prev => {
+                        const newImageUploading = { ...prev.isImageUploading };
+                        const newImageProgress = { ...prev.imageUploadProgress };
+                        delete newImageUploading[uploadId];
+                        delete newImageProgress[uploadId];
+                        return {
+                            ...prev,
+                            isImageUploading: newImageUploading,
+                            imageUploadProgress: newImageProgress
+                        };
+                    });
                 },
                 async () => {
                     const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
                     const updatedImages = [...formData.oneTimePurchase.images, downloadURL];
                     handleFieldChange("oneTimePurchase", "images", updatedImages);
+                    
+                    setFormData(prev => {
+                        const newImageUploading = { ...prev.isImageUploading };
+                        const newImageProgress = { ...prev.imageUploadProgress };
+                        delete newImageUploading[uploadId];
+                        delete newImageProgress[uploadId];
+                        return {
+                            ...prev,
+                            isImageUploading: newImageUploading,
+                            imageUploadProgress: newImageProgress
+                        };
+                    });
                 }
             );
         });
@@ -461,24 +501,57 @@ export default function RetreatsForm() {
         const files = Array.from(e.target.files);
         const allowed = 6 - formData.oneTimePurchase.videos.length;
 
-        files.slice(0, allowed).forEach((file) => {
+        files.slice(0, allowed).forEach((file, fileIndex) => {
+            const uploadId = `vid_${Date.now()}_${fileIndex}`;
+            
+            setFormData(prev => ({
+                ...prev,
+                isVideoUploading: { ...prev.isVideoUploading, [uploadId]: true },
+                videoUploadProgress: { ...prev.videoUploadProgress, [uploadId]: 0 }
+            }));
+            
             const storageRef = ref(storage, `oneTimePurchase/videos/${file.name}_${Date.now()}`);
             const uploadTask = uploadBytesResumable(storageRef, file);
 
             uploadTask.on(
                 "state_changed",
                 (snapshot) => {
-                    // Optional: track upload progress
                     const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                    console.log(`Video upload is ${progress}% done`);
+                    setFormData(prev => ({
+                        ...prev,
+                        videoUploadProgress: { ...prev.videoUploadProgress, [uploadId]: Math.round(progress) }
+                    }));
                 },
                 (error) => {
                     console.error("Video upload failed:", error);
+                    setFormData(prev => {
+                        const newVideoUploading = { ...prev.isVideoUploading };
+                        const newVideoProgress = { ...prev.videoUploadProgress };
+                        delete newVideoUploading[uploadId];
+                        delete newVideoProgress[uploadId];
+                        return {
+                            ...prev,
+                            isVideoUploading: newVideoUploading,
+                            videoUploadProgress: newVideoProgress
+                        };
+                    });
                 },
                 async () => {
                     const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
                     const updatedVideos = [...formData.oneTimePurchase.videos, downloadURL];
                     handleFieldChange("oneTimePurchase", "videos", updatedVideos);
+                    
+                    setFormData(prev => {
+                        const newVideoUploading = { ...prev.isVideoUploading };
+                        const newVideoProgress = { ...prev.videoUploadProgress };
+                        delete newVideoUploading[uploadId];
+                        delete newVideoProgress[uploadId];
+                        return {
+                            ...prev,
+                            isVideoUploading: newVideoUploading,
+                            videoUploadProgress: newVideoProgress
+                        };
+                    });
                 }
             );
         });
@@ -509,22 +582,25 @@ export default function RetreatsForm() {
     const handleGuideImageChange = (file) => {
         if (!file) return;
 
+        setFormData(prev => ({ ...prev, isGuideUploading: true, guideUploadProgress: 0 }));
+
         const storageRef = ref(storage, `meetGuide/${file.name}_${Date.now()}`);
         const uploadTask = uploadBytesResumable(storageRef, file);
 
         uploadTask.on(
             "state_changed",
             (snapshot) => {
-                // Optional: track progress
                 const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                console.log(`Upload is ${progress}% done`);
+                setFormData(prev => ({ ...prev, guideUploadProgress: Math.round(progress) }));
             },
             (error) => {
                 console.error("Upload failed:", error);
+                setFormData(prev => ({ ...prev, isGuideUploading: false, guideUploadProgress: 0 }));
             },
             async () => {
                 const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
                 handleFieldChange("meetGuide", "image", downloadURL);
+                setFormData(prev => ({ ...prev, isGuideUploading: false, guideUploadProgress: 0 }));
             }
         );
     };
@@ -647,11 +723,18 @@ export default function RetreatsForm() {
                 thumbnailType: null,
                 location: "",
                 price: "",
-                category: "", // Changed from categories array to single category string
-                categories: [], // Keep for backward compatibility if needed
+                category: "", 
+                categories: [], 
                 description: "",
-                duration: ""
             },
+            cardUploadProgress: 0,
+            isCardUploading: false,
+            imageUploadProgress: {},
+            isImageUploading: {},
+            videoUploadProgress: {},
+            isVideoUploading: {},
+            guideUploadProgress: 0,
+            isGuideUploading: false,
             monthlySubscription: {
                 price: "",
                 discount: "",
@@ -744,11 +827,32 @@ export default function RetreatsForm() {
                     <h3 className="block text-md font-semibold text-gray-700 mb-2">Add Thumbnail</h3>
                     <div
                         {...getCardImageRootProps()}
-                        className="border-2 border-dashed border-gray-300 h-52 w-full rounded-md flex items-center
-                        justify-center cursor-pointer text-center text-sm text-gray-500"
+                        className={`border-2 border-dashed border-gray-300 h-52 w-full rounded-md flex items-center justify-center cursor-pointer text-center text-sm text-gray-500 relative ${formData.isCardUploading ? 'pointer-events-none opacity-75' : ''}`}
                     >
-                        <input {...getCardImageInputProps()} />
-                        {formData?.pilgrimRetreatCard?.image ? (
+                        <input {...getCardImageInputProps()} disabled={formData.isCardUploading} />
+                        {formData.isCardUploading ? (
+                            <div className="text-center flex flex-col items-center">
+                                <div className="relative w-16 h-16 mb-3">
+                                    <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
+                                    <div 
+                                        className="absolute inset-0 border-4 border-[#2F6288] rounded-full border-t-transparent animate-spin"
+                                        style={{
+                                            background: `conic-gradient(from 0deg, #2F6288 ${formData.cardUploadProgress * 3.6}deg, transparent ${formData.cardUploadProgress * 3.6}deg)`
+                                        }}
+                                    ></div>
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <span className="text-xs font-semibold text-[#2F6288]">{formData.cardUploadProgress}%</span>
+                                    </div>
+                                </div>
+                                <p className="text-sm text-[#2F6288] font-medium">Uploading...</p>
+                                <div className="w-32 bg-gray-200 rounded-full h-2 mt-2">
+                                    <div 
+                                        className="bg-[#2F6288] h-2 rounded-full transition-all duration-300"
+                                        style={{ width: `${formData.cardUploadProgress}%` }}
+                                    ></div>
+                                </div>
+                            </div>
+                        ) : formData?.pilgrimRetreatCard?.image ? (
                             <div className="relative h-full flex items-center">
                                 {formData?.pilgrimRetreatCard?.thumbnailType && formData?.pilgrimRetreatCard?.thumbnailType.startsWith('video/') ? (
                                     <video
@@ -772,6 +876,7 @@ export default function RetreatsForm() {
                                 <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-12 h-12 mb-2" />
                                 <p>{isCardDragActive ? "Drop here..." : "Click to upload or drag and drop"}</p>
                                 <p>Size: (1126×826)px</p>
+                                <p className="text-xs mt-1">Supported: JPG, PNG, GIF, WebP, SVG, MP4, WebM, OGG, AVI, MOV</p>
                             </div>
                         )}
                     </div>
@@ -910,6 +1015,7 @@ export default function RetreatsForm() {
                     className="text-sm w-full border p-3 rounded-lg mb-6"
                 />
 
+                {/* description */}
                 <label htmlFor="description">Description</label>
                 <textarea
                     placeholder="Enter Description"
@@ -918,12 +1024,12 @@ export default function RetreatsForm() {
                     className="text-sm w-full border p-3 rounded-lg mb-6"
                     rows={3}
                 />
-
+                
+                {/* images */}
                 <label className="block font-semibold mb-2">Add Images ( Maximum 5 Images )</label>
                 <div className="mb-6">
                     {formData?.oneTimePurchase?.images && formData?.oneTimePurchase?.images.length < 5 && (
-                        <label className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col 
-                        items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50">
+                        <label className={`w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50 ${Object.keys(formData.isImageUploading || {}).length > 0 ? 'pointer-events-none opacity-75' : ''}`}>
                             <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-10 h-10 mb-2" />
                             <span>Click to upload image<br />Size: (1126×626)px</span>
                             <input
@@ -932,9 +1038,41 @@ export default function RetreatsForm() {
                                 multiple
                                 onChange={handleImageUpload}
                                 className="hidden"
+                                disabled={Object.keys(formData.isImageUploading || {}).length > 0}
                             />
                         </label>
                     )}
+
+                    {/* Upload Progress Indicators */}
+                    {Object.entries(formData.isImageUploading || {}).map(([uploadId, isUploading]) => {
+                        if (!isUploading) return null;
+                        const progress = formData.imageUploadProgress[uploadId] || 0;
+                        return (
+                            <div key={uploadId} className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center mt-4">
+                                <div className="text-center flex flex-col items-center">
+                                    <div className="relative w-12 h-12 mb-3">
+                                        <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
+                                        <div 
+                                            className="absolute inset-0 border-4 border-[#2F6288] rounded-full border-t-transparent animate-spin"
+                                            style={{
+                                                background: `conic-gradient(from 0deg, #2F6288 ${progress * 3.6}deg, transparent ${progress * 3.6}deg)`
+                                            }}
+                                        ></div>
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <span className="text-xs font-semibold text-[#2F6288]">{progress}%</span>
+                                        </div>
+                                    </div>
+                                    <p className="text-sm text-[#2F6288] font-medium">Uploading Image...</p>
+                                    <div className="w-24 bg-gray-200 rounded-full h-2 mt-2">
+                                        <div 
+                                            className="bg-[#2F6288] h-2 rounded-full transition-all duration-300"
+                                            style={{ width: `${progress}%` }}
+                                        ></div>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
 
                     <div className="flex flex-wrap gap-4 mt-4">
                         {formData?.oneTimePurchase?.images && formData?.oneTimePurchase?.images.map((img, index) => (
@@ -951,12 +1089,12 @@ export default function RetreatsForm() {
                         ))}
                     </div>
                 </div>
-
+                
+                {/* videos */}
                 <label className="block font-semibold mb-2">Add Videos ( Maximum 6 Videos )</label>
                 <div className="mb-4">
                     {formData?.oneTimePurchase?.videos && formData?.oneTimePurchase?.videos.length < 6 && (
-                        <label className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col 
-                        items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50">
+                        <label className={`w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50 ${Object.keys(formData.isVideoUploading || {}).length > 0 ? 'pointer-events-none opacity-75' : ''}`}>
                             <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-10 h-10 mb-2" />
                             <span>Click to upload Videos</span>
                             <input
@@ -965,9 +1103,42 @@ export default function RetreatsForm() {
                                 multiple
                                 onChange={handleVideoUpload}
                                 className="hidden"
+                                disabled={Object.keys(formData.isVideoUploading || {}).length > 0}
                             />
                         </label>
                     )}
+
+                    {/* Upload Progress Indicators */}
+                    {Object.entries(formData.isVideoUploading || {}).map(([uploadId, isUploading]) => {
+                        if (!isUploading) return null;
+                        const progress = formData.videoUploadProgress[uploadId] || 0;
+                        return (
+                            <div key={uploadId} className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center mt-4">
+                                <div className="text-center flex flex-col items-center">
+                                    <div className="relative w-12 h-12 mb-3">
+                                        <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
+                                        <div 
+                                            className="absolute inset-0 border-4 border-[#2F6288] rounded-full border-t-transparent animate-spin"
+                                            style={{
+                                                background: `conic-gradient(from 0deg, #2F6288 ${progress * 3.6}deg, transparent ${progress * 3.6}deg)`
+                                            }}
+                                        ></div>
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <span className="text-xs font-semibold text-[#2F6288]">{progress}%</span>
+                                        </div>
+                                    </div>
+                                    <p className="text-sm text-[#2F6288] font-medium">Uploading Video...</p>
+                                    <div className="w-24 bg-gray-200 rounded-full h-2 mt-2">
+                                        <div 
+                                            className="bg-[#2F6288] h-2 rounded-full transition-all duration-300"
+                                            style={{ width: `${progress}%` }}
+                                        ></div>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+
                     <div className="flex flex-wrap gap-4 mt-4">
                         {formData?.oneTimePurchase?.videos && formData?.oneTimePurchase?.videos.map((vid, index) => (
                             <div key={index} className="relative w-40 h-28 bg-black">
@@ -1498,6 +1669,30 @@ export default function RetreatsForm() {
                                 <FaTimes size={14} />
                             </button>
                         </div>
+                    ) : formData.isGuideUploading ? (
+                        <div className="w-full h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center mb-4">
+                            <div className="text-center flex flex-col items-center">
+                                <div className="relative w-12 h-12 mb-3">
+                                    <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
+                                    <div 
+                                        className="absolute inset-0 border-4 border-[#2F6288] rounded-full border-t-transparent animate-spin"
+                                        style={{
+                                            background: `conic-gradient(from 0deg, #2F6288 ${formData.guideUploadProgress * 3.6}deg, transparent ${formData.guideUploadProgress * 3.6}deg)`
+                                        }}
+                                    ></div>
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <span className="text-xs font-semibold text-[#2F6288]">{formData.guideUploadProgress}%</span>
+                                    </div>
+                                </div>
+                                <p className="text-sm text-[#2F6288] font-medium">Uploading Guide Image...</p>
+                                <div className="w-24 bg-gray-200 rounded-full h-2 mt-2">
+                                    <div 
+                                        className="bg-[#2F6288] h-2 rounded-full transition-all duration-300"
+                                        style={{ width: `${formData.guideUploadProgress}%` }}
+                                    ></div>
+                                </div>
+                            </div>
+                        </div>
                     ) : (
                         <div className="mb-4">
                             <label
@@ -1516,6 +1711,7 @@ export default function RetreatsForm() {
                                     accept="image/*"
                                     onChange={(e) => handleGuideImageChange(e.target.files[0])}
                                     className="hidden"
+                                    disabled={formData.isGuideUploading}
                                 />
                             </label>
                         </div>

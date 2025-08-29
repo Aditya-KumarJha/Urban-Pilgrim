@@ -4,15 +4,18 @@ import { FaTimes } from "react-icons/fa";
 import { fetchSectionFour, saveSectionFour } from "../../../services/home_service/sectionFourServices";
 import { setLoading, setSectionFour } from "../../../features/home_slices/sectionFourSlice";
 import { useDispatch } from "react-redux";
-import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
+import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
 import { storage } from "../../../services/firebase";
 import { v4 as uuidv4 } from "uuid";
 import { showSuccess } from "../../../utils/toast";
 
 function SectionFour() {
     const [image, setImage] = useState(null);
-
     const [features, setFeatures] = useState([]);
+    const [uploadProgress, setUploadProgress] = useState({});
+    const [isUploading, setIsUploading] = useState({});
+    const [mainImageProgress, setMainImageProgress] = useState(0);
+    const [isMainImageUploading, setIsMainImageUploading] = useState(false);
 
     const dispatch = useDispatch();
     const uid = "your-unique-id";
@@ -71,24 +74,49 @@ function SectionFour() {
 
     // Upload new image for a feature
     const handleFeatureImageChange = async (index, file) => {
+        if (!file) return;
+
         try {
+            // Set uploading state for this specific feature
+            setIsUploading(prev => ({ ...prev, [index]: true }));
+            setUploadProgress(prev => ({ ...prev, [index]: 0 }));
+            
             // Create a unique storage path for each feature image
             const storageRef = ref(storage, `slides/sesctionFour/${uuidv4()}-${file.name}`);
-
-            // Upload file
-            await uploadBytes(storageRef, file);
-
-            // Get download URL
-            const downloadURL = await getDownloadURL(storageRef);
-
-            // Update local state with download URL
-            const updated = [...features];
-            updated[index].image = downloadURL;
-            setFeatures(updated);
-
-            console.log("Feature image uploaded:", downloadURL);
+            const uploadTask = uploadBytesResumable(storageRef, file);
+            
+            uploadTask.on(
+                'state_changed',
+                (snapshot) => {
+                    // Track upload progress for this specific feature
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    setUploadProgress(prev => ({ ...prev, [index]: Math.round(progress) }));
+                },
+                (error) => {
+                    console.error("Error uploading feature image:", error);
+                    setIsUploading(prev => ({ ...prev, [index]: false }));
+                    setUploadProgress(prev => ({ ...prev, [index]: 0 }));
+                },
+                async () => {
+                    // Upload completed successfully
+                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                    
+                    // Update local state with download URL
+                    const updated = [...features];
+                    updated[index].image = downloadURL;
+                    setFeatures(updated);
+                    
+                    // Reset upload states
+                    setIsUploading(prev => ({ ...prev, [index]: false }));
+                    setUploadProgress(prev => ({ ...prev, [index]: 0 }));
+                    
+                    console.log("Feature image uploaded:", downloadURL);
+                }
+            );
         } catch (error) {
             console.error("Error uploading feature image:", error);
+            setIsUploading(prev => ({ ...prev, [index]: false }));
+            setUploadProgress(prev => ({ ...prev, [index]: 0 }));
         }
     };
 
@@ -123,20 +151,40 @@ function SectionFour() {
         if (!file) return;
 
         try {
+            setIsMainImageUploading(true);
+            setMainImageProgress(0);
+            
             // Create a unique path for the file
             const storageRef = ref(storage, `slides/sesctionFour/features/${uuidv4()}-${file.name}`);
-
-            // Upload file
-            await uploadBytes(storageRef, file);
-
-            // Get downloadable URL
-            const downloadURL = await getDownloadURL(storageRef);
-
-            // Store only the URL in state (not base64)
-            setImage(downloadURL);
-            console.log("Uploaded file URL:", downloadURL);
+            const uploadTask = uploadBytesResumable(storageRef, file);
+            
+            uploadTask.on(
+                'state_changed',
+                (snapshot) => {
+                    // Track upload progress for main image
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    setMainImageProgress(Math.round(progress));
+                },
+                (error) => {
+                    console.error("Error uploading file:", error);
+                    setIsMainImageUploading(false);
+                    setMainImageProgress(0);
+                },
+                async () => {
+                    // Upload completed successfully
+                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                    
+                    // Store only the URL in state (not base64)
+                    setImage(downloadURL);
+                    setIsMainImageUploading(false);
+                    setMainImageProgress(0);
+                    console.log("Uploaded file URL:", downloadURL);
+                }
+            );
         } catch (error) {
             console.error("Error uploading file:", error);
+            setIsMainImageUploading(false);
+            setMainImageProgress(0);
         }
     };
 
@@ -149,7 +197,25 @@ function SectionFour() {
             <h3 className="text-lg font-bold mb-2">Section 4</h3>
             <label className="block font-semibold mb-1">Image</label>
 
-            {image ? (
+            {isMainImageUploading ? (
+                <div className="mb-4">
+                    <div className="w-full h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center">
+                        <div className="w-16 h-16 mb-4 relative">
+                            <div className="w-16 h-16 border-4 border-gray-200 border-t-[#2F6288] rounded-full animate-spin"></div>
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <span className="text-xs font-semibold text-[#2F6288]">{mainImageProgress}%</span>
+                            </div>
+                        </div>
+                        <p className="text-sm text-[#2F6288] font-medium">Uploading...</p>
+                        <div className="w-48 bg-gray-200 rounded-full h-2 mt-2">
+                            <div 
+                                className="bg-[#2F6288] h-2 rounded-full transition-all duration-300" 
+                                style={{ width: `${mainImageProgress}%` }}
+                            ></div>
+                        </div>
+                    </div>
+                </div>
+            ) : image ? (
                 <div className="relative inline-block mb-4">
                     <img src={image} alt="Preview" className="w-64 h-auto object-cover rounded shadow" />
                     <button
@@ -164,7 +230,7 @@ function SectionFour() {
                     {...getRootProps()}
                     className="w-full h-40 border-2 border-dashed border-gray-300 rounded flex items-center justify-center text-gray-500 cursor-pointer mb-4 hover:bg-gray-50 flex-col"
                 >
-                    <input {...getInputProps()} />
+                    <input {...getInputProps()} disabled={isMainImageUploading} />
                     <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-12 h-12 mb-2" />
                     {isDragActive ? "Drop the image here..." : "Click to upload or drag and drop"}
                 </div>
@@ -199,7 +265,25 @@ function SectionFour() {
                     />
 
                     <label className="block font-semibold mb-1">Add Icon {index + 1}</label>
-                    {feature.image ? (
+                    {isUploading[index] ? (
+                        <div className="mb-4">
+                            <div className="w-full h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center">
+                                <div className="w-16 h-16 mb-4 relative">
+                                    <div className="w-16 h-16 border-4 border-gray-200 border-t-[#2F6288] rounded-full animate-spin"></div>
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <span className="text-xs font-semibold text-[#2F6288]">{uploadProgress[index] || 0}%</span>
+                                    </div>
+                                </div>
+                                <p className="text-sm text-[#2F6288] font-medium">Uploading...</p>
+                                <div className="w-48 bg-gray-200 rounded-full h-2 mt-2">
+                                    <div 
+                                        className="bg-[#2F6288] h-2 rounded-full transition-all duration-300" 
+                                        style={{ width: `${uploadProgress[index] || 0}%` }}
+                                    ></div>
+                                </div>
+                            </div>
+                        </div>
+                    ) : feature.image ? (
                         <div className="relative inline-block mb-4">
                             <img
                                 src={feature.image}
@@ -232,14 +316,13 @@ function SectionFour() {
                                     accept="image/*"
                                     onChange={(e) => handleFeatureImageChange(index, e.target.files[0])}
                                     className="hidden"
+                                    disabled={isUploading[index]}
                                 />
                             </label>
                         </div>
                     )}
                 </div>
             ))}
-
-
 
             <div
                 onClick={handleAddFeature}

@@ -9,8 +9,9 @@ import { doc, getDoc } from "firebase/firestore";
 import { db, storage } from "../../../services/firebase";
 import { useDispatch, useSelector } from "react-redux";
 import { setLoading, setSlides } from "../../../features/home_slices/slidesSlice";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from "uuid";
+import { showSuccess } from "../../../utils/toast";
 
 const ItemType = "SLIDE";
 
@@ -64,6 +65,8 @@ export default function ImageSlider() {
     const [link, setLink] = useState("");
     const [displayOrder, setDisplayOrder] = useState("1");
     const [editingIndex, setEditingIndex] = useState(null);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [isUploading, setIsUploading] = useState(false);
 
     const dispatch = useDispatch();
     const uid = "your-unique-id";
@@ -92,14 +95,38 @@ export default function ImageSlider() {
         const file = acceptedFiles[0];
 
         try {
+            setIsUploading(true);
+            setUploadProgress(0);
+            
             // create a unique path in storage
             const storageRef = ref(storage, `slides/${uid}/${uuidv4()}-${file.name}`);
-            await uploadBytes(storageRef, file);
-            const url = await getDownloadURL(storageRef);
-            setImage(url);
-            console.log("upload successful:");
+            const uploadTask = uploadBytesResumable(storageRef, file);
+            
+            uploadTask.on(
+                'state_changed',
+                (snapshot) => {
+                    // Track upload progress
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    setUploadProgress(Math.round(progress));
+                },
+                (error) => {
+                    console.error("Error uploading image:", error);
+                    setIsUploading(false);
+                    setUploadProgress(0);
+                },
+                async () => {
+                    // Upload completed successfully
+                    const url = await getDownloadURL(uploadTask.snapshot.ref);
+                    setImage(url);
+                    setIsUploading(false);
+                    setUploadProgress(0);
+                    console.log("upload successful:");
+                }
+            );
         } catch (error) {
             console.error("Error uploading image:", error);
+            setIsUploading(false);
+            setUploadProgress(0);
         }
     };
 
@@ -128,6 +155,7 @@ export default function ImageSlider() {
         setSlides(updated);
         dispatch(setSlides(updated));
         await add_Or_Update_Slide(uid, updated);
+        showSuccess("Slide added successfully!");
 
         setImage(null);
         setLink("");
@@ -188,10 +216,26 @@ export default function ImageSlider() {
                 <h3 className="text-md font-semibold text-gray-700 mb-2">Add Image</h3>
                 <div
                     {...getRootProps()}
-                    className="border-2 border-dashed border-gray-300 h-40 rounded mb-4 flex items-center justify-center cursor-pointer hover:bg-gray-50"
+                    className="border-2 border-dashed border-gray-300 h-40 rounded mb-4 flex items-center justify-center cursor-pointer hover:bg-gray-50 relative"
                 >
-                    <input {...getInputProps()} />
-                    {image ? (
+                    <input {...getInputProps()} disabled={isUploading} />
+                    {isUploading ? (
+                        <div className="text-center flex flex-col items-center">
+                            <div className="w-16 h-16 mb-4 relative">
+                                <div className="w-16 h-16 border-4 border-gray-200 border-t-[#2F6288] rounded-full animate-spin"></div>
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <span className="text-xs font-semibold text-[#2F6288]">{uploadProgress}%</span>
+                                </div>
+                            </div>
+                            <p className="text-sm text-[#2F6288] font-medium">Uploading...</p>
+                            <div className="w-48 bg-gray-200 rounded-full h-2 mt-2">
+                                <div 
+                                    className="bg-[#2F6288] h-2 rounded-full transition-all duration-300" 
+                                    style={{ width: `${uploadProgress}%` }}
+                                ></div>
+                            </div>
+                        </div>
+                    ) : image ? (
                         <img src={image} alt="preview" className="h-full object-contain" />
                     ) : (
                         <div className="text-center text-gray-500 flex flex-col items-center">

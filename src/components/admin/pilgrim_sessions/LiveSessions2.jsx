@@ -107,6 +107,14 @@ export default function LiveSession2() {
     const [editIndex, setEditIndex] = useState(null);
 
     const [categories, setCategories] = useState(["Yoga", "Meditation"]);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [isUploading, setIsUploading] = useState(false);
+    const [imageUploadProgress, setImageUploadProgress] = useState({});
+    const [isImageUploading, setIsImageUploading] = useState({});
+    const [videoUploadProgress, setVideoUploadProgress] = useState({});
+    const [isVideoUploading, setIsVideoUploading] = useState({});
+    const [guideUploadProgress, setGuideUploadProgress] = useState(0);
+    const [isGuideUploading, setIsGuideUploading] = useState(false);
 
     const handleFieldChange = (section, field, value) => {
         setFormData((prev) => ({
@@ -127,15 +135,35 @@ export default function LiveSession2() {
                 return;
             }
 
+            setIsUploading(true);
+            setUploadProgress(0);
+
             const filePath = `pilgrim_sessions/live_sessions/thumbnails/${uuidv4()}_${file.name}`;
             const storageRef = ref(storage, filePath);
-            const snapshot = await uploadBytes(storageRef, file);
-            console.log("File uploaded successfully:", snapshot.metadata.fullPath);
-            const downloadURL = await getDownloadURL(storageRef);
-            console.log("Download URL:", downloadURL);
-            handleFieldChange("liveSessionCard", "thumbnail", downloadURL);
+            const uploadTask = uploadBytesResumable(storageRef, file);
+
+            uploadTask.on(
+                "state_changed",
+                (snapshot) => {
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    setUploadProgress(Math.round(progress));
+                },
+                (error) => {
+                    console.error("Upload failed:", error);
+                    setIsUploading(false);
+                    setUploadProgress(0);
+                },
+                async () => {
+                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                    handleFieldChange("liveSessionCard", "thumbnail", downloadURL);
+                    setIsUploading(false);
+                    setUploadProgress(0);
+                }
+            );
         } catch (error) {
             console.error("Error uploading file:", error);
+            setIsUploading(false);
+            setUploadProgress(0);
         }
     };
 
@@ -283,24 +311,49 @@ export default function LiveSession2() {
         const files = Array.from(e.target.files);
         const allowed = 5 - (formData?.oneTimeSubscription?.images?.length || 0);
       
-        files.slice(0, allowed).forEach((file) => {
+        files.slice(0, allowed).forEach((file, fileIndex) => {
+            const uploadId = `img_${Date.now()}_${fileIndex}`;
+            
+            setIsImageUploading(prev => ({ ...prev, [uploadId]: true }));
+            setImageUploadProgress(prev => ({ ...prev, [uploadId]: 0 }));
+            
             const storageRef = ref(storage, `live_sessions/thumbnail_image/${file.name}_${Date.now()}`);
             const uploadTask = uploadBytesResumable(storageRef, file);
 
             uploadTask.on(
                 "state_changed",
                 (snapshot) => {
-                    // Optional: progress tracking
                     const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                    console.log(`Upload is ${progress}% done`);
+                    setImageUploadProgress(prev => ({ ...prev, [uploadId]: Math.round(progress) }));
                 },
                 (error) => {
                     console.error("Upload failed:", error);
+                    setIsImageUploading(prev => {
+                        const newState = { ...prev };
+                        delete newState[uploadId];
+                        return newState;
+                    });
+                    setImageUploadProgress(prev => {
+                        const newState = { ...prev };
+                        delete newState[uploadId];
+                        return newState;
+                    });
                 },
                 async () => {
                     const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
                     const updatedImages = [...formData.oneTimeSubscription.images, downloadURL];
                     handleFieldChange("oneTimeSubscription", "images", updatedImages);
+                    
+                    setIsImageUploading(prev => {
+                        const newState = { ...prev };
+                        delete newState[uploadId];
+                        return newState;
+                    });
+                    setImageUploadProgress(prev => {
+                        const newState = { ...prev };
+                        delete newState[uploadId];
+                        return newState;
+                    });
                 }
             );
         });
@@ -332,24 +385,49 @@ export default function LiveSession2() {
         const files = Array.from(e.target.files);
         const allowed = 6 - formData.oneTimeSubscription.videos.length;
 
-        files.slice(0, allowed).forEach((file) => {
+        files.slice(0, allowed).forEach((file, fileIndex) => {
+            const uploadId = `vid_${Date.now()}_${fileIndex}`;
+            
+            setIsVideoUploading(prev => ({ ...prev, [uploadId]: true }));
+            setVideoUploadProgress(prev => ({ ...prev, [uploadId]: 0 }));
+            
             const storageRef = ref(storage, `live_sessions/thumbnail_video/videos/${file.name}_${Date.now()}`);
             const uploadTask = uploadBytesResumable(storageRef, file);
 
             uploadTask.on(
                 "state_changed",
                 (snapshot) => {
-                    // Optional: track upload progress
                     const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                    console.log(`Video upload is ${progress}% done`);
+                    setVideoUploadProgress(prev => ({ ...prev, [uploadId]: Math.round(progress) }));
                 },
                 (error) => {
                     console.error("Video upload failed:", error);
+                    setIsVideoUploading(prev => {
+                        const newState = { ...prev };
+                        delete newState[uploadId];
+                        return newState;
+                    });
+                    setVideoUploadProgress(prev => {
+                        const newState = { ...prev };
+                        delete newState[uploadId];
+                        return newState;
+                    });
                 },
                 async () => {
                     const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
                     const updatedVideos = [...formData.oneTimeSubscription.videos, downloadURL];
                     handleFieldChange("oneTimeSubscription", "videos", updatedVideos);
+                    
+                    setIsVideoUploading(prev => {
+                        const newState = { ...prev };
+                        delete newState[uploadId];
+                        return newState;
+                    });
+                    setVideoUploadProgress(prev => {
+                        const newState = { ...prev };
+                        delete newState[uploadId];
+                        return newState;
+                    });
                 }
             );
         });
@@ -641,15 +719,36 @@ export default function LiveSession2() {
                 alert("Please upload an image file");
                 return;
             }
+
+            setIsGuideUploading(true);
+            setGuideUploadProgress(0);
+
             const filePath = `pilgrim_sessions/live_sessions/meet_guides/${uuidv4()}_${file.name}`;
             const storageRef = ref(storage, filePath);
-            const snapshot = await uploadBytes(storageRef, file);
-            console.log("File uploaded successfully:", snapshot.metadata.fullPath);
-            const downloadURL = await getDownloadURL(storageRef);
-            console.log("Download URL:", downloadURL);
-            handleGuideChange("image", downloadURL);
+            const uploadTask = uploadBytesResumable(storageRef, file);
+
+            uploadTask.on(
+                "state_changed",
+                (snapshot) => {
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    setGuideUploadProgress(Math.round(progress));
+                },
+                (error) => {
+                    console.error("Upload failed:", error);
+                    setIsGuideUploading(false);
+                    setGuideUploadProgress(0);
+                },
+                async () => {
+                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                    handleGuideChange("image", downloadURL);
+                    setIsGuideUploading(false);
+                    setGuideUploadProgress(0);
+                }
+            );
         } catch (error) {
             console.error("Error uploading file:", error);
+            setIsGuideUploading(false);
+            setGuideUploadProgress(0);
         }
     };
 
@@ -700,6 +799,7 @@ export default function LiveSession2() {
 
                 {/* Live Session Card */}
                 <div className="mb-8">
+                    {/* title */}
                     <div className="flex justify-between items-center mb-0">
                         <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl">
                             {isEditing ? "Edit Live Session Card" : "Live Session Card"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
@@ -743,6 +843,28 @@ export default function LiveSession2() {
                                         <X className="w-4 h-4" />
                                     </button>
                                 </div>
+                            ) : isUploading ? (
+                                <div className="text-center flex flex-col items-center">
+                                    <div className="relative w-12 h-12 mb-3">
+                                        <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
+                                        <div 
+                                            className="absolute inset-0 border-4 border-[#2F6288] rounded-full border-t-transparent animate-spin"
+                                            style={{
+                                                background: `conic-gradient(from 0deg, #2F6288 ${uploadProgress * 3.6}deg, transparent ${uploadProgress * 3.6}deg)`
+                                            }}
+                                        ></div>
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <span className="text-xs font-semibold text-[#2F6288]">{uploadProgress}%</span>
+                                        </div>
+                                    </div>
+                                    <p className="text-sm text-[#2F6288] font-medium">Uploading Thumbnail...</p>
+                                    <div className="w-24 bg-gray-200 rounded-full h-2 mt-2">
+                                        <div 
+                                            className="bg-[#2F6288] h-2 rounded-full transition-all duration-300"
+                                            style={{ width: `${uploadProgress}%` }}
+                                        ></div>
+                                    </div>
+                                </div>
                             ) : (
                                 <div className="text-center text-gray-500 flex flex-col items-center">
                                     <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-12 h-12 mb-2" />
@@ -756,6 +878,7 @@ export default function LiveSession2() {
                                 onChange={(e) => handleFileUpload(e.target.files[0])}
                                 className="hidden"
                                 id="thumbnail-recorded2-upload"
+                                disabled={isUploading}
                             />
                         </div>
                     </div>
@@ -1017,8 +1140,7 @@ export default function LiveSession2() {
                     <label className="block font-semibold my-5">Add Thumbnail Images ( Maximum 5 Images )</label>
                     <div className="mb-6">
                         {(!formData?.oneTimeSubscription?.images || formData?.oneTimeSubscription?.images.length < 5) && (
-                            <label className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col 
-                            items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50">
+                            <label className={`w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50 ${Object.keys(isImageUploading || {}).length > 0 ? 'pointer-events-none opacity-75' : ''}`}>
                                 <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-10 h-10 mb-2" />
                                 <span>Click to upload image<br />Size: (1126×626)px</span>
                                 <input
@@ -1027,11 +1149,43 @@ export default function LiveSession2() {
                                     multiple
                                     onChange={handleImageUpload}
                                     className="hidden"
+                                    disabled={Object.keys(isImageUploading || {}).length > 0}
                                 />
                             </label>
                         )}
 
-                        <div className="flex flex-wrap gap-4">
+                        {/* Upload Progress Indicators */}
+                        {Object.entries(isImageUploading || {}).map(([uploadId, isUploading]) => {
+                            if (!isUploading) return null;
+                            const progress = imageUploadProgress[uploadId] || 0;
+                            return (
+                                <div key={uploadId} className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center mt-4">
+                                    <div className="text-center flex flex-col items-center">
+                                        <div className="relative w-12 h-12 mb-3">
+                                            <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
+                                            <div 
+                                                className="absolute inset-0 border-4 border-[#2F6288] rounded-full border-t-transparent animate-spin"
+                                                style={{
+                                                    background: `conic-gradient(from 0deg, #2F6288 ${progress * 3.6}deg, transparent ${progress * 3.6}deg)`
+                                                }}
+                                            ></div>
+                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                <span className="text-xs font-semibold text-[#2F6288]">{progress}%</span>
+                                            </div>
+                                        </div>
+                                        <p className="text-sm text-[#2F6288] font-medium">Uploading Image...</p>
+                                        <div className="w-24 bg-gray-200 rounded-full h-2 mt-2">
+                                            <div 
+                                                className="bg-[#2F6288] h-2 rounded-full transition-all duration-300"
+                                                style={{ width: `${progress}%` }}
+                                            ></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+
+                        <div className="flex flex-wrap gap-4 mt-4">
                             {formData?.oneTimeSubscription?.images && formData?.oneTimeSubscription?.images.map((img, index) => (
                                 <div key={index} className="relative w-40 h-28">
                                     <img src={img} alt={`img-${index}`} className="w-full h-full object-cover rounded shadow" />
@@ -1051,8 +1205,7 @@ export default function LiveSession2() {
                     <label className="block font-semibold my-5">Add Thumbnail Videos ( Maximum 6 Videos )</label>
                     <div className="mb-4">
                         {(!formData?.oneTimeSubscription?.videos || formData?.oneTimeSubscription?.videos.length < 6) && (
-                            <label className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col 
-                            items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50">
+                            <label className={`w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50 ${Object.keys(isVideoUploading || {}).length > 0 ? 'pointer-events-none opacity-75' : ''}`}>
                                 <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-10 h-10 mb-2" />
                                 <span>Click to upload Videos</span>
                                 <input
@@ -1061,9 +1214,42 @@ export default function LiveSession2() {
                                     multiple
                                     onChange={handleVideoUpload}
                                     className="hidden"
+                                    disabled={Object.keys(isVideoUploading || {}).length > 0}
                                 />
                             </label>
                         )}
+
+                        {/* Upload Progress Indicators */}
+                        {Object.entries(isVideoUploading || {}).map(([uploadId, isUploading]) => {
+                            if (!isUploading) return null;
+                            const progress = videoUploadProgress[uploadId] || 0;
+                            return (
+                                <div key={uploadId} className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center mt-4">
+                                    <div className="text-center flex flex-col items-center">
+                                        <div className="relative w-12 h-12 mb-3">
+                                            <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
+                                            <div 
+                                                className="absolute inset-0 border-4 border-[#2F6288] rounded-full border-t-transparent animate-spin"
+                                                style={{
+                                                    background: `conic-gradient(from 0deg, #2F6288 ${progress * 3.6}deg, transparent ${progress * 3.6}deg)`
+                                                }}
+                                            ></div>
+                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                <span className="text-xs font-semibold text-[#2F6288]">{progress}%</span>
+                                            </div>
+                                        </div>
+                                        <p className="text-sm text-[#2F6288] font-medium">Uploading Video...</p>
+                                        <div className="w-24 bg-gray-200 rounded-full h-2 mt-2">
+                                            <div 
+                                                className="bg-[#2F6288] h-2 rounded-full transition-all duration-300"
+                                                style={{ width: `${progress}%` }}
+                                            ></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+
                         <div className="flex flex-wrap gap-4 mt-4">
                             {formData?.oneTimeSubscription?.videos && formData?.oneTimeSubscription?.videos.map((vid, index) => (
                                 <div key={index} className="relative w-40 h-28 bg-black">
@@ -1492,6 +1678,30 @@ export default function LiveSession2() {
                                     <X size={14} />
                                 </button>
                             </div>
+                        ) : isGuideUploading ? (
+                            <div className="max-w-xs aspect-square border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center mb-4">
+                                <div className="text-center flex flex-col items-center">
+                                    <div className="relative w-12 h-12 mb-3">
+                                        <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
+                                        <div 
+                                            className="absolute inset-0 border-4 border-[#2F6288] rounded-full border-t-transparent animate-spin"
+                                            style={{
+                                                background: `conic-gradient(from 0deg, #2F6288 ${guideUploadProgress * 3.6}deg, transparent ${guideUploadProgress * 3.6}deg)`
+                                            }}
+                                        ></div>
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <span className="text-xs font-semibold text-[#2F6288]">{guideUploadProgress}%</span>
+                                        </div>
+                                    </div>
+                                    <p className="text-sm text-[#2F6288] font-medium">Uploading Guide Image...</p>
+                                    <div className="w-24 bg-gray-200 rounded-full h-2 mt-2">
+                                        <div 
+                                            className="bg-[#2F6288] h-2 rounded-full transition-all duration-300"
+                                            style={{ width: `${guideUploadProgress}%` }}
+                                        ></div>
+                                    </div>
+                                </div>
+                            </div>
                         ) : (
                             <div className="mb-4">
                                 <label
@@ -1511,6 +1721,7 @@ export default function LiveSession2() {
                                         accept="image/*"
                                         onChange={(e) => handleGuideImageChange(e.target.files[0])}
                                         className="hidden"
+                                        disabled={isGuideUploading}
                                     />
                                 </label>
                             </div>

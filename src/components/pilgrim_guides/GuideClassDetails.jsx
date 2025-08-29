@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { FiChevronDown } from "react-icons/fi";
+import { FaUser } from "react-icons/fa";
 import GuideCard from "./GuideCard";
 import { motion } from "framer-motion";
 import SlotModal from "./SlotModal";
@@ -28,7 +29,9 @@ export default function GuideClassDetails() {
     const [availableSlots, setAvailableSlots] = useState([]);
     const [mainImage, setMainImage] = useState('');
     const [galleryImages, setGalleryImages] = useState([]);
+    const [mainImageType, setMainImageType] = useState('image');
     const [showFreeTrail, setShowFreeTrail] = useState(false);
+    const [selectedOccupancy, setSelectedOccupancy] = useState(null);
     const dispatch = useDispatch();
     const navigate = useNavigate();
 
@@ -120,6 +123,20 @@ export default function GuideClassDetails() {
             .trim()
             .replace(/[-\s]+/g, " "); // collapse dashes & spaces into single space
 
+    // Helper function to determine if URL is video or image
+    const getMediaType = (url) => {
+        if (!url) return 'image';
+        const videoExtensions = ['.mp4', '.webm', '.ogg', '.avi', '.mov'];
+        const isVideo = videoExtensions.some(ext => url.toLowerCase().includes(ext)) || url.toLowerCase().includes('video');
+        return isVideo ? 'video' : 'image';
+    };
+
+    // Handle media selection for main display
+    const handleMediaSelect = (mediaUrl) => {
+        setMainImage(mediaUrl);
+        setMainImageType(getMediaType(mediaUrl));
+    };
+
     useEffect(() => {
         const fetchSession = async () => {
             try {
@@ -138,12 +155,16 @@ export default function GuideClassDetails() {
 
                     setSessionData(found || null);
 
-                    // Extract and set gallery images
+                    // Extract and set gallery images and videos
                     if (found?.session?.images && Array.isArray(found.session.images)) {
                         setGalleryImages(found.session.images);
-                        setMainImage(found?.guideCard?.thumbnail || found.session.images[0] || "");
+                        const firstMedia = found?.guideCard?.thumbnail || found.session.images[0] || "";
+                        setMainImage(firstMedia);
+                        setMainImageType(getMediaType(firstMedia));
                     } else {
-                        setMainImage(found?.guideCard?.thumbnail || "");
+                        const thumbnail = found?.guideCard?.thumbnail || "";
+                        setMainImage(thumbnail);
+                        setMainImageType(getMediaType(thumbnail));
                         setGalleryImages([]);
                     }
                 }
@@ -229,36 +250,129 @@ export default function GuideClassDetails() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-7xl mx-auto px-4 py-10">
                 {/* Image */}
                 <div className="flex-shrink-0 space-y-4">
-                    {/* Main Image */}
-                    <img
-                        src={mainImage || sessionData?.guideCard?.thumbnail}
-                        alt="Instructor"
-                        className="rounded-xl xl:h-[400px] xl:w-[700px] md:h-[450px] sm:h-[480px] object-cover"
-                    />
+                    {/* Main Media Display */}
+                    {mainImageType === 'video' ? (
+                        <video
+                            src={mainImage || sessionData?.guideCard?.thumbnail}
+                            controls
+                            autoPlay
+                            muted
+                            className="rounded-xl xl:h-[400px] xl:w-[700px] md:h-[450px] sm:h-[480px] object-cover"
+                            preload="metadata"
+                        >
+                            Your browser does not support the video tag.
+                        </video>
+                    ) : (
+                        <img
+                            src={mainImage || sessionData?.guideCard?.thumbnail}
+                            alt="Instructor"
+                            className="rounded-xl xl:h-[400px] xl:w-[700px] md:h-[450px] sm:h-[480px] object-cover"
+                        />
+                    )}
 
-                    {/* Gallery Images */}
+                    {/* Gallery Media Thumbnails */}
                     {galleryImages.length > 0 && (
                         <div className="flex gap-3 overflow-x-auto pb-2">
                             {/* Main thumbnail */}
-                            <img
-                                src={sessionData?.guideCard?.thumbnail}
-                                alt="Main thumbnail"
-                                className="w-20 h-20 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0"
-                                onClick={() => setMainImage(sessionData?.guideCard?.thumbnail)}
-                            />
+                            {sessionData?.guideCard?.thumbnail && (
+                                <div className="relative flex-shrink-0">
+                                    {getMediaType(sessionData.guideCard.thumbnail) === 'video' ? (
+                                        <div className="relative">
+                                            <video
+                                                src={sessionData.guideCard.thumbnail}
+                                                className="w-20 h-20 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                                                muted
+                                                preload="metadata"
+                                                onClick={() => handleMediaSelect(sessionData.guideCard.thumbnail)}
+                                            />
+                                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                                <div className="bg-black bg-opacity-50 rounded-full p-1">
+                                                    <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path d="M8 5v10l8-5-8-5z"/>
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <img
+                                            src={sessionData.guideCard.thumbnail}
+                                            alt="Main thumbnail"
+                                            className="w-20 h-20 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                                            onClick={() => handleMediaSelect(sessionData.guideCard.thumbnail)}
+                                        />
+                                    )}
+                                </div>
+                            )}
+                            
                             {/* Gallery thumbnails */}
-                            {galleryImages.map((image, index) => (
-                                <img
-                                    key={index}
-                                    src={image}
-                                    alt={`Gallery ${index + 1}`}
-                                    className="w-20 h-20 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0"
-                                    onClick={() => setMainImage(image)}
-                                />
+                            {galleryImages.map((media, index) => (
+                                <div key={index} className="relative flex-shrink-0">
+                                    {getMediaType(media) === 'video' ? (
+                                        <div className="relative">
+                                            <video
+                                                src={media}
+                                                className="w-20 h-20 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                                                muted
+                                                preload="metadata"
+                                                onClick={() => handleMediaSelect(media)}
+                                            />
+                                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                                <div className="bg-black bg-opacity-50 rounded-full p-1">
+                                                    <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path d="M8 5v10l8-5-8-5z"/>
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <img
+                                            src={media}
+                                            alt={`Gallery ${index + 1}`}
+                                            className="w-20 h-20 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                                            onClick={() => handleMediaSelect(media)}
+                                        />
+                                    )}
+                                </div>
                             ))}
                         </div>
                     )}
                 </div>
+
+                {/* occupency/group type */}
+                {sessionData?.guideCard?.occupancies && sessionData?.guideCard?.occupancies.length > 0 && sessionData?.guideCard?.showOccupancy && (
+                    <div className="flex flex-col gap-3">
+                        {
+                            sessionData?.guideCard?.occupancies[0].type === "Single" || sessionData?.guideCard?.occupancies[0].type === "Twin" ? (
+                                <div className="flex items-center gap-2">
+                                    <FaUser className="text-[#C5703F]" />
+                                    <span className="text-sm font-medium">Select Occupancy:</span>
+                                </div>
+                            ) : ""
+                        }
+                        <div className="flex flex-wrap gap-2">
+                            {sessionData.guideCard.occupancies.map((occupancy, index) => (
+                                <button
+                                    key={index}
+                                    onClick={() => setSelectedOccupancy(occupancy)}
+                                    className={`px-4 py-2 rounded-lg border transition-all duration-200 text-sm ${
+                                        selectedOccupancy?.type === occupancy.type
+                                            ? "border-[#C5703F] bg-[#C5703F] text-white shadow-md"
+                                            : "border-gray-300 bg-white text-gray-700 hover:border-[#C5703F] hover:bg-gray-50"
+                                    }`}
+                                >
+                                    <div className="text-center">
+                                        <p className="font-semibold">{occupancy.type}</p>
+                                        {occupancy.price && (
+                                            <p className="text-xs opacity-90">
+                                                ₹{new Intl.NumberFormat("en-IN").format(occupancy.price)}
+                                            </p>
+                                        )}
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {/* Subscription and mode */}
                 <div className="flex-1 space-y-6">
@@ -418,7 +532,7 @@ export default function GuideClassDetails() {
                                                 )}
                                             </p>
                                             <p className="text-lg font-bold text-[#2F6288]">
-                                                ₹ {Number(sessionData.online.monthly.price).toLocaleString("en-IN", {
+                                                ₹ {Number(selectedOccupancy?.price || sessionData.online.monthly.price).toLocaleString("en-IN", {
                                                     minimumFractionDigits: 2,
                                                     maximumFractionDigits: 2
                                                 })}
@@ -451,7 +565,7 @@ export default function GuideClassDetails() {
                                                 )}
                                             </p>
                                             <p className="text-lg font-bold text-[#2F6288]">
-                                                ₹ {Number(sessionData.offline.monthly.price).toLocaleString("en-IN", {
+                                                ₹ {Number(selectedOccupancy?.price || sessionData.offline.monthly.price).toLocaleString("en-IN", {
                                                     minimumFractionDigits: 2,
                                                     maximumFractionDigits: 2
                                                 })}
@@ -489,7 +603,7 @@ export default function GuideClassDetails() {
                                                 )}
                                             </p>
                                             <p className="text-lg font-bold text-[#2F6288]">
-                                                ₹ {Number(sessionData.online.quarterly.price).toLocaleString("en-IN", {
+                                                ₹ {Number(selectedOccupancy?.price || sessionData.online.quarterly.price).toLocaleString("en-IN", {
                                                     minimumFractionDigits: 2,
                                                     maximumFractionDigits: 2
                                                 })}
@@ -522,7 +636,7 @@ export default function GuideClassDetails() {
                                                 )}
                                             </p>
                                             <p className="text-lg font-bold text-[#2F6288]">
-                                                ₹ {Number(sessionData.offline.quarterly.price).toLocaleString("en-IN", {
+                                                ₹ {Number(selectedOccupancy?.price || sessionData.offline.quarterly.price).toLocaleString("en-IN", {
                                                     minimumFractionDigits: 2,
                                                     maximumFractionDigits: 2
                                                 })}
@@ -548,39 +662,31 @@ export default function GuideClassDetails() {
                                 <div className="space-y-4">
                                     {/* Online One Time Plan */}
                                     {sessionData?.online?.oneTime?.price && (
-                                        <div
-                                            className="border p-4 rounded-xl space-y-2 border-gray-300 bg-white"
-                                        >
+                                        <div className="border p-4 rounded-xl space-y-2 border-gray-300 bg-white">
                                             <p className="text-sm font-semibold text-gray-700">
                                                 One Time Online Purchase
                                             </p>
                                             <p className="text-lg font-bold text-[#2F6288]">
-                                                ₹ {Number(sessionData.online.oneTime.price).toLocaleString("en-IN", {
+                                                ₹ {Number(selectedOccupancy?.price || sessionData.online.oneTime.price).toLocaleString("en-IN", {
                                                     minimumFractionDigits: 2,
                                                     maximumFractionDigits: 2
                                                 })}
-                                                <span className="text-sm text-gray-500 font-normal">/session</span>
                                             </p>
-                                            <p className="text-xs text-gray-500">Pay once, access forever</p>
                                         </div>
                                     )}
 
                                     {/* Offline One Time Plan */}
                                     {sessionData?.offline?.oneTime?.price && (
-                                        <div
-                                            className="border p-4 rounded-xl space-y-2 border-gray-300 bg-white"
-                                        >
+                                        <div className="border p-4 rounded-xl space-y-2 border-gray-300 bg-white">
                                             <p className="text-sm font-semibold text-gray-700">
                                                 One Time Offline Purchase
                                             </p>
                                             <p className="text-lg font-bold text-[#2F6288]">
-                                                ₹ {Number(sessionData.offline.oneTime.price).toLocaleString("en-IN", {
+                                                ₹ {Number(selectedOccupancy?.price || sessionData.offline.oneTime.price).toLocaleString("en-IN", {
                                                     minimumFractionDigits: 2,
                                                     maximumFractionDigits: 2
                                                 })}
-                                                <span className="text-sm text-gray-500 font-normal">/session</span>
                                             </p>
-                                            <p className="text-xs text-gray-500">Pay once, access forever</p>
                                         </div>
                                     )}
                                 </div>

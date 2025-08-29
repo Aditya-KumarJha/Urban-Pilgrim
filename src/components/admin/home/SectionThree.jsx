@@ -3,7 +3,7 @@ import { FaTimes } from "react-icons/fa";
 import { useDispatch } from "react-redux";
 import { setSectionThree, setLoading } from "../../../features/home_slices/sectionThreeSlice";
 import { fetchSectionThree, saveSectionThree } from "../../../services/home_service/sectionThreeService";
-import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { deleteObject, getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
 import { storage } from "../../../services/firebase";
 import { v4 as uuidv4 } from "uuid";
 import { showSuccess } from "../../../utils/toast";
@@ -12,6 +12,8 @@ function SectionThree() {
     const [image, setImage] = useState(null);
     const [title, setTitle] = useState("Begin your pilgrimage here");
     const [programs, setPrograms] = useState([]);
+    const [uploadProgress, setUploadProgress] = useState({});
+    const [isUploading, setIsUploading] = useState({});
     const dispatch = useDispatch();
     const uid = "your-unique-id";
 
@@ -38,27 +40,49 @@ function SectionThree() {
     };
 
     const handleProgramImageChange = async (index, file) => {
+        if (!file) return;
+
         try {
-            // Create a storage reference (you can customize the path)
+            // Set uploading state for this specific program
+            setIsUploading(prev => ({ ...prev, [index]: true }));
+            setUploadProgress(prev => ({ ...prev, [index]: 0 }));
+            
+            // Create a storage reference
             const storageRef = ref(storage, `slides/sectionThree/${uuidv4()}-${file.name}`);
-
-            // Upload file
-            await uploadBytes(storageRef, file);
-
-            // Get download URL
-            const downloadURL = await getDownloadURL(storageRef);
-
-            // Update local state with download URL
-            const updated = [...programs];
-            updated[index].image = downloadURL;
-            setPrograms(updated);
-
-            // (Optional) if syncing with Redux
-            // dispatch(setPrograms(updated));
-
-            console.log("Image uploaded successfully:", downloadURL);
+            const uploadTask = uploadBytesResumable(storageRef, file);
+            
+            uploadTask.on(
+                'state_changed',
+                (snapshot) => {
+                    // Track upload progress for this specific program
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    setUploadProgress(prev => ({ ...prev, [index]: Math.round(progress) }));
+                },
+                (error) => {
+                    console.error("Error uploading image:", error);
+                    setIsUploading(prev => ({ ...prev, [index]: false }));
+                    setUploadProgress(prev => ({ ...prev, [index]: 0 }));
+                },
+                async () => {
+                    // Upload completed successfully
+                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                    
+                    // Update local state with download URL
+                    const updated = [...programs];
+                    updated[index].image = downloadURL;
+                    setPrograms(updated);
+                    
+                    // Reset upload states
+                    setIsUploading(prev => ({ ...prev, [index]: false }));
+                    setUploadProgress(prev => ({ ...prev, [index]: 0 }));
+                    
+                    console.log("Image uploaded successfully:", downloadURL);
+                }
+            );
         } catch (error) {
             console.error("Error uploading image:", error);
+            setIsUploading(prev => ({ ...prev, [index]: false }));
+            setUploadProgress(prev => ({ ...prev, [index]: 0 }));
         }
     };
 
@@ -141,7 +165,25 @@ function SectionThree() {
 
                     <label className="block font-semibold mb-1">Image for Program {index + 1}</label>
 
-                    {program.image ? (
+                    {isUploading[index] ? (
+                        <div className="mb-4">
+                            <div className="w-full h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center">
+                                <div className="w-16 h-16 mb-4 relative">
+                                    <div className="w-16 h-16 border-4 border-gray-200 border-t-[#2F6288] rounded-full animate-spin"></div>
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <span className="text-xs font-semibold text-[#2F6288]">{uploadProgress[index] || 0}%</span>
+                                    </div>
+                                </div>
+                                <p className="text-sm text-[#2F6288] font-medium">Uploading...</p>
+                                <div className="w-48 bg-gray-200 rounded-full h-2 mt-2">
+                                    <div 
+                                        className="bg-[#2F6288] h-2 rounded-full transition-all duration-300" 
+                                        style={{ width: `${uploadProgress[index] || 0}%` }}
+                                    ></div>
+                                </div>
+                            </div>
+                        </div>
+                    ) : program.image ? (
                         <div className="relative inline-block mb-4">
                             <img
                                 src={program.image}
@@ -173,6 +215,7 @@ function SectionThree() {
                                     accept="image/*"
                                     onChange={(e) => handleProgramImageChange(index, e.target.files[0])}
                                     className="hidden"
+                                    disabled={isUploading[index]}
                                 />
                             </label>
                         </div>
