@@ -32,6 +32,7 @@ export default function GuidesDemo({ filters = {}, bestSellingActive = false }) 
 
     const guides = guideData?.map((program) => ({
         image: program?.guideCard?.thumbnail,
+        thumbnailType: program?.guideCard?.thumbnailType,
         category: program?.guideCard?.category,
         title: program?.guideCard?.title,
         price: program?.guideCard?.price,

@@ -307,6 +307,14 @@ export default function GuideClassDetails() {
                         </div>
                     </div>
 
+                    <div>
+                        {sessionData?.guideCard?.description?.split('\n').map((line, index) => (
+                            <div key={index} className="mb-2">
+                                {line}
+                            </div>
+                        ))}
+                    </div>
+
                     {/* Subscription Type Selector - Only show if multiple options available */}
                     {(((sessionData?.online?.monthly?.price || sessionData?.offline?.monthly?.price) &&
                         (sessionData?.online?.quarterly?.price || sessionData?.offline?.quarterly?.price)) ||

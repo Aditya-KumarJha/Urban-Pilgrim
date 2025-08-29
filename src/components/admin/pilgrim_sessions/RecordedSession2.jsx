@@ -531,7 +531,7 @@ export default function RecordedSession2() {
                 if (session && session.slides) {
                     setAllData(session.slides || []);
                     let allSlides = [];
-                    for (const ssn of session.slides) {
+                    for (const ssn of Object.values(session.slides)) {
                         if (ssn.slides) {
                             allSlides = [...allSlides, ...ssn.slides];
                         }

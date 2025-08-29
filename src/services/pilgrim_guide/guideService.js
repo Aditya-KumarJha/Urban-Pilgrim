@@ -11,21 +11,28 @@ export const saveOrUpdateGuideData = async (uid, arrayName, newArray) => {
     if (!uid) throw new Error("User ID is required");
     console.log("Saving guide array:", JSON.stringify(newArray, null, 2));
 
-    // Add createdAt timestamp if not present
-    const dataWithTimestamp = {
-        ...newArray,
-        createdAt: newArray.createdAt || new Date().toISOString()
-    };
+    // Handle arrays vs objects differently
+    let dataToSave;
+    if (Array.isArray(newArray)) {
+        // For arrays, save as-is without adding createdAt to the array itself
+        dataToSave = newArray;
+    } else {
+        // For objects, add createdAt timestamp if not present
+        dataToSave = {
+            ...newArray,
+            createdAt: newArray.createdAt || new Date().toISOString()
+        };
+    }
 
     // Correct Firestore path
     const docRef = doc(db, "pilgrim_guides", uid, "guides", "data");
 
     try {
-        await updateDoc(docRef, { [arrayName]: dataWithTimestamp });
+        await updateDoc(docRef, { [arrayName]: dataToSave });
         return "updated";
     } catch (error) {
         if (error.code === "not-found" || error.message.includes("No document to update")) {
-            await setDoc(docRef, { [arrayName]: dataWithTimestamp });
+            await setDoc(docRef, { [arrayName]: dataToSave });
             return "created";
         } else {
             console.error("Error saving/updating guide data:", error);
@@ -101,6 +108,7 @@ export const fetchGuideData = async (uid) => {
 // };
 
 export const deleteSlideByIndex = async (uid, index) => {
+    console.log("Deleting slide at index:", index, uid);
     try {
         const guideRef = doc(db, `pilgrim_guides/${uid}/guides/data`);
         const docSnap = await getDoc(guideRef);
@@ -110,17 +118,38 @@ export const deleteSlideByIndex = async (uid, index) => {
         }
 
         const data = docSnap.data();
-        if (!data.slides || !Array.isArray(data.slides)) {
-            throw new Error("Slides array not found in document");
+
+        // Handle different data structures
+        let updatedData = { ...data };
+
+        if (data.slides && Object.keys(data.slides).length > 0) {
+            // Remove the item at the specified index
+            const keyToDelete = Object.keys(data.slides)[index];
+            console.log("Key to delete:", keyToDelete);
+            if (keyToDelete) {
+                delete updatedData.slides[keyToDelete];
+                
+                // Reindex remaining items
+                const remainingItems = Object.keys(data.slides)
+                    .filter(key => key !== keyToDelete)
+                    .map(key => data.slides[key]);
+                
+                // Clear all numeric keys
+                Object.keys(data.slides).forEach(key => delete updatedData.slides[key]);
+                
+                // Re-add items with new indices starting from 1
+                remainingItems.forEach((item, i) => {
+                    updatedData.slides[i + 1] = item;
+                });
+            }
+        } else {
+            throw new Error("No valid data structure found for deletion");
         }
 
-        // Filter out the slide at the given index
-        const updatedSlides = data.slides.filter((_, i) => i !== index);
-
         // Update Firestore
-        await updateDoc(guideRef, { slides: updatedSlides });
+        await setDoc(guideRef, updatedData);
 
-        console.log(`Slide at index ${index} deleted successfully`);
+        console.log(`Item at index ${index} deleted successfully`);
         return "deleted";
     } catch (error) {
         console.error("Error deleting slide by index:", error);

@@ -33,7 +33,17 @@ function SlideItem({ slide, index, moveSlide, removeSlide, editSlide }) {
             <div className="flex items-center gap-3">
                 <GripVertical className="text-gray-400 cursor-move w-5 h-5" />
                 <div className="flex space-x-4">
-                    <img src={slide?.thumbnail} alt="Slide Thumbnail" className="w-16 h-16 object-cover rounded mt-1" />
+                    {slide?.thumbnailType && slide?.thumbnailType.startsWith('video/') ? (
+                        <video
+                            src={slide?.thumbnail}
+                            className="w-16 h-16 object-cover rounded mt-1"
+                            autoPlay
+                            muted
+                            loop
+                        />
+                    ) : (
+                        <img src={slide?.thumbnail} alt="Slide Thumbnail" className="w-16 h-16 object-cover rounded mt-1" />
+                    )}
                     <div className="flex flex-col">
                         <p className="font-semibold text-gray-800">{slide?.title}</p>
                         <p className="text-sm text-gray-600">Link: /{slide?.title?.replace(/\s+/g, '-')}</p>
@@ -69,6 +79,7 @@ export default function GuideForm() {
             subCategory: "",
             price: "",
             thumbnail: null,
+            thumbnailType: null,
             occupancy: "",
             showOccupancy: false,
             description: ""
@@ -179,8 +190,8 @@ export default function GuideForm() {
         if (!file) return;
 
         try {
-            if (!file.type.startsWith("image/")) {
-                alert("Please upload an image file");
+            if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
+                alert("Please upload an image or video file");
                 return;
             }
 
@@ -194,10 +205,21 @@ export default function GuideForm() {
 
             // Get download URL
             const downloadURL = await getDownloadURL(storageRef);
-            console.log("Download URL:", downloadURL);
-
-            // Update formData with the file's download URL
+            
+            // Store both URL and file type for proper detection
+            const mediaData = {
+                url: downloadURL,
+                type: file.type,
+                isVideo: file.type.startsWith('video/')
+            };
+            
+            // Update formData with the media data
             handleFieldChange("guideCard", "thumbnail", downloadURL);
+            handleFieldChange("guideCard", "thumbnailType", file.type);
+            
+            console.log("Upload complete - downloadURL: ", downloadURL);
+            console.log("File type: ", file.type);
+            console.log("Is video: ", file.type.startsWith('video/'));
 
         } catch (error) {
             console.error("Error uploading file:", error);
@@ -347,7 +369,7 @@ export default function GuideForm() {
             const updatedGuides = guides.filter((_, i) => i !== index);
             dispatch(setGuides(updatedGuides));
 
-            // Update local states if you’re keeping them for form rendering
+            // Update local states if you're keeping them for form rendering
             setFormData((prev) => ({
                 ...prev,
                 slides: prev.slides?.filter((_, i) => i !== index) || []
@@ -374,6 +396,7 @@ export default function GuideForm() {
                 subCategory: slideToEdit?.guideCard?.subCategory || "",
                 price: slideToEdit?.guideCard?.price,
                 thumbnail: slideToEdit?.guideCard?.thumbnail || null,
+                thumbnailType: slideToEdit?.guideCard?.thumbnailType || null,
                 occupancy: slideToEdit?.guideCard?.occupancy || "",
                 showOccupancy: slideToEdit?.guideCard?.showOccupancy || false,
                 description: slideToEdit?.guideCard?.description || ""
@@ -457,6 +480,7 @@ export default function GuideForm() {
                 subCategory: "",
                 price: "",
                 thumbnail: null,
+                thumbnailType: null,
                 occupancy: "",
                 showOccupancy: false,
                 description: ""
@@ -554,6 +578,15 @@ export default function GuideForm() {
     //     return Object.keys(newErrors).length === 0;
     // };
 
+    // Monitor thumbnail changes
+    useEffect(() => {
+        if (formData?.guideCard?.thumbnail) {
+            console.log("Thumbnail updated in state: ", formData.guideCard.thumbnail);
+            console.log("Thumbnail type: ", formData.guideCard.thumbnailType);
+            console.log("Is video file: ", formData.guideCard.thumbnailType?.startsWith('video/'));
+        }
+    }, [formData?.guideCard?.thumbnail, formData?.guideCard?.thumbnailType]);
+
     useEffect(() => {
         const loadCards = async () => {
             try {
@@ -607,6 +640,7 @@ export default function GuideForm() {
                 {
                     title: formData.guideCard.title,
                     thumbnail: formData.guideCard.thumbnail,
+                    thumbnailType: formData.guideCard.thumbnailType,
                 }
             ]
         };
@@ -646,6 +680,7 @@ export default function GuideForm() {
                     subCategory: "",
                     price: "",
                     thumbnail: null,
+                    thumbnailType: null,
                     occupancy: "",
                     showOccupancy: false,
                     description: ""
@@ -872,11 +907,22 @@ export default function GuideForm() {
                         >
                             {formData?.guideCard?.thumbnail ? (
                                 <div className="relative h-full flex items-center">
-                                    <img
-                                        src={formData?.guideCard?.thumbnail}
-                                        alt="Thumbnail"
-                                        className="h-full object-contain rounded"
-                                    />
+                                    {formData?.guideCard?.thumbnailType && formData?.guideCard?.thumbnailType.startsWith('video/') ? (
+                                        <video
+                                            src={formData?.guideCard?.thumbnail}
+                                            className="h-full object-contain rounded"
+                                            autoPlay
+                                            muted
+                                            loop
+                                            playsInline
+                                        />
+                                    ) : (
+                                        <img
+                                            src={formData?.guideCard?.thumbnail}
+                                            alt="Thumbnail"
+                                            className="h-full object-contain rounded"
+                                        />
+                                    )}
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation()
@@ -896,7 +942,7 @@ export default function GuideForm() {
                             )}
                             <input
                                 type="file"
-                                accept="image/*"
+                                accept="image/*,video/*"
                                 onChange={(e) => handleFileUpload(e.target.files[0])}
                                 className="hidden"
                                 id="thumbnail-upload"

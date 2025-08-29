@@ -112,8 +112,10 @@ export const fetchAllEvents = async (dispatch) => {
             const recordedSnapshot = await getDoc(recordedRef);
             if (recordedSnapshot.exists()) {
                 const recordedData = recordedSnapshot.data();
+                console.log("recorded: ", recordedData)
                 if (recordedData.slides) {
-                    recordedData.slides.forEach((program, index) => {
+                    const slidesArray = Object.values(recordedData.slides);
+                    slidesArray.forEach((program, index) => {
                         if (program?.recordedProgramCard) {
                             allEvents.push(
                                 mapEvent(

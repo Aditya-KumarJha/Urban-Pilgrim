@@ -137,7 +137,8 @@ function Home() {
 
                 if (liveSnapshot.exists()) {
                     const liveData = liveSnapshot.data();
-                    setSessionData(liveData?.slides || []);
+                    const actual = Object.values(liveData.slides);
+                    setSessionData(actual || []);
                 } else {
                     console.log("No live session slides found in Firestore");
                 }
@@ -148,7 +149,8 @@ function Home() {
 
                 if (recordedSnapshot.exists()) {
                     const recordedData = recordedSnapshot.data();
-                    setRecordedSessionData(recordedData?.slides || []);
+                    const actual = Object.values(recordedData.slides);
+                    setRecordedSessionData(actual || []);
                 } else {
                     console.log("No recorded session slides found in Firestore");
                 }
@@ -190,8 +192,8 @@ function Home() {
 
                 if (snapshot.exists()) {
                     const data = snapshot.data();
-                    console.log("guide data: ", data.slides)
-                    setGuideData(data?.slides || []);
+                    const actual = Object.values(data.slides);
+                    setGuideData(actual || []);
                 } else {
                     console.log("No slides found in Firestore");
                 }
@@ -341,7 +343,7 @@ function Home() {
                             ))
                         }
                         {
-                            recordedSessionData &&
+                            recordedSessionData && recordedSessionData.length > 0 &&
                             recordedSessionData.map((session, index) => (
                                 <PersondetailsCard type="recorded-session" key={index} image={session?.recordedProgramCard?.thumbnail} title={session?.recordedProgramCard?.title} price={session?.recordedProgramCard?.price} />
                             ))

@@ -5,22 +5,29 @@ export const saveOrUpdateRetreatData = async (uid, arrayName, newArray) => {
     if (!uid) throw new Error("User ID is required");
     console.log("Saving array:", JSON.stringify(newArray, null, 2));
 
-    // Add createdAt timestamp if not present
-    const dataWithTimestamp = {
-        ...newArray,
-        createdAt: newArray.createdAt || new Date().toISOString()
-    };
+    // Handle arrays vs objects differently
+    let dataToSave;
+    if (Array.isArray(newArray)) {
+        // For arrays, save as-is without adding createdAt to the array itself
+        dataToSave = newArray;
+    } else {
+        // For objects, add createdAt timestamp if not present
+        dataToSave = {
+            ...newArray,
+            createdAt: newArray.createdAt || new Date().toISOString()
+        };
+    }
 
     const docRef = doc(db, `pilgrim_retreat/${uid}/retreats/data`);
 
     try {
         // Try updating the document first
-        await updateDoc(docRef, { [arrayName]: dataWithTimestamp });
+        await updateDoc(docRef, { [arrayName]: dataToSave });
         return "updated";
     } catch (error) {
         if (error.code === "not-found" || error.message.includes("No document to update")) {
             // If doc doesn't exist, create it
-            await setDoc(docRef, { [arrayName]: dataWithTimestamp });
+            await setDoc(docRef, { [arrayName]: dataToSave });
             return "created";
         } else {
             console.error("Error saving/updating retreat data:", error);

@@ -18,9 +18,10 @@ export default function RecordedPrograms({ filters = {}, bestSellingActive = fal
 
                 if (snapshot.exists()) {
                     const data = snapshot.data();
-
-                    setRecordedProgramData(data.slides || null);
-                    dispatch(setRecordedSessions(data?.slides || []));
+                    const actutalSlides = Object.values(data.slides);
+                    
+                    setRecordedProgramData(actutalSlides || null);
+                    dispatch(setRecordedSessions(actutalSlides || []));
                 }
             } catch (error) {
                 console.error("Error fetching recorded programs:", error);
@@ -30,7 +31,7 @@ export default function RecordedPrograms({ filters = {}, bestSellingActive = fal
         fetchRecordedPrograms();
     }, [dispatch]);
 
-    const programs = recordedProgramData?.map((program) => ({
+    const programs = recordedProgramData && recordedProgramData.length > 0 && recordedProgramData?.map((program) => ({
         image: program?.recordedProgramCard?.thumbnail,
         category: program?.recordedProgramCard?.category,
         title: program?.recordedProgramCard?.title,

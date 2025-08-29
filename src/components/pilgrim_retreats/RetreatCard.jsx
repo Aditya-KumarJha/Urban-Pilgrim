@@ -12,7 +12,18 @@ export default function RetreatCard({ retreat }) {
 
     return (
         <div className="rounded-xl bg-white overflow-hidden w-full max-w-sm shadow-[-16px_16px_18px_rgba(0,0,0,0.25)] border-black/30 border" >
-            <img src={pilgrimRetreatCard?.image} alt={pilgrimRetreatCard?.title} className="h-52 w-full object-cover p-4" />
+            {pilgrimRetreatCard?.thumbnailType && pilgrimRetreatCard?.thumbnailType.startsWith('video/') ? (
+                <video
+                    src={pilgrimRetreatCard?.image}
+                    className="h-52 w-full object-cover p-4"
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                />
+            ) : (
+                <img src={pilgrimRetreatCard?.image} alt={pilgrimRetreatCard?.title} className="h-52 w-full object-cover p-4" />
+            )}
             <div className="p-4">
                 <h3 className="font-semibold text-xl leading-tight">{pilgrimRetreatCard?.title}</h3>
                 <div className="text-sm text-gray-600 flex flex-col items-start mt-2 space-y-2">

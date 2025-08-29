@@ -38,7 +38,17 @@ function SlideItem({ slide, index, moveSlide, onEdit, onDelete, onToggle }) {
         >
             <div className="flex items-center gap-3">
                 <MdDragIndicator className="text-gray-400 cursor-move" />
-                <img src={slide?.image} alt="thumb" className="h-12 w-12 rounded object-cover" />
+                {slide?.thumbnailType && slide?.thumbnailType.startsWith('video/') ? (
+                    <video
+                        src={slide?.image}
+                        className="w-16 h-16 object-cover rounded mt-1"
+                        autoPlay
+                        muted
+                        loop
+                    />
+                ) : (
+                    <img src={slide?.image} alt="Slide Thumbnail" className="w-16 h-16 object-cover rounded mt-1" />
+                )}
                 <div>
                     <p className="font-semibold">{slide?.title}</p>
                     <p className="text-sm text-gray-500">Link: {slide?.link}</p>
@@ -65,6 +75,7 @@ export default function RetreatsForm() {
         pilgrimRetreatCard: {
             title: "",
             image: null,
+            thumbnailType: null,
             location: "",
             price: "",
             category: "",
@@ -88,7 +99,7 @@ export default function RetreatsForm() {
             description2: "",
             description3: "",
             dateOptions: [{ start: "", end: "" }],
-            occupancies: [{type: "Single", price: ""}],
+            occupancies: [{ type: "Single", price: "" }],
             showOccupancyInRetreat: false
         },
         features: [],
@@ -127,6 +138,12 @@ export default function RetreatsForm() {
         onDrop: (acceptedFiles) => {
             const file = acceptedFiles[0];
             if (file) {
+                // Validate file type
+                if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
+                    alert("Please upload an image or video file");
+                    return;
+                }
+
                 try {
                     const storageRef = ref(storage, `pilgrimCards/${file.name}_${Date.now()}`);
                     const uploadTask = uploadBytesResumable(storageRef, file);
@@ -144,6 +161,11 @@ export default function RetreatsForm() {
                             // Upload complete
                             const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
                             handleFieldChange("pilgrimRetreatCard", "image", downloadURL);
+                            handleFieldChange("pilgrimRetreatCard", "thumbnailType", file.type);
+                            
+                            console.log("Upload complete - downloadURL: ", downloadURL);
+                            console.log("File type: ", file.type);
+                            console.log("Is video: ", file.type.startsWith('video/'));
                         }
                     );
                 } catch (err) {
@@ -202,7 +224,7 @@ export default function RetreatsForm() {
     };
 
     const addOccupancy = () => {
-        const updated = [...formData.session.occupancies, {type: "", price: ""}];
+        const updated = [...formData.session.occupancies, { type: "", price: "" }];
         handleFieldChange("session", "occupancies", updated);
     };
 
@@ -630,6 +652,7 @@ export default function RetreatsForm() {
             pilgrimRetreatCard: {
                 title: "",
                 image: null,
+                thumbnailType: null,
                 location: "",
                 price: "",
                 category: "", // Changed from categories array to single category string
@@ -653,7 +676,7 @@ export default function RetreatsForm() {
                 description2: "",
                 description3: "",
                 dateOptions: [{ start: "", end: "" }],
-                occupancies: [{type: "", price: ""}],
+                occupancies: [{ type: "", price: "" }],
                 showOccupancyInRetreat: false
             },
             features: [],
@@ -733,11 +756,24 @@ export default function RetreatsForm() {
                     >
                         <input {...getCardImageInputProps()} />
                         {formData?.pilgrimRetreatCard?.image ? (
-                            <img
-                                src={formData.pilgrimRetreatCard.image}
-                                alt="Uploaded"
-                                className="h-full object-contain rounded-md"
-                            />
+                            <div className="relative h-full flex items-center">
+                                {formData?.pilgrimRetreatCard?.thumbnailType && formData?.pilgrimRetreatCard?.thumbnailType.startsWith('video/') ? (
+                                    <video
+                                        src={formData?.pilgrimRetreatCard?.image}
+                                        className="h-full object-contain rounded-md"
+                                        autoPlay
+                                        muted
+                                        loop
+                                        playsInline
+                                    />
+                                ) : (
+                                    <img
+                                        src={formData.pilgrimRetreatCard.image}
+                                        alt="Uploaded"
+                                        className="h-full object-contain rounded-md"
+                                    />
+                                )}
+                            </div>
                         ) : (
                             <div className="text-center text-gray-500 flex flex-col items-center">
                                 <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-12 h-12 mb-2" />
@@ -1025,7 +1061,7 @@ export default function RetreatsForm() {
                         )}
                     </div>
                 ))}
-                
+
                 {/* occupency */}
                 <label className="block text-md font-semibold text-gray-700 mb-2 mt-4">Occupancy & Price</label>
                 {formData?.session?.occupancies.map((occ, index) => (
