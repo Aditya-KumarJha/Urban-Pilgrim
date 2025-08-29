@@ -176,7 +176,7 @@ export default function LiveDetails() {
             </SEO>
 
             {/* Main content */}
-            <div className="xl:max-w-7xl lg:max-w-4xl md:max-w-[700px] mx-auto p-6 bg-gradient-to-b from-[#FAF4F0] to-white rounded-2xl shadow-lg grid gap-6 md:mt-[100px] mt-[80px] px-4">
+            <div className="xl:max-w-7xl lg:max-w-4xl md:max-w-[700px] mx-auto p-6 grid gap-6 md:mt-[100px] mt-[80px] px-4">
                 {/* image section */}
                 <div className="space-y-4">
                     <h2 className="md:text-2xl font-bold text-xl">
@@ -333,7 +333,7 @@ export default function LiveDetails() {
             }
 
             {/* You may also like */}
-            <div className="max-w-7xl mx-auto p-6 bg-white rounded-2xl grid gap-6 px-4">
+            <div className="max-w-7xl mx-auto p-6  grid gap-6 px-4">
                 <h2 className="text-3xl text-[#2F6288] font-bold mb-6">
                     You May Also Like
                 </h2>

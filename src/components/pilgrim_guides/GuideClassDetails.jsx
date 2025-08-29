@@ -13,6 +13,8 @@ import { useDispatch, useSelector } from "react-redux";
 import PersondetailsCard from "../../components/persondetails_card";
 import { getProgramButtonConfig } from "../../utils/userProgramUtils";
 import { useNavigate } from "react-router-dom";
+import FreeTrailModal from "../modals/FreeTrailModal";
+import { showError, showSuccess } from "../../utils/toast";
 
 export default function GuideClassDetails() {
     const { addToCart } = useCart();
@@ -26,6 +28,7 @@ export default function GuideClassDetails() {
     const [availableSlots, setAvailableSlots] = useState([]);
     const [mainImage, setMainImage] = useState('');
     const [galleryImages, setGalleryImages] = useState([]);
+    const [showFreeTrail, setShowFreeTrail] = useState(false);
     const dispatch = useDispatch();
     const navigate = useNavigate();
 
@@ -193,6 +196,17 @@ export default function GuideClassDetails() {
         const slots = getAvailableSlots();
         setAvailableSlots(slots);
     }, [sessionData, mode, subscriptionType]);
+
+    const handleShowFreeTrail = () => {
+        // Check if there are any videos available for free trial
+        const hasVideoContent = sessionData?.session?.freeTrialVideo
+        
+        if (hasVideoContent) {
+            setShowFreeTrail(true);
+        } else {
+            showError("Free trial is not available for this program");
+        }
+    }
 
     return (
         <div className="px-4 py-10 mt-[100px] bg-gradient-to-r from-[#FAF4F0] to-white">
@@ -629,7 +643,7 @@ export default function GuideClassDetails() {
                                                     </button>
                                                     <button
                                                         className="w-full border-2 border-[#2F6288] text-[#2F6288] py-3 px-4 rounded-lg hover:bg-[#2F6288] hover:text-white transition-all duration-200 font-semibold"
-                                                        onClick={handleButtonClick}
+                                                        onClick={handleShowFreeTrail}
                                                     >
                                                         Get Free Trial
                                                     </button>
@@ -725,6 +739,14 @@ export default function GuideClassDetails() {
                         addToCart(cartItem);
                         setShowCalendar(false);
                     }}
+                />
+            )}
+
+            {showFreeTrail && (
+                <FreeTrailModal 
+                    onClose={() => setShowFreeTrail(false)} 
+                    videoUrl={sessionData?.session?.freeTrialVideo}
+                    title={sessionData?.guideCard?.title}
                 />
             )}
         </div>

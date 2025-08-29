@@ -258,11 +258,15 @@ export default function SubscriptionCard({ bundle, onAddToCart, isHighestDiscoun
         );
     }
 
+    const showFreeTrail = () => {
+        
+    }
+
     // ✅ Default Subscription Box if not purchased
     return (
         <div className="flex justify-start items-start py-4">
             <motion.div
-                className="rounded-lg max-w-md w-full"
+                className="max-w-md w-full"
                 initial={{ opacity: 0, y: 40 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
@@ -295,6 +299,7 @@ export default function SubscriptionCard({ bundle, onAddToCart, isHighestDiscoun
 
                 <motion.button
                     whileTap={{ scale: 0.95 }}
+                    onClick={showFreeTrail}
                     className="w-full border border-[#2F5D82] text-[#2F5D82] font-semibold py-3 rounded-md hover:bg-[#e6edf3] transition-colors"
                 >
                     Get a Free Trial
