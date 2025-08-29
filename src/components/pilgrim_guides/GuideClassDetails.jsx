@@ -338,42 +338,6 @@ export default function GuideClassDetails() {
                     )}
                 </div>
 
-                {/* occupency/group type */}
-                {sessionData?.guideCard?.occupancies && sessionData?.guideCard?.occupancies.length > 0 && sessionData?.guideCard?.showOccupancy && (
-                    <div className="flex flex-col gap-3">
-                        {
-                            sessionData?.guideCard?.occupancies[0].type === "Single" || sessionData?.guideCard?.occupancies[0].type === "Twin" ? (
-                                <div className="flex items-center gap-2">
-                                    <FaUser className="text-[#C5703F]" />
-                                    <span className="text-sm font-medium">Select Occupancy:</span>
-                                </div>
-                            ) : ""
-                        }
-                        <div className="flex flex-wrap gap-2">
-                            {sessionData.guideCard.occupancies.map((occupancy, index) => (
-                                <button
-                                    key={index}
-                                    onClick={() => setSelectedOccupancy(occupancy)}
-                                    className={`px-4 py-2 rounded-lg border transition-all duration-200 text-sm ${
-                                        selectedOccupancy?.type === occupancy.type
-                                            ? "border-[#C5703F] bg-[#C5703F] text-white shadow-md"
-                                            : "border-gray-300 bg-white text-gray-700 hover:border-[#C5703F] hover:bg-gray-50"
-                                    }`}
-                                >
-                                    <div className="text-center">
-                                        <p className="font-semibold">{occupancy.type}</p>
-                                        {occupancy.price && (
-                                            <p className="text-xs opacity-90">
-                                                ₹{new Intl.NumberFormat("en-IN").format(occupancy.price)}
-                                            </p>
-                                        )}
-                                    </div>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
                 {/* Subscription and mode */}
                 <div className="flex-1 space-y-6">
                     {/* mode */}
@@ -442,6 +406,42 @@ export default function GuideClassDetails() {
                             </div>
                         ))}
                     </div>
+
+                    {/* occupency/group type */}
+                    {sessionData?.guideCard?.occupancies && sessionData?.guideCard?.occupancies.length > 0 && sessionData?.guideCard?.showOccupancy && (
+                        <div className="flex flex-col gap-3">
+                            {
+                                sessionData?.guideCard?.occupancies[0].type === "Single" || sessionData?.guideCard?.occupancies[0].type === "Twin" ? (
+                                    <div className="flex items-center gap-2">
+                                        <FaUser className="text-[#C5703F]" />
+                                        <span className="text-sm font-medium">Select Occupancy:</span>
+                                    </div>
+                                ) : ""
+                            }
+                            <div className="flex flex-wrap gap-2">
+                                {sessionData.guideCard.occupancies.map((occupancy, index) => (
+                                    <button
+                                        key={index}
+                                        onClick={() => setSelectedOccupancy(occupancy)}
+                                        className={`px-4 py-2 rounded-lg border transition-all duration-200 text-sm ${
+                                            selectedOccupancy?.type === occupancy.type
+                                                ? "border-[#C5703F] bg-[#C5703F] text-white shadow-md"
+                                                : "border-gray-300 bg-white text-gray-700 hover:border-[#C5703F] hover:bg-gray-50"
+                                        }`}
+                                    >
+                                        <div className="text-center">
+                                            <p className="font-semibold">{occupancy.type}</p>
+                                            {occupancy.price && (
+                                                <p className="text-xs opacity-90">
+                                                    ₹{new Intl.NumberFormat("en-IN").format(occupancy.price)}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Subscription Type Selector - Only show if multiple options available */}
                     {(((sessionData?.online?.monthly?.price || sessionData?.offline?.monthly?.price) &&
