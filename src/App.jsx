@@ -66,7 +66,7 @@ function App() {
         {!loading && (
           <>
             {!isAdminRoute && <NavBar />}
-            <WhatsAppFloatingButton />
+            {!isAdminRoute && <WhatsAppFloatingButton />}
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/pilgrim_retreats" element={<Retreats />} />

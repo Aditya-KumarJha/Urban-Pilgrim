@@ -37,7 +37,7 @@ export default function CartPage() {
 	};
 
 	const subtotal = cartData.reduce(
-		(sum, item) => sum + (item.price * (item.persons ?? 1) * (item.quantity ?? 1)),
+		(sum, item) => sum + (item.price * (item.persons ?? 1) * (item.quantity ?? 1) * (item.duration ?? 1)),
 		0
 	);
 	const discount = Math.round(subtotal * 0.2);

@@ -6,13 +6,15 @@ import { addToCart } from "../../features/cartSlice";
 import { fetchAllBundles } from "../../services/bundleService";
 import "./BundlesPopup.css";
 
-export default function BundlesPopup({ isOpen, onClose, retreatData, selectedOccupancy }) {
+export default function BundlesPopup({ isOpen, onClose, retreatData, selectedOccupancy, persons, duration }) {
     const [bundles, setBundles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [bundlesPerView, setBundlesPerView] = useState(3);
     const [expandedBundles, setExpandedBundles] = useState({});
     const dispatch = useDispatch();
+    console.log("persons", persons);
+    console.log("duration", duration);
 
     useEffect(() => {
         if (isOpen) {
@@ -356,6 +358,8 @@ export default function BundlesPopup({ isOpen, onClose, retreatData, selectedOcc
                                                 price: selectedOccupancy.price,
                                                 image: retreatData.oneTimePurchase?.images?.[0] || "/assets/retreats.svg",
                                                 type: "retreat",
+                                                persons: persons || 1,
+                                                duration: duration || 1,
                                                 location: retreatData.pilgrimRetreatCard?.location,
                                                 persons: 1
                                             };

@@ -58,7 +58,7 @@ export default function CartItem({ item, onRemove, onQuantityChange, onPersonsCh
 
                 {/* Price persons × quantity */}
                 <p className="font-bold text-sm md:text-base">
-                    ₹ {(item.price * persons * quantity).toLocaleString()}
+                    ₹ {(item.price * persons * quantity * item?.duration).toLocaleString()}
                 </p>
                 {(quantity > 1 || persons > 1) && (
                     <p className="text-xs text-gray-500">

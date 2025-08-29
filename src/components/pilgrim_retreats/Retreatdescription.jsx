@@ -17,16 +17,19 @@ import { db } from "../../services/firebase";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchAllEvents } from "../../utils/fetchEvents";
 import EventCard from "../upcoming_events/EventCard";
+import { MdPeopleAlt  } from "react-icons/md";
 import WeatherSection from "./WeatherSection";
 import BundlesPopup from "./BundlesPopup";
 import { getProgramButtonConfig } from "../../utils/userProgramUtils";
 import { useNavigate } from "react-router-dom";
+import { Package } from "lucide-react";
 
 export default function Retreatdescription() {
 
     const { retreatName } = useParams();
     const formattedTitle = retreatName.replace(/-/g, " ");
     console.log("title from params: ", formattedTitle);
+    const [persons, setPersons] = useState(1);
     const [retreatData, setRetreatData] = useState(null);
     const [showBundlesPopup, setShowBundlesPopup] = useState(false);
     const [selectedOccupancy, setSelectedOccupancy] = useState(null);
@@ -46,6 +49,9 @@ export default function Retreatdescription() {
     
     // Get user programs from Redux
     const userPrograms = useSelector((state) => state.userProgram);
+
+    const increment = () => setPersons((prev) => prev + 1);
+    const decrement = () => setPersons((prev) => (prev > 1 ? prev - 1 : 1));
     
     // Get button configuration based on user ownership
     const buttonConfig = getProgramButtonConfig(
@@ -163,10 +169,14 @@ export default function Retreatdescription() {
                         {/* occupancy */}
                         {retreatData?.session?.occupancies && retreatData?.session?.occupancies.length > 0 && (
                             <div className="flex flex-col gap-3">
-                                <div className="flex items-center gap-2">
-                                    <FaUser className="text-[#C5703F]" />
-                                    <span className="text-sm font-medium">Select Occupancy:</span>
-                                </div>
+                                {
+                                    retreatData?.session?.occupancies[0].type === "Single" || retreatData?.session?.occupancies[0].type === "Twin" ? (
+                                        <div className="flex items-center gap-2">
+                                            <FaUser className="text-[#C5703F]" />
+                                            <span className="text-sm font-medium">Select Occupancy:</span>
+                                        </div>
+                                    ) : ""
+                                }
                                 <div className="flex flex-wrap gap-2">
                                     {retreatData.session.occupancies.map((occupancy, index) => (
                                         <button
@@ -192,9 +202,37 @@ export default function Retreatdescription() {
                             </div>
                         )}
 
-                        <div className="flex items-center gap-2">
-                            <FaUsers className="text-[#C5703F]" />
-                            <span className="text-sm">No. of persons/session: 1</span>
+                        {/* Days */}
+                        <div className="flex items-center gap-2 text-sm">
+                            <Package className="size-5 text-[#C5703F]" />
+                            Number of days
+                            <span className="text-sm rounded-lg text-gray-800 font-medium">
+                                {retreatData?.pilgrimRetreatCard?.duration ?? 1} days
+                            </span>
+                        </div>
+
+                        {/* No. of persons/session */}
+                        <div className="flex flex-wrap items-center gap-2 text-sm ">
+                            <MdPeopleAlt  className="size-5 text-[#C5703F]" />
+                            <span className="mr-1">No. of persons/session:</span>
+
+                            <span className="flex items-center gap-2 px-2 sm:px-4 py-1 bg-white border-[#D69A75] border rounded-full">
+                                <button
+                                    onClick={decrement}
+                                    className="px-1 sm:px-2 text-base sm:text-lg font-bold"
+                                    aria-label="Decrease persons"
+                                >
+                                    −
+                                </button>
+                                <span className="min-w-[20px] text-center">{persons}</span>
+                                <button
+                                    onClick={increment}
+                                    className="px-1 sm:px-2 text-base sm:text-lg font-bold"
+                                    aria-label="Increase persons"
+                                >
+                                    +
+                                </button>
+                            </span>
                         </div>
                     </div>
                     
@@ -285,6 +323,8 @@ export default function Retreatdescription() {
                 onClose={() => setShowBundlesPopup(false)}
                 retreatData={retreatData}
                 selectedOccupancy={selectedOccupancy}
+                persons={persons}
+                duration={retreatData?.pilgrimRetreatCard?.duration ?? 1}
             />
         </>
     );

@@ -11,18 +11,20 @@ const cartSlice = createSlice({
     reducers: {
         addToCart: (state, action) => {
             const incoming = action.payload;
-            const { id, persons = 1 } = incoming;
+            const { id, persons = 1, duration = 1 } = incoming;
 
             const existing = state.items.find((i) => i.id === id);
             if (existing) {
                 // 🔁 Merge: increase persons count only
                 existing.persons = (existing.persons || 1) + persons;
+                existing.duration = (existing.duration || 1) + duration;
                 // keep quantity as-is unless you want to change it explicitly
             } else {
                 state.items.push({
                     ...incoming,
                     persons: persons || 1,
                     quantity: incoming.quantity ?? 1, // keep quantity concept if you use it elsewhere
+                    duration: incoming.duration ?? 1,
                 });
             }
         },

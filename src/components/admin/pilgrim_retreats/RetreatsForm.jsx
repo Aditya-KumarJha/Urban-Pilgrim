@@ -80,7 +80,8 @@ export default function RetreatsForm() {
             price: "",
             category: "",
             categories: [],
-            description: ""
+            description: "",
+            duration: ""
         },
         monthlySubscription: {
             price: "",
@@ -596,10 +597,6 @@ export default function RetreatsForm() {
         console.log("item: ", items);
         // If you ever stored an array in data, grab the first element; otherwise use the object.
 
-        // Optional: log to verify the shape
-        console.log("Editing raw item:", item);
-        console.log("Form payload:", item?.data || {});
-
         setFormData(item?.data || {});          // <- put the real form data back into the form
         setEditingIndex(index + 1);
         window.scrollTo({ top: 0, behavior: "smooth" });
@@ -652,7 +649,8 @@ export default function RetreatsForm() {
                 price: "",
                 category: "", // Changed from categories array to single category string
                 categories: [], // Keep for backward compatibility if needed
-                description: ""
+                description: "",
+                duration: ""
             },
             monthlySubscription: {
                 price: "",
@@ -848,6 +846,16 @@ export default function RetreatsForm() {
                     value={formData?.pilgrimRetreatCard?.description}
                     rows={3}
                     onChange={(e) => handleFieldChange("pilgrimRetreatCard", "description", e.target.value)}
+                    className="text-sm w-full border p-3 rounded-lg mb-3"
+                />
+
+                {/* Duration */}
+                <h3 className="block text-md font-semibold text-gray-700 mb-2">Duration</h3>
+                <input
+                    type="text"
+                    placeholder="Enter Duration"
+                    value={formData?.pilgrimRetreatCard?.duration}
+                    onChange={(e) => handleFieldChange("pilgrimRetreatCard", "duration", e.target.value)}
                     className="text-sm w-full border p-3 rounded-lg mb-3"
                 />
 

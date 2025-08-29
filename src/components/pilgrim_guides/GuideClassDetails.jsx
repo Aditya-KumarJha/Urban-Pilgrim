@@ -666,7 +666,7 @@ export default function GuideClassDetails() {
             </div>
 
             {/* You may also like */}
-            <div className="max-w-7xl mx-auto p-6 bg-white rounded-2xl grid gap-6 px-4">
+            <div className="max-w-7xl mx-auto p-6 rounded-2xl grid gap-6 px-4">
                 <h2 className="text-3xl text-[#2F6288] font-bold mb-6">
                     You May Also Like
                 </h2>
