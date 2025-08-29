@@ -129,7 +129,7 @@ export default function RetreatList({ filters = {}, bestSellingActive = false })
     }, [retreats, filters, bestSellingActive]);
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-4 md:mt-0 mt-16">
             {filteredRetreats.length === 0 ? (
                 <div className="text-center py-12">
                     <p className="text-gray-500 text-lg">No retreats found matching your filters.</p>

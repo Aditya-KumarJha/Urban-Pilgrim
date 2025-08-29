@@ -41,10 +41,6 @@ export default function UpcomingEvents() {
                     <div className="flex justify-between items-center flex-wrap gap-4 my-8">
                         <FilterBar onFiltersChange={handleFiltersChange} />
                         <div className="flex items-center gap-2">
-                            <span className="text-sm">Sort By:</span>
-                            <button className="px-4 py-1 text-black border-2 border-[#00000033] rounded-full text-sm flex items-center gap-2">
-                                <img src="/assets/home/bookmark.svg" /> Most Recent <MdKeyboardArrowDown />
-                            </button>
                         </div>
                     </div>
                 </div>

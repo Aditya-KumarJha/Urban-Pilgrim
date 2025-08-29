@@ -128,7 +128,7 @@ export default function EventsList({ filters = {} }) {
     }
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-4 md:mt-0 mt-16">
             {filteredEvents.length === 0 ? (
                 <div className="text-center py-12">
                     <p className="text-gray-500 text-lg">No events found matching your filters.</p>

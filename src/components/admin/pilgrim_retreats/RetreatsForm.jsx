@@ -541,10 +541,6 @@ export default function RetreatsForm() {
             Object.values(item).map(inner => inner?.pilgrimRetreatCard?.image).filter(Boolean)
         );
 
-        console.log("Titles:", titles);
-        console.log("Images:", images);
-        // console.log("Form Array:", formArray[0][1]);
-
         for (let i = 0; i < titles.length; i++) {
             const newItem = {
                 id: Date.now() + Math.random(),
@@ -556,7 +552,6 @@ export default function RetreatsForm() {
                 data: formArray[0][i + 1]
             };
             setItems(prevItems => [...prevItems, newItem]);
-            console.log("newItem :", newItem);
         }
 
     };
