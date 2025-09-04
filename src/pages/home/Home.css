@@ -120,7 +120,8 @@
 }
 
 .c3img img {
-    height: 75vh;
+    height: 60vh;
+    width: 60vw;
     aspect-ratio: 16/9;
     object-fit: cover;
     object-position: center;
@@ -504,6 +505,14 @@
 
     .banner-text {
         padding: 1rem;
+    }
+}
+
+@media screen and (max-width: 1024px) {
+    .datacontainer {
+        display: flex;
+        flex-direction: column;
+        gap: 0px;
     }
 }
 

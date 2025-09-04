@@ -13,8 +13,6 @@ export default function BundlesPopup({ isOpen, onClose, retreatData, selectedOcc
     const [bundlesPerView, setBundlesPerView] = useState(3);
     const [expandedBundles, setExpandedBundles] = useState({});
     const dispatch = useDispatch();
-    console.log("persons", persons);
-    console.log("duration", duration);
 
     useEffect(() => {
         if (isOpen) {

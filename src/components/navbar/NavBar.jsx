@@ -80,7 +80,8 @@ const NavBar = () => {
         <nav className="navbar">
             <div className="navbar-brand">
                 <img
-                    className="logo"
+                    onClick={() => navigate("/")}
+                    className="logo cursor-pointer"
                     src="https://www.urbanpilgrim.in/cdn/shop/files/logo.jpg?v=1744941617&width=600"
                     alt="Urban Pilgrim"
                 />

@@ -12,7 +12,7 @@ function Highlights() {
                     viewport={{ once: true, amount: 0.1 }}
                 >
                     <div className="text-2xl md:text-3xl font-bold text-left text-black">
-                        <strong>Highlights</strong>
+                        <strong>Pilgrim says</strong>
                     </div>
                 </motion.div>
                 <motion.div

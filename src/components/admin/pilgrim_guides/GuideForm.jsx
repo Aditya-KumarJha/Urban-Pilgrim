@@ -91,12 +91,6 @@ export default function GuideForm() {
                 description: "",
                 slots: []
             },
-            quarterly: {
-                price: "",
-                discount: "",
-                description: "",
-                slots: []
-            },
             oneTime: {
                 price: "",
                 description: "",
@@ -105,12 +99,6 @@ export default function GuideForm() {
         },
         offline: {
             monthly: {
-                price: "",
-                discount: "",
-                description: "",
-                slots: []
-            },
-            quarterly: {
                 price: "",
                 discount: "",
                 description: "",
@@ -434,12 +422,6 @@ export default function GuideForm() {
                     description: slideToEdit?.online?.monthly?.description || "",
                     slots: slideToEdit?.online?.monthly?.slots || []
                 },
-                quarterly: {
-                    price: slideToEdit?.online?.quarterly?.price || "",
-                    discount: slideToEdit?.online?.quarterly?.discount || "",
-                    slots: slideToEdit?.online?.quarterly?.slots || [],
-                    description: slideToEdit?.online?.quarterly?.description || ""
-                },
                 oneTime: {
                     price: slideToEdit?.online?.oneTime?.price || "",
                     slots: slideToEdit?.online?.oneTime?.slots || [],
@@ -451,12 +433,6 @@ export default function GuideForm() {
                     discount: slideToEdit?.offline?.monthly?.discount || "",
                     slots: slideToEdit?.offline?.monthly?.slots || [],
                     description: slideToEdit?.offline?.monthly?.description || ""
-                },
-                quarterly: {
-                    price: slideToEdit?.offline?.quarterly?.price || "",
-                    discount: slideToEdit?.offline?.quarterly?.discount || "",
-                    slots: slideToEdit?.offline?.quarterly?.slots || [],
-                    description: slideToEdit?.offline?.quarterly?.description || ""
                 },
                 oneTime: {
                     price: slideToEdit?.offline?.oneTime?.price || "",
@@ -511,12 +487,6 @@ export default function GuideForm() {
                     description: "",
                     slots: [{ date: "", startTime: "", endTime: "" }]
                 },
-                quarterly: {
-                    price: "",  
-                    discount: "",
-                    description: "",
-                    slots: [{ date: "", startTime: "", endTime: "" }]
-                },
                 oneTime: {
                     price: "",
                     slots: [{ date: "", startTime: "", endTime: "" }]
@@ -527,12 +497,6 @@ export default function GuideForm() {
                     price: "",
                     discount: "",
                     description: "",    
-                    slots: [{ date: "", startTime: "", endTime: "" }]
-                },
-                quarterly: {
-                    price: "",
-                    discount: "",
-                    description: "",
                     slots: [{ date: "", startTime: "", endTime: "" }]
                 },
                 oneTime: {
@@ -598,13 +562,13 @@ export default function GuideForm() {
     // };
 
     // Monitor thumbnail changes
-    useEffect(() => {
-        if (formData?.guideCard?.thumbnail) {
-            console.log("Thumbnail updated in state: ", formData.guideCard.thumbnail);
-            console.log("Thumbnail type: ", formData.guideCard.thumbnailType);
-            console.log("Is video file: ", formData.guideCard.thumbnailType?.startsWith('video/'));
-        }
-    }, [formData?.guideCard?.thumbnail, formData?.guideCard?.thumbnailType]);
+    // useEffect(() => {
+    //     if (formData?.guideCard?.thumbnail) {
+    //         console.log("Thumbnail updated in state: ", formData.guideCard.thumbnail);
+    //         console.log("Thumbnail type: ", formData.guideCard.thumbnailType);
+    //         console.log("Is video file: ", formData.guideCard.thumbnailType?.startsWith('video/'));
+    //     }
+    // }, [formData?.guideCard?.thumbnail, formData?.guideCard?.thumbnailType]);
 
     useEffect(() => {
         const loadCards = async () => {
@@ -710,11 +674,6 @@ export default function GuideForm() {
                         discount: "",
                         slots: [{ date: "", startTime: "", endTime: "" }]
                     },
-                    quarterly: {
-                        price: "",
-                        discount: "",
-                        slots: [{ date: "", startTime: "", endTime: "" }]
-                    },
                     oneTime: {
                         price: "",
                         slots: [{ date: "", startTime: "", endTime: "" }]
@@ -722,11 +681,6 @@ export default function GuideForm() {
                 },
                 offline: {
                     monthly: {
-                        price: "",
-                        discount: "",
-                        slots: [{ date: "", startTime: "", endTime: "" }]
-                    },
-                    quarterly: {
                         price: "",
                         discount: "",
                         slots: [{ date: "", startTime: "", endTime: "" }]
@@ -999,6 +953,8 @@ export default function GuideForm() {
                             </button>
                         )}
                     </div>
+
+                    {/* image */}
                     <div className="mb-6">
                         <h3 className="block text-md font-semibold text-gray-700 mb-2">Add Thumbnail</h3>
                         <div
@@ -1064,7 +1020,7 @@ export default function GuideForm() {
                                 <div className="text-center text-sm text-gray-500 flex flex-col items-center">
                                     <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-12 h-12 mb-2" />
                                     <p>{dragActive ? "Drop here..." : "Click to upload or drag and drop"}</p>
-                                    <p className="text-gray-400">Size: (487×387)px</p>
+                                    <p className="text-gray-400">Size: (400×700)px</p>
                                 </div>
                             )}
                             <input
@@ -1441,224 +1397,6 @@ export default function GuideForm() {
                     </>
                 )}
 
-                {/* Quarterly Online Subscription */}
-                {formData?.guideCard?.subCategory && (formData?.guideCard?.subCategory === "Online" || formData?.guideCard?.subCategory === "Both") && (
-                    <div className="mb-8">
-                        <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
-                            {isEditing ? "Edit Quarterly Online Subscription" : "Quarterly Online Subscription"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
-                        </h2>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-md font-semibold text-gray-700 mb-2">Quarterly Online Subscription Price</label>
-                                <input
-                                    placeholder="Enter Price"
-                                    type="number"
-                                    value={formData?.online?.quarterly?.price}
-                                    onChange={(e) => handleFieldChange(null, "price", e.target.value, "online", "quarterly")}
-                                    className="text-sm w-full border border-gray-300 p-3 rounded-lg "
-                                />
-                                {errors?.quarterlyOnlinePrice && <p className="text-red-500 text-sm mt-1">{errors?.quarterlyOnlinePrice}</p>}
-                            </div>
-
-                            <div>
-                                <label className="block text-md font-semibold text-gray-700 mb-2">Quarterly Online Subscription Discount</label>
-                                <input
-                                    type="number"
-                                    placeholder="Enter Discount Percentage"
-                                    value={formData?.online?.quarterly?.discount}
-                                    onChange={(e) => handleFieldChange(null, "discount", e.target.value, "online", "quarterly")}
-                                    className="text-sm w-full border border-gray-300 p-3 rounded-lg "
-                                />
-                                {errors?.quarterlyOnlineDiscount && <p className="text-red-500 text-sm mt-1">{errors?.quarterlyOnlineDiscount}</p>}
-                            </div>
-
-                            <div>
-                                <label className="block text-md font-semibold text-gray-700 mb-2">Quarterly Online Subscription Description</label>
-                                <textarea
-                                    placeholder="Enter Description"
-                                    value={formData?.online?.quarterly?.description}
-                                    onChange={(e) => handleFieldChange(null, "description", e.target.value, "online", "quarterly")}
-                                    className="text-sm w-full border border-gray-300 p-3 rounded-lg  h-24 resize-none"
-                                />
-                            </div>
-
-                            {/* Quarterly Online Slots */}
-                            <div className="mt-6">
-                                <h3 className="text-lg font-semibold text-gray-700 mb-4">Quarterly Online Slots</h3>
-                                <div className="space-y-4">
-                                    {formData?.online?.quarterly?.slots?.length === 0 && initializeSlots("online", "quarterly")}
-                                    {formData?.online?.quarterly?.slots && formData?.online?.quarterly?.slots?.map((slot, i) => (
-                                        <div key={i} className="border border-gray-200 rounded-lg p-4 space-y-4 bg-blue-50">
-                                            <div className="flex justify-between items-center">
-                                                <p className="font-semibold text-gray-700">Online Slot {i + 1}</p>
-                                                {formData?.online?.quarterly?.slots?.length > 1 && (
-                                                    <button
-                                                        onClick={() => removeSlot("online", "quarterly", i)}
-                                                        className="text-red-500 hover:text-red-700 p-1"
-                                                        title="Remove Slot"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
-                                                )}
-                                            </div>
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                                                    <input
-                                                        type="date"
-                                                        value={slot.date}
-                                                        onChange={(e) => handleSlotChange("online", "quarterly", i, "date", e.target.value)}
-                                                        className="text-sm w-full border border-gray-300 p-2 rounded-lg"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
-                                                    <input
-                                                        type="time"
-                                                        value={slot.startTime}
-                                                        onChange={(e) => handleSlotChange("online", "quarterly", i, "startTime", e.target.value)}
-                                                        className="text-sm w-full border border-gray-300 p-2 rounded-lg"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
-                                                    <input
-                                                        type="time"
-                                                        value={slot.endTime}
-                                                        onChange={(e) => handleSlotChange("online", "quarterly", i, "endTime", e.target.value)}
-                                                        className="text-sm w-full border border-gray-300 p-2 rounded-lg"
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    <button
-                                        onClick={() => addSlot("online", "quarterly")}
-                                        className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-[#2F6288] hover:text-[#2F6288] transition-colors flex items-center justify-center gap-2"
-                                    >
-                                        <Plus className="w-4 h-4" />
-                                        Add Online Slot
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Quarterly Offline Subscription */}
-                {formData.guideCard.subCategory && (formData.guideCard.subCategory === "Offline" || formData.guideCard.subCategory === "Both") && (
-                    <div className="mb-8">
-                        <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
-                            {isEditing ? "Edit Quarterly Offline Subscription" : "Quarterly Offline Subscription"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
-                        </h2>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-md font-semibold text-gray-700 mb-2">Quarterly Offline Subscription Price</label>
-                                <input
-                                    placeholder="Enter Price"
-                                    type="number"
-                                    value={formData.offline.quarterly.price}
-                                    onChange={(e) => handleFieldChange(null, "price", e.target.value, "offline", "quarterly")}
-                                    className="text-sm w-full border border-gray-300 p-3 rounded-lg "
-                                />
-                                {errors.quarterlyOfflinePrice && <p className="text-red-500 text-sm mt-1">{errors.quarterlyOfflinePrice}</p>}
-                            </div>
-
-                            <div>
-                                <label className="block text-md font-semibold text-gray-700 mb-2">Quarterly Offline Subscription Discount</label>
-                                <input
-                                    type="number"
-                                    placeholder="Enter Discount Percentage"
-                                    value={formData.offline.quarterly.discount}
-                                    onChange={(e) => handleFieldChange(null, "discount", e.target.value, "offline", "quarterly")}
-                                    className="text-sm w-full border border-gray-300 p-3 rounded-lg "
-                                />
-                                {errors.quarterlyOfflineDiscount && <p className="text-red-500 text-sm mt-1">{errors.quarterlyOfflineDiscount}</p>}
-                            </div>
-
-                            <div>
-                                <label className="block text-md font-semibold text-gray-700 mb-2">Quarterly Offline Subscription Description</label>
-                                <textarea
-                                    placeholder="Enter Description"
-                                    value={formData.offline.quarterly.description}
-                                    onChange={(e) => handleFieldChange(null, "description", e.target.value, "offline", "quarterly")}
-                                    className="text-sm w-full border border-gray-300 p-3 rounded-lg  h-24 resize-none"
-                                />
-                            </div>
-
-                            {/* Quarterly Offline Slots */}
-                            <div className="mt-6">
-                                <h3 className="text-lg font-semibold text-gray-700 mb-4">Quarterly Offline Slots</h3>
-                                <div className="space-y-4">
-                                    {formData.offline.quarterly.slots.length === 0 && initializeSlots("offline", "quarterly")}
-                                    {formData.offline.quarterly.slots.map((slot, i) => (
-                                        <div key={i} className="border border-gray-200 rounded-lg p-4 space-y-4 bg-green-50">
-                                            <div className="flex justify-between items-center">
-                                                <p className="font-semibold text-gray-700">Offline Slot {i + 1}</p>
-                                                {formData.offline.quarterly.slots.length > 1 && (
-                                                    <button
-                                                        onClick={() => removeSlot("offline", "quarterly", i)}
-                                                        className="text-red-500 hover:text-red-700 p-1"
-                                                        title="Remove Slot"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
-                                                )}
-                                            </div>
-                                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                                                    <input
-                                                        type="date"
-                                                        value={slot.date}
-                                                        onChange={(e) => handleSlotChange("offline", "quarterly", i, "date", e.target.value)}
-                                                        className="text-sm w-full border border-gray-300 p-2 rounded-lg"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
-                                                    <input
-                                                        type="time"
-                                                        value={slot.startTime}
-                                                        onChange={(e) => handleSlotChange("offline", "quarterly", i, "startTime", e.target.value)}
-                                                        className="text-sm w-full border border-gray-300 p-2 rounded-lg"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
-                                                    <input
-                                                        type="time"
-                                                        value={slot.endTime}
-                                                        onChange={(e) => handleSlotChange("offline", "quarterly", i, "endTime", e.target.value)}
-                                                        className="text-sm w-full border border-gray-300 p-2 rounded-lg"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                                                    <input
-                                                        type="text"
-                                                        placeholder="Enter location"
-                                                        value={slot.location}
-                                                        onChange={(e) => handleSlotChange("offline", "quarterly", i, "location", e.target.value)}
-                                                        className="text-sm w-full border border-gray-300 p-2 rounded-lg"
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    <button
-                                        onClick={addOfflineSlot}
-                                        className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-[#2F6288] hover:text-[#2F6288] transition-colors flex items-center justify-center gap-2"
-                                    >
-                                        <Plus className="w-4 h-4" />
-                                        Add Offline Slot
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
                 {/* One-Time Online Purchase */}
                 {formData?.guideCard?.subCategory && (formData?.guideCard?.subCategory === "Online" || formData?.guideCard?.subCategory === "Both") && (
                     <div className="mb-8">
@@ -1920,7 +1658,7 @@ export default function GuideForm() {
                         {formData?.session?.images && formData?.session?.images?.length < 11 && (
                             <label className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50">
                                 <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-10 h-10 mb-2" />
-                                <span>Click to upload image<br />Size: (610 X 515)px</span>
+                                <span>Click to upload image</span>
                                 <input
                                     type="file"
                                     accept="image/*"

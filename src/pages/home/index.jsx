@@ -291,6 +291,43 @@ function Home() {
                     </motion.div>
                 </div>
             </div>
+            
+            {/* Find your Guides */}
+            <div className="content6">
+                <div className="meditateimg ">
+                    <img src="/assets/meditationimg.png" alt="error" />
+                </div>
+                
+                <div className="c6container">
+                    <div className="imgover-content">
+                        {/* Heading */}
+                        <motion.div className="c6top" initial={{ x: -200, opacity: 0 }} whileInView={{ x: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} viewport={{ once: true, amount: 0.05 }}>
+                            <div className="text-2xl md:text-3xl font-bold text-left text-black"><strong>{guides?.title}</strong></div>
+                            <div className="c6description" style={{ color: "#4F4F4F" }}>
+                                {guides?.description
+                                    ?.split(" ")
+                                    .slice(0, 10)
+                                    .join(" ")}...
+                            
+                            </div>
+                        </motion.div>
+
+                        {/* Card */}
+                        <ViewAll link="/pilgrim_guides" />
+                        <div className="c6bottom lg:!gap-10 lg:!overflow-visible overflow-hidden">
+                            {
+                                
+                                guideArray &&
+                                guideArray.map((guide, index) => (
+                                    <motion.div key={index} initial={{ y: 100, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} viewport={{ once: true, amount: 0.1 }}>
+                                        <PersondetailsCard type="guide" image={guide?.guideCard?.thumbnail} title={guide?.guideCard?.title} price={guide?.guideCard?.price} />
+                                    </motion.div>
+                                ))
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             {/* Book your Pilgrim Experience/Retreat */}
             <div className="content5">
@@ -349,43 +386,6 @@ function Home() {
                             ))
                         }
                     </motion.div>
-                </div>
-            </div>
-
-            {/* Find your Guides */}
-            <div className="content6">
-                <div className="meditateimg ">
-                    <img src="/assets/meditationimg.png" alt="error" />
-                </div>
-                
-                <div className="c6container">
-                    <div className="imgover-content">
-                        {/* Heading */}
-                        <motion.div className="c6top" initial={{ x: -200, opacity: 0 }} whileInView={{ x: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} viewport={{ once: true, amount: 0.05 }}>
-                            <div className="text-2xl md:text-3xl font-bold text-left text-black"><strong>{guides?.title}</strong></div>
-                            <div className="c6description" style={{ color: "#4F4F4F" }}>
-                                {guides?.description
-                                    ?.split(" ")
-                                    .slice(0, 10)
-                                    .join(" ")}...
-                            
-                            </div>
-                        </motion.div>
-
-                        {/* Card */}
-                        <ViewAll link="/pilgrim_guides" />
-                        <div className="c6bottom lg:!gap-10 lg:!overflow-visible overflow-hidden">
-                            {
-                                
-                                guideArray &&
-                                guideArray.map((guide, index) => (
-                                    <motion.div key={index} initial={{ y: 100, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} viewport={{ once: true, amount: 0.1 }}>
-                                        <PersondetailsCard type="guide" image={guide?.guideCard?.thumbnail} title={guide?.guideCard?.title} price={guide?.guideCard?.price} />
-                                    </motion.div>
-                                ))
-                            }
-                        </div>
-                    </div>
                 </div>
             </div>
 

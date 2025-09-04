@@ -4,7 +4,6 @@
     box-sizing: border-box;
     display: grid;
     grid-template-columns: 1fr 1fr;
-    justify-content: center;
     align-items: start;
     z-index: 0;
 }
@@ -22,20 +21,9 @@
     overflow: hidden;
 }
 
-.overlap-container img {
-    height: auto;
-    width: 100%;
-    max-width: 400px;
-    display: block;
-    margin: 0 auto;
-    border-radius: 18px;
-    flex-shrink: 0;
-    object-fit: cover;
-    object-position: center;
-}
 .textbox1 {
     max-width: 100%;
-    width: 400px;
+    width: 700px;
     height: auto;
     font-size: 30px;
     font-weight: 700;
@@ -48,7 +36,7 @@
 
 .overlaypara {
     width: 100%;
-    max-width: 400px;
+    max-width: 700px;
     height: auto;
     font-size: 18px;
     font-weight: 500;
@@ -144,4 +132,39 @@
     .overlaypara {
         font-size: 16px;
     }
+
+    .divheading {
+        font-size: 30px;
+        margin-top: 30px;
+        height: 25px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        left: 0;
+        width: auto;
+        z-index: 0;
+        color: #c4b0ae;
+        white-space: nowrap;
+    }
 }
+
+.scroll-container {
+    display: flex;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  
+  .scroll-container span {
+    display: inline-block;
+    padding-right: 2rem; /* spacing between repetitions */
+    animation: scroll 10s linear infinite;
+  }
+  
+  @keyframes scroll {
+    from {
+      transform: translateX(0%);
+    }
+    to {
+      transform: translateX(-100%);
+    }
+  }

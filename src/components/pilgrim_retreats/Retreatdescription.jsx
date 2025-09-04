@@ -145,14 +145,7 @@ export default function Retreatdescription() {
                         {/* location */}
                         <div className="flex items-center gap-2">
                             <FaMapMarkerAlt className="text-[#C5703F]" />
-                            <span className="flex gap-6 text-sm">{retreatData?.pilgrimRetreatCard?.location || "Location"}<span className="flex items-center text-sm text-gray-500">
-                                <span className="flex justify-center items-center bg-green-500 rounded-full h-4 w-4 mr-1">
-                                    <TiTick className="text-white text-xs" />
-                                </span>
-                                Available
-                            </span>
-                            </span>
-
+                            <span className="flex gap-6 text-sm">{retreatData?.pilgrimRetreatCard?.location || "Location"}</span>
                         </div>
                         
                         {/* date */}
@@ -214,7 +207,7 @@ export default function Retreatdescription() {
                         {/* No. of persons/session */}
                         <div className="flex flex-wrap items-center gap-2 text-sm ">
                             <MdPeopleAlt  className="size-5 text-[#C5703F]" />
-                            <span className="mr-1">No. of persons/session:</span>
+                            <span className="mr-1">No. of persons:</span>
 
                             <span className="flex items-center gap-2 px-2 sm:px-4 py-1 bg-white border-[#D69A75] border rounded-full">
                                 <button
