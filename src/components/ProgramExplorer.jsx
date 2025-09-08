@@ -39,34 +39,21 @@ export default function ProgramExplorer() {
 
     const scrollToCard = (index) => {
         setActiveIndex(index);
-        if (sliderRef.current) {
-            const isMobile = window.innerWidth < 640;
-            const cardWidth = isMobile ? 140 : 280;
-            const gap = isMobile ? 16 : 24;
-            const containerPadding = 8;
-            const scrollPosition = (index * (cardWidth + gap)) - containerPadding;
-            
-            sliderRef.current.scrollTo({
-                left: Math.max(0, scrollPosition),
-                behavior: "smooth",
-            });
-        }
+        const cardWidth = 296;
+        sliderRef.current.scrollTo({
+            left: index * cardWidth,
+            behavior: "smooth",
+        });
     };
 
     const nextSlide = () => {
-        if (sliderRef.current && activeIndex < totalSteps - 1) {
-            const newIndex = activeIndex + 1;
-            setActiveIndex(newIndex);
-            scrollToCard(newIndex);
-        }
+        const newIndex = (activeIndex + 1) % totalSteps;
+        scrollToCard(newIndex);
     };
 
     const prevSlide = () => {
-        if (sliderRef.current && activeIndex > 0) {
-            const newIndex = activeIndex - 1;
-            setActiveIndex(newIndex);
-            scrollToCard(newIndex);
-        }
+        const newIndex = (activeIndex - 1 + totalSteps) % totalSteps;
+        scrollToCard(newIndex);
     };
 
     // console.log("programItems: ", programItems);
@@ -80,17 +67,17 @@ export default function ProgramExplorer() {
             viewport={{ once: true }}
         >
             {/* Left Panel */}
-            <div className="relative p-8 flex flex-col justify-center md:items-center bg-white overflow-hidden w-full h-full ">
+            <div className="relative p-8 flex flex-col justify-center items-center bg-white overflow-hidden w-full h-full ">
                 <motion.img
                     src="/assets/golden-mandala.svg"
                     alt="Mandala"
-                    className="absolute top-1/2 md:left-1/2 left-[37%] md:w-[400px] w-[300px] max-w-[80%] -translate-x-1/2 -translate-y-1/2"
+                    className="absolute top-1/2 left-1/2 w-[400px] max-w-[85%] -translate-x-1/2 -translate-y-1/2"
                     animate={{ rotate: 360 }}
                     transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
                 />
 
                 <div className="z-10 space-y-6 w-full max-w-md">
-                    <h2 className="text-xl sm:text-3xl font-bold md:text-center text-black">
+                    <h2 className="text-2xl md:text-3xl font-bold text-center text-black">
                         {programItems?.title}
                     </h2>
 
@@ -128,26 +115,25 @@ export default function ProgramExplorer() {
             </div>
 
             {/* Right Slider */}
-            <div className="flex flex-col gap-3 bg-[#f9f3ef] items-center justify-center px-4 sm:px-6 py-8 w-full h-full">
+            <div className="flex flex-col gap-3 bg-[#f9f3ef] items-center justify-center px-6 py-8 overflow-hidden w-full h-full">
                 <div
                     ref={sliderRef}
-                    className="flex gap-3 sm:gap-6 bg-none rounded-xl p-2 overflow-x-scroll no-scrollbar scroll-smooth items-center w-full"
-                    style={{ scrollBehavior: "smooth", overflowY: "hidden", WebkitOverflowScrolling: "touch" }}
+                    className="flex gap-6 bg-none rounded-xl p-2 overflow-x-auto no-scrollbar scroll-smooth items-center"
+                    style={{ scrollBehavior: "smooth" }}
                 >
                     {programItems?.programs && programItems?.programs.map((item, i) => (
-                        <div key={i} className="">
-                            <ProgramCard
-                                image={item?.image}
-                                card_title={item?.title}
-                            />
-                        </div>
+                        <ProgramCard
+                            key={i}
+                            image={item?.image}
+                            card_title={item?.title}
+                        />
                     ))}
                 </div>
 
                 {/* Arrows + Progress */}
-                <div className="flex gap-2 sm:gap-3 items-center justify-center sm:justify-end w-full px-2">
+                <div className="flex gap-3 items-center justify-end w-full ">
                     <ArrowButton onClick={prevSlide} icon={FaChevronLeft} dir={1} />
-                    <div className="relative h-1 w-32 sm:w-80 bg-[#744C44]/30 rounded overflow-hidden">
+                    <div className="relative h-1 md:w-80 w-full bg-[#744C44]/30 rounded overflow-hidden">
                         <div
                             className="absolute top-0 h-1 bg-[#744C44] transition-all duration-300"
                             style={{

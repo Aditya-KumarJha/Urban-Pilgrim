@@ -78,6 +78,7 @@ export default function Guides() {
                 ogImage="/retreats.svg"
             />
             <div className="min-h-screen bg-gradient-to-b from-[#FAF4F0] to-white mt-[100px]">
+                
                 <div className="relative w-full mb-10">
                     <img
                         src="/retreats.svg"
@@ -87,7 +88,7 @@ export default function Guides() {
                     <div className="relative z-10 px-6 py-10 text-center">
                         <h1 className="text-4xl font-bold mb-4">Pilgrim Guides</h1>
                         <p>Find the teacher who resonates with your path</p>
-                        <WhyChooseUs />
+                        
                         <div className="flex justify-between items-center flex-wrap gap-4 my-8">
                             <FilterBar onFiltersChange={handleFiltersChange} />
                             <div className="flex items-center gap-2 relative" ref={dropdownRef}>
@@ -158,6 +159,9 @@ export default function Guides() {
                     </div>
                 </div>
                 <GuidesDemo filters={filters} bestSellingActive={bestSellingActive} />
+
+                <WhyChooseUs />
+
             </div>
             <Testimonials />
         </>

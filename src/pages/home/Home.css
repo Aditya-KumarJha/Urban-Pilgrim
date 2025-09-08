@@ -478,20 +478,6 @@
         min-height: 80vh;
     }
 
-    .c4container,
-    .c5container,
-    .c7container {
-        width: 100%;
-        max-width: 1200px;
-        margin: 0 auto;
-        padding-top: 40px;
-        padding-left: 20px;
-        padding-right: 20px;
-        padding-bottom: 0px;
-        box-sizing: border-box;
-        overflow: visible;
-    }
-
     .c4bottom,
     .c7bottom {
         display: grid;
@@ -528,30 +514,9 @@
         flex-direction: column;
         gap: 0px;
     }
-    .meditateimg img {
-        height: auto;
-        min-height: 600px;
-        object-fit: cover;
-        object-position: center;
-        position: relative;
-        left: 0;
-        transform: none;
-    }
 }
 
-@media screen and (max-width: 768px) {
-    .meditateimg img {
-        height: auto;
-        min-height: 600px;
-        object-fit: cover;
-        object-position: center;
-        position: relative;
-        left: 0;
-        transform: none;
-    }
-}
-
-@media screen and (max-width: 640px) {
+@media screen and (max-width: 480px) {
     .topbannerimg img {
         height: 100vh;
         aspect-ratio: 16/9;
@@ -581,7 +546,7 @@
 
     .meditateimg img {
         height: auto;
-        min-height: 400px;
+        min-height: 600px;
         object-fit: cover;
         object-position: center;
         position: relative;

@@ -58,13 +58,6 @@
     display: flex;
     align-items: center;
     justify-content: start;
-    pointer-events: auto;
-    cursor: pointer;
-    z-index: 10;
-    position: relative;
-    min-height: 44px;
-    min-width: 44px;
-    padding: 8px;
 }
 
 /* Responsive tweaks */
@@ -73,22 +66,9 @@
         max-width: 100%;
     }
     .card_datacontainer {
-        padding: 12px;
-        pointer-events: auto;
+        padding: 14px;
     }
     .card_title {
-        font-size: 12px;
-        font-weight: 500;
-        line-height: 1.2;
-        max-width: 100px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-    .card_arrow {
-        min-height: 32px;
-        min-width: 32px;
-        padding: 6px;
-        touch-action: manipulation;
+        font-size: 16px;
     }
 }
