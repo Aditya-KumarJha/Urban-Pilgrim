@@ -629,10 +629,10 @@ export default function RecordedSession2() {
     }, [uid]);
 
     const onSaveRecorded = async () => {
-        if (!validateFields()) {
-            alert("Fix validation errors");
-            return;
-        }
+        // if (!validateFields()) {
+        //     alert("Fix validation errors");
+        //     return;
+        // }
 
         const newCard = {
             recordedProgramCard: { ...formData.recordedProgramCard },

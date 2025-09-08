@@ -376,7 +376,7 @@ exports.createOrder = functions.https.onCall(async (data, context) => {
 
 exports.confirmPayment = functions.https.onCall(async (data, context) => {
     try {
-        const { userId, email, name, cartData, total, paymentResponse, formData, } = data.data;
+        const { userId, email, name, cartData, total, paymentResponse, formData, coupon } = data.data;
 
         const adminEmail = "urbanpilgrim25@gmail.com";
 
@@ -421,6 +421,37 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
         });
         
         await batch.commit();
+
+        // ------------------------
+        // 1.5) Update coupon usage if coupon was applied
+        // ------------------------
+        if (coupon && coupon.code) {
+            try {
+                const couponsRef = db.collection('coupons');
+                const couponQuery = await couponsRef.where('code', '==', coupon.code).get();
+                
+                if (!couponQuery.empty) {
+                    const couponDoc = couponQuery.docs[0];
+                    const currentUsedCount = couponDoc.data().usedCount || 0;
+                    
+                    await couponDoc.ref.update({
+                        usedCount: currentUsedCount + 1,
+                        lastUsedAt: new Date(),
+                        lastUsedBy: {
+                            userId,
+                            email,
+                            name,
+                            paymentId: paymentResponse.razorpay_payment_id
+                        }
+                    });
+                    
+                    console.log(`Updated coupon ${coupon.code} usage count to ${currentUsedCount + 1}`);
+                }
+            } catch (couponError) {
+                console.error('Error updating coupon usage:', couponError);
+                // Don't fail the entire payment for coupon update errors
+            }
+        }
 
         // ------------------------
         // 2) Update each program document

@@ -17,6 +17,7 @@ import UpComing from "../../components/upcoming_events/UpComing.jsx";
 import ViewAll from "../../components/ui/button/ViewAll.jsx";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../services/firebase.js";
+import { ChevronDown } from "lucide-react";
 
 function Home() {
     // const wrapperRef = useRef(null);
@@ -26,6 +27,15 @@ function Home() {
     const [Experience, setExperience] = useState(null);
     const [sessions, setSessions] = useState(null);
     const [guides, setGuides] = useState(null);
+    const [selectedGuideCategory, setSelectedGuideCategory] = useState('all');
+    const [showGuideCategoryDropdown, setShowGuideCategoryDropdown] = useState(false);
+    const [guideCategories, setGuideCategories] = useState(['all']);
+    const [selectedRetreatCategory, setSelectedRetreatCategory] = useState('all');
+    const [showRetreatCategoryDropdown, setShowRetreatCategoryDropdown] = useState(false);
+    const [retreatCategories, setRetreatCategories] = useState(['all']);
+    const [selectedSessionCategory, setSelectedSessionCategory] = useState('all');
+    const [showSessionCategoryDropdown, setShowSessionCategoryDropdown] = useState(false);
+    const [sessionCategories, setSessionCategories] = useState(['all']);
 
     const cardContainerRef = useRef(null);
     const [progress, setProgress] = useState(0);
@@ -94,6 +104,10 @@ function Home() {
                         }));
 
                     setExperienceData(retreatsData || null);
+                    
+                    // Extract unique categories for retreat filter
+                    const categories = ['all', ...new Set(retreatsData.map(retreat => retreat?.pilgrimRetreatCard?.category).filter(Boolean))];
+                    setRetreatCategories(categories);
                 } else {
                     console.log("No slides found in Firestore");
                 }
@@ -154,6 +168,13 @@ function Home() {
                 } else {
                     console.log("No recorded session slides found in Firestore");
                 }
+
+                // Extract unique categories for session filter
+                const liveCategories = liveSnapshot.exists() ? Object.values(liveSnapshot.data().slides).map(session => session?.liveSessionCard?.category).filter(Boolean) : [];
+                const recordedCategories = recordedSnapshot.exists() ? Object.values(recordedSnapshot.data().slides).map(session => session?.recordedProgramCard?.category).filter(Boolean) : [];
+                const allSessionCategories = [...liveCategories, ...recordedCategories];
+                const categories = ['all', ...new Set(allSessionCategories)];
+                setSessionCategories(categories);
             } catch (error) {
                 console.error("Error fetching session data from Firestore:", error);
             }
@@ -194,6 +215,10 @@ function Home() {
                     const data = snapshot.data();
                     const actual = Object.values(data.slides);
                     setGuideData(actual || []);
+                    
+                    // Extract unique categories for filter
+                    const categories = ['all', ...new Set(actual.map(guide => guide?.guideCard?.category).filter(Boolean))];
+                    setGuideCategories(categories);
                 } else {
                     console.log("No slides found in Firestore");
                 }
@@ -205,7 +230,34 @@ function Home() {
         fetchData();
     }, []);
 
-    const guideArray = guideData ? Object.values(guideData) : [];
+    // Filter guides based on selected category
+    const filteredGuides = guideData ? Object.values(guideData).filter(guide => {
+        if (selectedGuideCategory === 'all') return true;
+        return guide?.guideCard?.category === selectedGuideCategory;
+    }) : [];
+    
+    const guideArray = filteredGuides;
+
+    // Filter retreats based on selected category
+    const filteredRetreats = experienceData ? experienceData.filter(retreat => {
+        if (selectedRetreatCategory === 'all') return true;
+        return retreat?.pilgrimRetreatCard?.category === selectedRetreatCategory;
+    }) : [];
+    
+    const retreatArray = filteredRetreats;
+
+    // Filter sessions based on selected category
+    const filteredLiveSessions = sessionData ? sessionData.filter(session => {
+        if (selectedSessionCategory === 'all') return true;
+        return session?.liveSessionCard?.category === selectedSessionCategory;
+    }) : [];
+
+    const filteredRecordedSessions = recordedSessionData ? recordedSessionData.filter(session => {
+        if (selectedSessionCategory === 'all') return true;
+        return session?.recordedProgramCard?.category === selectedSessionCategory;
+    }) : [];
+
+    const sessionArray = [...filteredLiveSessions, ...filteredRecordedSessions];
 
     // const handleCardScroll = (dir) => {
     //     if (cardContainerRef.current) {
@@ -272,7 +324,7 @@ function Home() {
                 <div className="div">
                     <Program_Explorer />
                 </div>
-            </div>
+            </div>  
 
             {/* content */}
             <div className="content3">
@@ -312,8 +364,54 @@ function Home() {
                             </div>
                         </motion.div>
 
-                        {/* Card */}
-                        <ViewAll link="/pilgrim_guides" />
+                        {/* Filter and View All */}
+                        <div className="flex justify-end gap-2 items-center flex-wrap mb-4">
+                            <div className="flex gap-2 items-center flex-wrap">
+                                {/* Category Filter Dropdown */}
+                                <div className="relative group">
+                                    <button
+                                        onClick={() => setShowGuideCategoryDropdown(!showGuideCategoryDropdown)}
+                                        className="flex items-center gap-2 text-xs md:text-sm
+                                            bg-gradient-to-b from-[#C5703F] to-[#C16A00] 
+                                            bg-clip-text text-transparent 
+                                            border-2 border-[#C5703F] rounded-full 
+                                            py-1 md:py-2 px-4 md:px-6 cursor-pointer 
+                                            transition-all duration-300 
+                                            group-hover:text-white hover:bg-gradient-to-b hover:from-[#C5703F] hover:to-[#C16A00] hover:bg-clip-border hover:border-white"
+                                    >
+                                        <span className="capitalize">
+                                            {selectedGuideCategory === 'all' ? 'Categories' : selectedGuideCategory}
+                                        </span>
+                                        <ChevronDown className={`w-3 h-3 text-[#C16A00] group-hover:text-white transition-transform duration-200 ${showGuideCategoryDropdown ? 'rotate-180' : ''}`} />
+                                    </button>
+                                    
+                                    {/* Dropdown Menu */}
+                                    {showGuideCategoryDropdown && (
+                                        <div className="absolute top-full left-0 mt-1 w-full min-w-[150px] bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                                            {guideCategories.map((category) => (
+                                                <button
+                                                    key={category}
+                                                    onClick={() => {
+                                                        setSelectedGuideCategory(category);
+                                                        setShowGuideCategoryDropdown(false);
+                                                    }}
+                                                    className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 first:rounded-t-lg last:rounded-b-lg capitalize
+                                                        ${selectedGuideCategory === category ? 'bg-[#C5703F] text-white font-medium' : 'text-gray-700'}`}
+                                                >
+                                                    {category === 'all' ? 'All Categories' : category}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                                
+                                {/* View all */}
+                                <div>
+                                    <ViewAll link="/pilgrim_guides" />
+                                </div>
+                            </div>
+                        </div>
+
                         <div className="c6bottom lg:!gap-10 lg:!overflow-visible overflow-hidden">
                             {
                                 
@@ -343,7 +441,54 @@ function Home() {
                         </div>
                     </motion.div>
 
-                    <ViewAll link="/pilgrim_retreats" />
+                    {/* Filter and View All */}
+                    <div className="flex justify-end gap-2 items-center flex-wrap mb-4">
+                        <div className="flex gap-2 items-center flex-wrap">
+                            {/* Category Filter Dropdown */}
+                            <div className="relative group">
+                                <button
+                                    onClick={() => setShowRetreatCategoryDropdown(!showRetreatCategoryDropdown)}
+                                    className="flex items-center gap-2 text-xs md:text-sm
+                                        bg-gradient-to-b from-[#C5703F] to-[#C16A00] 
+                                        bg-clip-text text-transparent 
+                                        border-2 border-[#C5703F] rounded-full 
+                                        py-1 md:py-2 px-4 md:px-6 cursor-pointer 
+                                        transition-all duration-300 
+                                        group-hover:text-white hover:bg-gradient-to-b hover:from-[#C5703F] hover:to-[#C16A00] hover:bg-clip-border hover:border-white"
+                                >
+                                    <span className="capitalize">
+                                        {selectedRetreatCategory === 'all' ? 'Categories' : selectedRetreatCategory}
+                                    </span>
+                                    <ChevronDown className={`w-3 h-3 text-[#C16A00] group-hover:text-white transition-transform duration-200 ${showRetreatCategoryDropdown ? 'rotate-180' : ''}`} />
+                                </button>
+                                
+                                {/* Dropdown Menu */}
+                                {showRetreatCategoryDropdown && (
+                                    <div className="absolute top-full left-0 mt-1 w-full min-w-[150px] bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                                        {retreatCategories.map((category) => (
+                                            <button
+                                                key={category}
+                                                onClick={() => {
+                                                    setSelectedRetreatCategory(category);
+                                                    setShowRetreatCategoryDropdown(false);
+                                                }}
+                                                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 first:rounded-t-lg last:rounded-b-lg capitalize
+                                                    ${selectedRetreatCategory === category ? 'bg-[#C5703F] text-white font-medium' : 'text-gray-700'}`}
+                                            >
+                                                {category === 'all' ? 'All Categories' : category}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* View all */}
+                            <div>
+                                <ViewAll link="/pilgrim_retreats" />
+                            </div>
+                        </div>
+
+                    </div>
 
                     {/* Card */}
                     <motion.div className="c5bottom lg:!overflow-visible" initial={{ y: 100, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} viewport={{ once: true, amount: 0.1 }}>
@@ -356,7 +501,7 @@ function Home() {
                 </div>
             </div>
 
-            {/* Find your Pilgrim Session */}
+            {/* Find your Pilgrim Wellness Program */}
             <div className="content5 ">
                 <div className="c5container">
                     {/* Heading */}
@@ -370,19 +515,63 @@ function Home() {
                         </div>
                     </motion.div>
 
+                    {/* Filter and View All */}
+                    <div className="flex justify-end gap-2 items-center flex-wrap mb-4">
+                        {/* Category Filter Dropdown */}
+                        <div className="relative group">
+                            <button
+                                onClick={() => setShowSessionCategoryDropdown(!showSessionCategoryDropdown)}
+                                className="flex items-center gap-2 text-xs md:text-sm
+                                    bg-gradient-to-b from-[#C5703F] to-[#C16A00] 
+                                    bg-clip-text text-transparent 
+                                    border-2 border-[#C5703F] rounded-full 
+                                    py-1 md:py-2 px-4 md:px-6 cursor-pointer 
+                                    transition-all duration-300 
+                                    group-hover:text-white hover:bg-gradient-to-b hover:from-[#C5703F] hover:to-[#C16A00] hover:bg-clip-border hover:border-white"
+                            >
+                                <span className="capitalize">
+                                    {selectedSessionCategory === 'all' ? 'Categories' : selectedSessionCategory}
+                                </span>
+                                <ChevronDown className={`w-3 h-3 text-[#C16A00] group-hover:text-white transition-transform duration-200 ${showSessionCategoryDropdown ? 'rotate-180' : ''}`} />
+                            </button>
+                            
+                            {/* Dropdown Menu */}
+                            {showSessionCategoryDropdown && (
+                                <div className="absolute top-full left-0 mt-1 w-full min-w-[150px] bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                                    {sessionCategories.map((category) => (
+                                        <button
+                                            key={category}
+                                            onClick={() => {
+                                                setSelectedSessionCategory(category);
+                                                setShowSessionCategoryDropdown(false);
+                                            }}
+                                            className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 first:rounded-t-lg last:rounded-b-lg capitalize
+                                                ${selectedSessionCategory === category ? 'bg-[#C5703F] text-white font-medium' : 'text-gray-700'}`}
+                                        >
+                                            {category === 'all' ? 'All Categories' : category}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                        
+                        <div>
+                            <ViewAll link="/pilgrim_sessions" />
+                        </div>
+                    </div>
+
                     {/* Card */}
-                    <ViewAll link="/pilgrim_sessions" />
                     <motion.div className="c5bottom lg:!overflow-visible" initial={{ y: 100, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} viewport={{ once: true, amount: 0.1 }}>
                         {
-                            sessionData && sessionData.length > 0 &&
-                            sessionData.map((session, index) => (
-                                <PersondetailsCard type="live-session" key={index} image={session?.liveSessionCard?.thumbnail} title={session?.liveSessionCard?.title} price={session?.liveSessionCard?.price} />
+                            filteredLiveSessions && filteredLiveSessions.length > 0 &&
+                            filteredLiveSessions.map((session, index) => (
+                                <PersondetailsCard type="live-session" key={`live-${index}`} image={session?.liveSessionCard?.thumbnail} title={session?.liveSessionCard?.title} price={session?.liveSessionCard?.price} />
                             ))
                         }
                         {
-                            recordedSessionData && recordedSessionData.length > 0 &&
-                            recordedSessionData.map((session, index) => (
-                                <PersondetailsCard type="recorded-session" key={index} image={session?.recordedProgramCard?.thumbnail} title={session?.recordedProgramCard?.title} price={session?.recordedProgramCard?.price} />
+                            filteredRecordedSessions && filteredRecordedSessions.length > 0 &&
+                            filteredRecordedSessions.map((session, index) => (
+                                <PersondetailsCard type="recorded-session" key={`recorded-${index}`} image={session?.recordedProgramCard?.thumbnail} title={session?.recordedProgramCard?.title} price={session?.recordedProgramCard?.price} />
                             ))
                         }
                     </motion.div>

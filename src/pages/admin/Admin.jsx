@@ -6,6 +6,8 @@ import Sessions from "./Sessions";
 import Guides from "./Guides";
 import Events from "./Events";
 import Bundles from "./Bundles";
+import Coupons from "./Coupons";
+import Analysis from "./Analysis";
 import AdminProtectedRoute from "../../components/admin/AdminProtectedRoute";
 
 export default function Admin() {
@@ -23,7 +25,10 @@ export default function Admin() {
         return <Events />;
       case "bundles":
         return <Bundles />;
-      case "home":
+      case "coupons":
+        return <Coupons />;
+      case "analysis":
+        return <Analysis />;
       default:
         return <Home />;
     }

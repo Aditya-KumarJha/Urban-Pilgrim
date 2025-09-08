@@ -15,6 +15,8 @@ export default function Sidebar({ activeSection, setActiveSection }) {
         { name: "Pilgrim Guides", key: "guides" },
         // { name: "Upcoming Events", key: "events" },
         { name: "Bundle Program", key: "bundles" },
+        { name: "Coupons", key: "coupons" },
+        { name: "Analytics", key: "analysis" },
     ];
 
     const toggleSidebar = () => {

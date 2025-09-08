@@ -3,12 +3,14 @@ import EventCard from './EventCard';
 import ViewAll from '../ui/button/ViewAll';
 import SEO from '../SEO';
 import Calendar from '../ui/Calendar';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { doc, getDoc, collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchAllEvents } from '../../utils/fetchEvents';
-import { Calendar as CalendarIcon } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronDown } from 'lucide-react';
+import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import NormalArrowButton from '../ui/NormalArrowButton';
 
 export default function UpComing() {
 
@@ -21,6 +23,9 @@ export default function UpComing() {
     const [selectedDate, setSelectedDate] = useState(null);
     const [showCalendar, setShowCalendar] = useState(false);
     const [eventDates, setEventDates] = useState([]);
+    const [selectedCategory, setSelectedCategory] = useState('all');
+    const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+    const scrollContainerRef = useRef(null);
     
     // Extract all dates from event slots
     const extractEventDates = (events) => {
@@ -83,14 +88,23 @@ export default function UpComing() {
                 location: eventData?.upcomingSessionCard?.location || '',
                 link: eventData?.upcomingSessionCard?.title ? 
                     eventData.upcomingSessionCard.title.replace(/\s+/g, '-') : '',
-                data: eventData
+                data: eventData,
+                category: eventData?.upcomingSessionCard?.category || 'Other'
             }))
             .filter(event => event?.image) // Filter out incomplete events
         : [];
 
+    // Extract unique categories from events
+    const categories = ['all', ...new Set(allActiveEvents.map(event => event.category).filter(Boolean))];
+
+    // Filter events by category
+    const categoryFilteredEvents = selectedCategory === 'all' 
+        ? allActiveEvents 
+        : allActiveEvents.filter(event => event.category === selectedCategory);
+
     // Filter events by selected date
     const activeEvents = selectedDate 
-        ? allActiveEvents.filter(event => {
+        ? categoryFilteredEvents.filter(event => {
             const eventData = event.data;
             let hasEventOnDate = false;
             const eventType = eventData?.type;
@@ -120,7 +134,26 @@ export default function UpComing() {
             
             return hasEventOnDate;
         })
-        : allActiveEvents;
+        : categoryFilteredEvents;
+
+    // Scroll functions for navigation arrows
+    const scrollLeft = () => {
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollBy({
+                left: -300,
+                behavior: 'smooth'
+            });
+        }
+    };
+
+    const scrollRight = () => {
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollBy({
+                left: 300,
+                behavior: 'smooth'
+            });
+        }
+    };
 
     // Fetch all events from multiple sources
     useEffect(() => {
@@ -180,22 +213,67 @@ export default function UpComing() {
                         {upcomingEvents?.description?.split(" ").slice(0, 9).join(" ")}...
                     </div>
                 </motion.div>
-                <div className="flex justify-between gap-2 items-center">
-                    <ViewAll link="/upcoming_events" />
-                    
-                    {/* Calendar toggle button for screens below lg */}
-                    <button
-                        onClick={() => setShowCalendar(!showCalendar)}
-                        className="text-xs md:text-sm w-[200px] lg:hidden
-                            bg-gradient-to-b from-[#C5703F] to-[#C16A00] 
-                            bg-clip-text text-transparent 
-                            border-2 border-[#C5703F] rounded-full 
-                            py-1 md:py-2 px-4 lg:px-8 cursor-pointer 
-                            transition-all duration-300
-                            hover:text-white hover:bg-gradient-to-b hover:from-[#C5703F] hover:to-[#C16A00] hover:bg-clip-border hover:border-white"
-                        >
-                        <span>{showCalendar ? 'Hide Calendar' : 'Show Calendar'}</span>
-                    </button>
+                
+                {/* buttons */}
+                <div className="flex justify-end gap-2 items-center flex-wrap">
+                    <div className="flex gap-2 items-center flex-wrap">
+                        {/* Category Filter Dropdown */}
+                        <div className="relative group">
+                            <button
+                                onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                                className="flex items-center gap-2 text-xs md:text-sm
+                                    bg-gradient-to-b from-[#C5703F] to-[#C16A00] 
+                                    bg-clip-text text-transparent 
+                                    border-2 border-[#C5703F] rounded-full 
+                                    py-1 md:py-2 px-4 md:px-6 cursor-pointer 
+                                    transition-all duration-300 
+                                    group-hover:text-white hover:bg-gradient-to-b hover:from-[#C5703F] hover:to-[#C16A00] hover:bg-clip-border hover:border-white"
+                            >
+                                <span className="capitalize">
+                                    {selectedCategory === 'all' ? 'Categories' : selectedCategory}
+                                </span>
+                                <ChevronDown className={`w-3 h-3 text-[#C16A00] group-hover:text-white transition-transform duration-200 ${showCategoryDropdown ? 'rotate-180' : ''}`} />
+                            </button>
+                            
+                            {/* Dropdown Menu */}
+                            {showCategoryDropdown && (
+                                <div className="absolute top-full left-0 mt-1 w-full min-w-[150px] bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                                    {categories.map((category) => (
+                                        <button
+                                            key={category}
+                                            onClick={() => {
+                                                setSelectedCategory(category);
+                                                setShowCategoryDropdown(false);
+                                            }}
+                                            className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 first:rounded-t-lg last:rounded-b-lg capitalize
+                                                ${selectedCategory === category ? 'bg-[#C5703F] text-white font-medium' : 'text-gray-700'}`}
+                                        >
+                                            {category === 'all' ? 'All Categories' : category}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Calendar toggle button for all screen sizes */}
+                        <button
+                            onClick={() => setShowCalendar(!showCalendar)}
+                            className="flex items-center gap-2 text-xs md:text-sm
+                                bg-gradient-to-b from-[#C5703F] to-[#C16A00] 
+                                bg-clip-text text-transparent 
+                                border-2 border-[#C5703F] rounded-full 
+                                py-1 md:py-2 md:px-6 px-4 cursor-pointer 
+                                transition-all duration-300 md:w-[160px] w-[130px]
+                                hover:text-white hover:bg-gradient-to-b hover:from-[#C5703F] hover:to-[#C16A00] hover:bg-clip-border hover:border-white"
+                            >
+                            <span>{showCalendar ? 'Hide Calendar' : 'Show Calendar'}</span>
+                        </button>
+                        
+                        {/* View all */}
+                        <div>
+                            <ViewAll link="/upcoming_events" />
+                        </div>
+                    </div>
                 </div>
                 
                 {/* Loading State */}
@@ -206,65 +284,124 @@ export default function UpComing() {
                     </div>
                 )}
 
-                {/* Calendar for mobile/tablet */}
+                {/* Calendar - shows/hides based on toggle for all screen sizes */}
                 {!isFetching && showCalendar && (
-                    <div className="lg:hidden mb-6">
+                    <motion.div 
+                        className="mb-6"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.3 }}
+                    >
                         <Calendar 
                             eventDates={eventDates}
                             onDateSelect={setSelectedDate}
                             selectedDate={selectedDate}
                         />
-                    </div>
+                    </motion.div>
                 )}
 
                 {/* Events Display */}
                 {!isFetching && (
-                    <div className="lg:flex lg:space-x-6">
-                        {/* Events Section - 2/3 width on lg+ */}
-                        <div className="lg:w-2/3 relative xl:-ml-12">
-                            {selectedDate && (
+                    <div className="w-full">
+                        {/* Events Section - full width since calendar is now togglable */}
+                        <div className="w-full relative">
+                            {(selectedDate || selectedCategory !== 'all') && (
                                 <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-                                    <p className="text-sm text-blue-800">
-                                        Showing events for: <span className="font-semibold">{new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
-                                        <button 
-                                            onClick={() => setSelectedDate(null)}
-                                            className="ml-2 text-blue-600 hover:text-blue-800 underline"
-                                        >
-                                            Show all events
-                                        </button>
-                                    </p>
+                                    <div className="flex flex-wrap items-center gap-2 text-sm text-blue-800">
+                                        {selectedDate && (
+                                            <span>
+                                                Showing events for: <span className="font-semibold">{new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                                            </span>
+                                        )}
+                                        {selectedCategory !== 'all' && (
+                                            <span>
+                                                {selectedDate ? ' • ' : ''}Category: <span className="font-semibold capitalize">{selectedCategory}</span>
+                                            </span>
+                                        )}
+                                        <div className="flex gap-2 ml-auto">
+                                            {selectedDate && (
+                                                <button 
+                                                    onClick={() => setSelectedDate(null)}
+                                                    className="text-blue-600 hover:text-blue-800 underline text-xs"
+                                                >
+                                                    Clear date
+                                                </button>
+                                            )}
+                                            {selectedCategory !== 'all' && (
+                                                <button 
+                                                    onClick={() => setSelectedCategory('all')}
+                                                    className="text-blue-600 hover:text-blue-800 underline text-xs"
+                                                >
+                                                    Clear category
+                                                </button>
+                                            )}
+                                            {(selectedDate || selectedCategory !== 'all') && (
+                                                <button 
+                                                    onClick={() => {
+                                                        setSelectedDate(null);
+                                                        setSelectedCategory('all');
+                                                    }}
+                                                    className="text-blue-600 hover:text-blue-800 underline text-xs font-medium"
+                                                >
+                                                    Show all events
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                             )}
                             
                             {activeEvents.length > 0 ? (
-                                <div className="flex py-4 pb-12 overflow-x-scroll overflow-y-hidden no-scrollbar whitespace-nowrap">
-                                    {activeEvents.map((event, index) => (
-                                        <div key={event.id || index} className="lg:min-w-[400px] sm:min-w-[350px] min-w-[280px] xl:pl-10 pr-5">
-                                            <EventCard data={event} />
-                                        </div>
-                                    ))}
+                                <div className="relative">
+                                    {/* Events Container */}
+                                    <div 
+                                        ref={scrollContainerRef}
+                                        className="flex py-4 pb-12 overflow-x-scroll overflow-y-hidden no-scrollbar whitespace-nowrap"
+                                    >
+                                        {activeEvents.map((event, index) => (
+                                            <div key={event.id || index} className="lg:min-w-[400px] sm:min-w-[350px] min-w-[160px] xl:pl-10 pr-4">
+                                                <EventCard data={event} />
+                                            </div>
+                                        ))}
+                                    </div>
+                                    
+                                    {/* Arrow Navigation - Bottom Right */}
+                                    <div className="absolute bottom-0 right-2 sm:hidden flex gap-1 z-10">
+                                        <button
+                                            onClick={scrollLeft}
+                                            className="p-1.5 text-xs rounded-full border border-[#C5703F] hover:bg-[#C5703F]/20 transition text-[#C5703F]"
+                                        >
+                                            <FaChevronLeft />
+                                        </button>
+                                        <button
+                                            onClick={scrollRight}
+                                            className="p-1.5 text-xs rounded-full border border-[#C5703F] hover:bg-[#C5703F]/20 transition text-[#C5703F]"
+                                        >
+                                            <FaChevronRight />
+                                        </button>
+                                    </div>
                                 </div>
                             ) : (
                                 <div className="text-center py-8">
                                     <p className="text-gray-500">
-                                        {selectedDate ? 'No events found for the selected date.' : 'No upcoming events available at the moment.'}
+                                        {selectedDate && selectedCategory !== 'all' 
+                                            ? `No events found for the selected date and ${selectedCategory} category.`
+                                            : selectedDate 
+                                                ? 'No events found for the selected date.'
+                                                : selectedCategory !== 'all'
+                                                    ? `No events found in the ${selectedCategory} category.`
+                                                    : 'No upcoming events available at the moment.'
+                                        }
                                     </p>
                                     <p className="text-sm text-gray-400 mt-2">
-                                        {selectedDate ? 'Try selecting a different date or view all events.' : 'Events will appear here once they are added by administrators.'}
+                                        {selectedDate || selectedCategory !== 'all' 
+                                            ? 'Try adjusting your filters or view all events.' 
+                                            : 'Events will appear here once they are added by administrators.'
+                                        }
                                     </p>
                                 </div>
                             )}
-                        </div>
-                        
-                        {/* Calendar Section - 1/3 width on lg+ */}
-                        <div className="hidden mt-4 lg:block lg:w-1/3">
-                            <div className="sticky top-4">
-                                <Calendar 
-                                    eventDates={eventDates}
-                                    onDateSelect={setSelectedDate}
-                                    selectedDate={selectedDate}
-                                />
-                            </div>
                         </div>
                     </div>
                 )}
