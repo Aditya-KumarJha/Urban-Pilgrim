@@ -6,11 +6,12 @@
   background-color: transparent;
   overflow: hidden;
   /* max-height: 400px; */
-  width: auto;          
+  width: auto;
   max-width: 100%;
-  margin-bottom: 2.5rem;  
+  margin-bottom: 2.5rem;
   box-shadow: -46px 46px 27.5px 0px rgba(0, 0, 0, 0.25);
 }
+
 .imgdiv img {
   height: 400px;
   max-width: 15rem;
@@ -32,7 +33,7 @@
   padding: 4px 0;
 }
 
-.data_details{
+.data_details {
   height: 100%;
   width: 90%;
   position: relative;
@@ -43,7 +44,7 @@
   line-height: 1.2;
 }
 
-.ptitle{
+.ptitle {
   position: relative;
   font-family: 'Poppins', sans-serif;
   font-size: clamp(12px, 3vw, 15px);
@@ -58,7 +59,7 @@
   align-items: center;
   width: 100%;
   margin: 10px 0;
-  
+
 }
 
 .pricediv p {
@@ -83,10 +84,9 @@
   .parrent {
     margin-bottom: 0rem;
   }
-  
+
   .pricediv {
     gap: 5px;
     bottom: 5%;
   }
 }
-

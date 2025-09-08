@@ -43,22 +43,21 @@ const PersonDetailsSlider = ({ image, title, price, type="" }) => {
 
     return (
         <motion.div
-            className="relative w-full py-4 md:py-8"
+            className="relative w-full py-8"
             initial={{ y: 100, opacity: 0 }}
             whileInView={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
             viewport={{ once: true, amount: 0.2 }}
         >
-            <div className="flex gap-2 pr-2 md:gap-6 md:pr-4 md:overflow-visible overflow-x-auto scroll-smooth scrollbar-hide" >
-                <motion.div
-                    className={`relative w-[160px] md:w-[280px] rounded-lg md:rounded-xl overflow-hidden flex-shrink-0 shadow-none lg:shadow-[ -46px_46px_27.5px_0px_rgba(0,0,0,0.25)]`}
+            <div className="flex gap-6 pr-4 md:overflow-visible overflow-x-auto scroll-smooth scrollbar-hide" >
+                <motion.div className={`relative w-[280px] rounded-xl overflow-hidden flex-shrink-0 shadow-none lg:shadow-[ -46px_46px_27.5px_0px_rgba(0,0,0,0.25)]`}
                     style={{
                         boxShadow: isLargeScreen
                         ? "-46px 46px 27.5px 0px rgba(0, 0, 0, 0.25)"
                         : "none",
                     }}
                 >
-                    <div className={`h-[180px] md:h-[350px] overflow-hidden`}>
+                    <div className={`h-[350px] overflow-hidden`}>
                         <motion.img
                             src={image}
                             alt="Pilgrim Experience/session"
@@ -68,10 +67,10 @@ const PersonDetailsSlider = ({ image, title, price, type="" }) => {
                         />
                     </div>
 
-                    <div className="absolute bottom-0 w-full md:w-[90%] md:right-0 bg-[#1B5678] text-white p-1.5 md:p-3">
-                        <div className="text-[10px] md:text-sm font-semibold leading-tight line-clamp-2">{title}</div>
-                        <div className="flex justify-between items-center mt-0.5 md:mt-2">
-                            <p className="text-[10px] md:text-sm">
+                    <div className="absolute bottom-0 md:w-[90%] w-full md:right-0 bg-[#1B5678] text-white p-3">
+                        <div className="text-sm font-semibold leading-snug line-clamp-2">{title}</div>
+                        <div className="flex justify-between items-center mt-2">
+                            <p className="text-sm">
                                 <span className="text-[#C0B3B4]">From </span>
                                 <strong>
                                     {
@@ -86,7 +85,7 @@ const PersonDetailsSlider = ({ image, title, price, type="" }) => {
                             <NormalArrowButton
                                 icon={FaChevronRight}
                                 dir={-1}
-                                className="size-4 md:size-8"
+                                className="size-8"
                                 onClick={handleNavigation}
                             />
                         </div>
