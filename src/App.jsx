@@ -30,79 +30,79 @@ import Lenis from "@studio-freight/lenis";
 import WhatsAppFloatingButton from "./components/WhatsAppFloatingButton.jsx";
 
 function App() {
-  const [loading, setLoading] = useState(true);
-  const location = useLocation();
-  const isAdminRoute = location.pathname === "/admin" || location.pathname === "/userdashboard";
+    const [loading, setLoading] = useState(true);
+    const location = useLocation();
+    const isAdminRoute = location.pathname === "/admin" || location.pathname === "/userdashboard";
 
-  
-  useEffect(() => {
-    const lenis = new Lenis({
-        duration: 1.2,
-        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-        smooth: true,
-    });
 
-    function raf(time) {
-        lenis.raf(time);
+    useEffect(() => {
+        const lenis = new Lenis({
+            duration: 1.2,
+            easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+            smooth: true,
+        });
+
+        function raf(time) {
+            lenis.raf(time);
+            requestAnimationFrame(raf);
+        }
+
         requestAnimationFrame(raf);
-    }
 
-    requestAnimationFrame(raf);
-
-    return () => {
-        lenis.destroy();
-    };
-  }, []);
+        return () => {
+            lenis.destroy();
+        };
+    }, []);
 
 
-  return (
-    <CartProvider>
-      <div className="relative">
-        {/* Loader overlay */}
-        {loading && <Loader onFinish={() => setLoading(false)} />}
-        {loading && isAdminRoute && <div className="hidden">{setLoading(false)}</div>}
+    return (
+        <CartProvider>
+            <div className="relative">
+                {/* Loader overlay */}
+                {loading && <Loader onFinish={() => setLoading(false)} />}
+                {loading && isAdminRoute && <div className="hidden">{setLoading(false)}</div>}
 
-        {/* Only show navbar & routes once loader is done */}
-        {!loading && (
-          <>
-            {!isAdminRoute && <NavBar />}
-            {!isAdminRoute && <WhatsAppFloatingButton />}
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/pilgrim_retreats" element={<Retreats />} />
-              <Route path="/pilgrim_sessions" element={<Sessions />} />
-              <Route path="/pilgrim_guides" element={<Guides />} />
-              <Route path="/upcoming_events" element={<UpcomingEvents />} />
-              <Route path="/contact" element={<ContactForm />} />
-              <Route path="/joinusguides" element={<JoinGuides />} />
-              <Route path="/joinusadvisors" element={<JoinAdvisors />} />
-              <Route path="/whyus" element={<WhyUs />} />
-              <Route path="/whoarewe" element={<WhoAreWe />} />
-              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-              <Route path="/yoga/:title" element={<YogaDesc />} />
-              <Route path="/cart" element={<CartPage />} />
-              {/* live session */}
-              <Route path="/session/:sessionId/details" element={<LiveDetails />} />
-              <Route path="/session/:sessionId/slots" element={<SessionSlots />} />
-              {/* recorded program */}
-              <Route path="/program/:programId/details" element={<ProgramDetails />} />
-              <Route path="/program/:programId/slots" element={<SessionDescription />} />
-              {/* guide */}
-              <Route path="/guide/:guideClassName" element={<GuideClassDetails />} />
-              {/* retreat */}
-              <Route path="/pilgrim_retreats/:retreatName" element={<Retreatdescription />} />
-              {/* event */}
-              <Route path="/event/:eventName" element={<EventDetails />} />
-              <Route path="/admin" element={<Admin />} />
-              <Route path="/userdashboard" element={<UserDashboard />} />
-              <Route path="*" element={<Home replace={'/'} />} />
-            </Routes>
-            {!isAdminRoute && <Footer className="mt-10" />}
-          </>
-        )}
-      </div>
-    </CartProvider>
-  );
+                {/* Only show navbar & routes once loader is done */}
+                {!loading && (
+                    <>
+                        {!isAdminRoute && <NavBar />}
+                        {!isAdminRoute && <WhatsAppFloatingButton />}
+                        <Routes>
+                            <Route path="/" element={<Home />} />
+                            <Route path="/pilgrim_retreats" element={<Retreats />} />
+                            <Route path="/pilgrim_sessions" element={<Sessions />} />
+                            <Route path="/pilgrim_guides" element={<Guides />} />
+                            <Route path="/upcoming_events" element={<UpcomingEvents />} />
+                            <Route path="/contact" element={<ContactForm />} />
+                            <Route path="/joinusguides" element={<JoinGuides />} />
+                            <Route path="/joinusadvisors" element={<JoinAdvisors />} />
+                            <Route path="/whyus" element={<WhyUs />} />
+                            <Route path="/whoarewe" element={<WhoAreWe />} />
+                            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                            <Route path="/yoga/:title" element={<YogaDesc />} />
+                            <Route path="/cart" element={<CartPage />} />
+                            {/* live session */}
+                            <Route path="/session/:sessionId/details" element={<LiveDetails />} />
+                            <Route path="/session/:sessionId/slots" element={<SessionSlots />} />
+                            {/* recorded program */}
+                            <Route path="/program/:programId/details" element={<ProgramDetails />} />
+                            <Route path="/program/:programId/slots" element={<SessionDescription />} />
+                            {/* guide */}
+                            <Route path="/guide/:guideClassName" element={<GuideClassDetails />} />
+                            {/* retreat */}
+                            <Route path="/pilgrim_retreats/:retreatName" element={<Retreatdescription />} />
+                            {/* event */}
+                            <Route path="/event/:eventName" element={<EventDetails />} />
+                            <Route path="/admin" element={<Admin />} />
+                            <Route path="/userdashboard" element={<UserDashboard />} />
+                            <Route path="*" element={<Home replace={'/'} />} />
+                        </Routes>
+                        {!isAdminRoute && <Footer className="mt-10" />}
+                    </>
+                )}
+            </div>
+        </CartProvider>
+    );
 }
 
 export default App;

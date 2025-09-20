@@ -26,6 +26,13 @@ function SectionThree() {
             setPrograms(data.sectionThree.programs || []);
             dispatch(setLoading(false));
         };
+
+    const handleProgramImageError = (index) => {
+        // If the image fails to load, clear it so the upload UI shows
+        const updated = [...programs];
+        updated[index].image = null;
+        setPrograms(updated);
+    };
         loadData();
     }, [uid, dispatch]);
 
@@ -92,29 +99,66 @@ function SectionThree() {
 
             // check if an image exists before removing
             if (updated[index].image) {
-                const storageRef = ref(storage, updated[index].image);
-                await deleteObject(storageRef);
-                console.log("Image deleted from storage:", updated[index].image);
+                try {
+                    // Extract the file path from the Firebase Storage URL
+                    const imageUrl = updated[index].image;
+                    
+                    // For Firebase Storage URLs, extract the path after '/o/' and before '?'
+                    const pathMatch = imageUrl.match(/\/o\/(.+?)\?/);
+                    if (pathMatch) {
+                        const filePath = decodeURIComponent(pathMatch[1]);
+                        const storageRef = ref(storage, filePath);
+                        await deleteObject(storageRef);
+                        console.log("Image deleted from storage:", filePath);
+                    } else {
+                        // Fallback: try using the URL directly (for older implementations)
+                        const storageRef = ref(storage, imageUrl);
+                        await deleteObject(storageRef);
+                        console.log("Image deleted from storage using direct URL:", imageUrl);
+                    }
+                } catch (deleteError) {
+                    console.warn("Could not delete image from storage:", deleteError);
+                    // Continue with removing from local state even if storage deletion fails
+                }
 
-                // set image field to null after deletion
+                // set image field to null after deletion attempt
                 updated[index].image = null;
                 setPrograms(updated);
 
-                // if you are syncing with redux (optional)
-                // dispatch(setPrograms(updated));
+                console.log("Image removed from program at index:", index);
+                showSuccess("Image removed successfully");
             } else {
                 console.log("No image to delete for this program");
             }
         } catch (error) {
             console.error("Error removing program image:", error);
+            // Still try to remove from local state
+            const updated = [...programs];
+            updated[index].image = null;
+            setPrograms(updated);
         }
     };
 
-    const handleDiscard = () => {
-        setImage(null);
-        setTitle("");
-        setPrograms([]);
-        dispatch(setSectionThree({ title: "", programs: [] }));
+    const handleDiscard = async () => {
+        try {
+            dispatch(setLoading(true));
+            // Reload the latest saved data from backend and reset local state
+            const data = await fetchSectionThree(uid);
+            const section = data?.sectionThree || { title: "", programs: [] };
+
+            setImage(null);
+            setTitle(section.title || "");
+            setPrograms(section.programs || []);
+            setUploadProgress({});
+            setIsUploading({});
+
+            dispatch(setSectionThree(section));
+            showSuccess("Changes discarded");
+        } catch (err) {
+            console.error("Failed to discard changes:", err);
+        } finally {
+            dispatch(setLoading(false));
+        }
     };
 
     const handleSave = async () => {
@@ -183,12 +227,13 @@ function SectionThree() {
                                 </div>
                             </div>
                         </div>
-                    ) : program.image ? (
+                    ) : (typeof program.image === 'string' && /^https?:\/\//.test(program.image)) ? (
                         <div className="relative inline-block mb-4">
                             <img
                                 src={program.image}
                                 alt="Preview"
                                 className="w-64 h-auto object-cover rounded shadow"
+                                onError={() => handleProgramImageError(index)}
                             />
                             <button
                                 onClick={() => handleProgramImageRemove(index)}

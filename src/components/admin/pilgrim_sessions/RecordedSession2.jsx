@@ -617,9 +617,12 @@ export default function RecordedSession2() {
                         }
                     }
                     setSlideData(allSlides);
+                    // Keep Redux in sync with fetched data so editing indexes match
+                    dispatch(setRecordedSessions(session.slides || []));
                 } else {
                     setAllData([]);
                     setSlideData([]);
+                    dispatch(setRecordedSessions([]));
                 }
             } catch (err) {
                 console.error("Error fetching recorded session data:", err);
@@ -654,13 +657,15 @@ export default function RecordedSession2() {
 
         try {
             if (!uid) throw new Error("User not logged in");
+            // Use Redux sessions when available, otherwise fall back to loaded data to keep indexes aligned
+            let base = (Array.isArray(sessions) && sessions.length > 0) ? [...sessions] : (Array.isArray(allData) ? [...allData] : []);
             let updatedPrograms;
-            if (isEditing && editIndex !== null) {
-                updatedPrograms = [...sessions];
-                updatedPrograms[editIndex] = newCard;
+            if (isEditing && editIndex !== null && editIndex >= 0 && editIndex < base.length) {
+                base[editIndex] = newCard;
+                updatedPrograms = base;
                 console.log("Recorded Program (v2) Updated Successfully");
             } else {
-                updatedPrograms = [...sessions, newCard];
+                updatedPrograms = [...base, newCard];
                 console.log("Recorded Program (v2) Added Successfully");
             }
 

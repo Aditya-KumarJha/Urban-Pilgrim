@@ -104,6 +104,8 @@ export default function ProgramDetails() {
         navigate(`/program_details/${normalizeSlug(programData?.recordedProgramCard?.title)}`);
     };
 
+    console.log("allEvents: ", allEvents);
+
     return (
         <>
             <SEO
@@ -280,26 +282,36 @@ export default function ProgramDetails() {
                     viewport={{ once: true, amount: 0.1 }}
                 >
                     {allEvents && Object.keys(allEvents).length > 0 ? (
-                        Object.entries(allEvents)
-                            .filter(([id, eventData]) => {
-                                // Filter out the current live session and show only first 3 events
-                                const currentSessionTitle = programData?.liveSessionCard?.title?.toLowerCase();
-                                const eventTitle = eventData?.upcomingSessionCard?.title?.toLowerCase();
-                                return eventTitle !== currentSessionTitle && eventData?.upcomingSessionCard?.image;
-                            })
-                            .slice(0, 3)
-                            .sort(() => Math.random() - 0.5) // Randomize the order
-                            .map(([id, eventData]) => {
+                        (() => {
+                            const records = Object.entries(allEvents)
+                                .filter(([id, data]) => (data?.type === 'recorded-session' || data?.type === 'recorded') && !!data?.upcomingSessionCard?.image);
+                            const lives = Object.entries(allEvents)
+                                .filter(([id, data]) => (data?.type === 'live-session' || data?.type === 'live') && !!data?.upcomingSessionCard?.image);
+
+                            const pick = (records.length ? records : lives)
+                                .sort(() => Math.random() - 0.5)
+                                .slice(0, 3);
+
+                            if (pick.length === 0) {
                                 return (
-                                    <PersondetailsCard 
-                                        key={id}
-                                        image={eventData?.upcomingSessionCard?.image || '/assets/default-event.png'}
-                                        title={eventData?.upcomingSessionCard?.title || 'Event'}
-                                        price={`${eventData?.upcomingSessionCard?.price || '0'}`}
-                                        type={eventData?.type || 'live-session'}
-                                    />
+                                    <>
+                                        <PersondetailsCard image="/assets/Rohini_singh.png" title="Discover your true self - A 28 day program with Rohini Singh Sisodia" price="Rs.14,999.00" />
+                                        <PersondetailsCard image="/assets/Anisha.png" title="Let's meditate for an hour - With Anisha" price="Rs.199.00" />
+                                        <PersondetailsCard image="/assets/arati_prasad.png" title="Menopausal fitness - A 4 day regime curated by Aarti Prasad" price="Rs.4,000.00" />
+                                    </>
                                 );
-                            })
+                            }
+
+                            return pick.map(([id, data]) => (
+                                <PersondetailsCard 
+                                    key={id}
+                                    image={data?.upcomingSessionCard?.image || '/assets/default-event.png'}
+                                    title={data?.upcomingSessionCard?.title || 'Event'}
+                                    price={`${data?.upcomingSessionCard?.price || '0'}`}
+                                    type={records.length ? 'recorded-session' : 'live-session'}
+                                />
+                            ));
+                        })()
                     ) : (
                         // Fallback to original cards if no events loaded
                         <>

@@ -18,6 +18,7 @@ const db = admin.firestore();
 const serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT);
 const gmailEmail = process.env.APP_GMAIL;
 const gmailPassword = process.env.APP_GMAIL_PASSWORD;
+const contactEmail = process.env.CONTACT_EMAIL
 
 const razorpay = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID,
@@ -321,7 +322,7 @@ exports.sendContactEmail = functions.https.onCall(async (data, context) => {
 
     const mailOptions = {
         from: email,
-        to: gmailEmail,
+        to: contactEmail,
         subject: `📩 New Contact Us Message from ${name}`,
         html: `
             <div style="line-height: 1.6; color: #333; max-width: 600px; margin: auto; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
@@ -433,17 +434,41 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                 if (!couponQuery.empty) {
                     const couponDoc = couponQuery.docs[0];
                     const currentUsedCount = couponDoc.data().usedCount || 0;
-                    
-                    await couponDoc.ref.update({
-                        usedCount: currentUsedCount + 1,
-                        lastUsedAt: new Date(),
-                        lastUsedBy: {
-                            userId,
-                            email,
-                            name,
-                            paymentId: paymentResponse.razorpay_payment_id
+                    const restrict = couponDoc.data().restrictToProgram || null;
+                    // If coupon restricted to a specific program, ensure it's in cart
+                    if (restrict && (restrict.id || restrict.title)) {
+                        const match = (cartData || []).some(item => {
+                            const byId = restrict.id && item.id === restrict.id;
+                            const byTitle = restrict.title && item.title === restrict.title;
+                            return byId || byTitle;
+                        });
+                        if (!match) {
+                            console.log('Coupon restrictToProgram does not match any cart item, skipping usage update');
+                            // Do not update usage if restriction not satisfied
+                            return { success: true };
                         }
-                    });
+                    }
+                    
+                    const nextCount = currentUsedCount + 1;
+                    const isGiftCard = couponDoc.data().isGiftCard === true;
+                    const usageLimit = couponDoc.data().usageLimit || 1;
+
+                    if (isGiftCard && nextCount >= usageLimit) {
+                        // Delete after single use
+                        await couponDoc.ref.delete();
+                        console.log(`Deleted gift card coupon ${coupon.code} after redemption`);
+                    } else {
+                        await couponDoc.ref.update({
+                            usedCount: nextCount,
+                            lastUsedAt: new Date(),
+                            lastUsedBy: {
+                                userId,
+                                email,
+                                name,
+                                paymentId: paymentResponse.razorpay_payment_id
+                            }
+                        });
+                    }
                     
                     console.log(`Updated coupon ${coupon.code} usage count to ${currentUsedCount + 1}`);
                 }
@@ -1245,5 +1270,102 @@ exports.checkUserSubscriptionStatus = functions.https.onCall(async (data, contex
             "internal",
             "Failed to check subscription status"
         );
+    }
+});
+
+// Gift Card: Create order (separate entry-point)
+exports.createGiftCardOrder = functions.https.onCall(async (data, context) => {
+    console.log("data from createGiftCardOrder", data.data);
+    const { amount } = data.data || {};
+    if (!amount || amount <= 0) {
+        throw new functions.https.HttpsError("invalid-argument", "Valid amount required");
+    }
+    const options = {
+        amount: amount * 100,
+        currency: "INR",
+        receipt: `gift_${Date.now()}`,
+        notes: { type: "gift_card" }
+    };
+    try {
+        const order = await razorpay.orders.create(options);
+        return order;
+    } catch (err) {
+        throw new functions.https.HttpsError("internal", err.message);
+    }
+});
+
+// Helper to generate uppercase coupon code
+function generateCouponCode(len = 10) {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let out = '';
+    for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)];
+    return out;
+}
+
+// Gift Card: Confirm payment, generate one-time coupon bound to a program, and email it
+exports.confirmGiftCardPayment = functions.https.onCall(async (data, context) => {
+    try {
+        const { purchaserEmail, purchaserName, programTitle, programType, programId, amount, paymentResponse } = data.data || {};
+        if (!purchaserEmail || !amount || !paymentResponse) {
+            throw new functions.https.HttpsError("invalid-argument", "Missing required fields");
+        }
+
+        // Generate unique code (retry small number of times if collision)
+        const couponsRef = db.collection('coupons');
+        let code = generateCouponCode(10);
+        for (let i = 0; i < 3; i++) {
+            const exists = await couponsRef.where('code', '==', code).limit(1).get();
+            if (exists.empty) break;
+            code = generateCouponCode(10);
+        }
+
+        const couponDoc = {
+            code,
+            discountType: 'fixed',
+            discountValue: amount,
+            programType: programType || 'any',
+            // Restrict to a specific program by title/id if provided
+            restrictToProgram: {
+                id: programId || null,
+                title: programTitle || null,
+            },
+            minOrderAmount: 0,
+            maxDiscount: amount,
+            usageLimit: 1,
+            usedCount: 0,
+            isActive: true,
+            isGiftCard: true,
+            description: `Gift card for ${programTitle || 'Urban Pilgrim program'}`,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            lastUsedAt: null,
+            lastUsedBy: null,
+        };
+
+        await couponsRef.add(couponDoc);
+
+        // Email code to purchaser
+        const html = `
+            <div style="font-family: Arial, sans-serif; line-height:1.6;">
+                <h2 style="color:#2F6288;">Your Urban Pilgrim Gift Card</h2>
+                <p>Hi ${purchaserName || 'Pilgrim'},</p>
+                <p>Thank you for your purchase. Here is your one-time gift coupon code:</p>
+                <div style="border:2px dashed #C5703F; padding:16px; border-radius:8px; display:inline-block; font-weight:bold; font-size:20px; letter-spacing:2px;">${code}</div>
+                <p style="margin-top:12px;">Value: <strong>₹${amount}</strong></p>
+                ${programTitle ? `<p>Applicable Program: <strong>${programTitle}</strong></p>` : ''}
+                <p>You can apply this code in the cart's coupon field. This code can be used only once.</p>
+            </div>
+        `;
+        await transporter.sendMail({
+            from: gmailEmail,
+            to: purchaserEmail,
+            subject: 'Your Urban Pilgrim Gift Card',
+            html
+        });
+
+        return { success: true, code };
+    } catch (err) {
+        console.error('confirmGiftCardPayment error:', err);
+        throw new functions.https.HttpsError('internal', err.message);
     }
 });

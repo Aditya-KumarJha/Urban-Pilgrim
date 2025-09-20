@@ -31,7 +31,7 @@ export default function RetreatCard({ retreat }) {
                         <img src="/assets/retreats/Location.svg" className="text-[#A0A3A2]" /> {pilgrimRetreatCard?.location}
                     </span>
                     <span className="flex items-center gap-2">
-                        <img src="/assets/retreats/card_tick.svg" className="text-[#A0A3A2]" /> Available
+                        <img src="/assets/retreats/card_tick.svg" className="text-[#A0A3A2]" /> {pilgrimRetreatCard?.category || ""}
                     </span>
                 </div>
                 <div className="mt-4 flex items-center justify-between" onClick={() => handleCardClick(pilgrimRetreatCard?.title)}>

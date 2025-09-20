@@ -800,25 +800,21 @@ export default function GuideClassDetails() {
                 >
                     {allEvents && Object.keys(allEvents).length > 0 ? (
                         Object.entries(allEvents)
-                            .filter(([id, eventData]) => {
-                                // Filter out the current live session and show events with images
-                                const currentSessionTitle = sessionData?.liveSessionCard?.title?.toLowerCase();
-                                const eventTitle = eventData?.upcomingSessionCard?.title?.toLowerCase();
-                                return eventTitle !== currentSessionTitle && eventData?.upcomingSessionCard?.image;
+                            .filter(([id, data]) => {
+                                // Only show guide cards
+                                return !!data?.guideCard?.image;
                             })
-                            .sort(() => Math.random() - 0.5) // Randomize the order
+                            .sort(() => Math.random() - 0.5)
                             .slice(0, 3)
-                            .map(([id, eventData]) => {
-                                return (
-                                    <PersondetailsCard
-                                        key={id}
-                                        image={eventData?.upcomingSessionCard?.image || '/assets/default-event.png'}
-                                        title={eventData?.upcomingSessionCard?.title || 'Event'}
-                                        price={`${eventData?.upcomingSessionCard?.price || '0'}`}
-                                        type={eventData?.type || 'live-session'}
-                                    />
-                                );
-                            })
+                            .map(([id, data]) => (
+                                <PersondetailsCard
+                                    key={id}
+                                    image={data?.guideCard?.image || '/assets/default-event.png'}
+                                    title={data?.guideCard?.title || 'Guide'}
+                                    price={`${data?.guideCard?.price || '0'}`}
+                                    type={'guide'}
+                                />
+                            ))
                     ) : (
                         // Fallback to original cards if no events loaded
                         <>

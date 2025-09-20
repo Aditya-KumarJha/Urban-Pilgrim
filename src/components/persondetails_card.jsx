@@ -41,6 +41,10 @@ const PersonDetailsSlider = ({ image, title, price, type="" }) => {
         return () => window.removeEventListener("resize", checkScreen);
     }, []);
 
+    // If the provided "image" is actually a video URL, detect by extension
+    // Detect video even when Firebase appends suffixes after extension (e.g., .mp4_12345?alt=media)
+    const isVideo = typeof image === 'string' && /(?:\.mp4|\.mov|\.webm|\.ogg|\.m4v)(?:[?._-]|$)/i.test(image);
+
     return (
         <motion.div
             className="relative w-full py-8"
@@ -58,13 +62,26 @@ const PersonDetailsSlider = ({ image, title, price, type="" }) => {
                     }}
                 >
                     <div className={`h-[350px] overflow-hidden`}>
-                        <motion.img
-                            src={image}
-                            alt="Pilgrim Experience/session"
-                            className="object-cover w-full h-full"
-                            whileHover={{ scale: 1.1,  }}
-                            transition={{ duration: 0.3, ease: "easeOut" }}
-                        />
+                        {isVideo ? (
+                            <motion.video
+                                src={image}
+                                className="object-cover w-full h-full"
+                                muted
+                                loop
+                                autoPlay
+                                playsInline
+                                whileHover={{ scale: 1.05 }}
+                                transition={{ duration: 0.3, ease: "easeOut" }}
+                            />
+                        ) : (
+                            <motion.img
+                                src={image}
+                                alt="Pilgrim Experience/session"
+                                className="object-cover w-full h-full"
+                                whileHover={{ scale: 1.1,  }}
+                                transition={{ duration: 0.3, ease: "easeOut" }}
+                            />
+                        )}
                     </div>
 
                     <div className="absolute bottom-0 md:w-[90%] w-full md:right-0 bg-[#1B5678] text-white p-3">

@@ -56,6 +56,8 @@ export default function RetreatBookingTable() {
                             id: `${retreat.id || retreatIndex}-${userIndex}`,
                             bookingId: `#PR-${String(retreatIndex + 1).padStart(3, '0')}-${String(userIndex + 1).padStart(3, '0')}`,
                             email: user.email || user.userEmail || '',
+                            name: user.name || user.fullName || user.userName || '',
+                            whatsapp: user.whatsapp || user.whatsApp || user.phone || user.contact || '',
                             retreat: retreat.pilgrimRetreatCard?.title || 'Unknown Retreat',
                             occupancy: user.occupancy || user.roomType || 'Single',
                             persons: user.persons || user.numberOfPersons || 1,
@@ -188,61 +190,46 @@ export default function RetreatBookingTable() {
                 Pilgrim Retreats Bookings <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
             </h2>
 
-            {/* Filters */}
-            {/* <div className="flex flex-col md:flex-row md:items-center gap-3 mb-4">
-        <label className="text-nowrap text-sm flex flex-col md:flex-row md:items-center gap-2 w-full md:w-auto">
-          Filter by:
-          <select
-            className="border p-2 rounded w-full md:w-auto"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-          >
-            <option>All Bookings</option>
-            <option>Upcoming</option>
-            <option>Past</option>
-          </select>
-        </label>
-
-        <label className="text-nowrap text-sm flex flex-col md:flex-row md:items-center gap-2 w-full md:w-auto">
-          Occupancy:
-          <select
-            className="border p-2 rounded w-full md:w-auto"
-            value={occupancyFilter}
-            onChange={(e) => setOccupancyFilter(e.target.value)}
-          >
-            <option>All</option>
-            <option>Single</option>
-            <option>Twin</option>
-          </select>
-        </label>
-
-        <label className="text-nowrap text-sm flex flex-col md:flex-row md:items-center gap-2 w-full">
-          Date range:
-          <div className="flex flex-wrap gap-2">
-            <input
-              type="date"
-              className="border p-2 rounded flex-1 min-w-[140px]"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-            <span className="self-center">to</span>
-            <input
-              type="date"
-              className="border p-2 rounded flex-1 min-w-[140px]"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
-          </div>
-        </label>
-
-        <input
-          type="text"
-          placeholder="Search by email or name..."
-          className="border p-2 rounded flex-1 min-w-[220px]"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div> */}
+            {/* Export */}
+            <div className="flex justify-end mb-3">
+                <button
+                    onClick={() => {
+                        try {
+                            const rows = bookings.map(b => ({
+                                BookingID: b.bookingId,
+                                Email: b.email,
+                                Whatsapp: b.whatsapp || '',
+                                Name: b.name || '',
+                                Retreat: b.retreat,
+                                Occupancy: b.occupancy,
+                                Persons: b.persons,
+                                RetreatDate: new Date(b.retreatDate).toLocaleDateString(),
+                                Status: b.status,
+                                Price: b.price,
+                            }));
+                            const headers = Object.keys(rows[0] || { BookingID:'',Email:'',Whatsapp:'',Name:'',Retreat:'',Occupancy:'',Persons:'',RetreatDate:'',Status:'',Price:'' });
+                            const csv = [headers.join(','), ...rows.map(r => headers.map(h => {
+                                const val = (r[h] ?? '').toString().replace(/"/g, '""');
+                                return `"${val}"`;
+                            }).join(','))].join('\n');
+                            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                            const url = URL.createObjectURL(blob);
+                            const link = document.createElement('a');
+                            link.href = url;
+                            link.download = `retreat_bookings_${new Date().toISOString().slice(0,10)}.csv`;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            URL.revokeObjectURL(url);
+                        } catch (e) {
+                            console.error('Export failed', e);
+                        }
+                    }}
+                    className="px-3 py-2 text-sm bg-[#2F6288] text-white rounded hover:bg-[#1e4a6b]"
+                >
+                    Export to Excel
+                </button>
+            </div>
 
             <div className="flex flex-col xl:flex-row gap-3 mb-4">
                 <div className="flex flex-col md:flex-row gap-3 flex-shrink-0">
@@ -302,7 +289,6 @@ export default function RetreatBookingTable() {
                 </div>
             </div>
 
-
             {/* Loading State */}
             {loading && (
                 <div className="flex justify-center items-center py-8">
@@ -320,6 +306,7 @@ export default function RetreatBookingTable() {
                                 <th className="p-2">Booking ID</th>
                                 <th className="p-2">User Email</th>
                                 <th className="p-2">Retreat</th>
+                                <th className="p-2">WhatsApp</th>
                                 <th className="p-2">Occupancy</th>
                                 <th className="p-2">Persons</th>
                                 <th className="p-2">Retreat Date</th>
@@ -339,6 +326,7 @@ export default function RetreatBookingTable() {
                                     <td className="p-2 font-mono text-xs">{booking.bookingId}</td>
                                     <td className="p-2">{booking.email}</td>
                                     <td className="p-2 max-w-xs truncate" title={booking.retreat}>{booking.retreat}</td>
+                                    <td className="p-2">{booking.whatsapp || '-'}</td>
                                     <td className="p-2">
                                         <span
                                             className={`text-xs font-medium px-2 py-1 rounded ${booking.occupancy === "Twin"
@@ -399,6 +387,7 @@ export default function RetreatBookingTable() {
                     </table>
                 </div>
             )}
+
             {/* Mobile view */}
             {!loading && (
                 <div className="md:hidden space-y-4">
@@ -414,6 +403,8 @@ export default function RetreatBookingTable() {
                                 <div>
                                     <p className="font-semibold text-sm font-mono">{booking.bookingId}</p>
                                     <p className="text-sm text-gray-600">{booking.email}</p>
+                                    {booking.whatsapp && <p className="text-sm text-gray-600">WhatsApp: {booking.whatsapp}</p>}
+                                    {booking.name && <p className="text-sm text-gray-600">Name: {booking.name}</p>}
                                 </div>
                                 <div className="flex flex-col gap-1">
                                     <span
@@ -475,7 +466,8 @@ export default function RetreatBookingTable() {
                         <h3 className="text-lg font-bold mb-4">Booking Details</h3>
                         <div className="space-y-2">
                             <p><strong>Booking ID:</strong> {selectedBooking.bookingId}</p>
-                            <p><strong>Email:</strong> {selectedBooking.email}</p>
+                            <p><strong>User:</strong> {selectedBooking.name || '-'} ({selectedBooking.email})</p>
+                            <p><strong>WhatsApp:</strong> {selectedBooking.whatsapp || '-'}</p>
                             <p><strong>Retreat:</strong> {selectedBooking.retreat}</p>
                             <p><strong>Occupancy:</strong> {selectedBooking.occupancy}</p>
                             <p><strong>Persons:</strong> {selectedBooking.persons}</p>

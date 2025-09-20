@@ -122,12 +122,17 @@ export default function Retreatdescription() {
             <div className="max-w-7xl mx-auto p-6 bg-gradient-to-b from-[#FAF4F0] to-white rounded-2xl shadow-lg grid gap-6 md:mt-[100px] mt-[80px] px-4">
                 {/* image gallery */}
                 <div className="space-y-4">
+                    {retreatData?.pilgrimRetreatCard?.category && (
+                        <h3 className="text-xs md:text-sm font-bold uppercase tracking-wide text-[#2F6288]">
+                            {retreatData.pilgrimRetreatCard.category}
+                        </h3>
+                    )}
                     <h2 className="md:text-2xl font-bold text-xl">
                         {retreatData?.pilgrimRetreatCard?.title || "Retreat Title"}
                     </h2>
                     <ImageGallery images={retreatData?.oneTimePurchase?.images || []} videos={retreatData?.oneTimePurchase?.videos || []} />
                 </div>
-
+                    
                 <div className="flex flex-col justify-between">
                     {/* descrition */}
                     <div className="space-y-4 text-gray-700">
@@ -258,13 +263,18 @@ export default function Retreatdescription() {
                     <WeatherSection location={retreatData?.pilgrimRetreatCard?.location || "Delhi"} />
 
                     <FeatureRetreat features={retreatData?.features} />
-                    <JourneySection journey={retreatData?.session} retreatDescription={retreatData?.retreatDescription} />
+                    <JourneySection 
+                        journey={retreatData?.session} 
+                        retreatDescription={retreatData?.retreatDescription}
+                        location={retreatData?.pilgrimRetreatCard?.location}
+                    />
                     <Faqs faqs={retreatData?.faqs} />
                 </div>
             </div>
 
             <PilgrimGuide guides={retreatData?.meetGuide} />
-
+            
+            {/* you may also like */}
             <div className="max-w-7xl mx-auto p-6 bg-white rounded-2xl grid gap-6 px-4">
                 <h2 className="text-3xl text-[#2F6288] font-bold mb-6">
                     You May Also Like
@@ -278,29 +288,35 @@ export default function Retreatdescription() {
                     viewport={{ once: true, amount: 0.1 }}
                 >
                     {allEvents && Object.keys(allEvents).length > 0 ? (
-                        Object.entries(allEvents)
-                            .filter(([id, eventData]) => {
-                                // Filter out the current retreat and show only first 3 events
-                                const currentRetreatTitle = retreatData?.pilgrimRetreatCard?.title?.toLowerCase();
-                                const eventTitle = eventData?.upcomingSessionCard?.title?.toLowerCase();
-                                return eventTitle !== currentRetreatTitle && eventData?.upcomingSessionCard?.image;
-                            })
-                            .slice(0, 3)
-                            .sort(() => Math.random() - 0.5) // Randomize the order
-                            .map(([id, eventData]) => {
-                                console.log(eventData)
+                        (() => {
+                            const entries = (Array.isArray(allEvents)
+                                ? allEvents.map((v, idx) => [idx, v])
+                                : Object.entries(allEvents))
+                                .filter(([id, data]) => data?.type === 'retreat' && (!!data?.pilgrimRetreatCard?.image || !!data?.upcomingSessionCard?.image));
+                            if (entries.length === 0) {
                                 return (
-                                    <PersondetailsCard 
-                                        key={id}
-                                        image={eventData?.upcomingSessionCard?.image || '/assets/default-event.png'}
-                                        title={eventData?.upcomingSessionCard?.title || 'Event'}
-                                        price={`${eventData?.upcomingSessionCard?.price || '0'}`}
-                                        type={eventData?.type || 'retreat'}
-                                    />
+                                    <>
+                                        <PersondetailsCard image="/assets/Rohini_singh.png" title="Discover your true self - A 28 day program with Rohini Singh Sisodia" price="Rs.14,999.00" />
+                                        <PersondetailsCard image="/assets/Anisha.png" title="Let's meditate for an hour - With Anisha" price="Rs.199.00" />
+                                        <PersondetailsCard image="/assets/arati_prasad.png" title="Menopausal fitness - A 4 day regime curated by Aarti Prasad" price="Rs.4,000.00" />
+                                    </>
                                 );
-                            })
+                            }
+
+                            return entries
+                                .sort(() => Math.random() - 0.5)
+                                .slice(0, 3)
+                                .map(([id, data]) => (
+                                    <PersondetailsCard
+                                        key={id}
+                                        image={data?.originalData?.pilgrimRetreatCard?.image || '/assets/default-event.png'}
+                                        title={data?.originalData?.pilgrimRetreatCard?.title || 'Retreat'}
+                                        price={`${data?.originalData?.pilgrimRetreatCard?.price || '0'}`}
+                                        type={'retreat'}
+                                    />
+                                ));
+                        })()
                     ) : (
-                        // Fallback to original cards if no events loaded
                         <>
                             <PersondetailsCard image="/assets/Rohini_singh.png" title="Discover your true self - A 28 day program with Rohini Singh Sisodia" price="Rs.14,999.00" />
                             <PersondetailsCard image="/assets/Anisha.png" title="Let's meditate for an hour - With Anisha" price="Rs.199.00" />

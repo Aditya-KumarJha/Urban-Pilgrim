@@ -55,6 +55,8 @@ export default function GuideBookingsTable() {
                             id: `#PG-${String(guideIndex + 1).padStart(3, '0')}-${String(userIndex + 1).padStart(3, '0')}`,
                             bookingId: `#PG-${String(guideIndex + 1).padStart(3, '0')}-${String(userIndex + 1).padStart(3, '0')}`,
                             email: user.email || user.userEmail || '',
+                            name: user.name || user.fullName || user.userName || '',
+                            whatsapp: user.whatsapp || user.whatsApp || user.phone || user.contact || '',
                             guideName: guide.title || 'Unknown Guide',
                             mode: user.mode || guide.mode || 'Online',
                             persons: user.persons || user.numberOfPersons || 1,
@@ -194,6 +196,49 @@ export default function GuideBookingsTable() {
             <h2 className="text-xl md:text-2xl font-bold text-[#2F6288] mb-4">
                 Pilgrim Guide Bookings <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
             </h2>
+            {/* Export */}
+            <div className="flex justify-end mb-3">
+                <button
+                    onClick={() => {
+                        try {
+                            const rows = bookings.map(b => ({
+                                BookingID: b.bookingId,
+                                Email: b.email,
+                                Whatsapp: b.whatsapp || '',
+                                Name: b.name || '',
+                                Guide: b.guideName,
+                                Mode: b.mode,
+                                Persons: b.persons,
+                                BookingDate: new Date(b.bookingDate).toLocaleDateString(),
+                                Location: b.location,
+                                Status: b.status,
+                                Price: b.price,
+                            }));
+                            const headers = Object.keys(rows[0] || {
+                                BookingID: '', Email: '', Whatsapp: '', Name: '', Guide: '', Mode: '', Persons: '', BookingDate: '', Location: '', Status: '', Price: ''
+                            });
+                            const csv = [headers.join(','), ...rows.map(r => headers.map(h => {
+                                const val = (r[h] ?? '').toString().replace(/"/g, '""');
+                                return `"${val}"`;
+                            }).join(','))].join('\n');
+                            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                            const url = URL.createObjectURL(blob);
+                            const link = document.createElement('a');
+                            link.href = url;
+                            link.download = `guide_bookings_${new Date().toISOString().slice(0,10)}.csv`;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            URL.revokeObjectURL(url);
+                        } catch (e) {
+                            console.error('Export failed', e);
+                        }
+                    }}
+                    className="px-3 py-2 text-sm bg-[#2F6288] text-white rounded hover:bg-[#1e4a6b]"
+                >
+                    Export to Excel
+                </button>
+            </div>
 
             {/* Filters */}
             <div className="flex flex-col xl:flex-row gap-3 mb-4">
@@ -249,6 +294,7 @@ export default function GuideBookingsTable() {
                         <tr>
                             <th className="p-2">Booking ID</th>
                             <th className="p-2">User Email</th>
+                            <th className="p-2">WhatsApp</th>
                             <th className="p-2">Mode</th>
                             <th className="p-2">Persons per Session</th>
                             <th className="p-2">Booking Date</th>
@@ -256,6 +302,7 @@ export default function GuideBookingsTable() {
                             <th className="p-2">Actions</th>
                         </tr>
                     </thead>
+
                     <tbody>
                         {filtered.map((booking, idx) => (
                             <motion.tr
@@ -267,6 +314,7 @@ export default function GuideBookingsTable() {
                             >
                                 <td className="p-2">{booking.id}</td>
                                 <td className="p-2">{booking.email}</td>
+                                <td className="p-2">{booking.whatsapp || '-'}</td>
                                 <td className="p-2">
                                     <span
                                         className={`text-xs font-medium px-2 py-1 rounded ${booking.mode === "Online"
@@ -338,6 +386,7 @@ export default function GuideBookingsTable() {
                             </span>
                         </div>
                         <p className="text-sm text-gray-600">{booking.email}</p>
+                        {booking.whatsapp && <p className="text-sm text-gray-600">WhatsApp: {booking.whatsapp}</p>}
                         <p className="mt-1 text-sm">{booking.location}</p>
                         <p className="text-xs text-gray-500 mt-1">
                             {booking.persons} persons | {new Date(booking.date).toLocaleDateString()}
@@ -393,8 +442,12 @@ export default function GuideBookingsTable() {
                                     <p className="text-sm text-gray-900">{selectedBooking.bookingId}</p>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">Email</label>
-                                    <p className="text-sm text-gray-900">{selectedBooking.email}</p>
+                                    <label className="block text-sm font-medium text-gray-700">User</label>
+                                    <p className="text-sm text-gray-900">{selectedBooking.name || '-'} ({selectedBooking.email})</p>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">WhatsApp</label>
+                                    <p className="text-sm text-gray-900">{selectedBooking.whatsapp || '-'}</p>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Guide Name</label>

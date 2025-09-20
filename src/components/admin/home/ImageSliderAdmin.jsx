@@ -246,30 +246,6 @@ export default function ImageSlider() {
 
                 </div>
 
-                {/* Link url */}
-                <h3 className="text-md font-semibold text-gray-700 mb-2">Link Url</h3>
-                <input
-                    type="text"
-                    placeholder="http://example.com"
-                    value={link}
-                    onChange={(e) => setLink(e.target.value)}
-                    className="w-full border p-2 rounded mb-3"
-                />
-
-                {/* Display Order */}
-                <h3 className="text-md font-semibold text-gray-700 mb-2">Display Order</h3>
-                <select
-                    value={displayOrder}
-                    onChange={(e) => setDisplayOrder(e.target.value)}
-                    className="w-full border p-2 rounded mb-3"
-                >
-                    {Array.from({ length: slides.length + 1 }).map((_, i) => (
-                        <option key={i} value={i + 1}>
-                            Position {i + 1}
-                        </option>
-                    ))}
-                </select>
-
                 <button
                     onClick={addOrUpdateSlide}
                     className="bg-gradient-to-b from-[#C5703F] to-[#C16A00] text-white px-4 py-2 rounded hover:bg-gradient-to-b hover:from-[#C16A00] hover:to-[#C5703F] transition-colors"

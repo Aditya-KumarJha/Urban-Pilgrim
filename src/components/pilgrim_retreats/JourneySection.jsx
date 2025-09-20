@@ -1,4 +1,4 @@
-export default function JourneySection({ journey, retreatDescription }) {
+export default function JourneySection({ journey, retreatDescription, location }) {
     return (
         <div className="max-w-7xl mx-auto md:px-6 pt-0 pb-8 space-y-10 text-[#111]">
             {/* Section 1: Introduction */}
@@ -40,11 +40,33 @@ export default function JourneySection({ journey, retreatDescription }) {
                         })()
                         : ""}
                 </p>
-                <img
-                    src="/assets/location.svg"
-                    alt="Location map"
-                    className="rounded-xl shadow-lg w-full h-auto min-h-40 object-cover"
-                />
+
+                {/* map */}
+                {location ? (
+                    <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block"
+                        title={`Open ${location} in Google Maps`}
+                    >
+                        <div className="rounded-xl shadow-lg overflow-hidden w-full">
+                            <iframe
+                                src={`https://www.google.com/maps?q=${encodeURIComponent(location)}&output=embed`}
+                                title={`Map of ${location}`}
+                                className="w-full h-64 border-0"
+                                loading="lazy"
+                                referrerPolicy="no-referrer-when-downgrade"
+                            />
+                        </div>
+                    </a>
+                ) : (
+                    <img
+                        src="/assets/location.svg"
+                        alt="Location map"
+                        className="rounded-xl shadow-lg w-full h-auto min-h-40 object-cover"
+                    />
+                )}
             </section>
 
             {/* Section 3: Instructions */}

@@ -5,21 +5,23 @@ export const saveOrUpdateRecordedSessionData = async (uid, arrayName, newArray) 
     if (!uid) throw new Error("User ID is required");
     console.log("Saving recorded session array:", JSON.stringify(newArray, null, 2));
 
-    // Add createdAt timestamp if not present
-    const dataWithTimestamp = {
-        ...newArray,
-        createdAt: newArray.createdAt || new Date().toISOString()
-    };
+    // Preserve arrays as arrays. Only add createdAt if it's an object payload.
+    const valueToSave = Array.isArray(newArray)
+        ? newArray
+        : {
+            ...newArray,
+            createdAt: newArray?.createdAt || new Date().toISOString()
+        };
 
     // Correct Firestore path
     const docRef = doc(db, "pilgrim_sessions", uid, "sessions", "recordedSession");
 
     try {
-        await updateDoc(docRef, { [arrayName]: dataWithTimestamp });
+        await updateDoc(docRef, { [arrayName]: valueToSave });
         return "updated";
     } catch (error) {
         if (error.code === "not-found" || error.message.includes("No document to update")) {
-            await setDoc(docRef, { [arrayName]: dataWithTimestamp });
+            await setDoc(docRef, { [arrayName]: valueToSave });
             return "created";
         } else {
             console.error("Error saving/updating recorded sessions data:", error);

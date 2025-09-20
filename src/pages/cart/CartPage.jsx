@@ -6,7 +6,10 @@ import toast from "react-hot-toast";
 import { useEffect, useState } from "react";
 import CheckoutOverlay from "./CheckoutOverlay.jsx"
 import { httpsCallable } from "firebase/functions";
-import { functions } from "../../services/firebase.js";
+import { functions, auth, db } from "../../services/firebase.js";
+import { signInWithCustomToken } from "firebase/auth";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { setUser } from "../../features/authSlice";
 import Loader2 from "../../components/Loader2.jsx";
 import { addUserPrograms } from "../../features/userProgramsSlice.js";
 import { prepareCheckoutData, prepareUserProgramsData } from "../../utils/cartUtils.js";
@@ -22,6 +25,12 @@ export default function CartPage() {
 	const [couponCode, setCouponCode] = useState('');
 	const [appliedCoupon, setAppliedCoupon] = useState(null);
 	const [couponLoading, setCouponLoading] = useState(false);
+
+	// Gift card state
+	const [showGift, setShowGift] = useState(false);
+	const [giftAmount, setGiftAmount] = useState(1000);
+	const [giftProgramIndex, setGiftProgramIndex] = useState(-1); // -1 means any program
+	const [giftLoading, setGiftLoading] = useState(false);
 
 	const handleRemoveItem = (id) => {
 		dispatch(removeFromCart(id));
@@ -61,10 +70,33 @@ export default function CartPage() {
 		);
 	}
 
+	// OTP helpers wired to Cloud Functions
+	const sendOtp = async (email) => {
+		const sendOtpFn = httpsCallable(functions, "sendOtp");
+		await sendOtpFn({ email });
+		return true;
+	};
+
+	const verifyOtp = async (email, otp) => {
+		const verifyOtpFn = httpsCallable(functions, "verifyOtp");
+		const res = await verifyOtpFn({ email, otp });
+		const result = await signInWithCustomToken(auth, res.data.token);
+		const user = result.user;
+		// Ensure user doc exists
+		const userRef = doc(db, "users", user.uid, "info", "details");
+		const userSnap = await getDoc(userRef);
+		if (!userSnap.exists()) {
+			await setDoc(userRef, { uid: user.uid, email: user.email, createdAt: new Date() });
+		}
+		dispatch(setUser({ uid: user.uid, email: user.email }));
+		return true;
+	};
+
 	const handleConfirmCheckout = async (formData) => {
 		try {
+			// After OTP verification, user will be signed in. Guard just in case.
 			if (!user) {
-				toast.error("Please login to continue");
+				toast.error("Please verify your email to continue");
 				return;
 			}
 
@@ -113,12 +145,11 @@ export default function CartPage() {
 				},
 				prefill: {
 					name: `${formData.firstName} ${formData.lastName}`,
-					email: user.email,
-					contact: formData.phone || "9999999999",
+					email: user?.email || formData.email,
+					contact: formData.whatsapp || "9999999999",
 				},
 				theme: { color: "#2F5D82" },
 			};
-
 
 			const rzp = new window.Razorpay(options);
 			rzp.open();
@@ -141,6 +172,7 @@ export default function CartPage() {
 		setCouponLoading(true);
 		try {
 			const result = await validateCoupon(couponCode, cartData);
+			console.log("Coupon validation result:", result);
 			
 			if (result.valid) {
 				setAppliedCoupon({
@@ -166,6 +198,62 @@ export default function CartPage() {
 		setAppliedCoupon(null);
 		setCouponCode('');
 		toast.success('Coupon removed');
+	};
+
+	// Gift Card purchase handler
+	const handlePurchaseGiftCard = async () => {
+		try {
+			if (!user) {
+				toast.error('Please login to purchase a gift card');
+				return;
+			}
+			setGiftLoading(true);
+			const createGiftOrder = httpsCallable(functions, 'createGiftCardOrder');
+			const { data: order } = await createGiftOrder({ amount: giftAmount });
+
+			const options = {
+				key: 'rzp_test_5Qxb0fQ1nBKqtZ',
+				amount: order.amount,
+				currency: order.currency,
+				name: 'Urban Pilgrim',
+				description: `Gift Card ₹${giftAmount}`,
+				order_id: order.id,
+				handler: async function (response) {
+					try {
+						const confirmGift = httpsCallable(functions, 'confirmGiftCardPayment');
+						const selected = giftProgramIndex >= 0 ? cartData[giftProgramIndex] : null;
+						await confirmGift({
+							purchaserEmail: user.email,
+							purchaserName: user.displayName || user.email?.split('@')[0] || 'Pilgrim',
+							programTitle: selected?.title || null,
+							programType: selected?.type || selected?.category || null,
+							programId: selected?.id || null,
+							amount: giftAmount,
+							paymentResponse: response
+						});
+						toast.success('Gift card purchased! Code sent to your email.');
+						setShowGift(false);
+					} catch (err) {
+						console.error(err);
+						toast.error('Failed to finalize gift card');
+					}
+				},
+				prefill: {
+					name: user.displayName || '',
+					email: user.email,
+					contact: '9999999999',
+				},
+				theme: { color: '#2F5D82' }
+			};
+
+			const rzp = new window.Razorpay(options);
+			rzp.open();
+		} catch (e) {
+			console.error('Gift card error', e);
+			toast.error('Unable to purchase gift card');
+		} finally {
+			setGiftLoading(false);
+		}
 	};
 
 	if (loading) {
@@ -255,6 +343,41 @@ export default function CartPage() {
 						</div>
 
 						<div className="w-full h-[1px] bg-[#00000033] my-6"></div>
+
+						{/* Gift Card */}
+						<div className="mb-6">
+							<h4 className="text-lg font-semibold mb-2">Purchase Gift Card</h4>
+							<div className="flex gap-2 mb-3">
+								{[1000, 2000, 5000].map(amt => (
+									<button
+										key={amt}
+										onClick={() => setGiftAmount(amt)}
+										className={`px-3 py-1 rounded-full border ${giftAmount === amt ? 'bg-[#2F6288] text-white border-[#2F6288]' : 'border-gray-300'}`}
+									>
+										₹{amt}
+									</button>
+								))}
+							</div>
+							<label className="block text-sm text-gray-600 mb-1">Limit to program (optional)</label>
+							<select
+								value={giftProgramIndex}
+								onChange={(e) => setGiftProgramIndex(parseInt(e.target.value))}
+								className="w-full border p-2 rounded mb-3"
+							>
+								<option value={-1}>Any program</option>
+								{cartData.map((item, idx) => (
+									<option key={item.id} value={idx}>{item.title}</option>
+								))}
+							</select>
+							<button
+								onClick={handlePurchaseGiftCard}
+								disabled={giftLoading}
+								className="w-full bg-[#2F6288] hover:bg-[#224b66] text-white py-2 rounded-full font-semibold disabled:opacity-60"
+							>
+								{giftLoading ? 'Processing...' : 'Purchase Gift Card'}
+							</button>
+						</div>
+
 						<div className="flex justify-between font-bold text-lg mt-4 mb-6">
 							<span>Total</span>
 							<span>₹ {total.toLocaleString()}</span>
@@ -269,6 +392,9 @@ export default function CartPage() {
 								total={total}
 								onClose={() => setShowCheckout(false)}
 								onConfirm={handleConfirmCheckout}
+								isLoggedIn={!!user}
+								sendOtp={sendOtp}
+								verifyOtp={verifyOtp}
 							/>
 						)}
 					</div>

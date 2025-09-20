@@ -347,25 +347,18 @@ export default function LiveDetails() {
                 >
                     {allEvents && Object.keys(allEvents).length > 0 ? (
                         Object.entries(allEvents)
-                            .filter(([id, eventData]) => {
-                                // Filter out the current live session and show only first 3 events
-                                const currentSessionTitle = programData?.liveSessionCard?.title?.toLowerCase();
-                                const eventTitle = eventData?.upcomingSessionCard?.title?.toLowerCase();
-                                return eventTitle !== currentSessionTitle && eventData?.upcomingSessionCard?.image;
-                            })
+                            .filter(([id, data]) => (data?.type === 'live-session' || data?.type === 'live') && !!data?.upcomingSessionCard?.image)
+                            .sort(() => Math.random() - 0.5)
                             .slice(0, 3)
-                            .sort(() => Math.random() - 0.5) // Randomize the order
-                            .map(([id, eventData]) => {
-                                return (
-                                    <PersondetailsCard 
-                                        key={id}
-                                        image={eventData?.upcomingSessionCard?.image || '/assets/default-event.png'}
-                                        title={eventData?.upcomingSessionCard?.title || 'Event'}
-                                        price={`${eventData?.upcomingSessionCard?.price || '0'}`}
-                                        type={eventData?.type || 'live-session'}
-                                    />
-                                );
-                            })
+                            .map(([id, data]) => (
+                                <PersondetailsCard 
+                                    key={id}
+                                    image={data?.upcomingSessionCard?.image || '/assets/default-event.png'}
+                                    title={data?.upcomingSessionCard?.title || 'Event'}
+                                    price={`${data?.upcomingSessionCard?.price || '0'}`}
+                                    type={'live-session'}
+                                />
+                            ))
                     ) : (
                         // Fallback to original cards if no events loaded
                         <>
