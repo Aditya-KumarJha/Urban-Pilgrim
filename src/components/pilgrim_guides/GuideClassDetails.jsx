@@ -25,7 +25,9 @@ export default function GuideClassDetails() {
     const [showModal, setShowModal] = useState(false);
     const [showCalendar, setShowCalendar] = useState(false);
     const [selectedPlan, setSelectedPlan] = useState("");
-    const [subscriptionType, setSubscriptionType] = useState(null);
+    const [subscriptionType, setSubscriptionType] = useState(null); // 'oneTime' | 'monthly'
+    const [variation, setVariation] = useState(null); // 'individual' | 'couples' | 'group'
+    const [selectedSlot, setSelectedSlot] = useState(null); // { date, startTime, endTime }
     const [availableSlots, setAvailableSlots] = useState([]);
     const [mainImage, setMainImage] = useState('');
     const [galleryImages, setGalleryImages] = useState([]);
@@ -187,36 +189,130 @@ export default function GuideClassDetails() {
         }
     }, [sessionData]);
 
-    // Function to get slots based on current mode and subscription type
+    // Get slots by subscription type and mode
     const getAvailableSlots = () => {
-        if (!sessionData || !mode) return [];
+        if (!sessionData || !mode || !subscriptionType) return [];
+        const modeKey = mode.toLowerCase();
+        const plan = sessionData?.[modeKey]?.[subscriptionType] || {};
 
-        const modeKey = mode.toLowerCase(); // "online" or "offline"
-        let allSlots = [];
-
-        // Get all available slots for the current mode across all subscription types
-        if (subscriptionType === "monthly" && sessionData[modeKey]?.monthly?.slots) {
-            allSlots = sessionData[modeKey].monthly.slots;
-        } else if (subscriptionType === "quarterly" && sessionData[modeKey]?.quarterly?.slots) {
-            allSlots = sessionData[modeKey].quarterly.slots;
-        } else if (subscriptionType === "oneTime" && sessionData[modeKey]?.oneTime?.slots) {
-            allSlots = sessionData[modeKey].oneTime.slots;
-        } else {
-            // Fallback: collect all slots from available subscription types for the mode
-            const monthlySlots = sessionData[modeKey]?.monthly?.slots || [];
-            const quarterlySlots = sessionData[modeKey]?.quarterly?.slots || [];
-            const oneTimeSlots = sessionData[modeKey]?.oneTime?.slots || [];
-            allSlots = [...monthlySlots, ...quarterlySlots, ...oneTimeSlots];
+        // One-time: use stored date slots directly
+        if (subscriptionType === 'oneTime') {
+            const slots = Array.isArray(plan.slots) ? plan.slots : [];
+            // Ensure only upcoming dates
+            const today = new Date();
+            const todayYmd = today.toISOString().slice(0,10);
+            return slots.filter(s => (s?.date || '') >= todayYmd);
         }
 
-        return allSlots;
+        // Monthly: generate next 30 days from weeklyPattern
+        if (subscriptionType === 'monthly') {
+            const pattern = Array.isArray(plan.weeklyPattern) ? plan.weeklyPattern : [];
+            if (pattern.length === 0) return [];
+            const out = [];
+            const today = new Date();
+            for (let i = 0; i < 30; i++) {
+                const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
+                const dayShort = d.toLocaleDateString('en-US', { weekday: 'short' }).slice(0,3); // Sun, Mon...
+                const ymd = d.toISOString().slice(0,10);
+                pattern.forEach(row => {
+                    if ((row.days || []).includes(dayShort)) {
+                        (row.times || []).forEach(t => {
+                            out.push({ date: ymd, startTime: t.startTime, endTime: t.endTime });
+                        });
+                    }
+                });
+            }
+            return out;
+        }
+
+        return [];
     };
 
     // Update available slots when mode or subscription type changes
     useEffect(() => {
-        const slots = getAvailableSlots();
-        setAvailableSlots(slots);
+        const s = getAvailableSlots();
+        setAvailableSlots(s);
     }, [sessionData, mode, subscriptionType]);
+
+    const getPricesForSelection = () => {
+        if (!sessionData || !mode || !subscriptionType) return {};
+        const plan = sessionData[mode.toLowerCase()]?.[subscriptionType] || {};
+        return {
+            individual: plan.individualPrice || plan.price || 0,
+            couples: plan.couplesPrice || 0,
+            group: plan.groupPrice || 0,
+            groupMin: plan.groupMin || 0,
+            groupMax: plan.groupMax || 0,
+        };
+    };
+
+    const getPlan = () => {
+        if (!sessionData || !mode || !subscriptionType) return {};
+        return sessionData[mode.toLowerCase()]?.[subscriptionType] || {};
+    };
+
+    const hasVariation = (v) => {
+        const p = getPlan();
+        if (v === 'individual') return !!(p.individualPrice || p.price);
+        if (v === 'couples') return !!p.couplesPrice;
+        if (v === 'group') return !!p.groupPrice;
+        return false;
+    };
+
+    const planHasPrice = (planObj) => !!(planObj?.price || planObj?.individualPrice || planObj?.couplesPrice || planObj?.groupPrice);
+
+    const planAvailable = (planKey) => {
+        if (!sessionData || !mode) return false;
+        const pk = sessionData[mode.toLowerCase()]?.[planKey];
+        return planHasPrice(pk);
+    };
+
+    // Available across any mode (Online/Offline)
+    const planAvailableAny = (planKey) => {
+        if (!sessionData) return false;
+        return planHasPrice(sessionData?.online?.[planKey]) || planHasPrice(sessionData?.offline?.[planKey]);
+    };
+
+    const findModeForPlan = (planKey) => {
+        if (planHasPrice(sessionData?.online?.[planKey])) return 'Online';
+        if (planHasPrice(sessionData?.offline?.[planKey])) return 'Offline';
+        return null;
+    };
+
+    const getPlanFromPrice = (planObj) => {
+        if (!planObj) return null;
+        const prices = [planObj.price, planObj.individualPrice, planObj.couplesPrice, planObj.groupPrice]
+            .map(v => (v === undefined || v === null || v === '' ? null : Number(v)))
+            .filter(v => typeof v === 'number' && !isNaN(v) && v >= 0);
+        if (prices.length === 0) return null;
+        return Math.min(...prices);
+    };
+
+    const getPlanPricePreview = (planKey) => {
+        if (!sessionData) return null;
+        const current = sessionData[mode?.toLowerCase?.()]?.[planKey];
+        let price = getPlanFromPrice(current);
+        let usedMode = mode;
+        if (price == null) {
+            const altMode = mode === 'Online' ? 'offline' : 'online';
+            const alt = sessionData[altMode]?.[planKey];
+            price = getPlanFromPrice(alt);
+            usedMode = altMode === 'online' ? 'Online' : altMode === 'offline' ? 'Offline' : usedMode;
+        }
+        if (price == null) return null;
+        return { price, mode: usedMode };
+    };
+
+    // Prefer selected occupancy price if provided, else use plan price preview
+    const getDisplayedPrice = () => {
+        if (!subscriptionType) return null;
+        if (selectedOccupancy && selectedOccupancy.price) {
+            const n = Number(selectedOccupancy.price);
+            return isNaN(n) ? null : n;
+        }
+        const pv = getPlanPricePreview(subscriptionType);
+        return pv?.price ?? null;
+    };
 
     const handleShowFreeTrail = () => {
         // Check if there are any videos available for free trial
@@ -372,12 +468,6 @@ export default function GuideClassDetails() {
                             </div>
                         )}
 
-                        {
-                            sessionData?.guideCard?.subCategory !== "both" && (
-                                <div className="flex items-center border-[#D69A75] border rounded-full px-2 font-medium">{sessionData?.guideCard?.subCategory}</div>
-                            )
-                        }
-
                         {/* Quantity */}
                         <div className="flex flex-wrap items-center gap-2">
                             <label className="font-medium">No of persons/sessions:</label>
@@ -443,322 +533,100 @@ export default function GuideClassDetails() {
                         </div>
                     )}
 
-                    {/* Subscription Type Selector - Only show if multiple options available */}
-                    {(((sessionData?.online?.monthly?.price || sessionData?.offline?.monthly?.price) &&
-                        (sessionData?.online?.quarterly?.price || sessionData?.offline?.quarterly?.price)) ||
-                        (((sessionData?.online?.monthly?.price || sessionData?.offline?.monthly?.price) ||
-                            (sessionData?.online?.quarterly?.price || sessionData?.offline?.quarterly?.price)) &&
-                            (sessionData?.online?.oneTime?.price || sessionData?.offline?.oneTime?.price))) && (
-                            <div className="max-w-sm">
-                                <h3 className="text-lg font-semibold text-gray-800 mb-4">Choose Plan Type</h3>
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-                                    {/* Monthly Option */}
-                                    {(sessionData?.online?.monthly?.price || sessionData?.offline?.monthly?.price) && (
+                    {/* Subscription Type Selector - show if admin provided plan in ANY mode */}
+                    {(planAvailableAny('monthly') || planAvailableAny('oneTime')) && (
+                        <div className="max-w-sm">
+                            <h3 className="text-lg font-semibold text-gray-800 mb-4">Choose Plan Type</h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+                                {/* Monthly Option */}
+                                {planAvailableAny('monthly') && (
                                         <button
                                             onClick={() => {
                                                 setSubscriptionType("monthly");
                                                 setSelectedPlan("monthly");
+                                                if (!planAvailable('monthly')) {
+                                                    const m = findModeForPlan('monthly');
+                                                    if (m) setMode(m);
+                                                }
                                             }}
                                             className={`p-3 rounded-lg border-2 transition-all duration-200 ${subscriptionType === "monthly"
-                                                    ? "border-[#2F6288] bg-[#2F6288] text-white shadow-md"
-                                                    : "border-gray-300 bg-white text-gray-700 hover:border-[#2F6288] hover:bg-gray-50"
-                                                }`}
+                                                ? "border-[#C5703F] bg-[#C5703F] text-white shadow-md"
+                                                : "border-gray-300 bg-white text-gray-700 hover:border-[#C5703F] hover:bg-gray-50"
+                                            }`}
                                         >
                                             <div className="text-center">
                                                 <p className="font-semibold">Monthly</p>
-                                                <p className="text-xs opacity-90">Flexible</p>
+                                                {(() => {
+                                                    const pv = getPlanPricePreview('monthly');
+                                                    return pv ? (
+                                                        <p className="text-xs mt-1">From ₹{new Intl.NumberFormat('en-IN').format(pv.price)}{planAvailable('monthly') ? '' : ` • ${pv.mode}`}</p>
+                                                    ) : null;
+                                                })()}
                                             </div>
                                         </button>
                                     )}
 
-                                    {/* Quarterly Option */}
-                                    {(sessionData?.online?.quarterly?.price || sessionData?.offline?.quarterly?.price) && (
-                                        <button
-                                            onClick={() => {
-                                                setSubscriptionType("quarterly");
-                                                setSelectedPlan("quarterly");
-                                            }}
-                                            className={`p-3 rounded-lg border-2 transition-all duration-200 ${subscriptionType === "quarterly"
-                                                    ? "border-[#2F6288] bg-[#2F6288] text-white shadow-md"
-                                                    : "border-gray-300 bg-white text-gray-700 hover:border-[#2F6288] hover:bg-gray-50"
-                                                }`}
-                                        >
-                                            <div className="text-center">
-                                                <p className="font-semibold">Quarterly</p>
-                                                <p className="text-xs opacity-90">Save more</p>
-                                            </div>
-                                        </button>
-                                    )}
-
-                                    {/* One Time Option */}
-                                    {(sessionData?.online?.oneTime?.price || sessionData?.offline?.oneTime?.price) && (
-                                        <button
-                                            onClick={() => {
-                                                setSubscriptionType("oneTime");
-                                                setSelectedPlan("oneTime");
-                                            }}
-                                            className={`p-3 rounded-lg border-2 transition-all duration-200 ${subscriptionType === "oneTime"
-                                                    ? "border-[#2F6288] bg-[#2F6288] text-white shadow-md"
-                                                    : "border-gray-300 bg-white text-gray-700 hover:border-[#2F6288] hover:bg-gray-50"
-                                                }`}
-                                        >
-                                            <div className="text-center">
-                                                <p className="font-semibold">One Time</p>
-                                                <p className="text-xs opacity-90">Pay once</p>
-                                            </div>
-                                        </button>
-                                    )}
-                                </div>
+                                {/* One Time Option */}
+                                {planAvailableAny('oneTime') && (
+                                    <button
+                                        onClick={() => {
+                                            setSubscriptionType("oneTime");
+                                            setSelectedPlan("oneTime");
+                                            if (!planAvailable('oneTime')) {
+                                                const m = findModeForPlan('oneTime');
+                                                if (m) setMode(m);
+                                            }
+                                        }}
+                                        className={`p-3 rounded-lg border-2 transition-all duration-200 ${subscriptionType === "oneTime"
+                                                ? "border-[#C5703F] bg-[#C5703F] text-white shadow-md"
+                                                : "border-gray-300 bg-white text-gray-700 hover:border-[#C5703F] hover:bg-gray-50"
+                                            }`}
+                                    >
+                                        <div className="text-center">
+                                            <p className="font-semibold">One Time</p>
+                                            {(() => {
+                                                const pv = getPlanPricePreview('oneTime');
+                                                return pv ? (
+                                                    <p className="text-xs mt-1">From ₹{new Intl.NumberFormat('en-IN').format(pv.price)}{planAvailable('oneTime') ? '' : ` • ${pv.mode}`}</p>
+                                                ) : null;
+                                            })()}
+                                        </div>
+                                    </button>
+                                )}
                             </div>
-                        )}
+                            {/* Selected Plan Price Summary (uses occupancy price if selected) */}
+                            {subscriptionType && (() => {
+                                const title = subscriptionType === 'oneTime' ? 'One Time Purchase' : 'Monthly Subscription';
+                                const price = getDisplayedPrice();
+                                if (price == null) return null;
+                                return (
+                                    <div className="mt-2 border rounded-xl p-4 bg-white">
+                                        <div className="font-semibold underline mb-2">{title}</div>
+                                        <div className="text-2xl font-bold">₹ {new Intl.NumberFormat('en-IN').format(price)}</div>
+                                        <div className="text-sm text-gray-500">Total</div>
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                    )}
 
-                    {/* Pricing Box */}
+                    {/* Book Now opens Calendar Modal with available slots */}
                     {subscriptionType && (
-                        <div className="grid max-w-sm gap-4">
-                            {/* Monthly Subscription Plans */}
-                            {subscriptionType === "monthly" && (
-                                <div className="space-y-4">
-                                    {/* Online Monthly Plan */}
-                                    {sessionData?.online?.monthly?.price && (
-                                        <div
-                                            className="border p-4 rounded-xl space-y-2 border-gray-300 bg-white"
-                                        >
-                                            <p className="text-sm font-semibold text-gray-700 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
-                                                <span>Monthly Online Subscription</span>
-                                                {sessionData.online.monthly.discount && (
-                                                    <span className="text-[#E8A87C] text-xs bg-orange-100 px-2 py-1 rounded-full">
-                                                        Save {sessionData.online.monthly.discount}%
-                                                    </span>
-                                                )}
-                                            </p>
-                                            <p className="text-lg font-bold text-[#2F6288]">
-                                                ₹ {Number(selectedOccupancy?.price || sessionData.online.monthly.price).toLocaleString("en-IN", {
-                                                    minimumFractionDigits: 2,
-                                                    maximumFractionDigits: 2
-                                                })}
-                                                <span className="text-sm text-gray-500 font-normal">/month</span>
-                                            </p>
-                                            {sessionData.online.monthly.description && (
-                                                <ul className="text-sm list-disc list-inside text-gray-600 space-y-1">
-                                                    {sessionData.online.monthly.description
-                                                        .split("\n")
-                                                        .filter(line => line.trim())
-                                                        .map((line, i) => (
-                                                            <li key={i}>{line.trim()}</li>
-                                                        ))}
-                                                </ul>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {/* Offline Monthly Plan */}
-                                    {sessionData?.offline?.monthly?.price && (
-                                        <div
-                                            className="border p-4 rounded-xl space-y-2 border-gray-300 bg-white"
-                                        >
-                                            <p className="text-sm font-semibold text-gray-700 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
-                                                <span>Monthly Offline Subscription</span>
-                                                {sessionData.offline.monthly.discount && (
-                                                    <span className="text-[#E8A87C] text-xs bg-orange-100 px-2 py-1 rounded-full">
-                                                        Save {sessionData.offline.monthly.discount}%
-                                                    </span>
-                                                )}
-                                            </p>
-                                            <p className="text-lg font-bold text-[#2F6288]">
-                                                ₹ {Number(selectedOccupancy?.price || sessionData.offline.monthly.price).toLocaleString("en-IN", {
-                                                    minimumFractionDigits: 2,
-                                                    maximumFractionDigits: 2
-                                                })}
-                                                <span className="text-sm text-gray-500 font-normal">/month</span>
-                                            </p>
-                                            {sessionData.offline.monthly.description && (
-                                                <ul className="text-sm list-disc list-inside text-gray-600 space-y-1">
-                                                    {sessionData.offline.monthly.description
-                                                        .split("\n")
-                                                        .filter(line => line.trim())
-                                                        .map((line, i) => (
-                                                            <li key={i}>{line.trim()}</li>
-                                                        ))}
-                                                </ul>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
+                        <div className="max-w-xl mt-6 space-y-3">
+                            <button
+                                onClick={() => setShowCalendar(true)}
+                                className="w-full px-4 py-3 rounded-lg text-white bg-[#C5703F] hover:bg-[#C5703F]/90 font-semibold"
+                            >
+                                Book Now
+                            </button>
+                            {mode === 'Online' && sessionData?.session?.freeTrialVideo && (
+                                <button
+                                    onClick={handleShowFreeTrail}
+                                    className="w-full px-4 py-3 rounded-lg border border-[#C5703F] text-[#C5703F] hover:bg-[#C5703F]/10 font-semibold"
+                                >
+                                    Get a Free Trail
+                                </button>
                             )}
-
-                            {/* Quarterly Subscription Plans */}
-                            {subscriptionType === "quarterly" && (
-                                <div className="space-y-4">
-                                    {/* Online Quarterly Plan */}
-                                    {sessionData?.online?.quarterly?.price && (
-                                        <div
-                                            className="border p-4 rounded-xl space-y-2 border-gray-300 bg-white"
-                                        >
-                                            <p className="text-sm font-semibold text-gray-700 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
-                                                <span>Quarterly Online Subscription</span>
-                                                {sessionData.online.quarterly.discount && (
-                                                    <span className="text-[#E8A87C] text-xs bg-orange-100 px-2 py-1 rounded-full">
-                                                        Save {sessionData.online.quarterly.discount}%
-                                                    </span>
-                                                )}
-                                            </p>
-                                            <p className="text-lg font-bold text-[#2F6288]">
-                                                ₹ {Number(selectedOccupancy?.price || sessionData.online.quarterly.price).toLocaleString("en-IN", {
-                                                    minimumFractionDigits: 2,
-                                                    maximumFractionDigits: 2
-                                                })}
-                                                <span className="text-sm text-gray-500 font-normal">/quarter</span>
-                                            </p>
-                                            {sessionData.online.quarterly.description && (
-                                                <ul className="text-sm list-disc list-inside text-gray-600 space-y-1">
-                                                    {sessionData.online.quarterly.description
-                                                        .split("\n")
-                                                        .filter(line => line.trim())
-                                                        .map((line, i) => (
-                                                            <li key={i}>{line.trim()}</li>
-                                                        ))}
-                                                </ul>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {/* Offline Quarterly Plan */}
-                                    {sessionData?.offline?.quarterly?.price && (
-                                        <div
-                                            className="border p-4 rounded-xl space-y-2 border-gray-300 bg-white"
-                                        >
-                                            <p className="text-sm font-semibold text-gray-700 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1">
-                                                <span>Quarterly Offline Subscription</span>
-                                                {sessionData.offline.quarterly.discount && (
-                                                    <span className="text-[#E8A87C] text-xs bg-orange-100 px-2 py-1 rounded-full">
-                                                        Save {sessionData.offline.quarterly.discount}%
-                                                    </span>
-                                                )}
-                                            </p>
-                                            <p className="text-lg font-bold text-[#2F6288]">
-                                                ₹ {Number(selectedOccupancy?.price || sessionData.offline.quarterly.price).toLocaleString("en-IN", {
-                                                    minimumFractionDigits: 2,
-                                                    maximumFractionDigits: 2
-                                                })}
-                                                <span className="text-sm text-gray-500 font-normal">/quarter</span>
-                                            </p>
-                                            {sessionData.offline.quarterly.description && (
-                                                <ul className="text-sm list-disc list-inside text-gray-600 space-y-1">
-                                                    {sessionData.offline.quarterly.description
-                                                        .split("\n")
-                                                        .filter(line => line.trim())
-                                                        .map((line, i) => (
-                                                            <li key={i}>{line.trim()}</li>
-                                                        ))}
-                                                </ul>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* One Time Purchase - Only show when selected or when it's the only option */}
-                            {subscriptionType === "oneTime" && (
-                                <div className="space-y-4">
-                                    {/* Online One Time Plan */}
-                                    {sessionData?.online?.oneTime?.price && (
-                                        <div className="border p-4 rounded-xl space-y-2 border-gray-300 bg-white">
-                                            <p className="text-sm font-semibold text-gray-700">
-                                                One Time Online Purchase
-                                            </p>
-                                            <p className="text-lg font-bold text-[#2F6288]">
-                                                ₹ {Number(selectedOccupancy?.price || sessionData.online.oneTime.price).toLocaleString("en-IN", {
-                                                    minimumFractionDigits: 2,
-                                                    maximumFractionDigits: 2
-                                                })}
-                                            </p>
-                                        </div>
-                                    )}
-
-                                    {/* Offline One Time Plan */}
-                                    {sessionData?.offline?.oneTime?.price && (
-                                        <div className="border p-4 rounded-xl space-y-2 border-gray-300 bg-white">
-                                            <p className="text-sm font-semibold text-gray-700">
-                                                One Time Offline Purchase
-                                            </p>
-                                            <p className="text-lg font-bold text-[#2F6288]">
-                                                ₹ {Number(selectedOccupancy?.price || sessionData.offline.oneTime.price).toLocaleString("en-IN", {
-                                                    minimumFractionDigits: 2,
-                                                    maximumFractionDigits: 2
-                                                })}
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* Action Buttons */}
-                            <div className="space-y-3 mt-4">
-                                {(() => {
-                                    // Get button configuration based on user ownership
-                                    const buttonConfig = getProgramButtonConfig(
-                                        userPrograms,
-                                        sessionData?.guideCard?.title,
-                                        'guide'
-                                    );
-
-                                    const handleButtonClick = () => {
-                                        if (buttonConfig.action === 'view') {
-                                            // Navigate to user dashboard or program view
-                                            navigate('/userdashboard');
-                                        } else if (buttonConfig.action === 'renew') {
-                                            // Handle renewal - show calendar for rebooking
-                                            setShowCalendar(true);
-                                        } else {
-                                            // Default booking action
-                                            setShowCalendar(true);
-                                        }
-                                    };
-
-                                    if (buttonConfig.action === 'view') {
-                                        // User already owns this program
-                                        return (
-                                            <button
-                                                className={`w-full py-3 px-4 rounded-lg transition-all duration-200 font-semibold shadow-md hover:shadow-lg ${buttonConfig.className}`}
-                                                onClick={handleButtonClick}
-                                            >
-                                                {buttonConfig.text}
-                                            </button>
-                                        );
-                                    }
-
-                                    // User doesn't own the program - show booking options
-                                    return (
-                                        <>
-                                            {mode === "Offline" && (
-                                                <button
-                                                    className="w-full bg-[#2F6288] text-white py-3 px-4 rounded-lg hover:bg-[#2F6288]/90 transition-all duration-200 font-semibold shadow-md hover:shadow-lg"
-                                                    onClick={handleButtonClick}
-                                                >
-                                                    Schedule Your Time - {selectedPlan === "monthly" ? "Monthly" : selectedPlan === "quarterly" ? "Quarterly" : "One Time"}
-                                                </button>
-                                            )}
-
-                                            {mode === "Online" && (
-                                                <>
-                                                    <button
-                                                        className="w-full bg-[#2F6288] text-white py-3 px-4 rounded-lg hover:bg-[#2F6288]/90 transition-all duration-200 font-semibold shadow-md hover:shadow-lg"
-                                                        onClick={handleButtonClick}
-                                                    >
-                                                        Book Now - {selectedPlan === "monthly" ? "Monthly" : selectedPlan === "quarterly" ? "Quarterly" : "One Time"}
-                                                    </button>
-                                                    <button
-                                                        className="w-full border-2 border-[#2F6288] text-[#2F6288] py-3 px-4 rounded-lg hover:bg-[#2F6288] hover:text-white transition-all duration-200 font-semibold"
-                                                        onClick={handleShowFreeTrail}
-                                                    >
-                                                        Get Free Trial
-                                                    </button>
-                                                </>
-                                            )}
-                                        </>
-                                    );
-                                })()}
-                            </div>
                         </div>
                     )}
                 </div>

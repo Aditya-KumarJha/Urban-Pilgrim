@@ -327,6 +327,7 @@ export default function ProgramDetails() {
             <BundlesPopup
                 isOpen={showBundlesPopup}
                 onClose={() => setShowBundlesPopup(false)}
+                programType="recorded"
                 retreatData={{
                     id: programData?.recordedProgramCard?.title,
                     pilgrimRetreatCard: {

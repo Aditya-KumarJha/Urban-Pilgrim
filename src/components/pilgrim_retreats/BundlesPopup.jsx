@@ -6,7 +6,7 @@ import { addToCart } from "../../features/cartSlice";
 import { fetchAllBundles } from "../../services/bundleService";
 import "./BundlesPopup.css";
 
-export default function BundlesPopup({ isOpen, onClose, retreatData, selectedOccupancy, persons, duration }) {
+export default function BundlesPopup({ isOpen, onClose, retreatData, selectedOccupancy, persons, duration, programType = "retreat" }) {
     const [bundles, setBundles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -348,18 +348,28 @@ export default function BundlesPopup({ isOpen, onClose, retreatData, selectedOcc
                                 </button>
                                 <button
                                     onClick={() => {
-                                        // Add retreat to cart directly
+                                        // Add program to cart directly for all supported types
                                         if (retreatData) {
+                                            const derivedPrice =
+                                                (selectedOccupancy?.price ?? null) ||
+                                                (retreatData?.pilgrimRetreatCard?.price ?? null) ||
+                                                0;
+
+                                            const derivedImage =
+                                                retreatData?.oneTimePurchase?.images?.[0] ||
+                                                retreatData?.oneTimeSubscription?.images?.[0] ||
+                                                retreatData?.pilgrimRetreatCard?.image ||
+                                                "/assets/retreats.svg";
+
                                             const cartItem = {
-                                                id: retreatData.id || `retreat-${Date.now()}`,
-                                                title: retreatData.pilgrimRetreatCard?.title || "Retreat",
-                                                price: selectedOccupancy.price,
-                                                image: retreatData.oneTimePurchase?.images?.[0] || "/assets/retreats.svg",
-                                                type: "retreat",
+                                                id: retreatData.id || `${programType}-${Date.now()}`,
+                                                title: retreatData.pilgrimRetreatCard?.title || "Program",
+                                                price: derivedPrice,
+                                                image: derivedImage,
+                                                type: programType,
                                                 persons: persons || 1,
                                                 duration: duration || 1,
                                                 location: retreatData.pilgrimRetreatCard?.location,
-                                                persons: 1
                                             };
                                             dispatch(addToCart(cartItem));
                                             onClose();

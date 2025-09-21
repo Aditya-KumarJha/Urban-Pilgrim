@@ -28,7 +28,15 @@ export default function LiveDetails() {
     const [showAll, setShowAll] = useState(false);
 
     const slots = programData?.liveSlots || [];
-    const visibleSlots = showAll ? slots : slots.slice(0, 2);
+    // Group slots by date to support multiple time ranges per date
+    const groupedByDate = (slots || []).reduce((acc, s) => {
+        if (!s?.date) return acc;
+        if (!acc[s.date]) acc[s.date] = [];
+        acc[s.date].push(s);
+        return acc;
+    }, {});
+    const sortedDates = Object.keys(groupedByDate).sort();
+    const visibleDates = showAll ? sortedDates : sortedDates.slice(0, 2);
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -243,55 +251,54 @@ export default function LiveDetails() {
                         </div>
                     </div>
 
-                    {/* time slots */}
-                    {slots.length > 0 && slots.some(slot => slot.date || slot.startTime || slot.endTime) && (
+                    {/* time slots (grouped by date) */}
+                    {sortedDates.length > 0 && (
                         <div className="text-[#787B7B] mt-5">
                             <p>
                                 <span className="font-medium">Program starts - </span>
                                 <span>
-                                    {formatDateWithSuffix(programData?.liveSlots?.[0]?.date) || "Not available"}
+                                    {formatDateWithSuffix(sortedDates[0]) || "Not available"}
                                 </span>
                             </p>
 
                             <p>
                                 <span className="font-medium">Live sessions with </span>
-                                <span className="font-medium">
-                                    {programData?.organizer?.name}
-                                </span>{" "}
+                                <span className="font-medium">{programData?.organizer?.name}</span>{" "}
                             </p>
 
-                            {visibleSlots.map((slot, index) => (
-                                <div key={index} className="mb-2">
-                                    <p className="text-[#787B7B]">
-                                        Time -
-                                        <span>
-                                            {slot.startTime
-                                                ? new Date(`1970-01-01T${slot.startTime}`).toLocaleTimeString("en-US", {
-                                                    hour: "numeric",
-                                                    minute: "2-digit",
-                                                    hour12: true,
-                                                })
-                                                : "Not available"}
-                                        </span>{" "}
-                                        -
-                                        <span>
-                                            {slot.endTime
-                                                ? new Date(`1970-01-01T${slot.endTime}`).toLocaleTimeString("en-US", {
-                                                    hour: "numeric",
-                                                    minute: "2-digit",
-                                                    hour12: true,
-                                                })
-                                                : "Not available"}
-                                        </span>
+                            {visibleDates.map((dateKey, idx) => (
+                                <div key={dateKey} className="mb-3">
+                                    <p className="font-medium text-gray-800">
+                                        Date - <span className="text-[#787B7B]">{formatDateWithSuffix(dateKey)}</span>
                                     </p>
-                                    <p>
-                                        <span className="font-medium">Date - </span>
-                                        <span>{slot.date ? formatDateWithSuffix(slot.date) : "Not available"}</span>
-                                    </p>
+                                    {(groupedByDate[dateKey] || []).map((slot, i) => (
+                                        <p key={`${dateKey}-${i}`} className="text-[#787B7B] ml-2">
+                                            Time -
+                                            <span>
+                                                {slot.startTime
+                                                    ? new Date(`1970-01-01T${slot.startTime}`).toLocaleTimeString("en-US", {
+                                                        hour: "numeric",
+                                                        minute: "2-digit",
+                                                        hour12: true,
+                                                    })
+                                                    : "Not available"}
+                                            </span>{" "}
+                                            -
+                                            <span>
+                                                {slot.endTime
+                                                    ? new Date(`1970-01-01T${slot.endTime}`).toLocaleTimeString("en-US", {
+                                                        hour: "numeric",
+                                                        minute: "2-digit",
+                                                        hour12: true,
+                                                    })
+                                                    : "Not available"}
+                                            </span>
+                                        </p>
+                                    ))}
                                 </div>
                             ))}
 
-                            {slots.length > 2 && (
+                            {sortedDates.length > 2 && (
                                 <button
                                     onClick={() => setShowAll(!showAll)}
                                     className="text-[#2F5D82] font-medium mt-2 hover:underline"
@@ -374,6 +381,7 @@ export default function LiveDetails() {
             <BundlesPopup 
                 isOpen={showBundlesPopup}
                 onClose={() => setShowBundlesPopup(false)}
+                programType="live"
                 retreatData={{
                     id: programData?.liveSessionCard?.title,
                     pilgrimRetreatCard: {

@@ -116,6 +116,107 @@ export default function LiveSession2() {
     const [guideUploadProgress, setGuideUploadProgress] = useState(0);
     const [isGuideUploading, setIsGuideUploading] = useState(false);
 
+    // Weekday labels
+    const dayLabels = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+
+    // Calendar state for custom date scheduling
+    const [calendarMonth, setCalendarMonth] = useState(() => new Date());
+    const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
+
+    const formatYMD = (date) => {
+        if (!(date instanceof Date)) return '';
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    };
+
+    const getCalendarGrid = (monthDate) => {
+        const start = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+        const end = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
+        const startIndex = start.getDay(); // 0=Sun
+        const daysInMonth = end.getDate();
+        const cells = [];
+        // leading blanks
+        for (let i = 0; i < startIndex; i++) cells.push(null);
+        // month days
+        for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(monthDate.getFullYear(), monthDate.getMonth(), d));
+        // trailing blanks to complete 42
+        while (cells.length % 7 !== 0 || cells.length < 42) cells.push(null);
+        return cells;
+    };
+
+    const goPrevMonth = () => setCalendarMonth(prev => {
+        const today = new Date();
+        const minMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        const target = new Date(prev.getFullYear(), prev.getMonth() - 1, 1);
+        // Do not navigate before current month
+        if (target < minMonth) return prev;
+        return target;
+    });
+    const goNextMonth = () => setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+
+    const getSlotsForDate = (dateYMD) => (formData.liveSlots || []).filter(s => s.date === dateYMD);
+
+    const addSlotForSelectedDate = () => {
+        if (!selectedDate) return;
+        // Prevent adding slots to past dates
+        const today = new Date();
+        const ymdToday = formatYMD(today);
+        if (selectedDate < ymdToday) return;
+        setFormData(prev => ({
+            ...prev,
+            liveSlots: [...(prev.liveSlots || []), { date: selectedDate, startTime: "", endTime: "" }]
+        }));
+    };
+
+    const updateSlotForSelectedDate = (localIndex, field, value) => {
+        setFormData(prev => {
+            let idx = -1;
+            const updated = (prev.liveSlots || []).map(s => {
+                if (s.date === selectedDate) {
+                    idx++;
+                    if (idx === localIndex) {
+                        return { ...s, [field]: value };
+                    }
+                }
+                return s;
+            });
+            return { ...prev, liveSlots: updated };
+        });
+    };
+
+    const removeSlotForSelectedDate = (localIndex) => {
+        setFormData(prev => {
+            let idx = -1;
+            const updated = [];
+            for (const s of (prev.liveSlots || [])) {
+                if (s.date === selectedDate) {
+                    idx++;
+                    if (idx === localIndex) continue; // skip remove
+                }
+                updated.push(s);
+            }
+            return { ...prev, liveSlots: updated };
+        });
+    };
+
+    const dayHasSlots = (dateObj) => {
+        if (!dateObj) return false;
+        const ymd = formatYMD(dateObj);
+        return (formData.liveSlots || []).some(s => s.date === ymd);
+    };
+
+    const isPastDate = (dateObj) => {
+        if (!dateObj) return true;
+        const today = new Date();
+        const ymdToday = formatYMD(today);
+        const ymd = formatYMD(dateObj);
+        return ymd < ymdToday;
+    };
+
+    // (Weekly scheduling removed)
+
     const handleFieldChange = (section, field, value) => {
         setFormData((prev) => ({
             ...prev,
@@ -225,7 +326,7 @@ export default function LiveSession2() {
             const uploadTask = uploadBytesResumable(storageRef, file);
             uploadTask.on(
                 "state_changed",
-                () => {},
+                () => { },
                 (error) => {
                     console.error("Upload failed:", error);
                 },
@@ -310,13 +411,13 @@ export default function LiveSession2() {
         e.stopPropagation();
         const files = Array.from(e.target.files);
         const allowed = 5 - (formData?.oneTimeSubscription?.images?.length || 0);
-      
+
         files.slice(0, allowed).forEach((file, fileIndex) => {
             const uploadId = `img_${Date.now()}_${fileIndex}`;
-            
+
             setIsImageUploading(prev => ({ ...prev, [uploadId]: true }));
             setImageUploadProgress(prev => ({ ...prev, [uploadId]: 0 }));
-            
+
             const storageRef = ref(storage, `live_sessions/thumbnail_image/${file.name}_${Date.now()}`);
             const uploadTask = uploadBytesResumable(storageRef, file);
 
@@ -343,7 +444,7 @@ export default function LiveSession2() {
                     const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
                     const updatedImages = [...formData.oneTimeSubscription.images, downloadURL];
                     handleFieldChange("oneTimeSubscription", "images", updatedImages);
-                    
+
                     setIsImageUploading(prev => {
                         const newState = { ...prev };
                         delete newState[uploadId];
@@ -387,10 +488,10 @@ export default function LiveSession2() {
 
         files.slice(0, allowed).forEach((file, fileIndex) => {
             const uploadId = `vid_${Date.now()}_${fileIndex}`;
-            
+
             setIsVideoUploading(prev => ({ ...prev, [uploadId]: true }));
             setVideoUploadProgress(prev => ({ ...prev, [uploadId]: 0 }));
-            
+
             const storageRef = ref(storage, `live_sessions/thumbnail_video/videos/${file.name}_${Date.now()}`);
             const uploadTask = uploadBytesResumable(storageRef, file);
 
@@ -417,7 +518,7 @@ export default function LiveSession2() {
                     const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
                     const updatedVideos = [...formData.oneTimeSubscription.videos, downloadURL];
                     handleFieldChange("oneTimeSubscription", "videos", updatedVideos);
-                    
+
                     setIsVideoUploading(prev => {
                         const newState = { ...prev };
                         delete newState[uploadId];
@@ -453,7 +554,7 @@ export default function LiveSession2() {
             handleFieldChange("oneTimeSubscription", "videos", updated);
         }
     };
-    
+
     // Slides ordering & CRUD
     const moveSlide = async (from, to) => {
         try {
@@ -554,6 +655,8 @@ export default function LiveSession2() {
             aboutProgram: { title: "", shortDescription: "", points: [""] },
             organizer: { name: "", email: "", address: "", googleMeetLink: "", contactNumber: "" },
             liveSlots: [],
+            liveWeeklyEnabled: false,
+            liveWeeklyHours: { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] },
             programSchedule: [],
             features: [],
             oneTimeSubscription: { price: "", images: [], videos: [], description: "" },
@@ -607,16 +710,16 @@ export default function LiveSession2() {
                 const session = await fetchLiveSessionData(uid);
                 if (session && session.slides) {
                     const slidesArray = Object.values(session.slides); // convert object -> array
-              
+
                     setAllData(slidesArray);
-                
+
                     let allSlides = [];
                     for (const ssn of slidesArray) {
                         if (ssn.slides) {
-                        allSlides = [...allSlides, ...ssn.slides];
+                            allSlides = [...allSlides, ...ssn.slides];
                         }
                     }
-                
+
                     setSlideData(allSlides);
                 } else {
                     setAllData([]);
@@ -847,7 +950,7 @@ export default function LiveSession2() {
                                 <div className="text-center flex flex-col items-center">
                                     <div className="relative w-12 h-12 mb-3">
                                         <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
-                                        <div 
+                                        <div
                                             className="absolute inset-0 border-4 border-[#2F6288] rounded-full border-t-transparent animate-spin"
                                             style={{
                                                 background: `conic-gradient(from 0deg, #2F6288 ${uploadProgress * 3.6}deg, transparent ${uploadProgress * 3.6}deg)`
@@ -859,7 +962,7 @@ export default function LiveSession2() {
                                     </div>
                                     <p className="text-sm text-[#2F6288] font-medium">Uploading Thumbnail...</p>
                                     <div className="w-24 bg-gray-200 rounded-full h-2 mt-2">
-                                        <div 
+                                        <div
                                             className="bg-[#2F6288] h-2 rounded-full transition-all duration-300"
                                             style={{ width: `${uploadProgress}%` }}
                                         ></div>
@@ -972,14 +1075,14 @@ export default function LiveSession2() {
                             className="text-sm w-full border border-gray-300 p-3 rounded-lg "
                         />
                     </div>
-                </div>   
+                </div>
 
                 {/* Organizer Information */}
                 <div className="mb-8">
                     <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
                         {isEditing ? "Edit Organizer Information" : "Organizer Information"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
                     </h2>
-                    
+
                     <div className="grid sm:grid-cols-2 gap-4">
                         {/* Organizer Name */}
                         <div className="mb-4">
@@ -1048,60 +1151,116 @@ export default function LiveSession2() {
                         {isEditing ? "Edit Live Slots" : "Live Slots"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
                     </h2>
                     <div className="space-y-4">
-                        {formData.liveSlots.map((slot, i) => (
-                            <div key={i} className="border border-gray-200 rounded-lg p-4 space-y-4">
-                                <div className="flex justify-between items-center">
-                                    <p className="font-semibold text-gray-700">Slot {i + 1}</p>
-                                    {formData.liveSlots.length > 1 && (
+
+                        <div className="space-y-4">
+                            {/* Calendar Header */}
+                            <div className="flex items-center justify-between">
+                                {(() => {
+                                    const today = new Date();
+                                    const isPrevDisabled = calendarMonth.getFullYear() === today.getFullYear() && calendarMonth.getMonth() === today.getMonth();
+                                    return (
                                         <button
-                                            onClick={() => removeSessionSlot(i)}
-                                            className="text-red-500 hover:text-red-700 p-1"
+                                            type="button"
+                                            onClick={goPrevMonth}
+                                            disabled={isPrevDisabled}
+                                            className={`px-3 py-1.5 border border-gray-300 rounded-md ${isPrevDisabled ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'hover:bg-gray-50'}`}
                                         >
-                                            <Trash2 className="w-4 h-4" />
+                                            Prev
                                         </button>
-                                    )}
-                                </div>
-
-                                <label className="block text-md font-semibold text-gray-700 mb-2">Prefered Date</label>
-
-                                <input
-                                    type="date"
-                                    value={slot.date}
-                                    onChange={(e) => handleSlotChange(i, "date", e.target.value)}
-                                    className="sm:flex block w-full border border-gray-300 p-3 rounded-lg "
-                                />
-
-                                <div className="grid sm:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-md font-semibold text-gray-700 mb-2">Start Time</label>
-                                        <input
-                                            type="time"
-                                            value={slot.startTime}
-                                            onChange={(e) => handleSlotChange(i, "startTime", e.target.value)}
-                                            className="text-sm w-full border border-gray-300 p-3 rounded-lg "
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-md font-semibold text-gray-700 mb-2">End Time</label>
-                                        <input
-                                            type="time"
-                                            value={slot.endTime}
-                                            onChange={(e) => handleSlotChange(i, "endTime", e.target.value)}
-                                            className="text-sm w-full border border-gray-300 p-3 rounded-lg "
-                                        />
-                                    </div>
-                                </div>
-
-                                {errors[`slot_${i}`] && <p className="text-red-500 text-sm">{errors[`slot_${i}`]}</p>}
+                                    );
+                                })()}
+                                <p className="font-semibold text-gray-800">
+                                    {calendarMonth.toLocaleString('default', { month: 'long' })} {calendarMonth.getFullYear()}
+                                </p>
+                                <button type="button" onClick={goNextMonth} className="px-3 py-1.5 border border-gray-300 rounded-md hover:bg-gray-50">Next</button>
                             </div>
-                        ))}
 
-                        <button
-                            onClick={addSessionSlot}
-                            className="text-sm w-full px-4 py-3 bg-[#2F6288] text-white rounded-lg transition-colors flex items-center justify-center gap-2"
-                        >
-                            Add New Slot
-                        </button>
+                            {/* Day Labels */}
+                            <div className="grid grid-cols-7 text-xs text-gray-500">
+                                {dayLabels.map(d => (
+                                    <div key={d} className="px-2 py-1 text-center">{d}</div>
+                                ))}
+                            </div>
+
+                            {/* Calendar Grid */}
+                            <div className="grid grid-cols-7 gap-1">
+                                {getCalendarGrid(calendarMonth).map((dateObj, idx) => {
+                                    const isCurrentMonth = dateObj && dateObj.getMonth() === calendarMonth.getMonth();
+                                    const ymd = dateObj ? formatYMD(dateObj) : '';
+                                    const isSelected = dateObj && ymd === selectedDate;
+                                    const has = dayHasSlots(dateObj);
+                                    const isPast = isPastDate(dateObj);
+                                    return (
+                                        <button
+                                            key={idx}
+                                            type="button"
+                                            disabled={!dateObj || isPast}
+                                            onClick={() => dateObj && !isPast && setSelectedDate(formatYMD(dateObj))}
+                                            className={`h-10 rounded-md text-sm border ${!isCurrentMonth ? 'bg-gray-50 text-gray-300' : 'bg-white'} ${isSelected ? 'border-[#2F6288]' : 'border-gray-200'} ${has ? 'ring-2 ring-green-200' : ''} ${isPast ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                        >
+                                            {dateObj ? dateObj.getDate() : ''}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Editor for selected date */}
+                            <div className="border border-gray-200 rounded-lg p-4 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <p className="font-semibold text-gray-800">Selected Date: {selectedDate}</p>
+                                    <button
+                                        type="button"
+                                        onClick={addSlotForSelectedDate}
+                                        className="text-xs px-3 py-1.5 bg-[#2F6288] text-white rounded-md"
+                                    >
+                                        Add Time Range
+                                    </button>
+                                </div>
+
+                                {getSlotsForDate(selectedDate).length === 0 && (
+                                    <p className="text-xs text-gray-500">No time ranges added for this date.</p>
+                                )}
+
+                                {getSlotsForDate(selectedDate).map((s, localIdx) => (
+                                    <div key={localIdx} className="grid sm:grid-cols-[1fr_auto_1fr_auto_auto] grid-cols-1 gap-2 items-center">
+                                        <input
+                                            type="time"
+                                            value={s.startTime}
+                                            onChange={(e) => updateSlotForSelectedDate(localIdx, 'startTime', e.target.value)}
+                                            className="text-sm w-full border border-gray-300 p-2 rounded-lg"
+                                        />
+                                        <span className="hidden sm:flex justify-center text-gray-500">-</span>
+                                        <input
+                                            type="time"
+                                            value={s.endTime}
+                                            onChange={(e) => updateSlotForSelectedDate(localIdx, 'endTime', e.target.value)}
+                                            className="text-sm w-full border border-gray-300 p-2 rounded-lg"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => removeSlotForSelectedDate(localIdx)}
+                                            className="text-red-500 hover:text-red-600 text-xs"
+                                        >
+                                            Delete
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const current = getSlotsForDate(selectedDate)[localIdx];
+                                                if (!current) return;
+                                                setFormData(prev => ({
+                                                    ...prev,
+                                                    liveSlots: [...prev.liveSlots, { date: selectedDate, startTime: current.startTime, endTime: current.endTime }]
+                                                }));
+                                            }}
+                                            className="text-[#2F6288] hover:text-blue-700 text-xs"
+                                        >
+                                            Copy
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -1163,7 +1322,7 @@ export default function LiveSession2() {
                                     <div className="text-center flex flex-col items-center">
                                         <div className="relative w-12 h-12 mb-3">
                                             <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
-                                            <div 
+                                            <div
                                                 className="absolute inset-0 border-4 border-[#2F6288] rounded-full border-t-transparent animate-spin"
                                                 style={{
                                                     background: `conic-gradient(from 0deg, #2F6288 ${progress * 3.6}deg, transparent ${progress * 3.6}deg)`
@@ -1175,7 +1334,7 @@ export default function LiveSession2() {
                                         </div>
                                         <p className="text-sm text-[#2F6288] font-medium">Uploading Image...</p>
                                         <div className="w-24 bg-gray-200 rounded-full h-2 mt-2">
-                                            <div 
+                                            <div
                                                 className="bg-[#2F6288] h-2 rounded-full transition-all duration-300"
                                                 style={{ width: `${progress}%` }}
                                             ></div>
@@ -1228,7 +1387,7 @@ export default function LiveSession2() {
                                     <div className="text-center flex flex-col items-center">
                                         <div className="relative w-12 h-12 mb-3">
                                             <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
-                                            <div 
+                                            <div
                                                 className="absolute inset-0 border-4 border-[#2F6288] rounded-full border-t-transparent animate-spin"
                                                 style={{
                                                     background: `conic-gradient(from 0deg, #2F6288 ${progress * 3.6}deg, transparent ${progress * 3.6}deg)`
@@ -1240,7 +1399,7 @@ export default function LiveSession2() {
                                         </div>
                                         <p className="text-sm text-[#2F6288] font-medium">Uploading Video...</p>
                                         <div className="w-24 bg-gray-200 rounded-full h-2 mt-2">
-                                            <div 
+                                            <div
                                                 className="bg-[#2F6288] h-2 rounded-full transition-all duration-300"
                                                 style={{ width: `${progress}%` }}
                                             ></div>
@@ -1683,7 +1842,7 @@ export default function LiveSession2() {
                                 <div className="text-center flex flex-col items-center">
                                     <div className="relative w-12 h-12 mb-3">
                                         <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
-                                        <div 
+                                        <div
                                             className="absolute inset-0 border-4 border-[#2F6288] rounded-full border-t-transparent animate-spin"
                                             style={{
                                                 background: `conic-gradient(from 0deg, #2F6288 ${guideUploadProgress * 3.6}deg, transparent ${guideUploadProgress * 3.6}deg)`
@@ -1695,7 +1854,7 @@ export default function LiveSession2() {
                                     </div>
                                     <p className="text-sm text-[#2F6288] font-medium">Uploading Guide Image...</p>
                                     <div className="w-24 bg-gray-200 rounded-full h-2 mt-2">
-                                        <div 
+                                        <div
                                             className="bg-[#2F6288] h-2 rounded-full transition-all duration-300"
                                             style={{ width: `${guideUploadProgress}%` }}
                                         ></div>

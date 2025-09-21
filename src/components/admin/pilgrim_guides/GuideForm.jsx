@@ -84,28 +84,55 @@ export default function GuideForm() {
             showOccupancy: false,
             description: ""
         },
+        // Common open slots (weekly pattern) for both online and offline
+        openSlots: [
+            // { days: ["Mon","Wed","Fri"], times: [{ startTime: "07:00", endTime: "08:00" }] }
+        ],
         online: {
             monthly: {
-                price: "",
+                // Pricing variations
+                price: "", // backward compatibility
+                individualPrice: "",
+                couplesPrice: "",
+                groupPrice: "",
+                groupMin: "",
+                groupMax: "",
                 discount: "",
                 description: "",
-                slots: []
+                slots: [],
+                weeklyPattern: [] // [{ days:["Sun","Mon"], times:[{startTime, endTime}]}]
             },
             oneTime: {
-                price: "",
+                price: "", // backward compatibility
+                individualPrice: "",
+                couplesPrice: "",
+                groupPrice: "",
+                groupMin: "",
+                groupMax: "",
                 description: "",
                 slots: []
             }
         },
         offline: {
             monthly: {
-                price: "",
+                price: "", // backward compatibility
+                individualPrice: "",
+                couplesPrice: "",
+                groupPrice: "",
+                groupMin: "",
+                groupMax: "",
                 discount: "",
                 description: "",
-                slots: []
+                slots: [],
+                weeklyPattern: []
             },
             oneTime: {
-                price: "",
+                price: "", // backward compatibility
+                individualPrice: "",
+                couplesPrice: "",
+                groupPrice: "",
+                groupMin: "",
+                groupMax: "",
                 description: "",
                 slots: []
             }
@@ -480,27 +507,50 @@ export default function GuideForm() {
                 showOccupancy: false,
                 description: ""
             },
+            openSlots: [],
             online: {
                 monthly: {
                     price: "",
+                    individualPrice: "",
+                    couplesPrice: "",
+                    groupPrice: "",
+                    groupMin: "",
+                    groupMax: "",
                     discount: "",
                     description: "",
-                    slots: [{ date: "", startTime: "", endTime: "" }]
+                    slots: [{ date: "", startTime: "", endTime: "" }],
+                    weeklyPattern: []
                 },
                 oneTime: {
                     price: "",
+                    individualPrice: "",
+                    couplesPrice: "",
+                    groupPrice: "",
+                    groupMin: "",
+                    groupMax: "",
                     slots: [{ date: "", startTime: "", endTime: "" }]
                 }
             },
             offline: {
                 monthly: {
                     price: "",
+                    individualPrice: "",
+                    couplesPrice: "",
+                    groupPrice: "",
+                    groupMin: "",
+                    groupMax: "",
                     discount: "",
                     description: "",    
-                    slots: [{ date: "", startTime: "", endTime: "" }]
+                    slots: [{ date: "", startTime: "", endTime: "" }],
+                    weeklyPattern: []
                 },
                 oneTime: {
                     price: "",
+                    individualPrice: "",
+                    couplesPrice: "",
+                    groupPrice: "",
+                    groupMin: "",
+                    groupMax: "",
                     slots: [{ date: "", startTime: "", endTime: "" }]   
                 }
             },
@@ -522,6 +572,211 @@ export default function GuideForm() {
         if (newCategory && !categories.includes(newCategory)) {
             setCategories(prev => [...prev, newCategory]);
         }
+    };
+
+    // ========== Common Open Slots (Weekly) Handlers ==========
+    const weekdayOptions = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+    const addOpenSlot = () => {
+        setFormData(prev => ({
+            ...prev,
+            openSlots: [...(prev.openSlots || []), { days: [], times: [{ startTime: "", endTime: "" }] }]
+        }));
+    };
+
+    const removeOpenSlot = (index) => {
+        setFormData(prev => ({
+            ...prev,
+            openSlots: (prev.openSlots || []).filter((_, i) => i !== index)
+        }));
+    };
+
+    const toggleOpenSlotDay = (index, day) => {
+        setFormData(prev => {
+            const next = [...(prev.openSlots || [])];
+            const set = new Set(next[index].days || []);
+            if (set.has(day)) set.delete(day); else set.add(day);
+            next[index].days = Array.from(set);
+            return { ...prev, openSlots: next };
+        });
+    };
+
+    const addOpenSlotTime = (index) => {
+        setFormData(prev => {
+            const next = [...(prev.openSlots || [])];
+            next[index].times = [...(next[index].times || []), { startTime: "", endTime: "" }];
+            return { ...prev, openSlots: next };
+        });
+    };
+
+    const updateOpenSlotTime = (index, tIndex, field, value) => {
+        setFormData(prev => {
+            const next = [...(prev.openSlots || [])];
+            const times = [...(next[index].times || [])];
+            times[tIndex] = { ...times[tIndex], [field]: value };
+            next[index].times = times;
+            return { ...prev, openSlots: next };
+        });
+    };
+
+    const removeOpenSlotTime = (index, tIndex) => {
+        setFormData(prev => {
+            const next = [...(prev.openSlots || [])];
+            const times = [...(next[index].times || [])];
+            times.splice(tIndex, 1);
+            next[index].times = times;
+            return { ...prev, openSlots: next };
+        });
+    };
+
+    // ========== Monthly Weekly Pattern Handlers (Online/Offline) ==========
+    const addMonthlyPatternRow = (modeKey) => {
+        setFormData(prev => {
+            const next = { ...prev };
+            const list = [...(next[modeKey].monthly.weeklyPattern || [])];
+            list.push({ days: [], times: [{ startTime: "", endTime: "" }] });
+            next[modeKey].monthly.weeklyPattern = list;
+            return next;
+        });
+    };
+
+    const removeMonthlyPatternRow = (modeKey, rowIdx) => {
+        setFormData(prev => {
+            const next = { ...prev };
+            const list = [...(next[modeKey].monthly.weeklyPattern || [])];
+            list.splice(rowIdx, 1);
+            next[modeKey].monthly.weeklyPattern = list;
+            return next;
+        });
+    };
+
+    const toggleMonthlyPatternDay = (modeKey, rowIdx, day) => {
+        setFormData(prev => {
+            const next = { ...prev };
+            const list = [...(next[modeKey].monthly.weeklyPattern || [])];
+            const set = new Set(list[rowIdx].days || []);
+            if (set.has(day)) set.delete(day); else set.add(day);
+            list[rowIdx].days = Array.from(set);
+            next[modeKey].monthly.weeklyPattern = list;
+            return next;
+        });
+    };
+
+    const addMonthlyPatternTime = (modeKey, rowIdx) => {
+        setFormData(prev => {
+            const next = { ...prev };
+            const list = [...(next[modeKey].monthly.weeklyPattern || [])];
+            list[rowIdx].times = [...(list[rowIdx].times || []), { startTime: "", endTime: "" }];
+            next[modeKey].monthly.weeklyPattern = list;
+            return next;
+        });
+    };
+
+    const updateMonthlyPatternTime = (modeKey, rowIdx, tIdx, field, value) => {
+        setFormData(prev => {
+            const next = { ...prev };
+            const list = [...(next[modeKey].monthly.weeklyPattern || [])];
+            const times = [...(list[rowIdx].times || [])];
+            times[tIdx] = { ...times[tIdx], [field]: value };
+            list[rowIdx].times = times;
+            next[modeKey].monthly.weeklyPattern = list;
+            return next;
+        });
+    };
+
+    const removeMonthlyPatternTime = (modeKey, rowIdx, tIdx) => {
+        setFormData(prev => {
+            const next = { ...prev };
+            const list = [...(next[modeKey].monthly.weeklyPattern || [])];
+            const times = [...(list[rowIdx].times || [])];
+            times.splice(tIdx, 1);
+            list[rowIdx].times = times;
+            next[modeKey].monthly.weeklyPattern = list;
+            return next;
+        });
+    };
+
+    // ========== One-Time Calendar Helpers (Online/Offline) ==========
+    const [otOnlineMonth, setOtOnlineMonth] = useState(() => new Date());
+    const [otOnlineDate, setOtOnlineDate] = useState(() => new Date().toISOString().slice(0,10));
+    const [otOfflineMonth, setOtOfflineMonth] = useState(() => new Date());
+    const [otOfflineDate, setOtOfflineDate] = useState(() => new Date().toISOString().slice(0,10));
+
+    const fmtYMD = (d) => {
+        if (!(d instanceof Date)) return "";
+        const y = d.getFullYear();
+        const m = String(d.getMonth()+1).padStart(2,'0');
+        const dd = String(d.getDate()).padStart(2,'0');
+        return `${y}-${m}-${dd}`;
+    };
+
+    const calGrid = (monthDate) => {
+        const start = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+        const end = new Date(monthDate.getFullYear(), monthDate.getMonth()+1, 0);
+        const startIdx = start.getDay();
+        const cells = [];
+        for (let i=0;i<startIdx;i++) cells.push(null);
+        for (let d=1; d<=end.getDate(); d++) cells.push(new Date(monthDate.getFullYear(), monthDate.getMonth(), d));
+        while (cells.length % 7 !== 0 || cells.length < 42) cells.push(null);
+        return cells;
+    };
+
+    const isPast = (dateObj) => {
+        if (!dateObj) return true;
+        const today = new Date();
+        return fmtYMD(dateObj) < fmtYMD(today);
+    };
+
+    const prevMonthGuard = (setter, current) => {
+        const today = new Date();
+        const minMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        const target = new Date(current.getFullYear(), current.getMonth()-1, 1);
+        if (target < minMonth) return;
+        setter(target);
+    };
+
+    // One-time slot CRUD using existing add/remove handlers
+    const addOneTimeSlotFor = (modeKey, dateYmd) => {
+        if (!dateYmd) return;
+        const todayYmd = fmtYMD(new Date());
+        if (dateYmd < todayYmd) return;
+        setFormData(prev => {
+            const next = { ...prev };
+            next[modeKey].oneTime.slots = [...(next[modeKey].oneTime.slots||[]), { date: dateYmd, startTime: "", endTime: "" }];
+            return next;
+        });
+    };
+
+    const updateOneTimeSlotForDate = (modeKey, dateYmd, localIdx, field, value) => {
+        setFormData(prev => {
+            let idx = -1;
+            const next = { ...prev };
+            next[modeKey].oneTime.slots = (next[modeKey].oneTime.slots||[]).map(s => {
+                if (s.date === dateYmd) {
+                    idx++;
+                    if (idx === localIdx) return { ...s, [field]: value };
+                }
+                return s;
+            });
+            return next;
+        });
+    };
+
+    const removeOneTimeSlotForDate = (modeKey, dateYmd, localIdx) => {
+        setFormData(prev => {
+            let idx = -1;
+            const next = { ...prev };
+            const out = [];
+            for (const s of (next[modeKey].oneTime.slots||[])) {
+                if (s.date === dateYmd) {
+                    idx++;
+                    if (idx === localIdx) continue;
+                }
+                out.push(s);
+            }
+            next[modeKey].oneTime.slots = out;
+            return next;
+        });
     };
 
     // const validateFields = () => {
@@ -616,6 +871,7 @@ export default function GuideForm() {
         const newCard = {
             guideCard: { ...formData.guideCard },
             organizer: { ...formData.organizer },
+            openSlots: [...(formData.openSlots || [])],
             online: { ...formData.online },
             offline: { ...formData.offline },
             session: { ...formData.session },
@@ -1215,63 +1471,48 @@ export default function GuideForm() {
                                     />
                                 </div>
 
-                                {/* Monthly Online Slots */}
+                                {/* Monthly Online Weekly Pattern */}
                                 <div className="mt-6">
-                                    <h3 className="text-lg font-semibold text-gray-700 mb-4">Monthly Online Slots</h3>
+                                    <h3 className="text-lg font-semibold text-gray-700 mb-4">Monthly Online – Weekly Hours</h3>
                                     <div className="space-y-4">
-                                        {formData?.online?.monthly?.slots?.length === 0 && initializeSlots("online", "monthly")}
-                                        {formData?.online?.monthly?.slots && formData?.online?.monthly?.slots?.map((slot, i) => (
-                                            <div key={i} className="border border-gray-200 rounded-lg p-4 space-y-4 bg-blue-50">
-                                                <div className="flex justify-between items-center">
-                                                    <p className="font-semibold text-gray-700">Online Slot {i + 1}</p>
-                                                    {formData?.online?.monthly?.slots?.length > 1 && (
+                                        {(formData?.online?.monthly?.weeklyPattern || []).map((row, idx) => (
+                                            <div key={idx} className="border border-gray-200 rounded-lg p-4 space-y-3 bg-blue-50">
+                                                <div className="flex items-center justify-between">
+                                                    <p className="font-semibold text-gray-700">Row {idx + 1}</p>
+                                                    <div className="flex gap-2">
                                                         <button
-                                                            onClick={() => removeSlot("online", "monthly", i)}
-                                                            className="text-red-500 hover:text-red-700 p-1"
-                                                            title="Remove Slot"
-                                                        >
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </button>
-                                                    )}
+                                                            onClick={() => removeMonthlyPatternRow('online', idx)}
+                                                            className="text-red-600 text-sm"
+                                                        >Delete</button>
+                                                        <button
+                                                            onClick={() => setFormData(prev => { const next={...prev}; const list=[...(next.online.monthly.weeklyPattern||[])]; list.splice(idx+1,0, JSON.parse(JSON.stringify(list[idx]))); next.online.monthly.weeklyPattern=list; return next; })}
+                                                            className="text-[#2F6288] text-sm"
+                                                        >Copy</button>
+                                                    </div>
                                                 </div>
-                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                    <div>
-                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                                                        <input
-                                                            type="date"
-                                                            value={slot?.date}
-                                                            onChange={(e) => handleSlotChange("online", "monthly", i, "date", e.target.value)}
-                                                            className="text-sm w-full border border-gray-300 p-2 rounded-lg"
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
-                                                        <input
-                                                            type="time"
-                                                            value={slot?.startTime}
-                                                            onChange={(e) => handleSlotChange("online", "monthly", i, "startTime", e.target.value)}
-                                                            className="text-sm w-full border border-gray-300 p-2 rounded-lg"
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
-                                                        <input
-                                                            type="time"
-                                                            value={slot?.endTime}
-                                                            onChange={(e) => handleSlotChange("online", "monthly", i, "endTime", e.target.value)}
-                                                            className="text-sm w-full border border-gray-300 p-2 rounded-lg"
-                                                        />
-                                                    </div>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {weekdayOptions.map(d => (
+                                                        <button
+                                                            key={d}
+                                                            onClick={() => toggleMonthlyPatternDay('online', idx, d)}
+                                                            className={`px-3 py-1 rounded-full border text-sm ${row.days?.includes(d) ? 'bg-[#2F6288] text-white border-[#2F6288]' : 'bg-white text-gray-700 border-gray-300'}`}
+                                                        >{d}</button>
+                                                    ))}
+                                                </div>
+                                                <div className="space-y-2">
+                                                    {(row.times || []).map((t, tIdx) => (
+                                                        <div key={tIdx} className="flex items-center gap-2">
+                                                            <input type="time" value={t.startTime || ''} onChange={(e)=>updateMonthlyPatternTime('online', idx, tIdx, 'startTime', e.target.value)} className="border p-2 rounded" />
+                                                            <span>-</span>
+                                                            <input type="time" value={t.endTime || ''} onChange={(e)=>updateMonthlyPatternTime('online', idx, tIdx, 'endTime', e.target.value)} className="border p-2 rounded" />
+                                                            <button onClick={()=>removeMonthlyPatternTime('online', idx, tIdx)} className="text-red-600 text-sm">Delete</button>
+                                                            <button onClick={()=>addMonthlyPatternTime('online', idx)} className="text-[#2F6288] text-sm">Add</button>
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             </div>
                                         ))}
-                                        <button
-                                            onClick={() => addSlot("online", "monthly")}
-                                            className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-[#2F6288] hover:text-[#2F6288] transition-colors flex items-center justify-center gap-2"
-                                        >
-                                            <Plus className="w-4 h-4" />
-                                            Add Online Slot
-                                        </button>
+                                        <button onClick={()=>addMonthlyPatternRow('online')} className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-[#2F6288] hover:text-[#2F6288] transition-colors">Add Weekly Row</button>
                                     </div>
                                 </div>
 
@@ -1322,73 +1563,38 @@ export default function GuideForm() {
                                     />
                                 </div>
 
-                                {/* Monthly Offline Slots */}
+                                {/* Monthly Offline Weekly Pattern */}
                                 <div className="mt-6">
-                                    <h3 className="text-lg font-semibold text-gray-700 mb-4">Monthly Offline Slots</h3>
+                                    <h3 className="text-lg font-semibold text-gray-700 mb-4">Monthly Offline – Weekly Hours</h3>
                                     <div className="space-y-4">
-                                        {formData?.offline?.monthly?.slots?.length === 0 && initializeSlots("offline", "monthly")}
-                                        {formData?.offline?.monthly?.slots && formData?.offline?.monthly?.slots?.map((slot, i) => (
-                                            <div key={i} className="border border-gray-200 rounded-lg p-4 space-y-4 bg-green-50">
-                                                <div className="flex justify-between items-center">
-                                                    <p className="font-semibold text-gray-700">Offline Slot {i + 1}</p>
-                                                    {formData?.offline?.monthly?.slots?.length > 1 && (
-                                                        <button
-                                                            onClick={() => removeSlot("offline", "monthly", i)}
-                                                            className="text-red-500 hover:text-red-700 p-1"
-                                                            title="Remove Slot"
-                                                        >
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </button>
-                                                    )}
+                                        {(formData?.offline?.monthly?.weeklyPattern || []).map((row, idx) => (
+                                            <div key={idx} className="border border-gray-200 rounded-lg p-4 space-y-3 bg-green-50">
+                                                <div className="flex items-center justify-between">
+                                                    <p className="font-semibold text-gray-700">Row {idx + 1}</p>
+                                                    <div className="flex gap-2">
+                                                        <button onClick={() => removeMonthlyPatternRow('offline', idx)} className="text-red-600 text-sm">Delete</button>
+                                                        <button onClick={() => setFormData(prev => { const next={...prev}; const list=[...(next.offline.monthly.weeklyPattern||[])]; list.splice(idx+1,0, JSON.parse(JSON.stringify(list[idx]))); next.offline.monthly.weeklyPattern=list; return next; })} className="text-[#2F6288] text-sm">Copy</button>
+                                                    </div>
                                                 </div>
-                                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                                    <div>
-                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                                                        <input
-                                                            type="date"
-                                                            value={slot.date}
-                                                            onChange={(e) => handleSlotChange("offline", "monthly", i, "date", e.target.value)}
-                                                            className="text-sm w-full border border-gray-300 p-2 rounded-lg"
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
-                                                        <input
-                                                            type="time"
-                                                            value={slot.startTime}
-                                                            onChange={(e) => handleSlotChange("offline", "monthly", i, "startTime", e.target.value)}
-                                                            className="text-sm w-full border border-gray-300 p-2 rounded-lg"
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
-                                                        <input
-                                                            type="time"
-                                                            value={slot.endTime}
-                                                            onChange={(e) => handleSlotChange("offline", "monthly", i, "endTime", e.target.value)}
-                                                            className="text-sm w-full border border-gray-300 p-2 rounded-lg"
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                                                        <input
-                                                            type="text"
-                                                            placeholder="Enter location"
-                                                            value={slot.location}
-                                                            onChange={(e) => handleSlotChange("offline", "monthly", i, "location", e.target.value)}
-                                                            className="text-sm w-full border border-gray-300 p-2 rounded-lg"
-                                                        />
-                                                    </div>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {weekdayOptions.map(d => (
+                                                        <button key={d} onClick={() => toggleMonthlyPatternDay('offline', idx, d)} className={`px-3 py-1 rounded-full border text-sm ${row.days?.includes(d) ? 'bg-[#2F6288] text-white border-[#2F6288]' : 'bg-white text-gray-700 border-gray-300'}`}>{d}</button>
+                                                    ))}
+                                                </div>
+                                                <div className="space-y-2">
+                                                    {(row.times || []).map((t, tIdx) => (
+                                                        <div key={tIdx} className="flex items-center gap-2">
+                                                            <input type="time" value={t.startTime || ''} onChange={(e)=>updateMonthlyPatternTime('offline', idx, tIdx, 'startTime', e.target.value)} className="border p-2 rounded" />
+                                                            <span>-</span>
+                                                            <input type="time" value={t.endTime || ''} onChange={(e)=>updateMonthlyPatternTime('offline', idx, tIdx, 'endTime', e.target.value)} className="border p-2 rounded" />
+                                                            <button onClick={()=>removeMonthlyPatternTime('offline', idx, tIdx)} className="text-red-600 text-sm">Delete</button>
+                                                            <button onClick={()=>addMonthlyPatternTime('offline', idx)} className="text-[#2F6288] text-sm">Add</button>
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             </div>
                                         ))}
-                                        <button
-                                            onClick={() => addSlot("offline", "monthly")}
-                                            className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-[#2F6288] hover:text-[#2F6288] transition-colors flex items-center justify-center gap-2"
-                                        >
-                                            <Plus className="w-4 h-4" />
-                                            Add Offline Slot
-                                        </button>
+                                        <button onClick={()=>addMonthlyPatternRow('offline')} className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-[#2F6288] hover:text-[#2F6288] transition-colors">Add Weekly Row</button>
                                     </div>
                                 </div>
 
@@ -1416,63 +1622,43 @@ export default function GuideForm() {
                                 {errors.oneTimeOnlinePrice && <p className="text-red-500 text-sm mt-1">{errors.oneTimeOnlinePrice}</p>}
                             </div>
 
-                            {/* One-Time Online Slots */}
+                            {/* One-Time Online Slots - Calendar Based */}
                             <div className="mt-6">
-                                <h3 className="text-lg font-semibold text-gray-700 mb-4">One-Time Online Slots</h3>
-                                <div className="space-y-4">
-                                    {formData?.online?.oneTime?.slots?.length === 0 && initializeSlots("online", "oneTime")}
-                                    {formData?.online?.oneTime?.slots && formData?.online?.oneTime?.slots.map((slot, i) => (
-                                        <div key={i} className="border border-gray-200 rounded-lg p-4 space-y-4 bg-blue-50">
-                                            <div className="flex justify-between items-center">
-                                                <p className="font-semibold text-gray-700">Online Slot {i + 1}</p>
-                                                {formData?.online?.oneTime?.slots && formData?.online?.oneTime?.slots.length > 1 && (
-                                                    <button
-                                                        onClick={() => removeSlot("online", "oneTime", i)}
-                                                        className="text-red-500 hover:text-red-700 p-1"
-                                                        title="Remove Slot"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
-                                                )}
-                                            </div>
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                                                    <input
-                                                        type="date"
-                                                        value={slot?.date}
-                                                        onChange={(e) => handleSlotChange("online", "oneTime", i, "date", e.target.value)}
-                                                        className="text-sm w-full border border-gray-300 p-2 rounded-lg"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
-                                                    <input
-                                                        type="time"
-                                                        value={slot?.startTime}
-                                                        onChange={(e) => handleSlotChange("online", "oneTime", i, "startTime", e.target.value)}
-                                                        className="text-sm w-full border border-gray-300 p-2 rounded-lg"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
-                                                    <input
-                                                        type="time"
-                                                        value={slot?.endTime}
-                                                        onChange={(e) => handleSlotChange("online", "oneTime", i, "endTime", e.target.value)}
-                                                        className="text-sm w-full border border-gray-300 p-2 rounded-lg"
-                                                    />
-                                                </div>
-                                            </div>
+                                <h3 className="text-lg font-semibold text-gray-700 mb-4">One-Time Online – Calendar</h3>
+                                <div className="grid md:grid-cols-2 gap-4">
+                                    {/* Calendar */}
+                                    <div className="border rounded-lg p-3">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <button onClick={()=>prevMonthGuard(setOtOnlineMonth, otOnlineMonth)} className="px-2 py-1 border rounded">Prev</button>
+                                            <div className="font-semibold">{otOnlineMonth.toLocaleString('default',{month:'long'})} {otOnlineMonth.getFullYear()}</div>
+                                            <button onClick={()=>setOtOnlineMonth(new Date(otOnlineMonth.getFullYear(), otOnlineMonth.getMonth()+1, 1))} className="px-2 py-1 border rounded">Next</button>
                                         </div>
-                                    ))}
-                                    <button
-                                        onClick={() => addSlot("online", "oneTime")}
-                                        className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-[#2F6288] hover:text-[#2F6288] transition-colors flex items-center justify-center gap-2"
-                                    >
-                                        <Plus className="w-4 h-4" />
-                                        Add Online Slot
-                                    </button>
+                                        <div className="grid grid-cols-7 gap-1 text-center text-xs text-gray-600 mb-1">
+                                            {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=> <div key={d}>{d}</div>)}
+                                        </div>
+                                        <div className="grid grid-cols-7 gap-1">
+                                            {calGrid(otOnlineMonth).map((d,i)=> (
+                                                <button key={i} disabled={!d || isPast(d)} onClick={()=> setOtOnlineDate(fmtYMD(d))} className={`h-10 rounded border text-sm ${(!d || isPast(d))? 'text-gray-300 border-gray-200 cursor-not-allowed' : (fmtYMD(d)===otOnlineDate? 'bg-[#2F6288] text-white border-[#2F6288]':'bg-white text-gray-700 border-gray-200 hover:border-[#2F6288]')}`}>{d? d.getDate(): ''}</button>
+                                            ))}
+                                        </div>
+                                        <div className="mt-3">
+                                            <button onClick={()=>addOneTimeSlotFor('online', otOnlineDate)} className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-[#2F6288]">Add Slot for {otOnlineDate}</button>
+                                        </div>
+                                    </div>
+                                    {/* Slots for selected date */}
+                                    <div className="border rounded-lg p-3">
+                                        <div className="font-semibold mb-2">Slots for {otOnlineDate}</div>
+                                        <div className="space-y-2">
+                                            {(formData?.online?.oneTime?.slots||[]).filter(s=>s.date===otOnlineDate).map((s, idx)=> (
+                                                <div key={`${otOnlineDate}-${idx}`} className="flex items-center gap-2">
+                                                    <input type="time" value={s.startTime||''} onChange={(e)=>updateOneTimeSlotForDate('online', otOnlineDate, idx, 'startTime', e.target.value)} className="border p-2 rounded" />
+                                                    <span>-</span>
+                                                    <input type="time" value={s.endTime||''} onChange={(e)=>updateOneTimeSlotForDate('online', otOnlineDate, idx, 'endTime', e.target.value)} className="border p-2 rounded" />
+                                                    <button onClick={()=>removeOneTimeSlotForDate('online', otOnlineDate, idx)} className="text-red-600 text-sm">Delete</button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1498,73 +1684,43 @@ export default function GuideForm() {
                                 {errors.oneTimeOfflinePrice && <p className="text-red-500 text-sm mt-1">{errors.oneTimeOfflinePrice}</p>}
                             </div>
 
-                            {/* One-Time Offline Slots */}
+                            {/* One-Time Offline Slots - Calendar Based */}
                             <div className="mt-6">
-                                <h3 className="text-lg font-semibold text-gray-700 mb-4">One-Time Offline Slots</h3>
-                                <div className="space-y-4">
-                                    {formData?.offline?.oneTime?.slots?.length === 0 && initializeSlots("offline", "oneTime")}
-                                    {formData?.offline?.oneTime?.slots && formData?.offline?.oneTime?.slots.map((slot, i) => (
-                                        <div key={i} className="border border-gray-200 rounded-lg p-4 space-y-4 bg-green-50">
-                                            <div className="flex justify-between items-center">
-                                                <p className="font-semibold text-gray-700">Offline Slot {i + 1}</p>
-                                                {formData?.offline?.oneTime?.slots?.length > 1 && (
-                                                    <button
-                                                        onClick={() => removeSlot("offline", "oneTime", i)}
-                                                        className="text-red-500 hover:text-red-700 p-1"
-                                                        title="Remove Slot"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
-                                                )}
-                                            </div>
-                                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                                                    <input
-                                                        type="date"
-                                                        value={slot?.date}
-                                                        onChange={(e) => handleSlotChange("offline", "oneTime", i, "date", e.target.value)}
-                                                        className="text-sm w-full border border-gray-300 p-2 rounded-lg"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
-                                                    <input
-                                                        type="time"
-                                                        value={slot?.startTime}
-                                                        onChange={(e) => handleSlotChange("offline", "oneTime", i, "startTime", e.target.value)}
-                                                        className="text-sm w-full border border-gray-300 p-2 rounded-lg"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
-                                                    <input
-                                                        type="time"
-                                                        value={slot?.endTime}
-                                                        onChange={(e) => handleSlotChange("offline", "oneTime", i, "endTime", e.target.value)}
-                                                        className="text-sm w-full border border-gray-300 p-2 rounded-lg"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                                                    <input
-                                                        type="text"
-                                                        placeholder="Enter location"
-                                                        value={slot?.location}
-                                                        onChange={(e) => handleSlotChange("offline", "oneTime", i, "location", e.target.value)}
-                                                        className="text-sm w-full border border-gray-300 p-2 rounded-lg"
-                                                    />
-                                                </div>
-                                            </div>
+                                <h3 className="text-lg font-semibold text-gray-700 mb-4">One-Time Offline – Calendar</h3>
+                                <div className="grid md:grid-cols-2 gap-4">
+                                    {/* Calendar */}
+                                    <div className="border rounded-lg p-3">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <button onClick={()=>prevMonthGuard(setOtOfflineMonth, otOfflineMonth)} className="px-2 py-1 border rounded">Prev</button>
+                                            <div className="font-semibold">{otOfflineMonth.toLocaleString('default',{month:'long'})} {otOfflineMonth.getFullYear()}</div>
+                                            <button onClick={()=>setOtOfflineMonth(new Date(otOfflineMonth.getFullYear(), otOfflineMonth.getMonth()+1, 1))} className="px-2 py-1 border rounded">Next</button>
                                         </div>
-                                    ))}
-                                    <button
-                                        onClick={addOfflineSlot}
-                                        className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-[#2F6288] hover:text-[#2F6288] transition-colors flex items-center justify-center gap-2"
-                                    >
-                                        <Plus className="w-4 h-4" />
-                                        Add Offline Slot
-                                    </button>
+                                        <div className="grid grid-cols-7 gap-1 text-center text-xs text-gray-600 mb-1">
+                                            {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=> <div key={d}>{d}</div>)}
+                                        </div>
+                                        <div className="grid grid-cols-7 gap-1">
+                                            {calGrid(otOfflineMonth).map((d,i)=> (
+                                                <button key={i} disabled={!d || isPast(d)} onClick={()=> setOtOfflineDate(fmtYMD(d))} className={`h-10 rounded border text-sm ${(!d || isPast(d))? 'text-gray-300 border-gray-200 cursor-not-allowed' : (fmtYMD(d)===otOfflineDate? 'bg-[#2F6288] text-white border-[#2F6288]':'bg-white text-gray-700 border-gray-200 hover:border-[#2F6288]')}`}>{d? d.getDate(): ''}</button>
+                                            ))}
+                                        </div>
+                                        <div className="mt-3">
+                                            <button onClick={()=>addOneTimeSlotFor('offline', otOfflineDate)} className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-[#2F6288]">Add Slot for {otOfflineDate}</button>
+                                        </div>
+                                    </div>
+                                    {/* Slots for selected date */}
+                                    <div className="border rounded-lg p-3">
+                                        <div className="font-semibold mb-2">Slots for {otOfflineDate}</div>
+                                        <div className="space-y-2">
+                                            {(formData?.offline?.oneTime?.slots||[]).filter(s=>s.date===otOfflineDate).map((s, idx)=> (
+                                                <div key={`${otOfflineDate}-${idx}`} className="flex items-center gap-2">
+                                                    <input type="time" value={s.startTime||''} onChange={(e)=>updateOneTimeSlotForDate('offline', otOfflineDate, idx, 'startTime', e.target.value)} className="border p-2 rounded" />
+                                                    <span>-</span>
+                                                    <input type="time" value={s.endTime||''} onChange={(e)=>updateOneTimeSlotForDate('offline', otOfflineDate, idx, 'endTime', e.target.value)} className="border p-2 rounded" />
+                                                    <button onClick={()=>removeOneTimeSlotForDate('offline', otOfflineDate, idx)} className="text-red-600 text-sm">Delete</button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
