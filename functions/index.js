@@ -3,6 +3,7 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
 const Razorpay = require("razorpay");
+const twilio = require("twilio");
 
 // Import subscription cleanup functions - moved inline to avoid import issues
 
@@ -19,6 +20,10 @@ const serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT);
 const gmailEmail = process.env.APP_GMAIL;
 const gmailPassword = process.env.APP_GMAIL_PASSWORD;
 const contactEmail = process.env.CONTACT_EMAIL
+
+const accountSid = process.env.TWILIO_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+const client = twilio(accountSid, authToken);
 
 const razorpay = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID,
@@ -485,33 +490,36 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
             try {
                 let programRef;
                 let updateData = {};
-                console.log("program: ", program)
+                console.log("program from loop: ", program)
+                console.log("program.type raw:", program.type, typeof program.type);
 
-                if (program.type === "guide" || program.category === "guide") {
+                if (program.type && program.type.toLowerCase().trim() === 'guide') {
                     programRef = db
                         .collection("pilgrim_guides")
                         .doc("pilgrim_guides")
                         .collection("guides")
                         .doc("data");
+                    console.log("programRef: ", programRef);
                     const guideSnap = await programRef.get();
+                    console.log("guideSnap: ", guideSnap);
                     if (guideSnap.exists) {
-                        const guides = guideSnap.data().slides || [];
-                        const updatedGuides = guides.map((guide) => {
-                            if (guide?.title === program.title) {
-                                return {
-                                    ...guide,
+                        // Use the correct field name 'slides' and match title from guideCard.title
+                        const slides = guideSnap.data().slides || [];
+                        const updatedSlides = slides.map((slide) => {
+                            const slideTitle = slide?.guideCard?.title || slide?.title;
+                            if (slideTitle === program.title) {
+                                // Append purchaser info
+                                const updatedSlide = {
+                                    ...slide,
                                     purchasedUsers: [
-                                        ...(guide.purchasedUsers || []),
+                                        ...(slide.purchasedUsers || []),
                                         {
                                             uid: userId,
                                             name,
                                             email,
-                                            purchasedAt:
-                                                new Date().toISOString(),
-                                            paymentId:
-                                                paymentResponse.razorpay_payment_id,
-                                            orderId:
-                                                paymentResponse.razorpay_order_id,
+                                            purchasedAt: new Date().toISOString(),
+                                            paymentId: paymentResponse.razorpay_payment_id,
+                                            orderId: paymentResponse.razorpay_order_id,
                                             slot: program.slot,
                                             date: program.date,
                                             mode: program.mode,
@@ -520,14 +528,123 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                                         },
                                     ],
                                 };
+
+                                // Remove reserved slot from availability
+                                try {
+                                    const modeKey = (program.mode || '').toLowerCase(); // 'online' | 'offline'
+                                    const subKey = program.subscriptionType; // 'monthly' | 'oneTime' | 'quarterly' etc.
+                                    if (
+                                        modeKey &&
+                                        updatedSlide[modeKey] &&
+                                        updatedSlide[modeKey][subKey] &&
+                                        Array.isArray(updatedSlide[modeKey][subKey].slots)
+                                    ) {
+                                        const existingSlots = updatedSlide[modeKey][subKey].slots;
+                                        let nextSlots = existingSlots;
+
+                                        if (subKey === 'monthly' && program.date) {
+                                            // Remove all slots in the same month as the chosen date
+                                            const chosen = new Date(program.date);
+                                            const y = chosen.getFullYear();
+                                            const m = chosen.getMonth();
+                                            nextSlots = existingSlots.filter((s) => {
+                                                if (!s?.date) return true;
+                                                const d = new Date(s.date);
+                                                return !(d.getFullYear() === y && d.getMonth() === m);
+                                            });
+
+                                            // Also mark month as reserved to block weeklyPattern-generated availability
+                                            const ym = `${y}-${String(m + 1).padStart(2, '0')}`; // YYYY-MM
+                                            const existingReserved = Array.isArray(updatedSlide[modeKey][subKey].reservedMonths)
+                                                ? updatedSlide[modeKey][subKey].reservedMonths
+                                                : [];
+                                            if (!existingReserved.includes(ym)) {
+                                                updatedSlide[modeKey][subKey].reservedMonths = [...existingReserved, ym];
+                                            }
+                                        } else if (program.date && program.slot && (program.slot.startTime || program.slot.start_time)) {
+                                            // Capacity-based reservation for non-monthly (e.g., one-time)
+                                            const sStart = program.slot.startTime || program.slot.start_time;
+                                            const sEnd = program.slot.endTime || program.slot.end_time;
+                                            // Key to track bookings per slot
+                                            const sbKey = `${program.date}|${sStart}|${sEnd}`;
+                                            const currentBookings = (updatedSlide[modeKey][subKey].slotBookings && typeof updatedSlide[modeKey][subKey].slotBookings === 'object')
+                                                ? updatedSlide[modeKey][subKey].slotBookings
+                                                : {};
+                                            const currentLocks = (updatedSlide[modeKey][subKey].slotLocks && typeof updatedSlide[modeKey][subKey].slotLocks === 'object')
+                                                ? updatedSlide[modeKey][subKey].slotLocks
+                                                : {};
+                                            const prevCount = Number(currentBookings[sbKey] || 0);
+                                            const persons = Math.max(1, Number(program.persons || 1)); // default 1 person if not provided
+                                            // Determine capacity per slot from occupancyType and guide config
+                                            let maxPerSlot = 2; // default couples capacity
+                                            const occType = (program.occupancyType || '').toString().toLowerCase();
+                                            try {
+                                                const occs = (updatedSlide?.guideCard?.occupancies || []).map(o => ({
+                                                    type: (o?.type || '').toString().toLowerCase(),
+                                                    max: Number(o?.max || 0)
+                                                }));
+                                                if (occType) {
+                                                    const match = occs.find(o => o.type === occType);
+                                                    if (match && match.max > 0) {
+                                                        maxPerSlot = match.max;
+                                                    } else if (occType.includes('individual')) {
+                                                        maxPerSlot = 1;
+                                                    } else if (occType.includes('couple') || occType.includes('twin')) {
+                                                        maxPerSlot = 2;
+                                                    }
+                                                }
+                                            } catch (e) {
+                                                console.log('capacity detection failed, using default 2:', e?.message);
+                                            }
+                                            const newCount = Math.min(maxPerSlot, prevCount + persons);
+                                            // Record lock on first booking if none exists
+                                            const existingLock = currentLocks[sbKey];
+                                            if (!existingLock && occType) {
+                                                currentLocks[sbKey] = occType;
+                                            }
+
+                                            // If capacity reached (>=2), remove the slot from availability
+                                            if (newCount >= maxPerSlot) {
+                                                nextSlots = existingSlots.filter((s) => {
+                                                    const sameDate = s?.date === program.date;
+                                                    const sameStart = (s?.startTime || s?.start_time) === sStart;
+                                                    const sameEnd = (s?.endTime || s?.end_time) === sEnd;
+                                                    return !(sameDate && sameStart && sameEnd);
+                                                });
+                                            } else {
+                                                // Keep slots unchanged, only update booking count
+                                                nextSlots = existingSlots;
+                                            }
+
+                                            updatedSlide[modeKey][subKey] = {
+                                                ...updatedSlide[modeKey][subKey],
+                                                slotBookings: { ...currentBookings, [sbKey]: newCount },
+                                                slotLocks: { ...currentLocks }
+                                            };
+                                        }
+
+                                        // Apply filtered slots back
+                                        updatedSlide[modeKey][subKey] = {
+                                            ...updatedSlide[modeKey][subKey],
+                                            slots: nextSlots,
+                                            // slotBookings retained if set above
+                                        };
+                                    }
+                                } catch (slotErr) {
+                                    console.error('Error updating guide slots after reservation:', slotErr);
+                                }
+
+                                return updatedSlide;
                             }
-                            return guide;
+                            return slide;
                         });
-                        updateData = { guides: updatedGuides };
+                        updateData = { slides: updatedSlides };
+                    } else {
+                        console.log("Guide not found");
                     }
                 } else if (
-                    program.type === "retreat" ||
-                    program.category === "retreat" ||
+                    program.type == "retreat" ||
+                    program.category == "retreat" ||
                     // Check if it's a retreat by checking if it has an id (retreats use numbered ids)
                     (program.id && !program.type && !program.category)
                 ) {
@@ -580,8 +697,8 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                         }
                     }
                 } else if (
-                    program.type === "live" ||
-                    program.category === "live"
+                    program.type == "live" ||
+                    program.category == "live"
                 ) {
                     programRef = db
                         .collection("pilgrim_sessions")
@@ -619,8 +736,8 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                         updateData = { slides: updatedSlides };
                     }
                 } else if (
-                    program.type === "recorded" ||
-                    program.category === "recorded"
+                    program.type == "recorded" ||
+                    program.category == "recorded"
                 ) {
                     programRef = db
                         .collection("pilgrim_sessions")
@@ -823,6 +940,7 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
         console.log("cart Data:", cartData);
 
         for (const program of cartData) {
+            console.log("program type: ", program.type || program.category)
             if (
                 (program.type === "live" || program.category === "live") &&
                 program.slots?.length
@@ -936,57 +1054,50 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                 (program.type === "guide" || program.category === "guide") &&
                 program.slot && program.date
             ) {
-                const startDateTime = new Date(
-                    `${program.date}T${program.slot.time}:00`
-                );
-                const endDateTime = new Date(
-                    `${program.date}T${program.slot.endTime || program.slot.time}:00`
-                );
-                
-                // Add 1 hour if no end time specified
-                if (!program.slot.endTime) {
-                    endDateTime.setHours(endDateTime.getHours() + 1);
+                // Build local datetime strings and validate range
+                const durationMin = Number(program?.slot?.duration || program?.duration || 60);
+                const startLocal = `${program.date}T${program.slot.time}:00`;
+                let endLocal = `${program.date}T${program.slot.endTime || program.slot.time}:00`;
+
+                const toMs = (s) => new Date(s).getTime();
+                if (!program.slot.endTime || toMs(endLocal) <= toMs(startLocal)) {
+                    const endMs = toMs(startLocal) + durationMin * 60 * 1000;
+                    const endIso = new Date(endMs).toISOString();
+                    endLocal = endIso.slice(0, 19); // YYYY-MM-DDTHH:MM:SS
                 }
 
-                // console.log("Guide organizer data:", program);
-                const event = {
+                const guideEvent = {
                     summary: `Guide Session: ${program.title}`,
                     description: `Guide session booking for ${program.title}
-                                    Mode: ${program.mode}
-                                    Subscription: ${program.subscriptionType}
-                                    Duration: ${program.slot.duration || 60} minutes
-                                    Join here: ${program?.organizer?.googleMeetLink || 'TBD'}`,
-                    location: program.mode === 'Online' ? 
-                        (program?.organizer?.googleMeetLink || 'Online Session') : 
-                        (program.slot.location || 'In-person Session'),
-                    start: {
-                        dateTime: startDateTime.toISOString(),
-                        timeZone: "Asia/Kolkata",
-                    },
-                    end: {
-                        dateTime: endDateTime.toISOString(),
-                        timeZone: "Asia/Kolkata",
-                    },
+                                        Mode: ${program.mode}
+                                        Subscription: ${program.subscriptionType}
+                                        Duration: ${durationMin} minutes
+                                        Join here: ${program?.organizer?.googleMeetLink}`,
+                    location: program.mode === 'Offline' ? 'In-person Session' : program?.organizer?.googleMeetLink,
+                    start: { dateTime: startLocal, timeZone: "Asia/Kolkata" },
+                    end:   { dateTime: endLocal,   timeZone: "Asia/Kolkata" },
                     attendees: [
                         { email },
                         { email: adminEmail },
-                        { email: program?.organizer?.email || adminEmail },
+                        { email: program?.organizer?.email },
                     ],
                 };
 
-                const createdEvent = await calendar.events.insert({
-                    calendarId: organizerCalendar,
-                    resource: event,
-                    sendUpdates: "all",
-                });
+                // Define meet link for emails
+                const meetLink = program?.organizer?.googleMeetLink;
 
-                console.log(
-                    "Created Google Calendar event for guide:",
-                    createdEvent.data
-                );
-
-                const meetLink = program?.organizer?.googleMeetLink || 'TBD';
-                console.log("Guide Meet Link:", meetLink);
+                // Insert calendar event only for Online mode; do not block on failure
+                if (calendar) {
+                    try {
+                        await calendar.events.insert({
+                            calendarId: organizerCalendar,
+                            resource: guideEvent,
+                            sendUpdates: "all",
+                        });
+                    } catch (e) {
+                        console.warn('Guide calendar insert failed:', e?.message || e);
+                    }
+                }
 
                 const guideMailHtml = `
                     <!DOCTYPE html>
@@ -1369,3 +1480,24 @@ exports.confirmGiftCardPayment = functions.https.onCall(async (data, context) =>
         throw new functions.https.HttpsError('internal', err.message);
     }
 });
+
+
+// twilio for whatsapp
+exports.sendWhatsappReminder = functions.https.onCall(async (data, context) => {
+    try {
+        const { phoneNumber, message } = data.data;
+  
+        const res = await client.messages.create({
+            from: "whatsapp:+14155238886", // Twilio sandbox/approved number
+            to: `whatsapp:${phoneNumber}`, // User's phone e.g. +9198XXXXXXX
+            body: message,
+        });
+
+        return { success: true, sid: res.sid };
+    } catch (error) {
+        console.error("Error sending WhatsApp message:", error);
+        return { success: false, error: error.message };
+    }
+});
+
+  

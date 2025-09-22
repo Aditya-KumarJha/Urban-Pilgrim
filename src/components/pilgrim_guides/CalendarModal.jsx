@@ -10,7 +10,10 @@ export default function CalendarModal({
     sessionData, 
     selectedPlan, 
     mode,
-    availableSlots = []
+    availableSlots = [],
+    personsPerBooking = 1,
+    occupancyType = '',
+    capacityMax = 0
 }) {
     console.log("sessionData", sessionData);
     console.log("selectedPlan", selectedPlan);
@@ -18,8 +21,9 @@ export default function CalendarModal({
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(null);
     const [selectedSlot, setSelectedSlot] = useState(null);
+    const [selectedSlotsMulti, setSelectedSlotsMulti] = useState([]); // multi-select for one-time and monthly
     const [localSlots, setLocalSlots] = useState([]);
-    const [view, setView] = useState('monthly'); // 'monthly', 'daily', 'confirmation'
+    const [view, setView] = useState('monthly'); // keep monthly as main canvas
     const [loading, setLoading] = useState(false);
     
     const dispatch = useDispatch();
@@ -79,6 +83,66 @@ export default function CalendarModal({
         }
     };
 
+    const handleAddMultipleToCart = () => {
+        if (!sessionData || selectedSlotsMulti.length === 0) return;
+
+        const modeKey = mode?.toLowerCase();
+        const subscriptionKey = selectedPlan; // 'oneTime'
+        const price = sessionData[modeKey]?.[subscriptionKey]?.price;
+
+        selectedSlotsMulti.forEach((slot) => {
+            const cartItem = {
+                id: `${sessionData?.guideCard?.title}-${slot.id}`,
+                title: sessionData?.guideCard?.title,
+                price: price,
+                persons: Math.max(1, Number(personsPerBooking || 1)),
+                image: sessionData?.guideCard?.thumbnail,
+                quantity: 1, // one item per slot ensures backend slot reservation per item
+                type: "guide",
+                mode: mode,
+                subscriptionType: selectedPlan,
+                occupancyType: occupancyType || '',
+                organizer: sessionData?.organizer,
+                slot: slot,
+                date: slot.date,
+                timestamp: new Date().toISOString()
+            };
+            dispatch(addToCart(cartItem));
+        });
+
+        showSuccess(`${selectedSlotsMulti.length} slot(s) added to cart!`);
+        onClose();
+        resetModal();
+    };
+
+    const handleAddMonthlyToCart = () => {
+        if (!sessionData || selectedSlotsMulti.length === 0) return;
+
+        const modeKey = mode?.toLowerCase();
+        const subscriptionKey = selectedPlan; // 'monthly'
+        const price = sessionData[modeKey]?.[subscriptionKey]?.price;
+
+        const cartItem = {
+            id: `${sessionData?.guideCard?.title}-monthly-${Date.now()}`,
+            title: sessionData?.guideCard?.title,
+            price: price, // monthly price
+            persons: 1,
+            image: sessionData?.guideCard?.thumbnail,
+            quantity: 1,
+            type: "guide",
+            mode: mode,
+            subscriptionType: selectedPlan,
+            organizer: sessionData?.organizer,
+            selectedSlots: selectedSlotsMulti.map(s => ({ id: s.id, date: s.date, startTime: s.time || s.startTime, endTime: s.endTime, location: s.location })),
+            timestamp: new Date().toISOString()
+        };
+        dispatch(addToCart(cartItem));
+
+        showSuccess(`${selectedSlotsMulti.length} session(s) scheduled and added to cart!`);
+        onClose();
+        resetModal();
+    };
+
     const getDaysInMonth = (date) => {
         const year = date.getFullYear();
         const month = date.getMonth();
@@ -128,17 +192,72 @@ export default function CalendarModal({
         return localSlots.filter(slot => slot.date === dateStr);
     };
 
+    // Compute current enrolled counts from sessionData.slotBookings
+    const getSlotBookings = () => {
+        try {
+            const modeKey = mode?.toLowerCase();
+            const subKey = selectedPlan;
+            const plan = sessionData?.[modeKey]?.[subKey] || {};
+            return (plan.slotBookings && typeof plan.slotBookings === 'object') ? plan.slotBookings : {};
+        } catch {
+            return {};
+        }
+    };
+    const slotBookings = getSlotBookings();
+
+    // Retrieve first-booker occupancy locks per slot
+    const getSlotLocks = () => {
+        try {
+            const modeKey = mode?.toLowerCase();
+            const subKey = selectedPlan;
+            const plan = sessionData?.[modeKey]?.[subKey] || {};
+            return (plan.slotLocks && typeof plan.slotLocks === 'object') ? plan.slotLocks : {};
+        } catch {
+            return {};
+        }
+    };
+    const slotLocks = getSlotLocks();
+
+    // Compute per-slot price and running total for one-time purchases
+    const getPerSlotPrice = () => {
+        try {
+            const modeKey = mode?.toLowerCase();
+            const subscriptionKey = 'oneTime';
+            const p = Number(sessionData?.[modeKey]?.[subscriptionKey]?.price || 0);
+            return isNaN(p) ? 0 : p;
+        } catch {
+            return 0;
+        }
+    };
+    const oneTimeTotal = selectedPlan === 'oneTime' ? selectedSlotsMulti.length * getPerSlotPrice() : 0;
+
     const handleDateClick = (day) => {
         if (!day || !hasAvailableSlots(day)) return;
         
         const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         setSelectedDate(dateStr);
-        setView('daily');
     };
 
     const handleSlotSelect = (slot) => {
-        setSelectedSlot(slot);
-        setView('confirmation');
+        // For one-time and monthly, support multi-select
+        if (selectedPlan === 'quarterly') {
+            // keep legacy single select if quarterly flows exist
+            setSelectedSlot(slot);
+            setView('confirmation');
+            return;
+        }
+        setSelectedSlotsMulti((prev) => {
+            const exists = prev.some(s => s.id === slot.id);
+            if (exists) return prev.filter(s => s.id !== slot.id);
+
+            // Enforce monthly selection cap if provided
+            if (selectedPlan === 'monthly') {
+                const modeKey = mode?.toLowerCase();
+                const max = Number(sessionData?.[modeKey]?.monthly?.sessionsCount || 0);
+                if (max > 0 && prev.length >= max) return prev; // ignore if limit reached
+            }
+            return [...prev, slot];
+        });
     };
 
     const handleAddToCart = () => {
@@ -196,7 +315,7 @@ export default function CalendarModal({
     const monthName = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-xs flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
                 {/* Header */}
                 <div className="flex justify-between items-center p-6 border-b">
@@ -224,7 +343,7 @@ export default function CalendarModal({
                         </div>
                     ) : (
                         <>
-                            {/* Monthly View */}
+                            {/* Monthly View with right-side slot panel */}
                             {view === 'monthly' && (
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                     {/* Calendar */}
@@ -273,45 +392,104 @@ export default function CalendarModal({
                                         </div>
                                     </div>
 
-                                    {/* Info Panel */}
+                                    {/* Right-side Slots Panel */}
                                     <div className="space-y-4">
-                                        <div className="bg-blue-50 p-4 rounded-lg">
-                                            <p className="text-sm text-blue-800 mb-2">
-                                                📅 All slots are currently available. Booking will be confirmed after purchase.
-                                            </p>
-                                        </div>
-
-                                        {nextSlot && (
-                                            <div className="bg-green-50 p-4 rounded-lg">
-                                                <p className="text-sm font-medium text-green-800 mb-2">
-                                                    Next Available Slot:
-                                                </p>
-                                                <p className="text-green-700">
-                                                    {nextSlot.date} at {nextSlot.time}
+                                        {!selectedDate ? (
+                                            <div className="space-y-2">
+                                                <h4 className="font-medium text-gray-800">Available Slots</h4>
+                                                <p className="text-sm text-gray-600">
+                                                    Select a date on the calendar to view and pick slots. You can select multiple dates and slots.
                                                 </p>
                                             </div>
+                                        ) : (
+                                            <>
+                                                <div className="flex items-center justify-between">
+                                                    <h4 className="font-medium text-gray-800">Slots on {new Date(selectedDate).toLocaleDateString('en-US',{weekday:'long', month:'short', day:'numeric'})}</h4>
+                                                    <button
+                                                        onClick={() => setSelectedDate(null)}
+                                                        className="text-sm text-[#2F6288] hover:underline"
+                                                    >
+                                                        Clear date
+                                                    </button>
+                                                </div>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    {getSlotsForDate(selectedDate).map(slot => {
+                                                        const start = slot.startTime || slot.time;
+                                                        const key = `${slot.date}|${start}|${slot.endTime}`;
+                                                        const booked = Number(slotBookings[key] || 0);
+                                                        const cap = Number(capacityMax || 0);
+                                                        const lock = (slotLocks[key] || '').toString().toLowerCase();
+                                                        const occ = (occupancyType || '').toString().toLowerCase();
+                                                        const isSelected = selectedSlotsMulti.some(s => s.id === slot.id);
+                                                        let disabled = false;
+                                                        if (selectedPlan === 'monthly') {
+                                                            const modeKey = mode?.toLowerCase();
+                                                            const max = Number(sessionData?.[modeKey]?.monthly?.sessionsCount || 0);
+                                                            disabled = max > 0 && !isSelected && selectedSlotsMulti.length >= max;
+                                                        } else if (selectedPlan === 'oneTime') {
+                                                            if (cap > 0 && booked >= cap) disabled = true;
+                                                            // Enforce lock: if another occupancy booked first, block others
+                                                            if (!disabled && lock && occ && lock !== occ) {
+                                                                disabled = true;
+                                                            }
+                                                        }
+                                                        return (
+                                                            <button
+                                                                key={slot.id}
+                                                                onClick={() => !disabled && handleSlotSelect(slot)}
+                                                                className={`p-4 rounded-lg border-2 transition-all ${isSelected ? 'border-[#2F6288] bg-blue-50' : disabled ? 'border-gray-200 bg-gray-100 cursor-not-allowed' : 'border-green-300 bg-green-50 hover:border-green-500 hover:bg-green-100'}`}
+                                                                disabled={disabled}
+                                                            >
+                                                                <div className="text-left">
+                                                                    <p className="font-semibold text-green-800">{slot.time}</p>
+                                                                    <p className="text-sm text-gray-600">{slot.duration} minutes</p>
+                                                                    {selectedPlan === 'oneTime' && cap > 0 && (
+                                                                        <p className="text-xs mt-1 text-gray-600">Enrolled: {booked}/{cap}</p>
+                                                                    )}
+                                                                    {selectedPlan === 'oneTime' && lock && (
+                                                                        <p className="text-xs mt-1 text-amber-700">Locked for: {lock}</p>
+                                                                    )}
+                                                                    <p className={`text-xs mt-1 ${isSelected ? 'text-blue-700' : disabled ? 'text-gray-400' : 'text-green-600'}`}>{isSelected ? 'Selected' : disabled ? 'Full' : 'Available'}</p>
+                                                                </div>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                                {/* Footer actions for selections */}
+                                                <div className="mt-6 flex items-center justify-between">
+                                                    <div className="text-sm text-gray-700">
+                                                        Selected: <span className="font-semibold">{selectedSlotsMulti.length}</span>
+                                                        {selectedPlan === 'monthly' && (() => {
+                                                            const modeKey = mode?.toLowerCase();
+                                                            const max = Number(sessionData?.[modeKey]?.monthly?.sessionsCount || 0);
+                                                            return max > 0 ? <span className="ml-1">/ {max}</span> : null;
+                                                        })()}
+                                                        {selectedPlan === 'oneTime' && (
+                                                            <span className="ml-3 text-gray-900">
+                                                                Total: <span className="font-semibold">{oneTimeTotal}</span>
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    {selectedPlan === 'oneTime' ? (
+                                                        <button
+                                                            onClick={handleAddMultipleToCart}
+                                                            disabled={selectedSlotsMulti.length === 0}
+                                                            className="px-4 py-3 bg-[#2F6288] text-white rounded-lg disabled:opacity-50"
+                                                        >
+                                                            Add {selectedSlotsMulti.length || ''} Slot{selectedSlotsMulti.length === 1 ? '' : 's'} to Cart{selectedSlotsMulti.length > 0 ? ` • ${oneTimeTotal}` : ''}
+                                                        </button>
+                                                    ) : selectedPlan === 'monthly' ? (
+                                                        <button
+                                                            onClick={handleAddMonthlyToCart}
+                                                            disabled={selectedSlotsMulti.length === 0}
+                                                            className="px-4 py-3 bg-[#2F6288] text-white rounded-lg disabled:opacity-50"
+                                                        >
+                                                            Save {selectedSlotsMulti.length || ''} Session{selectedSlotsMulti.length === 1 ? '' : 's'}
+                                                        </button>
+                                                    ) : null}
+                                                </div>
+                                            </>
                                         )}
-
-                                        <div className="space-y-2">
-                                            <h4 className="font-medium text-gray-800">Available Slots</h4>
-                                            <p className="text-sm text-gray-600">
-                                                Tip: You can select multiple slots and add them to your cart in one go!
-                                            </p>
-                                        </div>
-
-                                        <div className="space-y-2">
-                                            <p className="text-sm text-gray-600">Please choose a date</p>
-                                            <div className="flex items-center gap-4 text-xs">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-3 h-3 bg-green-100 rounded"></div>
-                                                    <span>Available</span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-3 h-3 bg-gray-200 rounded"></div>
-                                                    <span>Unavailable</span>
-                                                </div>
-                                            </div>
-                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -337,19 +515,11 @@ export default function CalendarModal({
                                         </h3>
                                     </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {getSlotsForDate(selectedDate).map(slot => (
-                                            <button
-                                                key={slot.id}
-                                                onClick={() => handleSlotSelect(slot)}
-                                                className="p-4 rounded-lg border-2 transition-all border-green-300 bg-green-50 hover:border-green-500 hover:bg-green-100"
-                                            >
-                                                <div className="text-left">
-                                                    <p className="font-semibold text-green-800">{slot.time}</p>
-                                                    <p className="text-sm text-gray-600">{slot.duration} minutes</p>
-                                                    <p className="text-xs text-green-600 mt-1">Available</p>
-                                                </div>
-                                            </button>
+                                    <div className="grid grid-cols-7 gap-1 mb-2">
+                                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                                            <div key={day} className="p-2 text-center text-sm font-medium text-gray-500">
+                                                {day}
+                                            </div>
                                         ))}
                                     </div>
                                 </div>

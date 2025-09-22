@@ -120,28 +120,34 @@ export default function CartPage() {
 				description: "Program Purchase",
 				order_id: order.id,
 				handler: async function (response) {
-					// 3️⃣ Confirm on server with expanded cart data
-					setLoading(true);
-					const confirmPayment = httpsCallable(functions, "confirmPayment");
+					try {
+						// 3️⃣ Confirm on server with expanded cart data
+						setLoading(true);
+						const confirmPayment = httpsCallable(functions, "confirmPayment");
 
-					const dataContent = await confirmPayment({
-						...checkoutData,
-						total,
-						paymentResponse: response,
-						// Send both original and expanded cart data
-						cartData: checkoutData.expandedCartData, // Individual items for processing
-						originalCartData: checkoutData.originalCartData // Original bundles for reference
-					});
-					setLoading(false);
-					console.log("data from confirmPayment: ", dataContent);
+						const dataContent = await confirmPayment({
+							...checkoutData,
+							total,
+							paymentResponse: response,
+							// Send both original and expanded cart data
+							cartData: checkoutData.expandedCartData, // Individual items for processing
+							originalCartData: checkoutData.originalCartData // Original bundles for reference
+						});
+						console.log("data from confirmPayment: ", dataContent);
 
-					// Add programs to user's purchased programs in Redux with expiration data
-					const userPrograms = prepareUserProgramsData(checkoutData.expandedCartData);
-					dispatch(addUserPrograms(userPrograms));
+						// Add programs to user's purchased programs in Redux with expiration data
+						const userPrograms = prepareUserProgramsData(checkoutData.expandedCartData);
+						dispatch(addUserPrograms(userPrograms));
 
-					dispatch(clearCart());
+						dispatch(clearCart());
 
-					toast.success("Payment successful! Programs saved.");
+						toast.success("Payment successful! Programs saved.");
+					} catch (err) {
+						console.error(err);
+						toast.error("Payment confirmation failed");
+					} finally {
+						setLoading(false);
+					}
 				},
 				prefill: {
 					name: `${formData.firstName} ${formData.lastName}`,
@@ -156,6 +162,8 @@ export default function CartPage() {
 		} catch (err) {
 			console.error(err);
 			toast.error("Checkout failed");
+		} finally {
+			setLoading(false);
 		}
 	};
 

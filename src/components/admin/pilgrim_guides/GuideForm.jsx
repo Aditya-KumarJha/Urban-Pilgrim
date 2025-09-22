@@ -99,6 +99,7 @@ export default function GuideForm() {
                 groupMax: "",
                 discount: "",
                 description: "",
+                sessionsCount: "", // number of sessions per month
                 slots: [],
                 weeklyPattern: [] // [{ days:["Sun","Mon"], times:[{startTime, endTime}]}]
             },
@@ -123,6 +124,7 @@ export default function GuideForm() {
                 groupMax: "",
                 discount: "",
                 description: "",
+                sessionsCount: "", // number of sessions per month
                 slots: [],
                 weeklyPattern: []
             },
@@ -447,7 +449,9 @@ export default function GuideForm() {
                     price: slideToEdit?.online?.monthly?.price || "",
                     discount: slideToEdit?.online?.monthly?.discount || "",
                     description: slideToEdit?.online?.monthly?.description || "",
-                    slots: slideToEdit?.online?.monthly?.slots || []
+                    sessionsCount: slideToEdit?.online?.monthly?.sessionsCount || "",
+                    slots: slideToEdit?.online?.monthly?.slots || [],
+                    weeklyPattern: slideToEdit?.online?.monthly?.weeklyPattern || []
                 },
                 oneTime: {
                     price: slideToEdit?.online?.oneTime?.price || "",
@@ -458,8 +462,10 @@ export default function GuideForm() {
                 monthly: {
                     price: slideToEdit?.offline?.monthly?.price || "",
                     discount: slideToEdit?.offline?.monthly?.discount || "",
+                    sessionsCount: slideToEdit?.offline?.monthly?.sessionsCount || "",
                     slots: slideToEdit?.offline?.monthly?.slots || [],
-                    description: slideToEdit?.offline?.monthly?.description || ""
+                    description: slideToEdit?.offline?.monthly?.description || "",
+                    weeklyPattern: slideToEdit?.offline?.monthly?.weeklyPattern || []
                 },
                 oneTime: {
                     price: slideToEdit?.offline?.oneTime?.price || "",
@@ -518,6 +524,7 @@ export default function GuideForm() {
                     groupMax: "",
                     discount: "",
                     description: "",
+                    sessionsCount: "",
                     slots: [{ date: "", startTime: "", endTime: "" }],
                     weeklyPattern: []
                 },
@@ -541,6 +548,7 @@ export default function GuideForm() {
                     groupMax: "",
                     discount: "",
                     description: "",    
+                    sessionsCount: "",
                     slots: [{ date: "", startTime: "", endTime: "" }],
                     weeklyPattern: []
                 },
@@ -1172,7 +1180,7 @@ export default function GuideForm() {
 
     // Occupancy management functions
     const addOccupancy = () => {
-        const updated = [...formData.guideCard.occupancies, { type: "", price: "" }];
+        const updated = [...formData.guideCard.occupancies, { type: "", price: "", min: "", max: "" }];
         handleFieldChange("guideCard", "occupancies", updated);
     };
 
@@ -1367,7 +1375,7 @@ export default function GuideForm() {
                     <div className="mb-4">
                         <label className="block text-md font-semibold text-gray-700 mb-2 mt-4">Occupancy & Price</label>
                         {formData?.guideCard?.occupancies.map((occ, index) => (
-                            <div key={index} className="flex gap-2 mb-2 items-center">
+                            <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-2 items-center">
                                 <input
                                     type="text"
                                     value={occ.type || ""}
@@ -1382,6 +1390,21 @@ export default function GuideForm() {
                                     onChange={(e) => updateOccupancy(index, "price", e.target.value)}
                                     className="text-sm w-full border p-3 rounded-lg"
                                 />
+                                <input
+                                    type="number"
+                                    value={occ.min || ""}
+                                    placeholder="Min persons"
+                                    onChange={(e) => updateOccupancy(index, "min", e.target.value)}
+                                    className="text-sm w-full border p-3 rounded-lg"
+                                />
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="number"
+                                        value={occ.max || ""}
+                                        placeholder="Max persons"
+                                        onChange={(e) => updateOccupancy(index, "max", e.target.value)}
+                                        className="text-sm w-full border p-3 rounded-lg"
+                                    />
                                 {index === formData?.guideCard?.occupancies.length - 1 ? (
                                     <button
                                         onClick={addOccupancy}
@@ -1397,6 +1420,7 @@ export default function GuideForm() {
                                         className="border border-dashed px-2 py-1 rounded text-xl"
                                     >-</button>
                                 )}
+                                </div>
                             </div>
                         ))}
 
@@ -1459,6 +1483,19 @@ export default function GuideForm() {
                                         className="text-sm w-full border border-gray-300 p-3 rounded-lg "
                                     />
                                     {errors.monthlyOnlineDiscount && <p className="text-red-500 text-sm mt-1">{errors.monthlyOnlineDiscount}</p>}
+                                </div>
+
+                                {/* Monthly Online Sessions Count */}
+                                <div>
+                                    <label className="block text-md font-semibold text-gray-700 mb-2">Number of Sessions (per month)</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        placeholder="e.g., 4"
+                                        value={formData?.online?.monthly?.sessionsCount}
+                                        onChange={(e) => handleFieldChange(null, "sessionsCount", e.target.value, "online", "monthly")}
+                                        className="text-sm w-full border border-gray-300 p-3 rounded-lg "
+                                    />
                                 </div>
 
                                 <div>
@@ -1551,6 +1588,19 @@ export default function GuideForm() {
                                         className="text-sm w-full border border-gray-300 p-3 rounded-lg "
                                     />
                                     {errors.monthlyOfflineDiscount && <p className="text-red-500 text-sm mt-1">{errors.monthlyOfflineDiscount}</p>}
+                                </div>
+
+                                {/* Monthly Offline Sessions Count */}
+                                <div>
+                                    <label className="block text-md font-semibold text-gray-700 mb-2">Number of Sessions (per month)</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        placeholder="e.g., 4"
+                                        value={formData?.offline?.monthly?.sessionsCount}
+                                        onChange={(e) => handleFieldChange(null, "sessionsCount", e.target.value, "offline", "monthly")}
+                                        className="text-sm w-full border border-gray-300 p-3 rounded-lg "
+                                    />
                                 </div>
 
                                 <div>

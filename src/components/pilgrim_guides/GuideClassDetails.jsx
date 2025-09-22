@@ -84,6 +84,24 @@ export default function GuideClassDetails() {
         loadEvents();
     }, [dispatch, allEvents]);
 
+    // Derive persons per booking based on selected occupancy (couples/twin => 2)
+    const getPersonsPerBooking = () => {
+        const label = (selectedOccupancy?.type || '').toLowerCase();
+        if (label.includes('couple') || label.includes('twin')) return 2;
+        const min = Number(selectedOccupancy?.min || 1);
+        const max = Number(selectedOccupancy?.max || 0);
+        const q = Number(quantity || 1);
+        const base = isNaN(q) ? 1 : q;
+        const boundedMin = isNaN(min) ? 1 : Math.max(1, min);
+        const boundedMax = isNaN(max) || max <= 0 ? base : max;
+        return Math.min(Math.max(base, boundedMin), boundedMax);
+    };
+
+    const getCapacityMax = () => {
+        const max = Number(selectedOccupancy?.max || 0);
+        return isNaN(max) ? 0 : max;
+    };
+
     const { guideClassName } = useParams();
     const formattedTitle = guideClassName.replace(/-/g, " ");
     const [sessionData, setSessionData] = useState(null);
@@ -198,22 +216,27 @@ export default function GuideClassDetails() {
         // One-time: use stored date slots directly
         if (subscriptionType === 'oneTime') {
             const slots = Array.isArray(plan.slots) ? plan.slots : [];
-            // Ensure only upcoming dates
+            // Only upcoming dates; capacity handled in CalendarModal based on selected occupancy
             const today = new Date();
             const todayYmd = today.toISOString().slice(0,10);
             return slots.filter(s => (s?.date || '') >= todayYmd);
         }
 
-        // Monthly: generate next 30 days from weeklyPattern
+        // Monthly: generate next 30 days from weeklyPattern (respect reservedMonths)
         if (subscriptionType === 'monthly') {
             const pattern = Array.isArray(plan.weeklyPattern) ? plan.weeklyPattern : [];
             if (pattern.length === 0) return [];
+            const reservedMonths = new Set(
+                Array.isArray(plan.reservedMonths) ? plan.reservedMonths : []
+            ); // ['YYYY-MM']
             const out = [];
             const today = new Date();
             for (let i = 0; i < 30; i++) {
                 const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
                 const dayShort = d.toLocaleDateString('en-US', { weekday: 'short' }).slice(0,3); // Sun, Mon...
                 const ymd = d.toISOString().slice(0,10);
+                const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                if (reservedMonths.has(ym)) continue; // block entire month
                 pattern.forEach(row => {
                     if ((row.days || []).includes(dayShort)) {
                         (row.times || []).forEach(t => {
@@ -612,13 +635,24 @@ export default function GuideClassDetails() {
 
                     {/* Book Now opens Calendar Modal with available slots */}
                     {subscriptionType && (
-                        <div className="max-w-xl mt-6 space-y-3">
-                            <button
-                                onClick={() => setShowCalendar(true)}
-                                className="w-full px-4 py-3 rounded-lg text-white bg-[#C5703F] hover:bg-[#C5703F]/90 font-semibold"
-                            >
-                                Book Now
-                            </button>
+                        <div className="max-w-sm mt-6 space-y-3">
+                            {(() => {
+                                const buttonConfig = getProgramButtonConfig(userPrograms, sessionData?.guideCard?.title, 'guide');
+                                const isBookable = buttonConfig.action === 'book';
+                                const btnText = isBookable ? 'Book Now' : 'Booked';
+                                const btnClass = isBookable
+                                    ? 'bg-[#2F6288] hover:bg-[#2F6288]/90'
+                                    : 'bg-green-600 cursor-default';
+                                return (
+                                    <button
+                                        onClick={() => isBookable && setShowCalendar(true)}
+                                        disabled={!isBookable}
+                                        className={`w-full px-4 py-3 rounded-lg text-white font-semibold ${btnClass}`}
+                                    >
+                                        {btnText}
+                                    </button>
+                                );
+                            })()}
                             {mode === 'Online' && sessionData?.session?.freeTrialVideo && (
                                 <button
                                     onClick={handleShowFreeTrail}
@@ -705,6 +739,9 @@ export default function GuideClassDetails() {
                     selectedPlan={selectedPlan}
                     mode={mode}
                     availableSlots={availableSlots}
+                    personsPerBooking={getPersonsPerBooking()}
+                    occupancyType={selectedOccupancy?.type || ''}
+                    capacityMax={getCapacityMax()}
                     onAddToCart={(cartItem) => {
                         addToCart(cartItem);
                         setShowCalendar(false);
