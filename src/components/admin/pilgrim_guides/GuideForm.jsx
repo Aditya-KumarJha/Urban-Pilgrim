@@ -292,8 +292,8 @@ export default function GuideForm() {
 
     const addSlot = (mode, subscriptionType) => {
         const newSlot = mode === 'Online' 
-            ? { date: "", startTime: "", endTime: "" }
-            : { date: "", startTime: "", endTime: "", location: "" };
+            ? { date: "", startTime: "", endTime: "", type: "individual" }
+            : { date: "", startTime: "", endTime: "", location: "", type: "individual" };
             
         setFormData((prev) => {
             const updated = { ...prev };
@@ -423,6 +423,13 @@ export default function GuideForm() {
         const slideToEdit = allData[index];
         console.log("Editing slide:", slideToEdit);
 
+        // Normalize types and add stable ids for backward compatibility
+        const normalizeSlots = (slots = []) => slots.map(s => ({ ...s, id: s?.id || uuidv4(), type: s?.type || 'individual' }));
+        const normalizeWeekly = (wp = []) => (wp || []).map(r => ({
+            ...r,
+            times: (r?.times || []).map(t => ({ ...t, id: t?.id || uuidv4(), type: t?.type || 'individual' }))
+        }));
+
         // Update formData with the slide being edited
         setFormData((prev) => ({
             ...prev,
@@ -450,12 +457,12 @@ export default function GuideForm() {
                     discount: slideToEdit?.online?.monthly?.discount || "",
                     description: slideToEdit?.online?.monthly?.description || "",
                     sessionsCount: slideToEdit?.online?.monthly?.sessionsCount || "",
-                    slots: slideToEdit?.online?.monthly?.slots || [],
-                    weeklyPattern: slideToEdit?.online?.monthly?.weeklyPattern || []
+                    slots: normalizeSlots(slideToEdit?.online?.monthly?.slots || []),
+                    weeklyPattern: normalizeWeekly(slideToEdit?.online?.monthly?.weeklyPattern || [])
                 },
                 oneTime: {
                     price: slideToEdit?.online?.oneTime?.price || "",
-                    slots: slideToEdit?.online?.oneTime?.slots || [],
+                    slots: normalizeSlots(slideToEdit?.online?.oneTime?.slots || []),
                 }
             },
             offline: {
@@ -463,13 +470,13 @@ export default function GuideForm() {
                     price: slideToEdit?.offline?.monthly?.price || "",
                     discount: slideToEdit?.offline?.monthly?.discount || "",
                     sessionsCount: slideToEdit?.offline?.monthly?.sessionsCount || "",
-                    slots: slideToEdit?.offline?.monthly?.slots || [],
+                    slots: normalizeSlots(slideToEdit?.offline?.monthly?.slots || []),
                     description: slideToEdit?.offline?.monthly?.description || "",
-                    weeklyPattern: slideToEdit?.offline?.monthly?.weeklyPattern || []
+                    weeklyPattern: normalizeWeekly(slideToEdit?.offline?.monthly?.weeklyPattern || [])
                 },
                 oneTime: {
                     price: slideToEdit?.offline?.oneTime?.price || "",
-                    slots: slideToEdit?.offline?.oneTime?.slots || []
+                    slots: normalizeSlots(slideToEdit?.offline?.oneTime?.slots || [])
                 }
             },
             session: {
@@ -492,6 +499,16 @@ export default function GuideForm() {
 
         setIsEditing(true);
         setEditIndex(index);
+
+        // Preselect calendar dates (one-time) so slots are visible immediately
+        try {
+            const firstOnlineOT = (slideToEdit?.online?.oneTime?.slots || []).find(s => !!s?.date);
+            if (firstOnlineOT?.date) setOtOnlineDate(ymd(firstOnlineOT.date));
+        } catch {}
+        try {
+            const firstOfflineOT = (slideToEdit?.offline?.oneTime?.slots || []).find(s => !!s?.date);
+            if (firstOfflineOT?.date) setOtOfflineDate(ymd(firstOfflineOT.date));
+        } catch {}
 
         // Scroll to top of form
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -525,7 +542,7 @@ export default function GuideForm() {
                     discount: "",
                     description: "",
                     sessionsCount: "",
-                    slots: [{ date: "", startTime: "", endTime: "" }],
+                    slots: [{ date: "", startTime: "", endTime: "", type: "individual" }],
                     weeklyPattern: []
                 },
                 oneTime: {
@@ -535,7 +552,7 @@ export default function GuideForm() {
                     groupPrice: "",
                     groupMin: "",
                     groupMax: "",
-                    slots: [{ date: "", startTime: "", endTime: "" }]
+                    slots: [{ date: "", startTime: "", endTime: "", type: "individual" }]
                 }
             },
             offline: {
@@ -549,7 +566,7 @@ export default function GuideForm() {
                     discount: "",
                     description: "",    
                     sessionsCount: "",
-                    slots: [{ date: "", startTime: "", endTime: "" }],
+                    slots: [{ date: "", startTime: "", endTime: "", type: "individual" }],
                     weeklyPattern: []
                 },
                 oneTime: {
@@ -559,7 +576,7 @@ export default function GuideForm() {
                     groupPrice: "",
                     groupMin: "",
                     groupMax: "",
-                    slots: [{ date: "", startTime: "", endTime: "" }]   
+                    slots: [{ date: "", startTime: "", endTime: "", type: "individual" }]   
                 }
             },
             organizer: { name: "", email: "", address: "", googleMeetLink: "", contactNumber: "" },
@@ -674,7 +691,7 @@ export default function GuideForm() {
         setFormData(prev => {
             const next = { ...prev };
             const list = [...(next[modeKey].monthly.weeklyPattern || [])];
-            list[rowIdx].times = [...(list[rowIdx].times || []), { startTime: "", endTime: "" }];
+            list[rowIdx].times = [...(list[rowIdx].times || []), { startTime: "", endTime: "", type: "individual" }];
             next[modeKey].monthly.weeklyPattern = list;
             return next;
         });
@@ -703,12 +720,12 @@ export default function GuideForm() {
             return next;
         });
     };
-
-    // ========== One-Time Calendar Helpers (Online/Offline) ==========
     const [otOnlineMonth, setOtOnlineMonth] = useState(() => new Date());
     const [otOnlineDate, setOtOnlineDate] = useState(() => new Date().toISOString().slice(0,10));
     const [otOfflineMonth, setOtOfflineMonth] = useState(() => new Date());
     const [otOfflineDate, setOtOfflineDate] = useState(() => new Date().toISOString().slice(0,10));
+    const [onlineMonthlyViewType, setOnlineMonthlyViewType] = useState('individual');
+    const [offlineMonthlyViewType, setOfflineMonthlyViewType] = useState('individual');
 
     const fmtYMD = (d) => {
         if (!(d instanceof Date)) return "";
@@ -716,6 +733,18 @@ export default function GuideForm() {
         const m = String(d.getMonth()+1).padStart(2,'0');
         const dd = String(d.getDate()).padStart(2,'0');
         return `${y}-${m}-${dd}`;
+    };
+
+    // Normalize various date shapes (string, Date, Firestore Timestamp) to YYYY-MM-DD
+    const ymd = (val) => {
+        if (!val) return "";
+        if (typeof val === 'string') return val;
+        if (val instanceof Date) return fmtYMD(val);
+        // Firestore Timestamp support {seconds, nanoseconds}
+        if (typeof val === 'object' && typeof val.seconds === 'number') {
+            return fmtYMD(new Date(val.seconds * 1000));
+        }
+        try { return fmtYMD(new Date(val)); } catch { return ""; }
     };
 
     const calGrid = (monthDate) => {
@@ -748,59 +777,49 @@ export default function GuideForm() {
         if (!dateYmd) return;
         const todayYmd = fmtYMD(new Date());
         if (dateYmd < todayYmd) return;
-        setFormData(prev => {
-            const next = { ...prev };
-            next[modeKey].oneTime.slots = [...(next[modeKey].oneTime.slots||[]), { date: dateYmd, startTime: "", endTime: "" }];
-            return next;
-        });
-    };
 
-    const updateOneTimeSlotForDate = (modeKey, dateYmd, localIdx, field, value) => {
         setFormData(prev => {
-            let idx = -1;
-            const next = { ...prev };
-            next[modeKey].oneTime.slots = (next[modeKey].oneTime.slots||[]).map(s => {
-                if (s.date === dateYmd) {
-                    idx++;
-                    if (idx === localIdx) return { ...s, [field]: value };
+            const newSlot = { 
+                id: uuidv4(),
+                date: dateYmd, 
+                startTime: '', 
+                endTime: '',
+                type: 'individual' // Default to individual type
+            };
+            
+            return {
+                ...prev,
+                [modeKey]: {
+                    ...prev[modeKey],
+                    oneTime: {
+                        ...prev[modeKey].oneTime,
+                        slots: [...(prev[modeKey].oneTime.slots || []), newSlot]
+                    }
                 }
-                return s;
-            });
-            return next;
+            };
         });
-    };
+    }
 
-    const removeOneTimeSlotForDate = (modeKey, dateYmd, localIdx) => {
+    // Update/remove one-time slot by unique id for robust editing
+    const updateOneTimeSlot = (modeKey, slotId, field, value) => {
         setFormData(prev => {
-            let idx = -1;
             const next = { ...prev };
-            const out = [];
-            for (const s of (next[modeKey].oneTime.slots||[])) {
-                if (s.date === dateYmd) {
-                    idx++;
-                    if (idx === localIdx) continue;
-                }
-                out.push(s);
-            }
-            next[modeKey].oneTime.slots = out;
+            next[modeKey].oneTime.slots = (next[modeKey].oneTime.slots || []).map(s =>
+                s.id === slotId ? { ...s, [field]: value } : s
+            );
             return next;
         });
     };
 
-    // const validateFields = () => {
-    //     const newErrors = {};
+    const removeOneTimeSlot = (modeKey, slotId) => {
+        setFormData(prev => {
+            const next = { ...prev };
+            next[modeKey].oneTime.slots = (next[modeKey].oneTime.slots || []).filter(s => s.id !== slotId);
+            return next;
+        });
+    };
 
-    //     const isPriceValid = (value) => /^\d+(\.\d{1,2})?$/.test(value.trim());
-
-    //     if (!formData.guideCard.title) newErrors.title = "Title is required";
-    //     if (!formData.guideCard.category) newErrors.category = "Category required";
-    //     if (!isPriceValid(formData.guideCard.price)) newErrors.guidePrice = "Invalid Price";
-
-    //     // Validate nested subscription prices
-    //     if (!isPriceValid(formData.online.monthly.price)) newErrors.monthlyOnlinePrice = "Invalid Monthly Online Price";
-    //     if (formData.online.monthly.discount && isNaN(formData.online.monthly.discount))
-    //         newErrors.monthlyOnlineDiscount = "Online Monthly Discount must be number";
-
+// ... (rest of the code remains the same)
     //     if (!isPriceValid(formData.offline.monthly.price)) newErrors.monthlyOfflinePrice = "Invalid Monthly Offline Price";
     //     if (formData.offline.monthly.discount && isNaN(formData.offline.monthly.discount))
     //         newErrors.monthlyOfflineDiscount = "Offline Monthly Discount must be number";
@@ -1511,6 +1530,12 @@ export default function GuideForm() {
                                 {/* Monthly Online Weekly Pattern */}
                                 <div className="mt-6">
                                     <h3 className="text-lg font-semibold text-gray-700 mb-4">Monthly Online – Weekly Hours</h3>
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <span className="text-sm text-gray-600">View:</span>
+                                        <button onClick={() => setOnlineMonthlyViewType('individual')} className={`px-3 py-1 rounded border text-sm ${onlineMonthlyViewType==='individual' ? 'bg-[#2F6288] text-white border-[#2F6288]' : 'bg-white text-gray-700 border-gray-300'}`}>Individual</button>
+                                        <button onClick={() => setOnlineMonthlyViewType('couple')} className={`px-3 py-1 rounded border text-sm ${onlineMonthlyViewType==='couple' ? 'bg-[#2F6288] text-white border-[#2F6288]' : 'bg-white text-gray-700 border-gray-300'}`}>Couple</button>
+                                        <button onClick={() => setOnlineMonthlyViewType('group')} className={`px-3 py-1 rounded border text-sm ${onlineMonthlyViewType==='group' ? 'bg-[#2F6288] text-white border-[#2F6288]' : 'bg-white text-gray-700 border-gray-300'}`}>Group</button>
+                                    </div>
                                     <div className="space-y-4">
                                         {(formData?.online?.monthly?.weeklyPattern || []).map((row, idx) => (
                                             <div key={idx} className="border border-gray-200 rounded-lg p-4 space-y-3 bg-blue-50">
@@ -1537,13 +1562,63 @@ export default function GuideForm() {
                                                     ))}
                                                 </div>
                                                 <div className="space-y-2">
-                                                    {(row.times || []).map((t, tIdx) => (
-                                                        <div key={tIdx} className="flex items-center gap-2">
-                                                            <input type="time" value={t.startTime || ''} onChange={(e)=>updateMonthlyPatternTime('online', idx, tIdx, 'startTime', e.target.value)} className="border p-2 rounded" />
-                                                            <span>-</span>
-                                                            <input type="time" value={t.endTime || ''} onChange={(e)=>updateMonthlyPatternTime('online', idx, tIdx, 'endTime', e.target.value)} className="border p-2 rounded" />
-                                                            <button onClick={()=>removeMonthlyPatternTime('online', idx, tIdx)} className="text-red-600 text-sm">Delete</button>
-                                                            <button onClick={()=>addMonthlyPatternTime('online', idx)} className="text-[#2F6288] text-sm">Add</button>
+                                                    {(row.times || [])
+                                                        .filter(t => (t.type || 'individual') === onlineMonthlyViewType)
+                                                        .filter(t => {
+                                                            if (onlineMonthlyViewType === 'couple') {
+                                                                const booked = Number(t.bookedCount || 0);
+                                                                return booked < 2; // hide if full
+                                                            }
+                                                            if (onlineMonthlyViewType === 'group') {
+                                                                const booked = Number(t.bookedCount || 0);
+                                                                const gMax = Number(formData?.online?.monthly?.groupMax || 0);
+                                                                return gMax > 0 ? booked < gMax : true;
+                                                            }
+                                                            return true;
+                                                        })
+                                                        .map((t, tIdx) => (
+                                                        <div key={tIdx} className="flex flex-col md:flex-row md:items-center gap-2 p-2 border rounded bg-white">
+                                                            <div className="flex items-center gap-4">
+                                                                <label className="inline-flex items-center">
+                                                                    <input type="radio" name={`mo-online-${idx}-${tIdx}`} checked={(t.type||'individual')==='individual'} onChange={()=>updateMonthlyPatternTime('online', idx, tIdx, 'type', 'individual')} className="form-radio h-4 w-4 text-[#2F6288]" />
+                                                                    <span className="ml-2">Individual</span>
+                                                                </label>
+                                                                <label className="inline-flex items-center">
+                                                                    <input type="radio" name={`mo-online-${idx}-${tIdx}`} checked={t.type==='couple'} onChange={()=>updateMonthlyPatternTime('online', idx, tIdx, 'type', 'couple')} className="form-radio h-4 w-4 text-[#2F6288]" />
+                                                                    <span className="ml-2">Couple</span>
+                                                                </label>
+                                                                <label className="inline-flex items-center">
+                                                                    <input type="radio" name={`mo-online-${idx}-${tIdx}`} checked={t.type==='group'} onChange={()=>updateMonthlyPatternTime('online', idx, tIdx, 'type', 'group')} className="form-radio h-4 w-4 text-[#2F6288]" />
+                                                                    <span className="ml-2">Group</span>
+                                                                </label>
+                                                            </div>
+                                                            <div className="flex items-center gap-2 flex-1">
+                                                                <input type="time" value={t.startTime || ''} onChange={(e)=>updateMonthlyPatternTime('online', idx, tIdx, 'startTime', e.target.value)} className="border p-2 rounded flex-1" />
+                                                                <span>-</span>
+                                                                <input type="time" value={t.endTime || ''} onChange={(e)=>updateMonthlyPatternTime('online', idx, tIdx, 'endTime', e.target.value)} className="border p-2 rounded flex-1" />
+                                                                {onlineMonthlyViewType !== 'individual' && (
+                                                                    <>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <label className="text-xs text-gray-600">Booked</label>
+                                                                            <input type="number" min="0" value={Number(t.bookedCount||0)} onChange={(e)=>updateMonthlyPatternTime('online', idx, tIdx, 'bookedCount', Number(e.target.value))} className="w-20 border p-2 rounded text-sm" />
+                                                                        </div>
+                                                                        {onlineMonthlyViewType==='couple' && (
+                                                                            <span className="text-xs text-gray-700">Remaining: {Math.max(0, 2 - Number(t.bookedCount||0))}</span>
+                                                                        )}
+                                                                        {onlineMonthlyViewType==='group' && (
+                                                                            <div className="flex items-center gap-2 text-xs text-gray-700">
+                                                                                <span>Remaining: {Math.max(0, (Number(formData?.online?.monthly?.groupMax||0) || 0) - Number(t.bookedCount||0))}</span>
+                                                                                <span className="ml-2">Min</span>
+                                                                                <input type="number" min="0" value={formData?.online?.monthly?.groupMin || ''} onChange={(e)=>handleFieldChange(null, 'groupMin', e.target.value, 'online', 'monthly')} className="w-16 border p-1 rounded" />
+                                                                                <span>Max</span>
+                                                                                <input type="number" min="0" value={formData?.online?.monthly?.groupMax || ''} onChange={(e)=>handleFieldChange(null, 'groupMax', e.target.value, 'online', 'monthly')} className="w-16 border p-1 rounded" />
+                                                                            </div>
+                                                                        )}
+                                                                    </>
+                                                                )}
+                                                                <button onClick={()=>removeMonthlyPatternTime('online', idx, tIdx)} className="text-red-600 text-sm">Delete</button>
+                                                                <button onClick={()=>addMonthlyPatternTime('online', idx)} className="text-[#2F6288] text-sm">Add</button>
+                                                            </div>
                                                         </div>
                                                     ))}
                                                 </div>
@@ -1616,6 +1691,12 @@ export default function GuideForm() {
                                 {/* Monthly Offline Weekly Pattern */}
                                 <div className="mt-6">
                                     <h3 className="text-lg font-semibold text-gray-700 mb-4">Monthly Offline – Weekly Hours</h3>
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <span className="text-sm text-gray-600">View:</span>
+                                        <button onClick={() => setOfflineMonthlyViewType('individual')} className={`px-3 py-1 rounded border text-sm ${offlineMonthlyViewType==='individual' ? 'bg-[#2F6288] text-white border-[#2F6288]' : 'bg-white text-gray-700 border-gray-300'}`}>Individual</button>
+                                        <button onClick={() => setOfflineMonthlyViewType('couple')} className={`px-3 py-1 rounded border text-sm ${offlineMonthlyViewType==='couple' ? 'bg-[#2F6288] text-white border-[#2F6288]' : 'bg-white text-gray-700 border-gray-300'}`}>Couple</button>
+                                        <button onClick={() => setOfflineMonthlyViewType('group')} className={`px-3 py-1 rounded border text-sm ${offlineMonthlyViewType==='group' ? 'bg-[#2F6288] text-white border-[#2F6288]' : 'bg-white text-gray-700 border-gray-300'}`}>Group</button>
+                                    </div>
                                     <div className="space-y-4">
                                         {(formData?.offline?.monthly?.weeklyPattern || []).map((row, idx) => (
                                             <div key={idx} className="border border-gray-200 rounded-lg p-4 space-y-3 bg-green-50">
@@ -1632,13 +1713,63 @@ export default function GuideForm() {
                                                     ))}
                                                 </div>
                                                 <div className="space-y-2">
-                                                    {(row.times || []).map((t, tIdx) => (
-                                                        <div key={tIdx} className="flex items-center gap-2">
-                                                            <input type="time" value={t.startTime || ''} onChange={(e)=>updateMonthlyPatternTime('offline', idx, tIdx, 'startTime', e.target.value)} className="border p-2 rounded" />
-                                                            <span>-</span>
-                                                            <input type="time" value={t.endTime || ''} onChange={(e)=>updateMonthlyPatternTime('offline', idx, tIdx, 'endTime', e.target.value)} className="border p-2 rounded" />
-                                                            <button onClick={()=>removeMonthlyPatternTime('offline', idx, tIdx)} className="text-red-600 text-sm">Delete</button>
-                                                            <button onClick={()=>addMonthlyPatternTime('offline', idx)} className="text-[#2F6288] text-sm">Add</button>
+                                                    {(row.times || [])
+                                                        .filter(t => (t.type || 'individual') === offlineMonthlyViewType)
+                                                        .filter(t => {
+                                                            if (offlineMonthlyViewType === 'couple') {
+                                                                const booked = Number(t.bookedCount || 0);
+                                                                return booked < 2;
+                                                            }
+                                                            if (offlineMonthlyViewType === 'group') {
+                                                                const booked = Number(t.bookedCount || 0);
+                                                                const gMax = Number(formData?.offline?.monthly?.groupMax || 0);
+                                                                return gMax > 0 ? booked < gMax : true;
+                                                            }
+                                                            return true;
+                                                        })
+                                                        .map((t, tIdx) => (
+                                                        <div key={tIdx} className="flex flex-col md:flex-row md:items-center gap-2 p-2 border rounded bg-white">
+                                                            <div className="flex items-center gap-4">
+                                                                <label className="inline-flex items-center">
+                                                                    <input type="radio" name={`mo-offline-${idx}-${tIdx}`} checked={(t.type||'individual')==='individual'} onChange={()=>updateMonthlyPatternTime('offline', idx, tIdx, 'type', 'individual')} className="form-radio h-4 w-4 text-[#2F6288]" />
+                                                                    <span className="ml-2">Individual</span>
+                                                                </label>
+                                                                <label className="inline-flex items-center">
+                                                                    <input type="radio" name={`mo-offline-${idx}-${tIdx}`} checked={t.type==='couple'} onChange={()=>updateMonthlyPatternTime('offline', idx, tIdx, 'type', 'couple')} className="form-radio h-4 w-4 text-[#2F6288]" />
+                                                                    <span className="ml-2">Couple</span>
+                                                                </label>
+                                                                <label className="inline-flex items-center">
+                                                                    <input type="radio" name={`mo-offline-${idx}-${tIdx}`} checked={t.type==='group'} onChange={()=>updateMonthlyPatternTime('offline', idx, tIdx, 'type', 'group')} className="form-radio h-4 w-4 text-[#2F6288]" />
+                                                                    <span className="ml-2">Group</span>
+                                                                </label>
+                                                            </div>
+                                                            <div className="flex items-center gap-2 flex-1">
+                                                                <input type="time" value={t.startTime || ''} onChange={(e)=>updateMonthlyPatternTime('offline', idx, tIdx, 'startTime', e.target.value)} className="border p-2 rounded flex-1" />
+                                                                <span>-</span>
+                                                                <input type="time" value={t.endTime || ''} onChange={(e)=>updateMonthlyPatternTime('offline', idx, tIdx, 'endTime', e.target.value)} className="border p-2 rounded flex-1" />
+                                                                {offlineMonthlyViewType !== 'individual' && (
+                                                                    <>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <label className="text-xs text-gray-600">Booked</label>
+                                                                            <input type="number" min="0" value={Number(t.bookedCount||0)} onChange={(e)=>updateMonthlyPatternTime('offline', idx, tIdx, 'bookedCount', Number(e.target.value))} className="w-20 border p-2 rounded text-sm" />
+                                                                        </div>
+                                                                        {offlineMonthlyViewType==='couple' && (
+                                                                            <span className="text-xs text-gray-700">Remaining: {Math.max(0, 2 - Number(t.bookedCount||0))}</span>
+                                                                        )}
+                                                                        {offlineMonthlyViewType==='group' && (
+                                                                            <div className="flex items-center gap-2 text-xs text-gray-700">
+                                                                                <span>Remaining: {Math.max(0, (Number(formData?.offline?.monthly?.groupMax||0) || 0) - Number(t.bookedCount||0))}</span>
+                                                                                <span className="ml-2">Min</span>
+                                                                                <input type="number" min="0" value={formData?.offline?.monthly?.groupMin || ''} onChange={(e)=>handleFieldChange(null, 'groupMin', e.target.value, 'offline', 'monthly')} className="w-16 border p-1 rounded" />
+                                                                                <span>Max</span>
+                                                                                <input type="number" min="0" value={formData?.offline?.monthly?.groupMax || ''} onChange={(e)=>handleFieldChange(null, 'groupMax', e.target.value, 'offline', 'monthly')} className="w-16 border p-1 rounded" />
+                                                                            </div>
+                                                                        )}
+                                                                    </>
+                                                                )}
+                                                                <button onClick={()=>removeMonthlyPatternTime('offline', idx, tIdx)} className="text-red-600 text-sm">Delete</button>
+                                                                <button onClick={()=>addMonthlyPatternTime('offline', idx)} className="text-[#2F6288] text-sm">Add</button>
+                                                            </div>
                                                         </div>
                                                     ))}
                                                 </div>
@@ -1692,19 +1823,70 @@ export default function GuideForm() {
                                             ))}
                                         </div>
                                         <div className="mt-3">
-                                            <button onClick={()=>addOneTimeSlotFor('online', otOnlineDate)} className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-[#2F6288]">Add Slot for {otOnlineDate}</button>
+                                            <button type="button" onClick={()=>addOneTimeSlotFor('online', otOnlineDate)} className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-[#2F6288]">Add Slot for {otOnlineDate}</button>
                                         </div>
                                     </div>
                                     {/* Slots for selected date */}
                                     <div className="border rounded-lg p-3">
                                         <div className="font-semibold mb-2">Slots for {otOnlineDate}</div>
-                                        <div className="space-y-2">
-                                            {(formData?.online?.oneTime?.slots||[]).filter(s=>s.date===otOnlineDate).map((s, idx)=> (
-                                                <div key={`${otOnlineDate}-${idx}`} className="flex items-center gap-2">
-                                                    <input type="time" value={s.startTime||''} onChange={(e)=>updateOneTimeSlotForDate('online', otOnlineDate, idx, 'startTime', e.target.value)} className="border p-2 rounded" />
-                                                    <span>-</span>
-                                                    <input type="time" value={s.endTime||''} onChange={(e)=>updateOneTimeSlotForDate('online', otOnlineDate, idx, 'endTime', e.target.value)} className="border p-2 rounded" />
-                                                    <button onClick={()=>removeOneTimeSlotForDate('online', otOnlineDate, idx)} className="text-red-600 text-sm">Delete</button>
+                                        <div className="space-y-3">
+                                            {(formData?.online?.oneTime?.slots||[]).filter(s=>ymd(s.date)===otOnlineDate).map((s, idx) => (
+                                                <div key={`${otOnlineDate}-${idx}`} className="border rounded-lg p-3 space-y-2 bg-gray-50">
+                                                    <div className="flex items-center gap-4 mb-2">
+                                                        <label className="inline-flex items-center">
+                                                            <input 
+                                                                type="radio" 
+                                                                name={`online-slot-type-${idx}`}
+                                                                checked={(s.type || 'individual') === 'individual'}
+                                                                onChange={() => updateOneTimeSlot('online', s.id, 'type', 'individual')}
+                                                                className="form-radio h-4 w-4 text-[#2F6288]"
+                                                            />
+                                                            <span className="ml-2">Individual</span>
+                                                        </label>
+                                                        <label className="inline-flex items-center">
+                                                            <input 
+                                                                type="radio" 
+                                                                name={`online-slot-type-${idx}`}
+                                                                checked={s.type === 'couple'}
+                                                                onChange={() => updateOneTimeSlot('online', s.id, 'type', 'couple')}
+                                                                className="form-radio h-4 w-4 text-[#2F6288]"
+                                                            />
+                                                            <span className="ml-2">Couple</span>
+                                                        </label>
+                                                        <label className="inline-flex items-center">
+                                                            <input 
+                                                                type="radio" 
+                                                                name={`online-slot-type-${idx}`}
+                                                                checked={s.type === 'group'}
+                                                                onChange={() => updateOneTimeSlot('online', s.id, 'type', 'group')}
+                                                                className="form-radio h-4 w-4 text-[#2F6288]"
+                                                            />
+                                                            <span className="ml-2">Group</span>
+                                                        </label>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <input 
+                                                            type="time" 
+                                                            value={s.startTime||''} 
+                                                            onChange={(e)=>updateOneTimeSlot('online', s.id, 'startTime', e.target.value)} 
+                                                            className="border p-2 rounded flex-1" 
+                                                        />
+                                                        <span>-</span>
+                                                        <input 
+                                                            type="time" 
+                                                            value={s.endTime||''} 
+                                                            onChange={(e)=>updateOneTimeSlot('online', s.id, 'endTime', e.target.value)} 
+                                                            className="border p-2 rounded flex-1" 
+                                                        />
+                                                        <button 
+                                                            type="button"
+                                                            onClick={()=>removeOneTimeSlot('online', s.id)} 
+                                                            className="text-red-600 hover:text-red-800 p-1"
+                                                            title="Delete slot"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>
@@ -1754,19 +1936,71 @@ export default function GuideForm() {
                                             ))}
                                         </div>
                                         <div className="mt-3">
-                                            <button onClick={()=>addOneTimeSlotFor('offline', otOfflineDate)} className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-[#2F6288]">Add Slot for {otOfflineDate}</button>
+                                            <button type="button" onClick={()=>addOneTimeSlotFor('offline', otOfflineDate)} className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-[#2F6288]">Add Slot for {otOfflineDate}</button>
                                         </div>
                                     </div>
                                     {/* Slots for selected date */}
                                     <div className="border rounded-lg p-3">
                                         <div className="font-semibold mb-2">Slots for {otOfflineDate}</div>
-                                        <div className="space-y-2">
-                                            {(formData?.offline?.oneTime?.slots||[]).filter(s=>s.date===otOfflineDate).map((s, idx)=> (
-                                                <div key={`${otOfflineDate}-${idx}`} className="flex items-center gap-2">
-                                                    <input type="time" value={s.startTime||''} onChange={(e)=>updateOneTimeSlotForDate('offline', otOfflineDate, idx, 'startTime', e.target.value)} className="border p-2 rounded" />
-                                                    <span>-</span>
-                                                    <input type="time" value={s.endTime||''} onChange={(e)=>updateOneTimeSlotForDate('offline', otOfflineDate, idx, 'endTime', e.target.value)} className="border p-2 rounded" />
-                                                    <button onClick={()=>removeOneTimeSlotForDate('offline', otOfflineDate, idx)} className="text-red-600 text-sm">Delete</button>
+                                        <div className="space-y-3">
+                                            {(formData?.offline?.oneTime?.slots||[]).filter(s=>ymd(s.date)===otOfflineDate).map((s, idx) => (
+                                                <div key={`${otOfflineDate}-${idx}`} className="border rounded-lg p-3 space-y-2 bg-gray-50">
+                                                    <div className="flex items-center gap-4 mb-2">
+                                                        <label className="inline-flex items-center">
+                                                            <input 
+                                                                type="radio" 
+                                                                name={`offline-slot-type-${idx}`}
+                                                                checked={(s.type || 'individual') === 'individual'}
+                                                                onChange={() => updateOneTimeSlot('offline', s.id, 'type', 'individual')}
+                                                                className="form-radio h-4 w-4 text-[#2F6288]"
+                                                            />
+                                                            <span className="ml-2">Individual</span>
+                                                        </label>
+                                                        <label className="inline-flex items-center">
+                                                            <input 
+                                                                type="radio" 
+                                                                name={`offline-slot-type-${idx}`}
+                                                                checked={s.type === 'couple'}
+                                                                onChange={() => updateOneTimeSlot('offline', s.id, 'type', 'couple')}
+                                                                className="form-radio h-4 w-4 text-[#2F6288]"
+                                                            />
+                                                            <span className="ml-2">Couple</span>
+                                                        </label>
+                                                        <label className="inline-flex items-center">
+                                                            <input 
+                                                                type="radio" 
+                                                                name={`offline-slot-type-${idx}`}
+                                                                checked={s.type === 'group'}
+                                                                onChange={() => updateOneTimeSlot('offline', s.id, 'type', 'group')}
+                                                                className="form-radio h-4 w-4 text-[#2F6288]"
+                                                            />
+                                                            <span className="ml-2">Group</span>
+                                                        </label>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <input 
+                                                            type="time" 
+                                                            value={s.startTime||''} 
+                                                            onChange={(e)=>updateOneTimeSlot('offline', s.id, 'startTime', e.target.value)} 
+                                                            className="border p-2 rounded flex-1" 
+                                                        />
+                                                        <span>-</span>
+                                                        <input 
+                                                            type="time" 
+                                                            value={s.endTime||''} 
+                                                            onChange={(e)=>updateOneTimeSlot('offline', s.id, 'endTime', e.target.value)} 
+                                                            className="border p-2 rounded flex-1" 
+                                                        />
+                                                        <button 
+                                                            type="button"
+                                                            onClick={()=>removeOneTimeSlot('offline', s.id)} 
+                                                            className="text-red-600 hover:text-red-800 p-1"
+                                                            title="Delete slot"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                    {/* Location removed for One-Time Offline slots */}
                                                 </div>
                                             ))}
                                         </div>
@@ -2265,4 +2499,5 @@ export default function GuideForm() {
             </div>
         </div>
     );
-}
+}         
+    

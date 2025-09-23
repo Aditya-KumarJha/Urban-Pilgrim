@@ -133,7 +133,7 @@ export default function CalendarModal({
             mode: mode,
             subscriptionType: selectedPlan,
             organizer: sessionData?.organizer,
-            selectedSlots: selectedSlotsMulti.map(s => ({ id: s.id, date: s.date, startTime: s.time || s.startTime, endTime: s.endTime, location: s.location })),
+            selectedSlots: selectedSlotsMulti.map(s => ({ id: s.id, date: s.date, startTime: s.time || s.startTime, endTime: s.endTime, location: s.location, rowIdx: s.rowIdx, tIdx: s.tIdx, type: s.type })),
             timestamp: new Date().toISOString()
         };
         dispatch(addToCart(cartItem));

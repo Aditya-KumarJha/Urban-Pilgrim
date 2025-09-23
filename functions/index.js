@@ -16,6 +16,171 @@ const cors = require("cors")({ origin: true });
 admin.initializeApp();
 const db = admin.firestore();
 
+// Guide Monthly Weekly Slot Booking (Transactional)
+// Params: { guideTitle, mode: 'online'|'offline', rowIdx, tIdx, type: 'individual'|'couple'|'group', userId }
+exports.bookGuideMonthlyWeeklySlot = functions.https.onCall(async (data, context) => {
+    const { guideTitle, mode, rowIdx, tIdx, type, userId } = data.data || {};
+
+    if (!guideTitle || !mode || rowIdx === undefined || tIdx === undefined || !type || !userId) {
+        throw new functions.https.HttpsError('invalid-argument', 'Missing required parameters');
+    }
+
+    const modeKey = (mode || '').toLowerCase(); // 'online' | 'offline'
+    if (!['online', 'offline'].includes(modeKey)) {
+        throw new functions.https.HttpsError('invalid-argument', 'Invalid mode');
+    }
+
+    const docRef = db
+        .collection('pilgrim_guides')
+        .doc('pilgrim_guides')
+        .collection('guides')
+        .doc('data');
+
+    return await db.runTransaction(async (tx) => {
+        const snap = await tx.get(docRef);
+        if (!snap.exists) {
+            throw new functions.https.HttpsError('not-found', 'Guides data not found');
+        }
+
+        const dataObj = snap.data() || {};
+        const slides = Array.isArray(dataObj.slides) ? [...dataObj.slides] : [];
+        const idx = slides.findIndex((s) => {
+            const title = (s?.guideCard?.title || s?.title || '').toString();
+            return title === guideTitle;
+        });
+        if (idx === -1) {
+            throw new functions.https.HttpsError('not-found', 'Guide slide not found');
+        }
+
+        const slide = { ...slides[idx] };
+        const monthly = slide?.[modeKey]?.monthly;
+        if (!monthly || !Array.isArray(monthly.weeklyPattern)) {
+            throw new functions.https.HttpsError('failed-precondition', 'Weekly pattern not configured');
+        }
+
+        if (!monthly.weeklyPattern[rowIdx]) {
+            throw new functions.https.HttpsError('invalid-argument', 'Row index out of range');
+        }
+        const row = { ...monthly.weeklyPattern[rowIdx] };
+        const times = Array.isArray(row.times) ? [...row.times] : [];
+        if (!times[tIdx]) {
+            throw new functions.https.HttpsError('invalid-argument', 'Time index out of range');
+        }
+        const timeItem = { ...times[tIdx] };
+
+        // Enforce type consistency
+        const timeType = (timeItem.type || 'individual');
+        if (timeType !== type) {
+            throw new functions.https.HttpsError('failed-precondition', 'Slot type mismatch');
+        }
+
+        // Determine capacity
+        let maxCap = 1;
+        if (type === 'couple') maxCap = 2;
+        else if (type === 'group') {
+            const gMax = Number(slide?.[modeKey]?.monthly?.groupMax || 0);
+            if (!gMax || gMax <= 0) {
+                throw new functions.https.HttpsError('failed-precondition', 'Group max not configured');
+            }
+            maxCap = gMax;
+        }
+
+        const booked = Number(timeItem.bookedCount || 0);
+        if (booked >= maxCap) {
+            throw new functions.https.HttpsError('resource-exhausted', 'Slot is full');
+        }
+
+        // Increment booked count
+        timeItem.bookedCount = booked + 1;
+        times[tIdx] = timeItem;
+        row.times = times;
+        const pattern = [...monthly.weeklyPattern];
+        pattern[rowIdx] = row;
+
+        slides[idx] = {
+            ...slide,
+            [modeKey]: {
+                ...slide[modeKey],
+                monthly: {
+                    ...monthly,
+                    weeklyPattern: pattern,
+                },
+            },
+            bookings: [
+                ...(Array.isArray(slide.bookings) ? slide.bookings : []),
+                {
+                    userId,
+                    at: new Date().toISOString(),
+                    mode: modeKey,
+                    subscriptionType: 'monthly',
+                    rowIdx,
+                    tIdx,
+                    type,
+                },
+            ],
+        };
+
+        tx.update(docRef, { slides });
+        return { success: true, bookedCount: timeItem.bookedCount, maxCap };
+    });
+});
+
+// Optional: Cancel booking (decrement), with floor at 0
+exports.cancelGuideMonthlyWeeklySlot = functions.https.onCall(async (data, context) => {
+    const { guideTitle, mode, rowIdx, tIdx, type, userId } = data.data || {};
+    const modeKey = (mode || '').toLowerCase();
+    if (!guideTitle || !modeKey || rowIdx === undefined || tIdx === undefined || !type) {
+        throw new functions.https.HttpsError('invalid-argument', 'Missing required parameters');
+    }
+
+    const docRef = db
+        .collection('pilgrim_guides')
+        .doc('pilgrim_guides')
+        .collection('guides')
+        .doc('data');
+
+    return await db.runTransaction(async (tx) => {
+        const snap = await tx.get(docRef);
+        if (!snap.exists) throw new functions.https.HttpsError('not-found', 'Guides data not found');
+
+        const dataObj = snap.data() || {};
+        const slides = Array.isArray(dataObj.slides) ? [...dataObj.slides] : [];
+        const idx = slides.findIndex((s) => ((s?.guideCard?.title || s?.title || '') === guideTitle));
+        if (idx === -1) throw new functions.https.HttpsError('not-found', 'Guide slide not found');
+
+        const slide = { ...slides[idx] };
+        const monthly = slide?.[modeKey]?.monthly;
+        if (!monthly || !Array.isArray(monthly.weeklyPattern)) throw new functions.https.HttpsError('failed-precondition', 'Weekly pattern not configured');
+        const row = { ...(monthly.weeklyPattern[rowIdx] || {}) };
+        const times = Array.isArray(row.times) ? [...row.times] : [];
+        const timeItem = { ...(times[tIdx] || {}) };
+
+        if ((timeItem.type || 'individual') !== type) throw new functions.https.HttpsError('failed-precondition', 'Slot type mismatch');
+
+        const booked = Number(timeItem.bookedCount || 0);
+        timeItem.bookedCount = Math.max(0, booked - 1);
+        times[tIdx] = timeItem;
+        row.times = times;
+        const pattern = [...monthly.weeklyPattern];
+        pattern[rowIdx] = row;
+
+        slides[idx] = {
+            ...slide,
+            [modeKey]: {
+                ...slide[modeKey],
+                monthly: {
+                    ...monthly,
+                    weeklyPattern: pattern,
+                },
+            },
+            bookings: (Array.isArray(slide.bookings) ? slide.bookings : []).filter(b => !(b.userId === userId && b.mode === modeKey && b.subscriptionType === 'monthly' && b.rowIdx === rowIdx && b.tIdx === tIdx && b.type === type)),
+        };
+
+        tx.update(docRef, { slides });
+        return { success: true, bookedCount: timeItem.bookedCount };
+    });
+});
+
 const serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT);
 const gmailEmail = process.env.APP_GMAIL;
 const gmailPassword = process.env.APP_GMAIL_PASSWORD;
@@ -529,7 +694,7 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                                     ],
                                 };
 
-                                // Remove reserved slot from availability
+                                // Capacity updates and availability adjustments
                                 try {
                                     const modeKey = (program.mode || '').toLowerCase(); // 'online' | 'offline'
                                     const subKey = program.subscriptionType; // 'monthly' | 'oneTime' | 'quarterly' etc.
@@ -542,25 +707,27 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                                         const existingSlots = updatedSlide[modeKey][subKey].slots;
                                         let nextSlots = existingSlots;
 
-                                        if (subKey === 'monthly' && program.date) {
-                                            // Remove all slots in the same month as the chosen date
-                                            const chosen = new Date(program.date);
-                                            const y = chosen.getFullYear();
-                                            const m = chosen.getMonth();
-                                            nextSlots = existingSlots.filter((s) => {
-                                                if (!s?.date) return true;
-                                                const d = new Date(s.date);
-                                                return !(d.getFullYear() === y && d.getMonth() === m);
+                                        if (subKey === 'monthly' && Array.isArray(program.selectedSlots) && Array.isArray(updatedSlide[modeKey]?.monthly?.weeklyPattern)) {
+                                            // Increment bookedCount per selected weeklyPattern time with caps
+                                            const wp = [...(updatedSlide[modeKey].monthly.weeklyPattern || [])];
+                                            const gMax = Number(updatedSlide[modeKey].monthly.groupMax || 0) || 0;
+                                            program.selectedSlots.forEach(sel => {
+                                                const r = Number(sel.rowIdx);
+                                                const t = Number(sel.tIdx);
+                                                const stype = (sel.type || 'individual');
+                                                if (!isNaN(r) && !isNaN(t) && wp[r] && Array.isArray(wp[r].times) && wp[r].times[t]) {
+                                                    const ti = { ...(wp[r].times[t] || {}) };
+                                                    let cap = 1;
+                                                    if (stype === 'couple') cap = 2;
+                                                    if (stype === 'group') cap = gMax > 0 ? gMax : 0;
+                                                    const current = Number(ti.bookedCount || 0);
+                                                    const next = (cap > 0) ? Math.min(cap, current + 1) : current + 1;
+                                                    ti.bookedCount = next;
+                                                    wp[r].times[t] = ti;
+                                                }
                                             });
+                                            updatedSlide[modeKey].monthly.weeklyPattern = wp;
 
-                                            // Also mark month as reserved to block weeklyPattern-generated availability
-                                            const ym = `${y}-${String(m + 1).padStart(2, '0')}`; // YYYY-MM
-                                            const existingReserved = Array.isArray(updatedSlide[modeKey][subKey].reservedMonths)
-                                                ? updatedSlide[modeKey][subKey].reservedMonths
-                                                : [];
-                                            if (!existingReserved.includes(ym)) {
-                                                updatedSlide[modeKey][subKey].reservedMonths = [...existingReserved, ym];
-                                            }
                                         } else if (program.date && program.slot && (program.slot.startTime || program.slot.start_time)) {
                                             // Capacity-based reservation for non-monthly (e.g., one-time)
                                             const sStart = program.slot.startTime || program.slot.start_time;

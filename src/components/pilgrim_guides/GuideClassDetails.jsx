@@ -98,8 +98,23 @@ export default function GuideClassDetails() {
     };
 
     const getCapacityMax = () => {
+        // For one-time capacity we will compute specifically when passing to CalendarModal
         const max = Number(selectedOccupancy?.max || 0);
         return isNaN(max) ? 0 : max;
+    };
+
+    // One-time capacity derived from selected occupancy type and plan config
+    const getOneTimeCapacityForSelected = () => {
+        const label = (selectedOccupancy?.type || '').toLowerCase();
+        if (!sessionData || !mode) return 0;
+        const plan = sessionData[mode.toLowerCase()]?.oneTime || {};
+        if (label.includes('couple') || label.includes('twin')) return 2;
+        if (label.includes('group')) {
+            const g = Number(plan.groupMax || 0);
+            return isNaN(g) ? 0 : g;
+        }
+        // individual/default
+        return 1;
     };
 
     const { guideClassName } = useParams();
@@ -237,15 +252,40 @@ export default function GuideClassDetails() {
                 const ymd = d.toISOString().slice(0,10);
                 const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
                 if (reservedMonths.has(ym)) continue; // block entire month
-                pattern.forEach(row => {
+                pattern.forEach((row, rowIdx) => {
                     if ((row.days || []).includes(dayShort)) {
-                        (row.times || []).forEach(t => {
-                            out.push({ date: ymd, startTime: t.startTime, endTime: t.endTime });
+                        (row.times || []).forEach((t, tIdx) => {
+                            out.push({
+                                date: ymd,
+                                startTime: t.startTime,
+                                endTime: t.endTime,
+                                type: t.type || 'individual',
+                                bookedCount: Number(t.bookedCount || 0),
+                                rowIdx,
+                                tIdx,
+                            });
                         });
                     }
                 });
             }
-            return out;
+            // Filter by selected occupancy type and capacity visibility
+            const occLabel = (selectedOccupancy?.type || '').toLowerCase();
+            let viewType = 'individual';
+            if (occLabel.includes('couple') || occLabel.includes('twin')) viewType = 'couple';
+            else if (occLabel.includes('group')) viewType = 'group';
+
+            const groupMax = Number(plan.groupMax || 0);
+            const filtered = out.filter(s => {
+                if (viewType === 'couple') {
+                    return s.type === 'couple' && Number(s.bookedCount || 0) < 2;
+                }
+                if (viewType === 'group') {
+                    return s.type === 'group' && (groupMax > 0 ? Number(s.bookedCount || 0) < groupMax : true);
+                }
+                // individual: show only individual; requirement did not specify capacity cap here
+                return s.type === 'individual';
+            });
+            return filtered;
         }
 
         return [];
@@ -638,29 +678,33 @@ export default function GuideClassDetails() {
                         <div className="max-w-sm mt-6 space-y-3">
                             {(() => {
                                 const buttonConfig = getProgramButtonConfig(userPrograms, sessionData?.guideCard?.title, 'guide');
-                                const isBookable = buttonConfig.action === 'book';
-                                const btnText = isBookable ? 'Book Now' : 'Booked';
-                                const btnClass = isBookable
-                                    ? 'bg-[#2F6288] hover:bg-[#2F6288]/90'
-                                    : 'bg-green-600 cursor-default';
+                                const hasPreviousBooking = buttonConfig.action !== 'book';
                                 return (
-                                    <button
-                                        onClick={() => isBookable && setShowCalendar(true)}
-                                        disabled={!isBookable}
-                                        className={`w-full px-4 py-3 rounded-lg text-white font-semibold ${btnClass}`}
-                                    >
-                                        {btnText}
-                                    </button>
+                                    <>
+                                        <button
+                                            onClick={() => setShowCalendar(true)}
+                                            className={`w-full px-4 py-3 rounded-lg text-white font-semibold bg-[#2F6288] hover:bg-[#2F6288]/90`}
+                                        >
+                                            Book Now
+                                        </button>
+                                        {hasPreviousBooking ? (
+                                            <button
+                                                onClick={() => navigate('/userdashboard')}
+                                                className="w-full px-4 py-3 rounded-lg border border-[#2F6288] text-[#2F6288] hover:bg-blue-50 font-semibold"
+                                            >
+                                                See your previous booking
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={handleShowFreeTrail}
+                                                className="w-full px-4 py-3 rounded-lg border border-[#2F6288] text-[#2F6288] hover:bg-blue-50 font-semibold"
+                                            >
+                                                Get a Free Trial
+                                            </button>
+                                        )}
+                                    </>
                                 );
                             })()}
-                            {mode === 'Online' && sessionData?.session?.freeTrialVideo && (
-                                <button
-                                    onClick={handleShowFreeTrail}
-                                    className="w-full px-4 py-3 rounded-lg border border-[#C5703F] text-[#C5703F] hover:bg-[#C5703F]/10 font-semibold"
-                                >
-                                    Get a Free Trail
-                                </button>
-                            )}
                         </div>
                     )}
                 </div>
@@ -741,7 +785,7 @@ export default function GuideClassDetails() {
                     availableSlots={availableSlots}
                     personsPerBooking={getPersonsPerBooking()}
                     occupancyType={selectedOccupancy?.type || ''}
-                    capacityMax={getCapacityMax()}
+                    capacityMax={selectedPlan === 'oneTime' ? getOneTimeCapacityForSelected() : 0}
                     onAddToCart={(cartItem) => {
                         addToCart(cartItem);
                         setShowCalendar(false);
