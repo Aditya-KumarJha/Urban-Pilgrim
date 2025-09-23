@@ -479,6 +479,26 @@ export default function CalendarModal({
                                                         );
                                                     })}
                                                 </div>
+                                                {/* Info text above footer */}
+                                                <div className="mt-4 text-xs sm:text-sm text-gray-600">
+                                                    {selectedPlan === 'oneTime' ? (
+                                                        <>
+                                                            <span>
+                                                                The slots are already booked
+                                                            </span>
+                                                        </>
+                                                    ) : (
+                                                        (() => {
+                                                            const modeKey = mode?.toLowerCase();
+                                                            const max = Number(sessionData?.[modeKey]?.monthly?.sessionsCount || 0);
+                                                            if (max > 0) {
+                                                                return <span>{`You can select up to ${max} session${max>1?'s':''} this month.`}</span>;
+                                                            }
+                                                            return null;
+                                                        })()
+                                                    )}
+                                                </div>
+
                                                 {/* Footer actions for selections */}
                                                 <div className="mt-6 flex items-center justify-between">
                                                     <div className="text-sm text-gray-700">

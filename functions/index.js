@@ -1219,19 +1219,21 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
 
                 const toMs = (s) => new Date(s).getTime();
                 if (!program.slot.endTime || toMs(endLocal) <= toMs(startLocal)) {
-                    const endMs = toMs(startLocal) + durationMin * 60 * 1000;
+                    const duration = Number(program.slot.duration || program.duration || 60);
+                    const endMs = new Date(startLocal).getTime() + duration * 60 * 1000;
                     const endIso = new Date(endMs).toISOString();
                     endLocal = endIso.slice(0, 19); // YYYY-MM-DDTHH:MM:SS
                 }
 
+                // Occupancy type label for event/email
+                const occRaw = (program.occupancyType || 'individual').toString().toLowerCase();
+                const typeLabel = occRaw ? (occRaw.charAt(0).toUpperCase() + occRaw.slice(1)) : 'Individual';
+
+                // Build Google Calendar event for organizer calendar
                 const guideEvent = {
                     summary: `Guide Session: ${program.title}`,
-                    description: `Guide session booking for ${program.title}
-                                        Mode: ${program.mode}
-                                        Subscription: ${program.subscriptionType}
-                                        Duration: ${durationMin} minutes
-                                        Join here: ${program?.organizer?.googleMeetLink}`,
-                    location: program.mode === 'Offline' ? 'In-person Session' : program?.organizer?.googleMeetLink,
+                    description: `Urban Pilgrim — Guide session booking for ${program.title}\nMode: ${program.mode}\nType: ${typeLabel}\nDate: ${program.date}\nTime: ${program.slot.time}${program.slot.endTime ? ` - ${program.slot.endTime}` : ''}`,
+                    location: program.mode === 'Offline' ? (program.slot.location || 'In-person Session') : (program?.organizer?.googleMeetLink || 'Online'),
                     start: { dateTime: startLocal, timeZone: "Asia/Kolkata" },
                     end:   { dateTime: endLocal,   timeZone: "Asia/Kolkata" },
                     attendees: [
@@ -1239,10 +1241,8 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                         { email: adminEmail },
                         { email: program?.organizer?.email },
                     ],
+                    source: { title: 'Urban Pilgrim', url: 'https://urbanpilgrim.in' },
                 };
-
-                // Define meet link for emails
-                const meetLink = program?.organizer?.googleMeetLink;
 
                 // Insert calendar event only for Online mode; do not block on failure
                 if (calendar) {
@@ -1257,6 +1257,8 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                     }
                 }
 
+                // Organizer mail HTML (Urban Pilgrim branding) including Type
+                const meetLink = program?.organizer?.googleMeetLink || '';
                 const guideMailHtml = `
                     <!DOCTYPE html>
                     <html>
@@ -1265,62 +1267,23 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                         <meta name="viewport" content="width=device-width, initial-scale=1.0">
                         <title>Guide Session Booking</title>
                     </head>
-                    <body style="margin: 0; padding: 0; font-family: 'Arial', sans-serif; background-color: #f4f4f4;">
+                    <body style="font-family: Arial, sans-serif; background: #f6f9fc; margin: 0; padding: 0;">
                         <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
-                            <!-- Header -->
                             <div style="background: linear-gradient(135deg, #2F6288 0%, #C5703F 100%); padding: 25px 20px; text-align: center;">
                                 <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Guide Session Booked</h1>
-                                <p style="color: #ffffff; margin: 10px 0 0 0; opacity: 0.9; font-size: 16px;">${program.title}</p>
+                                <p style="color: #e6f0f7; margin: 6px 0 0 0; font-size: 14px;">Urban Pilgrim • Confirmation for organizer</p>
                             </div>
-                            
-                            <!-- Customer Info -->
-                            <div style="background: #e3f2fd; padding: 20px; margin: 0;">
-                                <h3 style="color: #1976d2; margin: 0 0 10px 0; font-size: 16px;">Customer Information</h3>
-                                <p style="color: #333; margin: 5px 0; font-size: 14px;"><strong>Name:</strong> ${name}</p>
-                                <p style="color: #333; margin: 5px 0; font-size: 14px;"><strong>Email:</strong> <a href="mailto:${email}" style="color: #1976d2;">${email}</a></p>
-                            </div>
-                            
-                            <!-- Content -->
-                            <div style="padding: 30px;">
-                                <div style="background: #f8f9fa; border-radius: 12px; padding: 25px; margin: 20px 0;">
-                                    <div style="margin: 15px 0;">
-                                        <span style="color: #666; font-size: 14px; display: block; margin-bottom: 5px;">Date</span>
-                                        <span style="color: #333; font-size: 16px; font-weight: bold;">${program.date}</span>
-                                    </div>
-                                    <div style="margin: 15px 0;">
-                                        <span style="color: #666; font-size: 14px; display: block; margin-bottom: 5px;">Time</span>
-                                        <span style="color: #333; font-size: 16px; font-weight: bold;">${program.slot.time}${program.slot.endTime ? ` - ${program.slot.endTime}` : ' (1 hour)'}</span>
-                                    </div>
-                                    <div style="margin: 15px 0;">
-                                        <span style="color: #666; font-size: 14px; display: block; margin-bottom: 5px;">Mode</span>
-                                        <span style="color: #333; font-size: 16px; font-weight: bold;">${program.mode}</span>
-                                    </div>
-                                    <div style="margin: 15px 0;">
-                                        <span style="color: #666; font-size: 14px; display: block; margin-bottom: 5px;">Subscription</span>
-                                        <span style="color: #333; font-size: 16px; font-weight: bold;">${program.subscriptionType}</span>
-                                    </div>
-                                    <div style="margin: 15px 0;">
-                                        <span style="color: #666; font-size: 14px; display: block; margin-bottom: 5px;"> Duration</span>
-                                        <span style="color: #333; font-size: 16px; font-weight: bold;">${program.slot.duration || 60} minutes</span>
-                                    </div>
-                                    ${program.mode === 'Online' ? 
-                                        `<div style="margin: 15px 0;">
-                                            <span style="color: #666; font-size: 14px; display: block; margin-bottom: 5px;">🔗 Meeting Link</span>
-                                            <a href="${meetLink}" target="_blank" style="color: #C5703F; font-size: 16px; font-weight: bold; text-decoration: none;">${meetLink}</a>
-                                        </div>` :
-                                        `<div style="margin: 15px 0;">
-                                            <span style="color: #666; font-size: 14px; display: block; margin-bottom: 5px;">Location</span>
-                                            <span style="color: #333; font-size: 16px; font-weight: bold;">${program.slot.location || 'In-person session'}</span>
-                                        </div>`
-                                    }
-                                </div>
-                                
-                                <div style="background: linear-gradient(135deg, #2F6288, #C5703F); border-radius: 12px; padding: 20px; margin: 25px 0; text-align: center;">
-                                    <p style="color: #ffffff; margin: 0; font-size: 14px;">Calendar invite has been sent to all participants</p>
+                            <div style="padding: 24px;">
+                                <p style="color: #333; margin: 0 0 14px 0; font-size: 14px;">A new guide session has been booked. Details are below:</p>
+                                <div style="background: #f8fafc; border: 1px solid #eef2f7; border-radius: 10px; padding: 16px;">
+                                    <p style="margin: 6px 0; color: #333;"><strong>Title:</strong> ${program.title}</p>
+                                    <p style="margin: 6px 0; color: #333;"><strong>Mode:</strong> ${program.mode}</p>
+                                    <p style="margin: 6px 0; color: #333;"><strong>Type:</strong> ${typeLabel}</p>
+                                    <p style="margin: 6px 0; color: #333;"><strong>Date:</strong> ${program.date}</p>
+                                    <p style="margin: 6px 0; color: #333;"><strong>Time:</strong> ${program.slot.time}${program.slot.endTime ? ` - ${program.slot.endTime}` : ''} (Asia/Kolkata)</p>
+                                    ${program.mode === 'Online' && meetLink ? `<p style="margin: 6px 0; color: #333;"><strong>Meet Link:</strong> <a href="${meetLink}" target="_blank" style="color: #1976d2;">${meetLink}</a></p>` : ''}
                                 </div>
                             </div>
-                            
-                            <!-- Footer -->
                             <div style="background: #f8f9fa; padding: 15px; text-align: center; border-top: 1px solid #eee;">
                                 <p style="color: #999; margin: 0; font-size: 12px;">Urban Pilgrim Guide Sessions</p>
                             </div>
@@ -1329,11 +1292,11 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                     </html>
                 `;
 
-                // Mail to admin
+                // Mail to admin (organizer)
                 await transporter.sendMail({
-                    from: gmailEmail,
+                    from: `Urban Pilgrim <${gmailEmail}>`,
                     to: adminEmail,
-                    subject: `🧘‍♀️ Guide Session Booked - ${program.title}`,
+                    subject: `🧘‍♀️ Urban Pilgrim • Guide Session Booked - ${program.title}`,
                     html: guideMailHtml,
                 });
 
