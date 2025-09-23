@@ -446,6 +446,19 @@ export default function CalendarModal({
                                                                     {selectedPlan === 'oneTime' && cap > 0 && (
                                                                         <p className="text-xs mt-1 text-gray-600">Enrolled: {booked}/{cap}</p>
                                                                     )}
+                                                                    {selectedPlan === 'monthly' && (() => {
+                                                                        const modeKey = mode?.toLowerCase();
+                                                                        const type = (slot.type || 'individual');
+                                                                        const gMax = Number(sessionData?.[modeKey]?.monthly?.groupMax || 0) || 0;
+                                                                        const capMonthly = type === 'couple' ? 2 : type === 'group' ? gMax : 0;
+                                                                        const enrolled = Number(slot.bookedCount || 0);
+                                                                        if ((type === 'couple' && capMonthly > 0) || (type === 'group' && capMonthly > 0)) {
+                                                                            return (
+                                                                                <p className="text-xs mt-1 text-gray-600">Enrolled: {enrolled}/{capMonthly}</p>
+                                                                            );
+                                                                        }
+                                                                        return null;
+                                                                    })()}
                                                                     {selectedPlan === 'oneTime' && lock && (
                                                                         <p className="text-xs mt-1 text-amber-700">Locked for: {lock}</p>
                                                                     )}

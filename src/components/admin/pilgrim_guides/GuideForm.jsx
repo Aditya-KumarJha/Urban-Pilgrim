@@ -503,11 +503,19 @@ export default function GuideForm() {
         // Preselect calendar dates (one-time) so slots are visible immediately
         try {
             const firstOnlineOT = (slideToEdit?.online?.oneTime?.slots || []).find(s => !!s?.date);
-            if (firstOnlineOT?.date) setOtOnlineDate(ymd(firstOnlineOT.date));
+            if (firstOnlineOT?.date) {
+                const d = new Date(ymd(firstOnlineOT.date));
+                setOtOnlineDate(ymd(firstOnlineOT.date));
+                if (!isNaN(d.getTime())) setOtOnlineMonth(new Date(d.getFullYear(), d.getMonth(), 1));
+            }
         } catch {}
         try {
             const firstOfflineOT = (slideToEdit?.offline?.oneTime?.slots || []).find(s => !!s?.date);
-            if (firstOfflineOT?.date) setOtOfflineDate(ymd(firstOfflineOT.date));
+            if (firstOfflineOT?.date) {
+                const d = new Date(ymd(firstOfflineOT.date));
+                setOtOfflineDate(ymd(firstOfflineOT.date));
+                if (!isNaN(d.getTime())) setOtOfflineMonth(new Date(d.getFullYear(), d.getMonth(), 1));
+            }
         } catch {}
 
         // Scroll to top of form

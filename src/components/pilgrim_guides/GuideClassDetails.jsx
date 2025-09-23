@@ -103,14 +103,13 @@ export default function GuideClassDetails() {
         return isNaN(max) ? 0 : max;
     };
 
-    // One-time capacity derived from selected occupancy type and plan config
+    // One-time capacity derived from selected occupancy type and occupancy config (Group max comes from occupancies)
     const getOneTimeCapacityForSelected = () => {
         const label = (selectedOccupancy?.type || '').toLowerCase();
         if (!sessionData || !mode) return 0;
-        const plan = sessionData[mode.toLowerCase()]?.oneTime || {};
         if (label.includes('couple') || label.includes('twin')) return 2;
         if (label.includes('group')) {
-            const g = Number(plan.groupMax || 0);
+            const g = Number(selectedOccupancy?.max || 0);
             return isNaN(g) ? 0 : g;
         }
         // individual/default
@@ -231,10 +230,16 @@ export default function GuideClassDetails() {
         // One-time: use stored date slots directly
         if (subscriptionType === 'oneTime') {
             const slots = Array.isArray(plan.slots) ? plan.slots : [];
-            // Only upcoming dates; capacity handled in CalendarModal based on selected occupancy
+            // Only upcoming dates
             const today = new Date();
             const todayYmd = today.toISOString().slice(0,10);
-            return slots.filter(s => (s?.date || '') >= todayYmd);
+            const occLabel = (selectedOccupancy?.type || '').toLowerCase();
+            let viewType = 'individual';
+            if (occLabel.includes('couple') || occLabel.includes('twin')) viewType = 'couple';
+            else if (occLabel.includes('group')) viewType = 'group';
+            return slots
+                .filter(s => (s?.date || '') >= todayYmd)
+                .filter(s => (s?.type || 'individual') === viewType);
         }
 
         // Monthly: generate next 30 days from weeklyPattern (respect reservedMonths)
@@ -295,7 +300,7 @@ export default function GuideClassDetails() {
     useEffect(() => {
         const s = getAvailableSlots();
         setAvailableSlots(s);
-    }, [sessionData, mode, subscriptionType]);
+    }, [sessionData, mode, subscriptionType, selectedOccupancy]);
 
     const getPricesForSelection = () => {
         if (!sessionData || !mode || !subscriptionType) return {};

@@ -119,6 +119,12 @@ export default function CartPage() {
 				name: "Urban Pilgrim",
 				description: "Program Purchase",
 				order_id: order.id,
+				modal: {
+					ondismiss: () => {
+						// User closed the Razorpay modal; hide loader if it's showing
+						setLoading(false);
+					},
+				},
 				handler: async function (response) {
 					try {
 						// 3️⃣ Confirm on server with expanded cart data
@@ -136,17 +142,28 @@ export default function CartPage() {
 						console.log("data from confirmPayment: ", dataContent);
 
 						// Add programs to user's purchased programs in Redux with expiration data
-						const userPrograms = prepareUserProgramsData(checkoutData.expandedCartData);
+						// Also attach paymentId so UserDashboard shows status as Completed immediately
+						const paymentId = response?.razorpay_payment_id || 'PAID';
+						const purchasedAt = new Date().toISOString();
+						const userPrograms = prepareUserProgramsData(checkoutData.expandedCartData).map(p => ({
+							...p,
+							paymentId,
+							purchasedAt,
+						}));
 						dispatch(addUserPrograms(userPrograms));
 
 						dispatch(clearCart());
 
+						// Hide loader just before showing the toast so it is visible immediately
+						setLoading(false);
 						toast.success("Payment successful! Programs saved.");
 					} catch (err) {
 						console.error(err);
+						// Hide loader before showing error toast
+						setLoading(false);
 						toast.error("Payment confirmation failed");
 					} finally {
-						setLoading(false);
+						// No-op: loading is already handled above for success and below on error
 					}
 				},
 				prefill: {
@@ -158,12 +175,19 @@ export default function CartPage() {
 			};
 
 			const rzp = new window.Razorpay(options);
+			// Show a simple loader until the Razorpay overlay appears
+			setLoading(true);
 			rzp.open();
+			// Also handle explicit failure callback to hide loader and notify
+			rzp.on('payment.failed', function () {
+				setLoading(false);
+				toast.error('Payment failed');
+			});
 		} catch (err) {
 			console.error(err);
 			toast.error("Checkout failed");
 		} finally {
-			setLoading(false);
+			// Loader visibility is controlled by Razorpay callbacks (ondismiss, handler, payment.failed)
 		}
 	};
 
@@ -265,7 +289,26 @@ export default function CartPage() {
 	};
 
 	if (loading) {
-		return <Loader2 />
+		return (
+			<div className="fixed inset-0 z-50 flex items-center justify-center bg-white/90">
+				<div className="flex flex-col items-center gap-6">
+					{/* Brand Spinner */}
+					<div className="relative">
+						<div className="h-16 w-16 rounded-full border-4 border-[#2F6288]/20"></div>
+						<div className="absolute inset-0 h-16 w-16 rounded-full border-4 border-t-[#2F6288] border-r-transparent border-b-transparent border-l-transparent animate-spin"></div>
+					</div>
+					<div className="text-center max-w-md">
+						<h3 className="text-xl font-semibold text-[#2F6288]">Hold on, we’re processing your payment…</h3>
+						<p className="mt-2 text-gray-600 text-sm">This usually takes just a moment. Please do not close or refresh this page.</p>
+					</div>
+					{/* Progress bar */}
+					<div className="w-56 h-2 bg-gray-200 rounded-full overflow-hidden">
+						<div className="h-2 bg-[#2F6288] animate-[progress_1.4s_ease-in-out_infinite]"></div>
+					</div>
+					<style>{`@keyframes progress { 0% { transform: translateX(-100%)} 50% { transform: translateX(-10%)} 100% { transform: translateX(110%)} }`}</style>
+				</div>
+			</div>
+		);
 	}
 
 	return (
