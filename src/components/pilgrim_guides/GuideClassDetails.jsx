@@ -84,18 +84,9 @@ export default function GuideClassDetails() {
         loadEvents();
     }, [dispatch, allEvents]);
 
-    // Derive persons per booking based on selected occupancy (couples/twin => 2)
-    const getPersonsPerBooking = () => {
-        const label = (selectedOccupancy?.type || '').toLowerCase();
-        if (label.includes('couple') || label.includes('twin')) return 2;
-        const min = Number(selectedOccupancy?.min || 1);
-        const max = Number(selectedOccupancy?.max || 0);
-        const q = Number(quantity || 1);
-        const base = isNaN(q) ? 1 : q;
-        const boundedMin = isNaN(min) ? 1 : Math.max(1, min);
-        const boundedMax = isNaN(max) || max <= 0 ? base : max;
-        return Math.min(Math.max(base, boundedMin), boundedMax);
-    };
+    // Each booking counts as 1 seat towards capacity (even for couple/group)
+    // Pricing by occupancy is handled separately; do not multiply persons in cart
+    const getPersonsPerBooking = () => 1;
 
     const getCapacityMax = () => {
         // For one-time capacity we will compute specifically when passing to CalendarModal

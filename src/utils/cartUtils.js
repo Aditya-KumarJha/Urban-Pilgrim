@@ -130,6 +130,12 @@ export const prepareUserProgramsData = (expandedCartData) => {
         isExpired: false,
         image: item.image,
         price: item.price,
+        // One-time guide slot metadata to identify booked slots per user
+        ...(item.type === 'guide' && item.subscriptionType === 'oneTime' && (item.slot || item.date) ? {
+            slotDate: item.date || item.slot?.date,
+            slotStart: item.slot?.startTime || item.slot?.time,
+            slotEnd: item.slot?.endTime,
+        } : {}),
         // Bundle information if applicable
         ...(item.isFromBundle && {
             bundleId: item.bundleId,

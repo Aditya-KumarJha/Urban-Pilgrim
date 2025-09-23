@@ -741,7 +741,8 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                                                 ? updatedSlide[modeKey][subKey].slotLocks
                                                 : {};
                                             const prevCount = Number(currentBookings[sbKey] || 0);
-                                            const persons = Math.max(1, Number(program.persons || 1)); // default 1 person if not provided
+                                            // Each successful payment counts as ONE booking towards capacity
+                                            const bookingIncrement = 1;
                                             // Determine capacity per slot from occupancyType and guide config
                                             let maxPerSlot = 2; // default couples capacity
                                             const occType = (program.occupancyType || '').toString().toLowerCase();
@@ -763,25 +764,15 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                                             } catch (e) {
                                                 console.log('capacity detection failed, using default 2:', e?.message);
                                             }
-                                            const newCount = Math.min(maxPerSlot, prevCount + persons);
+                                            const newCount = Math.min(maxPerSlot, prevCount + bookingIncrement);
                                             // Record lock on first booking if none exists
                                             const existingLock = currentLocks[sbKey];
                                             if (!existingLock && occType) {
                                                 currentLocks[sbKey] = occType;
                                             }
-
-                                            // If capacity reached (>=2), remove the slot from availability
-                                            if (newCount >= maxPerSlot) {
-                                                nextSlots = existingSlots.filter((s) => {
-                                                    const sameDate = s?.date === program.date;
-                                                    const sameStart = (s?.startTime || s?.start_time) === sStart;
-                                                    const sameEnd = (s?.endTime || s?.end_time) === sEnd;
-                                                    return !(sameDate && sameStart && sameEnd);
-                                                });
-                                            } else {
-                                                // Keep slots unchanged, only update booking count
-                                                nextSlots = existingSlots;
-                                            }
+                                            // Do NOT remove slots from Firestore; keep the slots array unchanged.
+        	                                // Frontend will use slotBookings and slotLocks to disable or hide full slots.
+                                            nextSlots = existingSlots;
 
                                             updatedSlide[modeKey][subKey] = {
                                                 ...updatedSlide[modeKey][subKey],

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
 import { FiChevronLeft, FiChevronRight, FiX, FiArrowLeft } from "react-icons/fi";
 import { useDispatch } from "react-redux";
 import { addToCart } from "../../features/cartSlice.js";
@@ -27,6 +28,7 @@ export default function CalendarModal({
     const [loading, setLoading] = useState(false);
     
     const dispatch = useDispatch();
+    const userPrograms = useSelector((state) => state.userProgram);
 
     useEffect(() => {
         if (isOpen) {
@@ -189,7 +191,16 @@ export default function CalendarModal({
     };
 
     const getSlotsForDate = (dateStr) => {
-        return localSlots.filter(slot => slot.date === dateStr);
+        // Filter out one-time slots that the current user has already purchased
+        const slots = localSlots.filter(slot => slot.date === dateStr);
+        if (selectedPlan !== 'oneTime') return slots;
+        const title = sessionData?.guideCard?.title || '';
+        const purchasedSet = new Set(
+            (userPrograms || [])
+                .filter(p => p.type === 'guide' && p.subscriptionType === 'oneTime' && (p.title === title))
+                .map(p => `${p.slotDate}|${p.slotStart}|${p.slotEnd}`)
+        );
+        return slots.filter(s => !purchasedSet.has(`${s.date}|${s.startTime || s.time}|${s.endTime}`));
     };
 
     // Compute current enrolled counts from sessionData.slotBookings
