@@ -728,6 +728,16 @@ export default function GuideForm() {
             return next;
         });
     };
+    
+    // Quick-setup: create 7 rows (Sun..Sat), each with its own times, recurring weekly
+    const initWeekdayRows = (modeKey) => {
+        setFormData(prev => {
+            const next = { ...prev };
+            const weekdays = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+            next[modeKey].monthly.weeklyPattern = weekdays.map(d => ({ days: [d], times: [{ startTime: "", endTime: "", type: "individual" }] }));
+            return next;
+        });
+    };
     const [otOnlineMonth, setOtOnlineMonth] = useState(() => new Date());
     const [otOnlineDate, setOtOnlineDate] = useState(() => new Date().toISOString().slice(0,10));
     const [otOfflineMonth, setOtOfflineMonth] = useState(() => new Date());
@@ -1538,6 +1548,16 @@ export default function GuideForm() {
                                 {/* Monthly Online Weekly Pattern */}
                                 <div className="mt-6">
                                     <h3 className="text-lg font-semibold text-gray-700 mb-4">Monthly Online – Weekly Hours</h3>
+                                    <div className="flex flex-wrap items-center gap-3 mb-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => initWeekdayRows('online')}
+                                            className="px-3 py-1.5 rounded border border-[#2F6288] text-[#2F6288] hover:bg-blue-50 text-sm"
+                                        >
+                                            Quick setup: Create Sun–Sat rows
+                                        </button>
+                                        <span className="text-xs text-gray-500">Tip: Add multiple times inside each weekday row. These slots repeat every week. Users will only see dates within the current month.</span>
+                                    </div>
                                     <div className="flex items-center gap-2 mb-3">
                                         <span className="text-sm text-gray-600">View:</span>
                                         <button onClick={() => setOnlineMonthlyViewType('individual')} className={`px-3 py-1 rounded border text-sm ${onlineMonthlyViewType==='individual' ? 'bg-[#2F6288] text-white border-[#2F6288]' : 'bg-white text-gray-700 border-gray-300'}`}>Individual</button>
@@ -1699,6 +1719,16 @@ export default function GuideForm() {
                                 {/* Monthly Offline Weekly Pattern */}
                                 <div className="mt-6">
                                     <h3 className="text-lg font-semibold text-gray-700 mb-4">Monthly Offline – Weekly Hours</h3>
+                                    <div className="flex flex-wrap items-center gap-3 mb-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => initWeekdayRows('offline')}
+                                            className="px-3 py-1.5 rounded border border-[#2F6288] text-[#2F6288] hover:bg-blue-50 text-sm"
+                                        >
+                                            Quick setup: Create Sun–Sat rows
+                                        </button>
+                                        <span className="text-xs text-gray-500">Tip: Add multiple times inside each weekday row. These slots repeat every week. Users will only see dates within the current month.</span>
+                                    </div>
                                     <div className="flex items-center gap-2 mb-3">
                                         <span className="text-sm text-gray-600">View:</span>
                                         <button onClick={() => setOfflineMonthlyViewType('individual')} className={`px-3 py-1 rounded border text-sm ${offlineMonthlyViewType==='individual' ? 'bg-[#2F6288] text-white border-[#2F6288]' : 'bg-white text-gray-700 border-gray-300'}`}>Individual</button>

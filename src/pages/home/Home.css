@@ -531,6 +531,35 @@
         min-height: 220px;
     }
 
+    
+    .c5bottom {
+        display: flex;
+        overflow-x: auto;
+        overflow-y: hidden;
+        /* gap: 20px; */
+        padding: 0 0;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .c5bottom .parrent {
+        flex: 0 0 auto;
+        min-width: 250px;
+        scroll-snap-align: start;
+    }
+
+    .c4container,
+    .c5container,
+    .c7container {
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 0;
+        padding: 20px 20px;
+        padding-bottom: 0px;
+        box-sizing: border-box;
+        overflow: visible;
+    }
+
     .card_title {
         font-size: 14px;
     }

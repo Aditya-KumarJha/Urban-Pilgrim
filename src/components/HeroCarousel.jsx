@@ -50,7 +50,7 @@ export default function HeroCarousel() {
     }, [nextSlide]);
 
     return (
-        <div className="w-screen lg:h-[75vh] sm:h-[50vh] h-[40vh] relative overflow-hidden bg-black flex items-center justify-center mt-[70px]">
+        <div className="w-[95vw] mx-auto rounded-3xl lg:h-[75vh] sm:h-[50vh] h-[40vh] relative overflow-hidden bg-black flex items-center justify-center mt-[90px]">
             <AnimatePresence mode="wait">
                 <motion.img
                     key={current}

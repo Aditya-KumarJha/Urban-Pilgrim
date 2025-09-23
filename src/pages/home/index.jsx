@@ -316,7 +316,7 @@ function Home() {
                 ogImage="/public/assets/home_page_img.png"
             />
             <HeroCarousel />
-            <About />
+            {/* <About /> */}
             <UpComing />
 
             {/* Explore our program */}

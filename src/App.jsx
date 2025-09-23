@@ -34,6 +34,20 @@ function App() {
     const location = useLocation();
     const isAdminRoute = location.pathname === "/admin" || location.pathname === "/userdashboard";
 
+    // Decide whether to show loader only on the very first visit
+    useEffect(() => {
+        try {
+            const seen = localStorage.getItem('hasSeenLoader') === 'true';
+            if (seen || isAdminRoute) {
+                setLoading(false);
+            } else {
+                setLoading(true);
+            }
+        } catch {
+            // Fallback: if storage fails, default to showing once
+            if (isAdminRoute) setLoading(false);
+        }
+    }, [isAdminRoute]);
 
     useEffect(() => {
         const lenis = new Lenis({
@@ -54,13 +68,18 @@ function App() {
         };
     }, []);
 
-
     return (
         <CartProvider>
             <div className="relative">
                 {/* Loader overlay */}
-                {loading && <Loader onFinish={() => setLoading(false)} />}
-                {loading && isAdminRoute && <div className="hidden">{setLoading(false)}</div>}
+                {loading && !isAdminRoute && (
+                    <Loader
+                        onFinish={() => {
+                            try { localStorage.setItem('hasSeenLoader', 'true'); } catch {}
+                            setLoading(false);
+                        }}
+                    />
+                )}
 
                 {/* Only show navbar & routes once loader is done */}
                 {!loading && (
