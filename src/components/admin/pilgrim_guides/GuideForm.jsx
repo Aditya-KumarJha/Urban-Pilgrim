@@ -188,7 +188,7 @@ export default function GuideForm() {
         setFormData((prev) => {
             if (mode && subscriptionType) {
                 // Handle nested structure for online/offline subscriptions
-                return {
+                const updated = {
                     ...prev,
                     [mode]: {
                         ...prev[mode],
@@ -198,6 +198,14 @@ export default function GuideForm() {
                         },
                     },
                 };
+                
+                // Debug: Log when sessionsCount changes
+                if (field === 'sessionsCount') {
+                    console.log(`Sessions count updated for ${mode} ${subscriptionType}:`, value);
+                    console.log(`Updated data:`, updated[mode][subscriptionType]);
+                }
+                
+                return updated;
             } else {
                 // Handle regular sections
                 return {
@@ -422,6 +430,9 @@ export default function GuideForm() {
     const editSlide = (index) => {
         const slideToEdit = allData[index];
         console.log("Editing slide:", slideToEdit);
+        console.log("Monthly online data:", slideToEdit?.online?.monthly);
+        console.log("Monthly offline data:", slideToEdit?.offline?.monthly);
+        console.log("Organizer data:", slideToEdit?.organizer);
 
         // Normalize types and add stable ids for backward compatibility
         const normalizeSlots = (slots = []) => slots.map(s => ({ ...s, id: s?.id || uuidv4(), type: s?.type || 'individual' }));
@@ -458,7 +469,10 @@ export default function GuideForm() {
                     description: slideToEdit?.online?.monthly?.description || "",
                     sessionsCount: slideToEdit?.online?.monthly?.sessionsCount || "",
                     slots: normalizeSlots(slideToEdit?.online?.monthly?.slots || []),
-                    weeklyPattern: normalizeWeekly(slideToEdit?.online?.monthly?.weeklyPattern || [])
+                    weeklyPattern: normalizeWeekly(slideToEdit?.online?.monthly?.weeklyPattern || []),
+                    dayBasedPattern: slideToEdit?.online?.monthly?.dayBasedPattern || null,
+                    groupMin: slideToEdit?.online?.monthly?.groupMin || "",
+                    groupMax: slideToEdit?.online?.monthly?.groupMax || ""
                 },
                 oneTime: {
                     price: slideToEdit?.online?.oneTime?.price || "",
@@ -472,7 +486,10 @@ export default function GuideForm() {
                     sessionsCount: slideToEdit?.offline?.monthly?.sessionsCount || "",
                     slots: normalizeSlots(slideToEdit?.offline?.monthly?.slots || []),
                     description: slideToEdit?.offline?.monthly?.description || "",
-                    weeklyPattern: normalizeWeekly(slideToEdit?.offline?.monthly?.weeklyPattern || [])
+                    weeklyPattern: normalizeWeekly(slideToEdit?.offline?.monthly?.weeklyPattern || []),
+                    dayBasedPattern: slideToEdit?.offline?.monthly?.dayBasedPattern || null,
+                    groupMin: slideToEdit?.offline?.monthly?.groupMin || "",
+                    groupMax: slideToEdit?.offline?.monthly?.groupMax || ""
                 },
                 oneTime: {
                     price: slideToEdit?.offline?.oneTime?.price || "",
@@ -734,7 +751,132 @@ export default function GuideForm() {
         setFormData(prev => {
             const next = { ...prev };
             const weekdays = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-            next[modeKey].monthly.weeklyPattern = weekdays.map(d => ({ days: [d], times: [{ startTime: "", endTime: "", type: "individual" }] }));
+            
+            // Preserve existing weeklyPattern if it exists
+            const existingPattern = next[modeKey].monthly.weeklyPattern || [];
+            const existingDays = new Set();
+            
+            // Collect existing days to avoid duplicates
+            existingPattern.forEach(row => {
+                if (row.days && Array.isArray(row.days)) {
+                    row.days.forEach(day => existingDays.add(day));
+                }
+            });
+            
+            // Only add missing weekdays, preserve existing ones
+            const newRows = weekdays
+                .filter(day => !existingDays.has(day))
+                .map(day => ({ 
+                    days: [day], 
+                    times: [{ startTime: "", endTime: "", type: "individual" }] 
+                }));
+            
+            // Combine existing pattern with new rows
+            next[modeKey].monthly.weeklyPattern = [...existingPattern, ...newRows];
+            
+            return next;
+        });
+    };
+
+    // ========== New Day-Based Weekly Pattern Functions ==========
+    const initializeDayBasedWeeklyPattern = (modeKey) => {
+        setFormData(prev => {
+            const next = { ...prev };
+            const weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+            
+            // Preserve existing dayBasedPattern if it exists
+            const existingPattern = next[modeKey].monthly.dayBasedPattern || {};
+            
+            // Only initialize missing days, preserve existing ones
+            const newPattern = { ...existingPattern };
+            weekdays.forEach(day => {
+                if (!newPattern[day]) {
+                    newPattern[day] = { slots: [] };
+                }
+            });
+            
+            next[modeKey].monthly.dayBasedPattern = newPattern;
+            return next;
+        });
+    };
+
+    const addSlotToDay = (modeKey, dayName) => {
+        setFormData(prev => {
+            const next = { ...prev };
+            if (!next[modeKey].monthly.dayBasedPattern) {
+                next[modeKey].monthly.dayBasedPattern = {};
+            }
+            if (!next[modeKey].monthly.dayBasedPattern[dayName]) {
+                next[modeKey].monthly.dayBasedPattern[dayName] = { slots: [] };
+            }
+            next[modeKey].monthly.dayBasedPattern[dayName].slots.push({
+                startTime: "",
+                endTime: "",
+                type: "individual"
+            });
+            
+            console.log(`Slot added to ${dayName} for ${modeKey}:`, next[modeKey].monthly.dayBasedPattern[dayName]);
+            console.log(`Total dayBasedPattern:`, next[modeKey].monthly.dayBasedPattern);
+            
+            return next;
+        });
+    };
+
+    const updateDaySlot = (modeKey, dayName, slotIndex, field, value) => {
+        setFormData(prev => {
+            const next = { ...prev };
+            if (next[modeKey].monthly.dayBasedPattern?.[dayName]?.slots?.[slotIndex]) {
+                next[modeKey].monthly.dayBasedPattern[dayName].slots[slotIndex][field] = value;
+                console.log(`Updated ${field} for ${dayName} slot ${slotIndex}:`, value);
+                console.log(`Updated slot:`, next[modeKey].monthly.dayBasedPattern[dayName].slots[slotIndex]);
+            }
+            return next;
+        });
+    };
+
+    const removeDaySlot = (modeKey, dayName, slotIndex) => {
+        setFormData(prev => {
+            const next = { ...prev };
+            if (next[modeKey].monthly.dayBasedPattern?.[dayName]?.slots) {
+                next[modeKey].monthly.dayBasedPattern[dayName].slots.splice(slotIndex, 1);
+            }
+            return next;
+        });
+    };
+
+    const replicateWeekToMonth = (modeKey) => {
+        setFormData(prev => {
+            const next = { ...prev };
+            const dayPattern = next[modeKey].monthly.dayBasedPattern;
+            console.log(`Replicating week to month for ${modeKey}:`, dayPattern);
+            
+            if (!dayPattern) {
+                console.log("❌ No dayBasedPattern found to replicate");
+                return next;
+            }
+
+            // Convert day-based pattern to old weeklyPattern format for compatibility
+            const weeklyPattern = [];
+            Object.entries(dayPattern).forEach(([dayName, dayData]) => {
+                if (dayData.slots && dayData.slots.length > 0) {
+                    // Map day names to short format
+                    const dayMap = {
+                        "Monday": "Mon", "Tuesday": "Tue", "Wednesday": "Wed", 
+                        "Thursday": "Thu", "Friday": "Fri", "Saturday": "Sat", "Sunday": "Sun"
+                    };
+                    const shortDay = dayMap[dayName];
+                    weeklyPattern.push({
+                        days: [shortDay],
+                        times: [...dayData.slots]
+                    });
+                }
+            });
+            
+            console.log(`Generated weeklyPattern:`, weeklyPattern);
+            next[modeKey].monthly.weeklyPattern = weeklyPattern;
+            console.log(`Final monthly data:`, next[modeKey].monthly);
+            
+            showSuccess(`Week pattern replicated to all weeks in the month!`);
             return next;
         });
     };
@@ -913,6 +1055,18 @@ export default function GuideForm() {
         //     return;
         // }
 
+        // Debug: Check what data is being saved
+        console.log("=== SAVING GUIDE DATA ===");
+        console.log("FormData before save:", formData);
+        console.log("Online monthly data:", formData.online?.monthly);
+        console.log("Offline monthly data:", formData.offline?.monthly);
+        console.log("Sessions count online:", formData.online?.monthly?.sessionsCount);
+        console.log("Sessions count offline:", formData.offline?.monthly?.sessionsCount);
+        console.log("Weekly pattern online:", formData.online?.monthly?.weeklyPattern);
+        console.log("Weekly pattern offline:", formData.offline?.monthly?.weeklyPattern);
+        console.log("Day based pattern online:", formData.online?.monthly?.dayBasedPattern);
+        console.log("Day based pattern offline:", formData.offline?.monthly?.dayBasedPattern);
+
         const newCard = {
             guideCard: { ...formData.guideCard },
             organizer: { ...formData.organizer },
@@ -928,6 +1082,36 @@ export default function GuideForm() {
                 }
             ]
         };
+
+        console.log("NewCard being saved:", newCard);
+        console.log("NewCard online monthly:", newCard.online?.monthly);
+        console.log("NewCard offline monthly:", newCard.offline?.monthly);
+        
+        // Final validation check
+        console.log("=== FINAL VALIDATION CHECK ===");
+        if (newCard.online?.monthly?.weeklyPattern?.length > 0) {
+            console.log("✅ Online monthly weeklyPattern has slots:", newCard.online.monthly.weeklyPattern.length);
+        } else {
+            console.log("❌ Online monthly weeklyPattern is empty or missing");
+        }
+        
+        if (newCard.offline?.monthly?.weeklyPattern?.length > 0) {
+            console.log("✅ Offline monthly weeklyPattern has slots:", newCard.offline.monthly.weeklyPattern.length);
+        } else {
+            console.log("❌ Offline monthly weeklyPattern is empty or missing");
+        }
+        
+        if (newCard.online?.monthly?.sessionsCount) {
+            console.log("✅ Online sessions count:", newCard.online.monthly.sessionsCount);
+        } else {
+            console.log("❌ Online sessions count missing");
+        }
+        
+        if (newCard.offline?.monthly?.sessionsCount) {
+            console.log("✅ Offline sessions count:", newCard.offline.monthly.sessionsCount);
+        } else {
+            console.log("❌ Offline sessions count missing");
+        }
 
         try {
             if (!uid) throw new Error("User not logged in");
@@ -1559,13 +1743,105 @@ export default function GuideForm() {
                                         <span className="text-xs text-gray-500">Tip: Add multiple times inside each weekday row. These slots repeat every week. Users will only see dates within the current month.</span>
                                     </div>
                                     <div className="flex items-center gap-2 mb-3">
-                                        <span className="text-sm text-gray-600">View:</span>
-                                        <button onClick={() => setOnlineMonthlyViewType('individual')} className={`px-3 py-1 rounded border text-sm ${onlineMonthlyViewType==='individual' ? 'bg-[#2F6288] text-white border-[#2F6288]' : 'bg-white text-gray-700 border-gray-300'}`}>Individual</button>
-                                        <button onClick={() => setOnlineMonthlyViewType('couple')} className={`px-3 py-1 rounded border text-sm ${onlineMonthlyViewType==='couple' ? 'bg-[#2F6288] text-white border-[#2F6288]' : 'bg-white text-gray-700 border-gray-300'}`}>Couple</button>
-                                        <button onClick={() => setOnlineMonthlyViewType('group')} className={`px-3 py-1 rounded border text-sm ${onlineMonthlyViewType==='group' ? 'bg-[#2F6288] text-white border-[#2F6288]' : 'bg-white text-gray-700 border-gray-300'}`}>Group</button>
+                                        <span className="text-sm text-gray-600">Setup Mode:</span>
+                                        <button 
+                                            onClick={() => initializeDayBasedWeeklyPattern('online')} 
+                                            className="px-3 py-1 rounded border text-sm bg-green-600 text-white border-green-600 hover:bg-green-700"
+                                        >
+                                            Initialize Day-Based Setup
+                                        </button>
+                                        <button 
+                                            onClick={() => replicateWeekToMonth('online')} 
+                                            className="px-3 py-1 rounded border text-sm bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
+                                        >
+                                            Apply Week to All Month
+                                        </button>
                                     </div>
-                                    <div className="space-y-4">
-                                        {(formData?.online?.monthly?.weeklyPattern || []).map((row, idx) => (
+                                    {/* New Day-Based Weekly Pattern UI */}
+                                    {formData?.online?.monthly?.dayBasedPattern && (
+                                        <div className="space-y-6">
+                                            {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(dayName => (
+                                                <div key={dayName} className="border border-gray-200 rounded-lg p-4 bg-blue-50">
+                                                    <div className="flex items-center justify-between mb-3">
+                                                        <h3 className="font-semibold text-gray-800 text-lg">{dayName}</h3>
+                                                        <button
+                                                            onClick={() => addSlotToDay('online', dayName)}
+                                                            className="px-3 py-1 bg-[#2F6288] text-white rounded text-sm hover:bg-blue-700"
+                                                        >
+                                                            Add Slot
+                                                        </button>
+                                                    </div>
+                                                    <div className="space-y-3">
+                                                        {(formData?.online?.monthly?.dayBasedPattern?.[dayName]?.slots || []).map((slot, slotIndex) => (
+                                                            <div key={slotIndex} className="flex flex-col md:flex-row md:items-center gap-3 p-3 border rounded bg-white">
+                                                                <div className="flex items-center gap-4">
+                                                                    <label className="inline-flex items-center">
+                                                                        <input 
+                                                                            type="radio" 
+                                                                            name={`online-${dayName}-${slotIndex}`} 
+                                                                            checked={(slot.type || 'individual') === 'individual'} 
+                                                                            onChange={() => updateDaySlot('online', dayName, slotIndex, 'type', 'individual')} 
+                                                                            className="form-radio h-4 w-4 text-[#2F6288]" 
+                                                                        />
+                                                                        <span className="ml-2">Individual</span>
+                                                                    </label>
+                                                                    <label className="inline-flex items-center">
+                                                                        <input 
+                                                                            type="radio" 
+                                                                            name={`online-${dayName}-${slotIndex}`} 
+                                                                            checked={slot.type === 'couple'} 
+                                                                            onChange={() => updateDaySlot('online', dayName, slotIndex, 'type', 'couple')} 
+                                                                            className="form-radio h-4 w-4 text-[#2F6288]" 
+                                                                        />
+                                                                        <span className="ml-2">Couple</span>
+                                                                    </label>
+                                                                    <label className="inline-flex items-center">
+                                                                        <input 
+                                                                            type="radio" 
+                                                                            name={`online-${dayName}-${slotIndex}`} 
+                                                                            checked={slot.type === 'group'} 
+                                                                            onChange={() => updateDaySlot('online', dayName, slotIndex, 'type', 'group')} 
+                                                                            className="form-radio h-4 w-4 text-[#2F6288]" 
+                                                                        />
+                                                                        <span className="ml-2">Group</span>
+                                                                    </label>
+                                                                </div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <input
+                                                                        type="time"
+                                                                        value={slot.startTime || ''}
+                                                                        onChange={(e) => updateDaySlot('online', dayName, slotIndex, 'startTime', e.target.value)}
+                                                                        className="border border-gray-300 rounded px-2 py-1 text-sm"
+                                                                    />
+                                                                    <span className="text-gray-500">to</span>
+                                                                    <input
+                                                                        type="time"
+                                                                        value={slot.endTime || ''}
+                                                                        onChange={(e) => updateDaySlot('online', dayName, slotIndex, 'endTime', e.target.value)}
+                                                                        className="border border-gray-300 rounded px-2 py-1 text-sm"
+                                                                    />
+                                                                    <button
+                                                                        onClick={() => removeDaySlot('online', dayName, slotIndex)}
+                                                                        className="text-red-600 text-sm hover:text-red-800"
+                                                                    >
+                                                                        Remove
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                        {(formData?.online?.monthly?.dayBasedPattern?.[dayName]?.slots || []).length === 0 && (
+                                                            <p className="text-gray-500 text-sm italic">No slots added for {dayName}</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Old Weekly Pattern UI (fallback) */}
+                                    {!formData?.online?.monthly?.dayBasedPattern && (
+                                        <div className="space-y-4">
+                                            {(formData?.online?.monthly?.weeklyPattern || []).map((row, idx) => (
                                             <div key={idx} className="border border-gray-200 rounded-lg p-4 space-y-3 bg-blue-50">
                                                 <div className="flex items-center justify-between">
                                                     <p className="font-semibold text-gray-700">Row {idx + 1}</p>
@@ -1652,8 +1928,8 @@ export default function GuideForm() {
                                                 </div>
                                             </div>
                                         ))}
-                                        <button onClick={()=>addMonthlyPatternRow('online')} className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-[#2F6288] hover:text-[#2F6288] transition-colors">Add Weekly Row</button>
-                                    </div>
+                                        </div>
+                                    )}
                                 </div>
 
                             </div>
@@ -1729,14 +2005,108 @@ export default function GuideForm() {
                                         </button>
                                         <span className="text-xs text-gray-500">Tip: Add multiple times inside each weekday row. These slots repeat every week. Users will only see dates within the current month.</span>
                                     </div>
+
                                     <div className="flex items-center gap-2 mb-3">
-                                        <span className="text-sm text-gray-600">View:</span>
-                                        <button onClick={() => setOfflineMonthlyViewType('individual')} className={`px-3 py-1 rounded border text-sm ${offlineMonthlyViewType==='individual' ? 'bg-[#2F6288] text-white border-[#2F6288]' : 'bg-white text-gray-700 border-gray-300'}`}>Individual</button>
-                                        <button onClick={() => setOfflineMonthlyViewType('couple')} className={`px-3 py-1 rounded border text-sm ${offlineMonthlyViewType==='couple' ? 'bg-[#2F6288] text-white border-[#2F6288]' : 'bg-white text-gray-700 border-gray-300'}`}>Couple</button>
-                                        <button onClick={() => setOfflineMonthlyViewType('group')} className={`px-3 py-1 rounded border text-sm ${offlineMonthlyViewType==='group' ? 'bg-[#2F6288] text-white border-[#2F6288]' : 'bg-white text-gray-700 border-gray-300'}`}>Group</button>
+                                        <span className="text-sm text-gray-600">Setup Mode:</span>
+                                        <button 
+                                            onClick={() => initializeDayBasedWeeklyPattern('offline')} 
+                                            className="px-3 py-1 rounded border text-sm bg-green-600 text-white border-green-600 hover:bg-green-700"
+                                        >
+                                            Initialize Day-Based Setup
+                                        </button>
+                                        <button 
+                                            onClick={() => replicateWeekToMonth('offline')} 
+                                            className="px-3 py-1 rounded border text-sm bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
+                                        >
+                                            Apply Week to All Month
+                                        </button>
                                     </div>
-                                    <div className="space-y-4">
-                                        {(formData?.offline?.monthly?.weeklyPattern || []).map((row, idx) => (
+
+                                    {/* New Day-Based Weekly Pattern UI for Offline */}
+                                    {formData?.offline?.monthly?.dayBasedPattern && (
+                                        <div className="space-y-6">
+                                            {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(dayName => (
+                                                <div key={dayName} className="border border-gray-200 rounded-lg p-4 bg-green-50">
+                                                    <div className="flex items-center justify-between mb-3">
+                                                        <h3 className="font-semibold text-gray-800 text-lg">{dayName}</h3>
+                                                        <button
+                                                            onClick={() => addSlotToDay('offline', dayName)}
+                                                            className="px-3 py-1 bg-[#2F6288] text-white rounded text-sm hover:bg-blue-700"
+                                                        >
+                                                            Add Slot
+                                                        </button>
+                                                    </div>
+                                                    <div className="space-y-3">
+                                                        {(formData?.offline?.monthly?.dayBasedPattern?.[dayName]?.slots || []).map((slot, slotIndex) => (
+                                                            <div key={slotIndex} className="flex flex-col md:flex-row md:items-center gap-3 p-3 border rounded bg-white">
+                                                                <div className="flex items-center gap-4">
+                                                                    <label className="inline-flex items-center">
+                                                                        <input 
+                                                                            type="radio" 
+                                                                            name={`offline-${dayName}-${slotIndex}`} 
+                                                                            checked={(slot.type || 'individual') === 'individual'} 
+                                                                            onChange={() => updateDaySlot('offline', dayName, slotIndex, 'type', 'individual')} 
+                                                                            className="form-radio h-4 w-4 text-[#2F6288]" 
+                                                                        />
+                                                                        <span className="ml-2">Individual</span>
+                                                                    </label>
+                                                                    <label className="inline-flex items-center">
+                                                                        <input 
+                                                                            type="radio" 
+                                                                            name={`offline-${dayName}-${slotIndex}`} 
+                                                                            checked={slot.type === 'couple'} 
+                                                                            onChange={() => updateDaySlot('offline', dayName, slotIndex, 'type', 'couple')} 
+                                                                            className="form-radio h-4 w-4 text-[#2F6288]" 
+                                                                        />
+                                                                        <span className="ml-2">Couple</span>
+                                                                    </label>
+                                                                    <label className="inline-flex items-center">
+                                                                        <input 
+                                                                            type="radio" 
+                                                                            name={`offline-${dayName}-${slotIndex}`} 
+                                                                            checked={slot.type === 'group'} 
+                                                                            onChange={() => updateDaySlot('offline', dayName, slotIndex, 'type', 'group')} 
+                                                                            className="form-radio h-4 w-4 text-[#2F6288]" 
+                                                                        />
+                                                                        <span className="ml-2">Group</span>
+                                                                    </label>
+                                                                </div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <input
+                                                                        type="time"
+                                                                        value={slot.startTime || ''}
+                                                                        onChange={(e) => updateDaySlot('offline', dayName, slotIndex, 'startTime', e.target.value)}
+                                                                        className="border border-gray-300 rounded px-2 py-1 text-sm"
+                                                                    />
+                                                                    <span className="text-gray-500">to</span>
+                                                                    <input
+                                                                        type="time"
+                                                                        value={slot.endTime || ''}
+                                                                        onChange={(e) => updateDaySlot('offline', dayName, slotIndex, 'endTime', e.target.value)}
+                                                                        className="border border-gray-300 rounded px-2 py-1 text-sm"
+                                                                    />
+                                                                    <button
+                                                                        onClick={() => removeDaySlot('offline', dayName, slotIndex)}
+                                                                        className="text-red-600 text-sm hover:text-red-800"
+                                                                    >
+                                                                        Remove
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                        {(formData?.offline?.monthly?.dayBasedPattern?.[dayName]?.slots || []).length === 0 && (
+                                                            <p className="text-gray-500 text-sm italic">No slots added for {dayName}</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Old Weekly Pattern UI (fallback) for Offline */}
+                                    {!formData?.offline?.monthly?.dayBasedPattern && (
+                                        <div className="space-y-4">
+                                            {(formData?.offline?.monthly?.weeklyPattern || []).map((row, idx) => (
                                             <div key={idx} className="border border-gray-200 rounded-lg p-4 space-y-3 bg-green-50">
                                                 <div className="flex items-center justify-between">
                                                     <p className="font-semibold text-gray-700">Row {idx + 1}</p>
@@ -1815,6 +2185,7 @@ export default function GuideForm() {
                                         ))}
                                         <button onClick={()=>addMonthlyPatternRow('offline')} className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-[#2F6288] hover:text-[#2F6288] transition-colors">Add Weekly Row</button>
                                     </div>
+                                    )}
                                 </div>
 
                             </div>

@@ -5,7 +5,8 @@ import GuideCard from "./GuideCard";
 import { motion } from "framer-motion";
 import SlotModal from "./SlotModal";
 import CalendarModal from "./CalendarModal";
-import { doc, getDoc } from "firebase/firestore";
+import MonthlyCalendarModal from "./MonthlyCalendarModal";
+import { doc, getDoc, updateDoc, collection, addDoc, query, where, getDocs } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { useParams } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
@@ -34,10 +35,21 @@ export default function GuideClassDetails() {
     const [mainImageType, setMainImageType] = useState('image');
     const [showFreeTrail, setShowFreeTrail] = useState(false);
     const [selectedOccupancy, setSelectedOccupancy] = useState(null);
+    
+    // Monthly booking management states
+    const [monthlyBookings, setMonthlyBookings] = useState({});
+    const [userMonthlySlots, setUserMonthlySlots] = useState([]);
+    const [groupStatus, setGroupStatus] = useState(null);
+    const [waitingPeriod, setWaitingPeriod] = useState(null);
+    const [slotBookings, setSlotBookings] = useState({});
+    const [groupBookings, setGroupBookings] = useState([]);
+    const [currentMonth, setCurrentMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
+    
     const dispatch = useDispatch();
     const navigate = useNavigate();
 
-    // Get user programs from Redux
+    // Get user and programs from Redux
+    const user = useSelector((state) => state.auth?.user || state.user?.currentUser || null);
     const userPrograms = useSelector((state) => state.userProgram);
 
     useEffect(() => {
@@ -83,6 +95,332 @@ export default function GuideClassDetails() {
 
         loadEvents();
     }, [dispatch, allEvents]);
+
+    // ========== Monthly Booking Utility Functions ==========
+    
+    // Filter slots to show only current date to end of month
+    const filterMonthlySlots = (allSlots, occupancyType, adminSettings) => {
+        const currentDate = new Date();
+        const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+        
+        return allSlots.filter(slot => {
+            const slotDate = new Date(slot.date);
+            return slotDate >= currentDate && slotDate <= endOfMonth;
+        });
+    };
+
+    // Check if user can book a slot based on monthly restrictions
+    const canBookMonthlySlot = (slot, occupancyType, userBookings, adminSettings) => {
+        const slotDate = slot.date;
+        const sessionsPerMonth = Number(adminSettings?.sessionsCount || 0);
+        
+        // Check if user already has a slot on this date (one slot per day limit)
+        const hasSlotOnDate = userBookings.some(booking => booking.date === slotDate);
+        if (hasSlotOnDate && occupancyType !== 'group') {
+            return { canBook: false, reason: 'You can only book one slot per day' };
+        }
+        
+        // Check session limit for the month
+        if (userBookings.length >= sessionsPerMonth) {
+            return { canBook: false, reason: `You have reached the monthly limit of ${sessionsPerMonth} sessions` };
+        }
+        
+        // Check slot availability based on occupancy type
+        const slotKey = `${slot.date}|${slot.startTime}|${slot.endTime}`;
+        const currentBookings = slotBookings[slotKey] || [];
+        
+        switch (occupancyType.toLowerCase()) {
+            case 'individual':
+                // Individual slots become invisible after booking
+                return { canBook: currentBookings.length === 0, reason: 'Slot already booked' };
+                
+            case 'couple':
+                // Couple slots allow 2 bookings then become invisible
+                return { canBook: currentBookings.length < 2, reason: 'Slot fully booked for couples' };
+                
+            case 'group':
+                // Group logic handled separately
+                return checkGroupAvailability(slot, adminSettings);
+                
+            default:
+                return { canBook: false, reason: 'Invalid occupancy type' };
+        }
+    };
+
+    // Check group availability and status
+    const checkGroupAvailability = (slot, adminSettings) => {
+        const groupMin = Number(adminSettings?.groupMin || 0);
+        const groupMax = Number(adminSettings?.groupMax || 0);
+        
+        if (!groupStatus) {
+            return { canBook: true, reason: 'Group available for booking' };
+        }
+        
+        if (groupStatus.status === 'active') {
+            return { canBook: false, reason: 'Group is currently active' };
+        }
+        
+        if (groupStatus.status === 'waiting' && groupStatus.bookings.length >= groupMax) {
+            return { canBook: false, reason: 'Group is full' };
+        }
+        
+        return { canBook: true, reason: 'Group available' };
+    };
+
+    // Handle group booking logic with 7-day waiting period
+    const handleGroupBooking = async (slot, adminSettings) => {
+        const groupMin = Number(adminSettings?.groupMin || 0);
+        const groupMax = Number(adminSettings?.groupMax || 0);
+        
+        try {
+            // Add user to group bookings
+            const newBooking = {
+                userId: user.uid,
+                userName: user.displayName || user.email,
+                bookedAt: new Date().toISOString(),
+                slot: slot
+            };
+            
+            const updatedBookings = [...groupBookings, newBooking];
+            setGroupBookings(updatedBookings);
+            
+            // If this is the first booking, start waiting period
+            if (updatedBookings.length === 1) {
+                const waitingEndDate = new Date();
+                waitingEndDate.setDate(waitingEndDate.getDate() + 7);
+                
+                const newWaitingPeriod = {
+                    startDate: new Date().toISOString(),
+                    endDate: waitingEndDate.toISOString(),
+                    groupId: `group_${sessionData?.guideCard?.title}_${Date.now()}`
+                };
+                
+                setWaitingPeriod(newWaitingPeriod);
+                setGroupStatus({ status: 'waiting', bookings: updatedBookings });
+                
+                showSuccess('You are the first to book! Waiting for more members to join within 7 days.');
+                
+                // Set timeout for 7 days
+                setTimeout(() => {
+                    checkGroupMinimum(newWaitingPeriod.groupId);
+                }, 7 * 24 * 60 * 60 * 1000); // 7 days in milliseconds
+            }
+            // Check if minimum reached
+            else if (updatedBookings.length >= groupMin && waitingPeriod) {
+                activateGroup(updatedBookings);
+            }
+            // Check if maximum reached
+            else if (updatedBookings.length >= groupMax) {
+                if (updatedBookings.length >= groupMin) {
+                    activateGroup(updatedBookings);
+                } else {
+                    // This shouldn't happen, but handle edge case
+                    showError('Group is full but minimum not reached. Please contact support.');
+                }
+            }
+            
+            return { success: true, bookings: updatedBookings };
+        } catch (error) {
+            console.error('Error handling group booking:', error);
+            showError('Failed to book group slot. Please try again.');
+            return { success: false, error };
+        }
+    };
+
+    // Activate group after minimum members reached
+    const activateGroup = (bookings) => {
+        setGroupStatus({ status: 'active', bookings });
+        setWaitingPeriod(null);
+        
+        // Generate group slots for the next sessions
+        const groupSlots = generateGroupSlots(bookings);
+        
+        showSuccess(`Group activated with ${bookings.length} members! Your sessions will start from the next available date.`);
+        
+        // Save group data to Firebase
+        saveGroupToFirebase(bookings, groupSlots);
+    };
+
+    // Check if minimum group size reached after 7 days
+    const checkGroupMinimum = async (groupId) => {
+        const groupMin = Number(sessionData?.offline?.monthly?.groupMin || sessionData?.online?.monthly?.groupMin || 0);
+        
+        if (groupBookings.length >= groupMin) {
+            activateGroup(groupBookings);
+        } else {
+            // Process refunds for all group members
+            await processGroupRefunds(groupBookings);
+            
+            // Reset group state
+            setGroupBookings([]);
+            setGroupStatus(null);
+            setWaitingPeriod(null);
+            
+            showError(`Group minimum not reached. Refunds have been processed for all ${groupBookings.length} members.`);
+        }
+    };
+
+    // Process refunds via Razorpay
+    const processGroupRefunds = async (bookings) => {
+        try {
+            for (const booking of bookings) {
+                // Call your refund API here
+                const refundResponse = await fetch('/api/process-refund', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: booking.userId,
+                        bookingId: booking.bookingId,
+                        amount: booking.amount,
+                        reason: 'Group minimum not reached'
+                    })
+                });
+                
+                if (refundResponse.ok) {
+                    console.log(`Refund processed for user ${booking.userId}`);
+                } else {
+                    console.error(`Failed to process refund for user ${booking.userId}`);
+                }
+            }
+        } catch (error) {
+            console.error('Error processing group refunds:', error);
+        }
+    };
+
+    // Generate group slots automatically
+    const generateGroupSlots = (bookings) => {
+        const plan = sessionData?.[mode?.toLowerCase()]?.monthly || {};
+        const sessionsCount = Number(plan.sessionsCount || 0);
+        const weeklyPattern = plan.weeklyPattern || [];
+        
+        const slots = [];
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() + 1); // Start from tomorrow
+        
+        let slotsGenerated = 0;
+        let currentDate = new Date(startDate);
+        
+        while (slotsGenerated < sessionsCount) {
+            const dayShort = currentDate.toLocaleDateString('en-US', { weekday: 'short' }).slice(0, 3);
+            
+            // Find matching pattern for this day
+            const dayPattern = weeklyPattern.find(pattern => 
+                pattern.days?.includes(dayShort) && 
+                pattern.times?.some(t => t.type === 'group')
+            );
+            
+            if (dayPattern) {
+                const groupTimes = dayPattern.times.filter(t => t.type === 'group');
+                groupTimes.forEach(time => {
+                    if (slotsGenerated < sessionsCount) {
+                        slots.push({
+                            date: currentDate.toISOString().slice(0, 10),
+                            startTime: time.startTime,
+                            endTime: time.endTime,
+                            type: 'group',
+                            bookings: bookings.map(b => b.userId)
+                        });
+                        slotsGenerated++;
+                    }
+                });
+            }
+            
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+        
+        return slots;
+    };
+
+    // Save group data to Firebase
+    const saveGroupToFirebase = async (bookings, slots) => {
+        try {
+            const groupData = {
+                programTitle: sessionData?.guideCard?.title,
+                mode: mode,
+                bookings: bookings,
+                slots: slots,
+                status: 'active',
+                createdAt: new Date().toISOString(),
+                groupId: `group_${sessionData?.guideCard?.title}_${Date.now()}`
+            };
+            
+            await addDoc(collection(db, 'groupBookings'), groupData);
+            console.log('Group data saved to Firebase');
+        } catch (error) {
+            console.error('Error saving group data:', error);
+        }
+    };
+
+    // Load user's monthly bookings
+    const loadUserMonthlyBookings = async () => {
+        if (!user || !sessionData) return;
+        
+        try {
+            const bookingsQuery = query(
+                collection(db, 'monthlyBookings'),
+                where('userId', '==', user.uid),
+                where('programTitle', '==', sessionData.guideCard.title),
+                where('month', '==', currentMonth)
+            );
+            
+            const querySnapshot = await getDocs(bookingsQuery);
+            const bookings = [];
+            querySnapshot.forEach(doc => {
+                bookings.push({ id: doc.id, ...doc.data() });
+            });
+            
+            setUserMonthlySlots(bookings);
+        } catch (error) {
+            console.error('Error loading user monthly bookings:', error);
+        }
+    };
+
+    // Load slot bookings for visibility management
+    const loadSlotBookings = async () => {
+        if (!sessionData) return;
+        
+        try {
+            const bookingsQuery = query(
+                collection(db, 'slotBookings'),
+                where('programTitle', '==', sessionData.guideCard.title),
+                where('month', '==', currentMonth)
+            );
+            
+            const querySnapshot = await getDocs(bookingsQuery);
+            const bookings = {};
+            querySnapshot.forEach(doc => {
+                const data = doc.data();
+                const slotKey = `${data.date}|${data.startTime}|${data.endTime}`;
+                if (!bookings[slotKey]) bookings[slotKey] = [];
+                bookings[slotKey].push(data);
+            });
+            
+            setSlotBookings(bookings);
+        } catch (error) {
+            console.error('Error loading slot bookings:', error);
+        }
+    };
+
+    // Convert dayBasedPattern to weeklyPattern format for compatibility
+    const convertDayBasedToWeeklyPattern = (dayBasedPattern) => {
+        const weeklyPattern = [];
+        const dayMap = {
+            "Monday": "Mon", "Tuesday": "Tue", "Wednesday": "Wed", 
+            "Thursday": "Thu", "Friday": "Fri", "Saturday": "Sat", "Sunday": "Sun"
+        };
+        
+        Object.entries(dayBasedPattern).forEach(([dayName, dayData]) => {
+            if (dayData.slots && dayData.slots.length > 0) {
+                const shortDay = dayMap[dayName];
+                weeklyPattern.push({
+                    days: [shortDay],
+                    times: [...dayData.slots]
+                });
+            }
+        });
+        
+        return weeklyPattern;
+    };
 
     // Each booking counts as 1 seat towards capacity (even for couple/group)
     // Pricing by occupancy is handled separately; do not multiply persons in cart
@@ -179,6 +517,12 @@ export default function GuideClassDetails() {
                     );
 
                     setSessionData(found || null);
+                    
+                    // Debug: Log the loaded session data to check monthly slots and organizer
+                    console.log("Loaded session data:", found);
+                    console.log("Monthly online data:", found?.online?.monthly);
+                    console.log("Monthly offline data:", found?.offline?.monthly);
+                    console.log("Organizer data:", found?.organizer);
 
                     // Extract and set gallery images and videos
                     if (found?.session?.images && Array.isArray(found.session.images)) {
@@ -202,8 +546,13 @@ export default function GuideClassDetails() {
     }, [formattedTitle, uid]);
 
     useEffect(() => {
-        // Assume you already fetched sessionData
+        // Debug and set mode based on sessionData
         console.log("sessiondata: ", sessionData);
+        console.log("Available monthly plans:", {
+            onlineMonthly: sessionData?.online?.monthly,
+            offlineMonthly: sessionData?.offline?.monthly
+        });
+        
         if (sessionData?.guideCard?.subCategory) {
             const sub = sessionData.guideCard.subCategory.toLowerCase();
             if (sub === "offline") setMode("Offline");
@@ -217,6 +566,17 @@ export default function GuideClassDetails() {
         if (!sessionData || !mode || !subscriptionType) return [];
         const modeKey = mode.toLowerCase();
         const plan = sessionData?.[modeKey]?.[subscriptionType] || {};
+        
+        // Debug: Check if monthly data is available
+        console.log("getAvailableSlots Debug:", {
+            mode: mode,
+            modeKey: modeKey,
+            subscriptionType: subscriptionType,
+            plan: plan,
+            hasWeeklyPattern: !!plan.weeklyPattern,
+            weeklyPatternLength: plan.weeklyPattern?.length || 0,
+            fullSessionData: sessionData
+        });
 
         // One-time: use stored date slots directly
         if (subscriptionType === 'oneTime') {
@@ -233,25 +593,49 @@ export default function GuideClassDetails() {
                 .filter(s => (s?.type || 'individual') === viewType);
         }
 
-        // Monthly: generate next 30 days from weeklyPattern (respect reservedMonths)
+        // Monthly: generate slots from current date to end of month with booking restrictions
         if (subscriptionType === 'monthly') {
-            const pattern = Array.isArray(plan.weeklyPattern) ? plan.weeklyPattern : [];
-            if (pattern.length === 0) return [];
+            console.log("=== MONTHLY SLOT GENERATION ===");
+            console.log("Plan data:", plan);
+            console.log("Sessions count:", plan.sessionsCount);
+            
+            // Check for both old weeklyPattern and new dayBasedPattern
+            let pattern = Array.isArray(plan.weeklyPattern) ? plan.weeklyPattern : [];
+            console.log("Initial weeklyPattern:", pattern);
+            
+            // If no weeklyPattern, check for dayBasedPattern and convert it
+            if (pattern.length === 0 && plan.dayBasedPattern) {
+                console.log("Converting dayBasedPattern to weeklyPattern:", plan.dayBasedPattern);
+                pattern = convertDayBasedToWeeklyPattern(plan.dayBasedPattern);
+                console.log("Converted pattern:", pattern);
+            }
+            
+            console.log("Final monthly pattern:", pattern);
+            if (pattern.length === 0) {
+                console.log("❌ No monthly pattern available - Check if slots are saved properly");
+                return [];
+            }
+            
             const reservedMonths = new Set(
                 Array.isArray(plan.reservedMonths) ? plan.reservedMonths : []
             ); // ['YYYY-MM']
+            
             const out = [];
             const today = new Date();
-            for (let i = 0; i < 30; i++) {
-                const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
-                const dayShort = d.toLocaleDateString('en-US', { weekday: 'short' }).slice(0,3); // Sun, Mon...
+            const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            
+            // Only show slots from current date to end of month
+            for (let d = new Date(today); d <= endOfMonth; d.setDate(d.getDate() + 1)) {
+                const dayShort = d.toLocaleDateString('en-US', { weekday: 'short' }).slice(0,3);
                 const ymd = d.toISOString().slice(0,10);
                 const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                
                 if (reservedMonths.has(ym)) continue; // block entire month
+                
                 pattern.forEach((row, rowIdx) => {
                     if ((row.days || []).includes(dayShort)) {
                         (row.times || []).forEach((t, tIdx) => {
-                            out.push({
+                            const slot = {
                                 date: ymd,
                                 startTime: t.startTime,
                                 endTime: t.endTime,
@@ -259,39 +643,87 @@ export default function GuideClassDetails() {
                                 bookedCount: Number(t.bookedCount || 0),
                                 rowIdx,
                                 tIdx,
-                            });
+                            };
+                            
+                            // Apply monthly booking restrictions
+                            const occLabel = (selectedOccupancy?.type || '').toLowerCase();
+                            const canBook = canBookMonthlySlot(slot, occLabel, userMonthlySlots, plan);
+                            
+                            // Only show slots that can be booked
+                            if (canBook.canBook) {
+                                out.push(slot);
+                            }
                         });
                     }
                 });
             }
-            // Filter by selected occupancy type and capacity visibility
+            
+            // Filter by selected occupancy type
             const occLabel = (selectedOccupancy?.type || '').toLowerCase();
             let viewType = 'individual';
             if (occLabel.includes('couple') || occLabel.includes('twin')) viewType = 'couple';
             else if (occLabel.includes('group')) viewType = 'group';
 
-            const groupMax = Number(plan.groupMax || 0);
             const filtered = out.filter(s => {
-                if (viewType === 'couple') {
-                    return s.type === 'couple' && Number(s.bookedCount || 0) < 2;
-                }
+                // For group occupancy, handle special logic
                 if (viewType === 'group') {
-                    return s.type === 'group' && (groupMax > 0 ? Number(s.bookedCount || 0) < groupMax : true);
+                    // If group is active, don't show any slots
+                    if (groupStatus?.status === 'active') return false;
+                    
+                    // If group is waiting and user already joined, don't show slots
+                    if (groupStatus?.status === 'waiting' && 
+                        groupStatus.bookings.some(b => b.userId === user?.uid)) {
+                        return false;
+                    }
+                    
+                    return s.type === 'group';
                 }
-                // individual: show only individual; requirement did not specify capacity cap here
-                return s.type === 'individual';
+                
+                // For individual and couple, check slot availability
+                const slotKey = `${s.date}|${s.startTime}|${s.endTime}`;
+                const currentBookings = slotBookings[slotKey] || [];
+                
+                if (viewType === 'couple') {
+                    return s.type === 'couple' && currentBookings.length < 2;
+                }
+                
+                // Individual: slot should be empty
+                return s.type === 'individual' && currentBookings.length === 0;
             });
+            
             return filtered;
         }
 
         return [];
     };
 
+    // Load monthly booking data when component mounts or session data changes
+    useEffect(() => {
+        console.log("=== MONTHLY BOOKING DATA LOADING ===");
+        console.log("SessionData exists:", !!sessionData);
+        console.log("User exists:", !!user);
+        console.log("User details:", user);
+        
+        if (sessionData && user) {
+            console.log("✅ Loading monthly booking data...");
+            loadUserMonthlyBookings();
+            loadSlotBookings();
+        } else {
+            console.log("❌ Cannot load monthly data - missing sessionData or user");
+        }
+    }, [sessionData, user, currentMonth]);
+
     // Update available slots when mode or subscription type changes
     useEffect(() => {
+        console.log("=== AVAILABLE SLOTS UPDATE ===");
+        console.log("Mode:", mode);
+        console.log("Subscription Type:", subscriptionType);
+        console.log("Selected Occupancy:", selectedOccupancy);
+        
         const s = getAvailableSlots();
+        console.log("Generated slots:", s);
         setAvailableSlots(s);
-    }, [sessionData, mode, subscriptionType, selectedOccupancy]);
+    }, [sessionData, mode, subscriptionType, selectedOccupancy, userMonthlySlots, slotBookings, groupStatus]);
 
     const getPricesForSelection = () => {
         if (!sessionData || !mode || !subscriptionType) return {};
@@ -328,8 +760,24 @@ export default function GuideClassDetails() {
 
     // Available across any mode (Online/Offline)
     const planAvailableAny = (planKey) => {
-        if (!sessionData) return false;
-        return planHasPrice(sessionData?.online?.[planKey]) || planHasPrice(sessionData?.offline?.[planKey]);
+        if (!sessionData) {
+            console.log(`planAvailableAny(${planKey}): No sessionData`);
+            return false;
+        }
+        
+        const onlineAvailable = planHasPrice(sessionData?.online?.[planKey]);
+        const offlineAvailable = planHasPrice(sessionData?.offline?.[planKey]);
+        const result = onlineAvailable || offlineAvailable;
+        
+        console.log(`planAvailableAny(${planKey}):`, {
+            onlineAvailable,
+            offlineAvailable,
+            result,
+            onlineData: sessionData?.online?.[planKey],
+            offlineData: sessionData?.offline?.[planKey]
+        });
+        
+        return result;
     };
 
     const findModeForPlan = (planKey) => {
@@ -601,11 +1049,16 @@ export default function GuideClassDetails() {
                                 {planAvailableAny('monthly') && (
                                         <button
                                             onClick={() => {
+                                                console.log("=== MONTHLY BUTTON CLICKED ===");
                                                 setSubscriptionType("monthly");
                                                 setSelectedPlan("monthly");
+                                                console.log("Subscription type set to: monthly");
                                                 if (!planAvailable('monthly')) {
                                                     const m = findModeForPlan('monthly');
-                                                    if (m) setMode(m);
+                                                    if (m) {
+                                                        setMode(m);
+                                                        console.log("Mode set to:", m);
+                                                    }
                                                 }
                                             }}
                                             className={`p-3 rounded-lg border-2 transition-all duration-200 ${subscriptionType === "monthly"
@@ -770,8 +1223,33 @@ export default function GuideClassDetails() {
 
             {showModal && <SlotModal onClose={() => setShowModal(false)} />}
 
-            {/* Calendar Modal */}
-            {showCalendar && (
+            {/* Calendar Modal - Use different modal for monthly vs one-time */}
+            {showCalendar && subscriptionType === 'monthly' && (
+                <MonthlyCalendarModal
+                    isOpen={showCalendar}
+                    onClose={() => setShowCalendar(false)}
+                    sessionData={sessionData}
+                    selectedPlan={selectedPlan}
+                    mode={mode}
+                    availableSlots={availableSlots}
+                    occupancyType={selectedOccupancy?.type || ''}
+                    userMonthlySlots={userMonthlySlots}
+                    slotBookings={slotBookings}
+                    groupStatus={groupStatus}
+                    waitingPeriod={waitingPeriod}
+                    onGroupBooking={handleGroupBooking}
+                    onAddToCart={(cartItem) => {
+                        addToCart(cartItem);
+                        setShowCalendar(false);
+                        // Reload booking data after successful booking
+                        loadUserMonthlyBookings();
+                        loadSlotBookings();
+                    }}
+                />
+            )}
+            
+            {/* One-time Calendar Modal */}
+            {showCalendar && subscriptionType === 'oneTime' && (
                 <CalendarModal
                     isOpen={showCalendar}
                     onClose={() => setShowCalendar(false)}
@@ -781,7 +1259,7 @@ export default function GuideClassDetails() {
                     availableSlots={availableSlots}
                     personsPerBooking={getPersonsPerBooking()}
                     occupancyType={selectedOccupancy?.type || ''}
-                    capacityMax={selectedPlan === 'oneTime' ? getOneTimeCapacityForSelected() : 0}
+                    capacityMax={getOneTimeCapacityForSelected()}
                     onAddToCart={(cartItem) => {
                         addToCart(cartItem);
                         setShowCalendar(false);
