@@ -81,8 +81,8 @@ export default function LiveSession2() {
             shortDescription: "",
             points: [""]
         },
-        liveSlots: [{ date: "", startTime: "", endTime: "" }],
-        oneTimeSubscription: { price: "", images: [], videos: [], description: "" },
+        liveSlots: [],
+        oneTimeSubscription: { price: "", individualPrice: "", couplesPrice: "", groupPrice: "", groupMin: "", groupMax: "", images: [], videos: [], description: "", slots: [] },
         programSchedule: [],
         features: [],
         faqs: [{ title: "", description: "" }],
@@ -120,8 +120,8 @@ export default function LiveSession2() {
     const dayLabels = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
 
     // Calendar state for custom date scheduling
-    const [calendarMonth, setCalendarMonth] = useState(() => new Date());
-    const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
+    const [calendarMonth, setCalendarMonth] = useState(new Date());
+    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 10));
 
     const formatYMD = (date) => {
         if (!(date instanceof Date)) return '';
@@ -129,9 +129,11 @@ export default function LiveSession2() {
         const m = String(date.getMonth() + 1).padStart(2, '0');
         const d = String(date.getDate()).padStart(2, '0');
         return `${y}-${m}-${d}`;
-    };
+    }
 
     const getCalendarGrid = (monthDate) => {
+        if (!(monthDate instanceof Date)) return [];
+        
         const start = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
         const end = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
         const startIndex = start.getDay(); // 0=Sun
@@ -157,6 +159,7 @@ export default function LiveSession2() {
     const goNextMonth = () => setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
 
     const getSlotsForDate = (dateYMD) => (formData.liveSlots || []).filter(s => s.date === dateYMD);
+    const getOneTimeSlotsForDate = (dateYMD) => (formData.oneTimeSubscription?.slots || []).filter(s => s.date === dateYMD);
 
     const addSlotForSelectedDate = () => {
         if (!selectedDate) return;
@@ -166,8 +169,54 @@ export default function LiveSession2() {
         if (selectedDate < ymdToday) return;
         setFormData(prev => ({
             ...prev,
-            liveSlots: [...(prev.liveSlots || []), { date: selectedDate, startTime: "", endTime: "" }]
+            liveSlots: [...(prev.liveSlots || []), { date: selectedDate, startTime: "", endTime: "", type: 'individual' }]
         }));
+    };
+
+    // One-time slots (like GuideForm oneTime online)
+    const addOneTimeSlotForSelectedDate = () => {
+        if (!selectedDate) return;
+        const today = new Date();
+        const ymdToday = formatYMD(today);
+        if (selectedDate < ymdToday) return;
+        setFormData(prev => ({
+            ...prev,
+            oneTimeSubscription: {
+                ...prev.oneTimeSubscription,
+                slots: [...(prev.oneTimeSubscription?.slots || []), { id: uuidv4(), date: selectedDate, startTime: "", endTime: "", type: 'individual' }]
+            }
+        }));
+    };
+
+    const updateOneTimeSlotForSelectedDate = (localIndex, field, value) => {
+        setFormData(prev => {
+            let idx = -1;
+            const updated = (prev.oneTimeSubscription?.slots || []).map(s => {
+                if (s.date === selectedDate) {
+                    idx++;
+                    if (idx === localIndex) {
+                        return { ...s, [field]: value };
+                    }
+                }
+                return s;
+            });
+            return { ...prev, oneTimeSubscription: { ...prev.oneTimeSubscription, slots: updated } };
+        });
+    };
+
+    const removeOneTimeSlotForSelectedDate = (localIndex) => {
+        setFormData(prev => {
+            let idx = -1;
+            const updated = [];
+            for (const s of (prev.oneTimeSubscription?.slots || [])) {
+                if (s.date === selectedDate) {
+                    idx++;
+                    if (idx === localIndex) continue;
+                }
+                updated.push(s);
+            }
+            return { ...prev, oneTimeSubscription: { ...prev.oneTimeSubscription, slots: updated } };
+        });
     };
 
     const updateSlotForSelectedDate = (localIndex, field, value) => {
@@ -298,6 +347,63 @@ export default function LiveSession2() {
             faqs: [...prev.faqs, { title: "", description: "" }],
         }));
     };
+
+    function editSlide(index) {
+        const slideToEdit = allData[index];
+        setFormData((prev) => ({
+            ...prev,
+            liveSessionCard: {
+                title: slideToEdit?.liveSessionCard?.title,
+                category: slideToEdit?.liveSessionCard?.category,
+                price: slideToEdit?.liveSessionCard?.price,
+                thumbnail: slideToEdit?.liveSessionCard?.thumbnail || null,
+                days: slideToEdit?.liveSessionCard?.days || "",
+                videos: slideToEdit?.liveSessionCard?.videos || "",
+                totalprice: slideToEdit?.liveSessionCard?.totalprice || "",
+                description: slideToEdit?.liveSessionCard?.description || "",
+            },
+            // Prefill organizer details
+            organizer: {
+                name: slideToEdit?.organizer?.name || "",
+                email: slideToEdit?.organizer?.email || "",
+                address: slideToEdit?.organizer?.address || "",
+                googleMeetLink: slideToEdit?.organizer?.googleMeetLink || "",
+                contactNumber: slideToEdit?.organizer?.contactNumber || "",
+            },
+            // Keep only actual saved slots (no empty placeholder)
+            liveSlots: Array.isArray(slideToEdit?.liveSlots) ? slideToEdit.liveSlots : [],
+            faqs: slideToEdit?.faqs?.length > 0 ? slideToEdit.faqs : [{ title: "", description: "" }],
+            programSchedule: slideToEdit?.programSchedule?.length > 0 ? slideToEdit.programSchedule : [],
+            features: slideToEdit?.features?.length > 0 ? slideToEdit.features : [],
+            oneTimeSubscription: slideToEdit?.oneTimeSubscription ? {
+                price: slideToEdit?.oneTimeSubscription?.price || "",
+                individualPrice: slideToEdit?.oneTimeSubscription?.individualPrice || "",
+                couplesPrice: slideToEdit?.oneTimeSubscription?.couplesPrice || "",
+                groupPrice: slideToEdit?.oneTimeSubscription?.groupPrice || "",
+                groupMin: slideToEdit?.oneTimeSubscription?.groupMin || "",
+                groupMax: slideToEdit?.oneTimeSubscription?.groupMax || "",
+                images: Array.isArray(slideToEdit?.oneTimeSubscription?.images) ? slideToEdit?.oneTimeSubscription?.images : [],
+                videos: Array.isArray(slideToEdit?.oneTimeSubscription?.videos) ? slideToEdit?.oneTimeSubscription?.videos : [],
+                description: slideToEdit?.oneTimeSubscription?.description || "",
+                slots: Array.isArray(slideToEdit?.oneTimeSubscription?.slots)
+                    ? slideToEdit.oneTimeSubscription.slots.map(s => ({ id: s?.id || uuidv4(), date: s?.date || "", startTime: s?.startTime || "", endTime: s?.endTime || "", type: s?.type || 'individual' }))
+                    : []
+            } : { price: "", individualPrice: "", couplesPrice: "", groupPrice: "", groupMin: "", groupMax: "", images: [], videos: [], description: "", slots: [] },
+            aboutProgram: slideToEdit?.aboutProgram ? {
+                title: slideToEdit?.aboutProgram?.title || "",
+                shortDescription: slideToEdit?.aboutProgram?.shortDescription || "",
+                points: Array.isArray(slideToEdit?.aboutProgram?.points) && slideToEdit?.aboutProgram?.points.length > 0 ? slideToEdit.aboutProgram.points : [""],
+            } : { title: "", shortDescription: "", points: [""] },
+            keyHighlights: slideToEdit?.keyHighlights ? {
+                title: slideToEdit?.keyHighlights?.title || "",
+                points: Array.isArray(slideToEdit?.keyHighlights?.points) && slideToEdit?.keyHighlights?.points.length > 0 ? slideToEdit.keyHighlights.points : [""],
+            } : { title: "", points: [""] },
+            guide: slideToEdit?.guide?.length > 0 ? slideToEdit.guide : [{ title: "", description: "", image: null }],
+        }));
+        setIsEditing(true);
+        setEditIndex(index);
+        document.getElementById("live2")?.scrollIntoView({ behavior: "smooth" });
+    }
 
     const removeFaq = (index) => {
         const updated = [...formData.faqs];
@@ -590,48 +696,6 @@ export default function LiveSession2() {
         } catch (err) {
             console.error("Error removing slide:", err);
         }
-    };
-
-    const editSlide = (index) => {
-        const slideToEdit = allData[index];
-        setFormData((prev) => ({
-            ...prev,
-            liveSessionCard: {
-                title: slideToEdit?.liveSessionCard?.title,
-                category: slideToEdit?.liveSessionCard?.category,
-                price: slideToEdit?.liveSessionCard?.price,
-                thumbnail: slideToEdit?.liveSessionCard?.thumbnail || null,
-                days: slideToEdit?.liveSessionCard?.days || "",
-                videos: slideToEdit?.liveSessionCard?.videos || "",
-                totalprice: slideToEdit?.liveSessionCard?.totalprice || "",
-                description: slideToEdit?.liveSessionCard?.description || "",
-            },
-            liveSlots: slideToEdit?.liveSlots?.length > 0 ? slideToEdit.liveSlots : [{ date: "", startTime: "", endTime: "" }],
-            faqs: slideToEdit?.faqs?.length > 0 ? slideToEdit.faqs : [{ title: "", description: "" }],
-            // Load richer schedule and features when present
-            programSchedule: slideToEdit?.programSchedule?.length > 0 ? slideToEdit.programSchedule : [],
-            features: slideToEdit?.features?.length > 0 ? slideToEdit.features : [],
-            oneTimeSubscription: slideToEdit?.oneTimeSubscription ? {
-                price: slideToEdit?.oneTimeSubscription?.price || "",
-                images: Array.isArray(slideToEdit?.oneTimeSubscription?.images) ? slideToEdit?.oneTimeSubscription?.images : [],
-                videos: Array.isArray(slideToEdit?.oneTimeSubscription?.videos) ? slideToEdit?.oneTimeSubscription?.videos : [],
-                description: slideToEdit?.oneTimeSubscription?.description || ""
-            } : { price: "", images: [], videos: [], description: "" },
-            aboutProgram: slideToEdit?.aboutProgram ? {
-                title: slideToEdit?.aboutProgram?.title || "",
-                shortDescription: slideToEdit?.aboutProgram?.shortDescription || "",
-                points: Array.isArray(slideToEdit?.aboutProgram?.points) && slideToEdit?.aboutProgram?.points.length > 0
-                    ? slideToEdit?.aboutProgram?.points
-                    : [""]
-            } : { title: "", shortDescription: "", points: [""] },
-            keyHighlights: slideToEdit?.keyHighlights ? {
-                title: slideToEdit?.keyHighlights?.title || "",
-                points: Array.isArray(slideToEdit?.keyHighlights?.points) && slideToEdit?.keyHighlights?.points.length > 0
-                    ? slideToEdit?.keyHighlights?.points
-                    : [""]
-            } : { title: "", points: [""] },
-            guide: slideToEdit?.guide?.length > 0 ? slideToEdit.guide : [{ title: "", description: "", image: null }],
-        }));
         setIsEditing(true);
         setEditIndex(index);
         document.getElementById("live2")?.scrollIntoView({ behavior: "smooth" });
@@ -659,7 +723,7 @@ export default function LiveSession2() {
             liveWeeklyHours: { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] },
             programSchedule: [],
             features: [],
-            oneTimeSubscription: { price: "", images: [], videos: [], description: "" },
+            oneTimeSubscription: { price: "", images: [], videos: [], description: "", slots: [] },
             faqs: [{ title: "", description: "" }],
             guide: [{ title: "", description: "", image: null }],
             keyHighlights: { title: "", points: [""] },
@@ -738,12 +802,15 @@ export default function LiveSession2() {
         //     return;
         // }
 
+        // Filter out incomplete live slots before saving
+        const cleanedLiveSlots = (formData.liveSlots || []).filter(s => !!s?.date && !!s?.startTime && !!s?.endTime);
+
         const newCard = {
             liveSessionCard: { ...formData.liveSessionCard },
             organizer: { ...formData.organizer },
             faqs: [...formData.faqs],
             programSchedule: [...formData.programSchedule],
-            liveSlots: [...formData.liveSlots],
+            liveSlots: cleanedLiveSlots,
             features: [...formData.features],
             oneTimeSubscription: { ...formData.oneTimeSubscription },
             aboutProgram: { ...formData.aboutProgram },
@@ -791,7 +858,7 @@ export default function LiveSession2() {
                 liveSlots: [],
                 programSchedule: [],
                 features: [],
-                oneTimeSubscription: { price: "", images: [], videos: [], description: "" },
+                oneTimeSubscription: { price: "", individualPrice: "", couplesPrice: "", groupPrice: "", groupMin: "", groupMax: "", images: [], videos: [], description: "", slots: [] },
                 faqs: [{ title: "", description: "" }],
                 guide: [{ title: "", description: "", image: null }],
                 keyHighlights: { title: "", points: [""] },
@@ -883,12 +950,7 @@ export default function LiveSession2() {
         setFormData((prev) => ({ ...prev, liveSlots: updated }));
     };
 
-    const addSessionSlot = () => {
-        setFormData((prev) => ({
-            ...prev,
-            liveSlots: [...prev.liveSlots, { date: "", startTime: "", endTime: "" }],
-        }));
-    };
+    // (removed addSessionSlot helper; organizer is prefilled inside editSlide)
 
     const removeSessionSlot = (index) => {
         const updated = [...formData.liveSlots];
@@ -1141,809 +1203,874 @@ export default function LiveSession2() {
                             value={formData?.organizer?.address}
                             onChange={(e) => handleFieldChange("organizer", "address", e.target.value)}
                             className="text-sm w-full border border-gray-300 p-3 rounded-lg"
-                        />
-                    </div>
-                </div>
+                        ></textarea>
 
-                {/* Live Slots */}
-                <div className="mb-8">
-                    <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
-                        {isEditing ? "Edit Live Slots" : "Live Slots"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
-                    </h2>
-                    <div className="space-y-4">
-
-                        <div className="space-y-4">
-                            {/* Calendar Header */}
-                            <div className="flex items-center justify-between">
-                                {(() => {
-                                    const today = new Date();
-                                    const isPrevDisabled = calendarMonth.getFullYear() === today.getFullYear() && calendarMonth.getMonth() === today.getMonth();
-                                    return (
-                                        <button
-                                            type="button"
-                                            onClick={goPrevMonth}
-                                            disabled={isPrevDisabled}
-                                            className={`px-3 py-1.5 border border-gray-300 rounded-md ${isPrevDisabled ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'hover:bg-gray-50'}`}
-                                        >
-                                            Prev
-                                        </button>
-                                    );
-                                })()}
-                                <p className="font-semibold text-gray-800">
-                                    {calendarMonth.toLocaleString('default', { month: 'long' })} {calendarMonth.getFullYear()}
-                                </p>
-                                <button type="button" onClick={goNextMonth} className="px-3 py-1.5 border border-gray-300 rounded-md hover:bg-gray-50">Next</button>
-                            </div>
-
-                            {/* Day Labels */}
-                            <div className="grid grid-cols-7 text-xs text-gray-500">
-                                {dayLabels.map(d => (
-                                    <div key={d} className="px-2 py-1 text-center">{d}</div>
-                                ))}
-                            </div>
-
-                            {/* Calendar Grid */}
-                            <div className="grid grid-cols-7 gap-1">
-                                {getCalendarGrid(calendarMonth).map((dateObj, idx) => {
-                                    const isCurrentMonth = dateObj && dateObj.getMonth() === calendarMonth.getMonth();
-                                    const ymd = dateObj ? formatYMD(dateObj) : '';
-                                    const isSelected = dateObj && ymd === selectedDate;
-                                    const has = dayHasSlots(dateObj);
-                                    const isPast = isPastDate(dateObj);
-                                    return (
-                                        <button
-                                            key={idx}
-                                            type="button"
-                                            disabled={!dateObj || isPast}
-                                            onClick={() => dateObj && !isPast && setSelectedDate(formatYMD(dateObj))}
-                                            className={`h-10 rounded-md text-sm border ${!isCurrentMonth ? 'bg-gray-50 text-gray-300' : 'bg-white'} ${isSelected ? 'border-[#2F6288]' : 'border-gray-200'} ${has ? 'ring-2 ring-green-200' : ''} ${isPast ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                        >
-                                            {dateObj ? dateObj.getDate() : ''}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-
-                            {/* Editor for selected date */}
-                            <div className="border border-gray-200 rounded-lg p-4 space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <p className="font-semibold text-gray-800">Selected Date: {selectedDate}</p>
-                                    <button
-                                        type="button"
-                                        onClick={addSlotForSelectedDate}
-                                        className="text-xs px-3 py-1.5 bg-[#2F6288] text-white rounded-md"
-                                    >
-                                        Add Time Range
-                                    </button>
-                                </div>
-
-                                {getSlotsForDate(selectedDate).length === 0 && (
-                                    <p className="text-xs text-gray-500">No time ranges added for this date.</p>
-                                )}
-
-                                {getSlotsForDate(selectedDate).map((s, localIdx) => (
-                                    <div key={localIdx} className="grid sm:grid-cols-[1fr_auto_1fr_auto_auto] grid-cols-1 gap-2 items-center">
-                                        <input
-                                            type="time"
-                                            value={s.startTime}
-                                            onChange={(e) => updateSlotForSelectedDate(localIdx, 'startTime', e.target.value)}
-                                            className="text-sm w-full border border-gray-300 p-2 rounded-lg"
-                                        />
-                                        <span className="hidden sm:flex justify-center text-gray-500">-</span>
-                                        <input
-                                            type="time"
-                                            value={s.endTime}
-                                            onChange={(e) => updateSlotForSelectedDate(localIdx, 'endTime', e.target.value)}
-                                            className="text-sm w-full border border-gray-300 p-2 rounded-lg"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => removeSlotForSelectedDate(localIdx)}
-                                            className="text-red-500 hover:text-red-600 text-xs"
-                                        >
-                                            Delete
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                const current = getSlotsForDate(selectedDate)[localIdx];
-                                                if (!current) return;
-                                                setFormData(prev => ({
-                                                    ...prev,
-                                                    liveSlots: [...prev.liveSlots, { date: selectedDate, startTime: current.startTime, endTime: current.endTime }]
-                                                }));
-                                            }}
-                                            className="text-[#2F6288] hover:text-blue-700 text-xs"
-                                        >
-                                            Copy
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* One Time Subscription */}
-                <div className="mb-8">
-                    <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
-                        One Time Subscription <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
-                    </h2>
-
-                    {/* Price */}
-                    <div>
-                        <label className="block text-md font-semibold text-gray-700 mb-2">Price</label>
-                        <input
-                            type="number"
-                            value={formData.oneTimeSubscription.price}
-                            placeholder="Enter price"
-                            onChange={(e) => setFormData(prev => ({ ...prev, oneTimeSubscription: { price: e.target.value } }))}
-                            className="text-sm w-full border border-gray-300 p-3 rounded-lg"
-                        />
+                        {/* Live Slots moved to Slots section below */}
                     </div>
 
-                    {/* Description */}
-                    <div>
-                        <label className="block text-md font-semibold text-gray-700 mb-2">Description</label>
-                        <textarea
-                            placeholder="Enter Description"
-                            value={formData?.oneTimeSubscription?.description}
-                            onChange={(e) => handleFieldChange("oneTimeSubscription", "description", e.target.value)}
-                            className="text-sm w-full border border-gray-300 p-3 rounded-lg"
-                            rows={3}
-                        />
-                        {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description}</p>}
-                    </div>
+                    {/* details subscription */}
+                    <div className="flex flex-col justify-between">
+                        <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+                            One Time Subscription <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
+                        </h2>
 
-                    {/* Images */}
-                    <label className="block font-semibold my-5">Add Thumbnail Images ( Maximum 5 Images )</label>
-                    <div className="mb-6">
-                        {(!formData?.oneTimeSubscription?.images || formData?.oneTimeSubscription?.images.length < 5) && (
-                            <label className={`w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50 ${Object.keys(isImageUploading || {}).length > 0 ? 'pointer-events-none opacity-75' : ''}`}>
-                                <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-10 h-10 mb-2" />
-                                <span>Click to upload image<br />Size: (1126×626)px</span>
+                        {/* Occupancy Pricing */}
+                        <div className="grid sm:grid-cols-2 grid-cols-1 gap-4">
+                            <div>
+                                <label className="block text-md font-semibold text-gray-700 mb-2">Individual Price</label>
                                 <input
-                                    type="file"
-                                    accept="image/*"
-                                    multiple
-                                    onChange={handleImageUpload}
-                                    className="hidden"
-                                    disabled={Object.keys(isImageUploading || {}).length > 0}
+                                    type="number"
+                                    value={formData?.oneTimeSubscription?.individualPrice || ""}
+                                    placeholder="Enter individual price"
+                                    onChange={(e) => setFormData(prev => ({ ...prev, oneTimeSubscription: { ...prev.oneTimeSubscription, individualPrice: e.target.value } }))}
+                                    className="text-sm w-full border border-gray-300 p-3 rounded-lg"
                                 />
-                            </label>
-                        )}
-
-                        {/* Upload Progress Indicators */}
-                        {Object.entries(isImageUploading || {}).map(([uploadId, isUploading]) => {
-                            if (!isUploading) return null;
-                            const progress = imageUploadProgress[uploadId] || 0;
-                            return (
-                                <div key={uploadId} className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center mt-4">
-                                    <div className="text-center flex flex-col items-center">
-                                        <div className="relative w-12 h-12 mb-3">
-                                            <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
-                                            <div
-                                                className="absolute inset-0 border-4 border-[#2F6288] rounded-full border-t-transparent animate-spin"
-                                                style={{
-                                                    background: `conic-gradient(from 0deg, #2F6288 ${progress * 3.6}deg, transparent ${progress * 3.6}deg)`
-                                                }}
-                                            ></div>
-                                            <div className="absolute inset-0 flex items-center justify-center">
-                                                <span className="text-xs font-semibold text-[#2F6288]">{progress}%</span>
-                                            </div>
-                                        </div>
-                                        <p className="text-sm text-[#2F6288] font-medium">Uploading Image...</p>
-                                        <div className="w-24 bg-gray-200 rounded-full h-2 mt-2">
-                                            <div
-                                                className="bg-[#2F6288] h-2 rounded-full transition-all duration-300"
-                                                style={{ width: `${progress}%` }}
-                                            ></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
-
-                        <div className="flex flex-wrap gap-4 mt-4">
-                            {formData?.oneTimeSubscription?.images && formData?.oneTimeSubscription?.images.map((img, index) => (
-                                <div key={index} className="relative w-40 h-28">
-                                    <img src={img} alt={`img-${index}`} className="w-full h-full object-cover rounded shadow" />
-                                    <button
-                                        onClick={() => removeImage(index)}
-                                        className="absolute top-1 right-1 bg-white border border-gray-300 rounded-full p-1 
-                                        hover:bg-gray-200"
-                                    >
-                                        <FaTimes size={12} />
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Videos */}
-                    <label className="block font-semibold my-5">Add Thumbnail Videos ( Maximum 6 Videos )</label>
-                    <div className="mb-4">
-                        {(!formData?.oneTimeSubscription?.videos || formData?.oneTimeSubscription?.videos.length < 6) && (
-                            <label className={`w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50 ${Object.keys(isVideoUploading || {}).length > 0 ? 'pointer-events-none opacity-75' : ''}`}>
-                                <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-10 h-10 mb-2" />
-                                <span>Click to upload Videos</span>
-                                <input
-                                    type="file"
-                                    accept="video/*"
-                                    multiple
-                                    onChange={handleVideoUpload}
-                                    className="hidden"
-                                    disabled={Object.keys(isVideoUploading || {}).length > 0}
-                                />
-                            </label>
-                        )}
-
-                        {/* Upload Progress Indicators */}
-                        {Object.entries(isVideoUploading || {}).map(([uploadId, isUploading]) => {
-                            if (!isUploading) return null;
-                            const progress = videoUploadProgress[uploadId] || 0;
-                            return (
-                                <div key={uploadId} className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center mt-4">
-                                    <div className="text-center flex flex-col items-center">
-                                        <div className="relative w-12 h-12 mb-3">
-                                            <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
-                                            <div
-                                                className="absolute inset-0 border-4 border-[#2F6288] rounded-full border-t-transparent animate-spin"
-                                                style={{
-                                                    background: `conic-gradient(from 0deg, #2F6288 ${progress * 3.6}deg, transparent ${progress * 3.6}deg)`
-                                                }}
-                                            ></div>
-                                            <div className="absolute inset-0 flex items-center justify-center">
-                                                <span className="text-xs font-semibold text-[#2F6288]">{progress}%</span>
-                                            </div>
-                                        </div>
-                                        <p className="text-sm text-[#2F6288] font-medium">Uploading Video...</p>
-                                        <div className="w-24 bg-gray-200 rounded-full h-2 mt-2">
-                                            <div
-                                                className="bg-[#2F6288] h-2 rounded-full transition-all duration-300"
-                                                style={{ width: `${progress}%` }}
-                                            ></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
-
-                        <div className="flex flex-wrap gap-4 mt-4">
-                            {formData?.oneTimeSubscription?.videos && formData?.oneTimeSubscription?.videos.map((vid, index) => (
-                                <div key={index} className="relative w-40 h-28 bg-black">
-                                    <video src={vid} controls className="w-full h-full rounded shadow object-cover" />
-                                    <button
-                                        onClick={() => removeVideo(index)}
-                                        className="absolute top-1 right-1 bg-white border border-gray-300 
-                                        rounded-full p-1 hover:bg-gray-200"
-                                    >
-                                        <FaTimes size={12} />
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-
-                {/* About the Program */}
-                <div className="mb-8">
-                    <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
-                        About the Program <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
-                    </h2>
-
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block text-md font-semibold text-gray-700 mb-2">Title</label>
-                            <input
-                                type="text"
-                                value={formData.aboutProgram.title}
-                                placeholder="Enter title"
-                                onChange={(e) => setFormData(prev => ({ ...prev, aboutProgram: { ...prev.aboutProgram, title: e.target.value } }))}
-                                className="text-sm w-full border border-gray-300 p-3 rounded-lg"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-md font-semibold text-gray-700 mb-2">Short Description</label>
-                            <textarea
-                                rows={3}
-                                value={formData.aboutProgram.shortDescription}
-                                placeholder="Enter short description"
-                                onChange={(e) => setFormData(prev => ({ ...prev, aboutProgram: { ...prev.aboutProgram, shortDescription: e.target.value } }))}
-                                className="text-sm w-full border border-gray-300 p-3 rounded-lg"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-md font-semibold text-gray-700 mb-2">Points</label>
-                            <div className="space-y-3">
-                                {formData.aboutProgram.points.map((pt, idx) => (
-                                    <div key={idx} className="flex items-center gap-2">
-                                        <input
-                                            type="text"
-                                            value={pt}
-                                            placeholder={`Point ${idx + 1}`}
-                                            onChange={(e) => {
-                                                const updated = [...formData.aboutProgram.points];
-                                                updated[idx] = e.target.value;
-                                                setFormData(prev => ({ ...prev, aboutProgram: { ...prev.aboutProgram, points: updated } }));
-                                            }}
-                                            className="w-full border border-gray-300 p-3 rounded-lg"
-                                        />
-                                        {formData.aboutProgram.points.length > 1 && (
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    const updated = [...formData.aboutProgram.points];
-                                                    updated.splice(idx, 1);
-                                                    setFormData(prev => ({ ...prev, aboutProgram: { ...prev.aboutProgram, points: updated } }));
-                                                }}
-                                                className="text-red-500 hover:text-red-700"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
-                                        )}
-                                    </div>
-                                ))}
                             </div>
-                            <button
-                                type="button"
-                                onClick={() => setFormData(prev => ({ ...prev, aboutProgram: { ...prev.aboutProgram, points: [...prev.aboutProgram.points, ""] } }))}
-                                className="w-full mt-3 px-4 py-3 bg-[#2F6288] text-white rounded-lg transition-colors flex items-center justify-center gap-2"
-                            >
-                                <FaPlus className="w-3 h-3" /> Add Point
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Program Schedule (Richer) */}
-                <div className="mb-8">
-                    <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
-                        {isEditing ? "Edit Program Schedule" : "Program Schedule"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
-                    </h2>
-                    <div className="space-y-6">
-                        {formData?.programSchedule && formData?.programSchedule.map((program, programIndex) => (
-                            <div key={programIndex} className="p-6 bg-gray-50 rounded-lg border border-gray-200 relative">
-                                <button
-                                    onClick={() => removeProgram(programIndex)}
-                                    className="absolute top-4 right-4 text-red-500 hover:text-red-700 p-1"
-                                    title="Delete Program"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
-
-                                <div className="mb-4">
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Day {programIndex + 1} Title</label>
+                            <div>
+                                <label className="block text-md font-semibold text-gray-700 mb-2">Couple Price</label>
+                                <input
+                                    type="number"
+                                    value={formData?.oneTimeSubscription?.couplesPrice || ""}
+                                    placeholder="Enter couple price"
+                                    onChange={(e) => setFormData(prev => ({ ...prev, oneTimeSubscription: { ...prev.oneTimeSubscription, couplesPrice: e.target.value } }))}
+                                    className="text-sm w-full border border-gray-300 p-3 rounded-lg"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-md font-semibold text-gray-700 mb-2">Group Price (per booking)</label>
+                                <input
+                                    type="number"
+                                    value={formData?.oneTimeSubscription?.groupPrice || ""}
+                                    placeholder="Enter group price"
+                                    onChange={(e) => setFormData(prev => ({ ...prev, oneTimeSubscription: { ...prev.oneTimeSubscription, groupPrice: e.target.value } }))}
+                                    className="text-sm w-full border border-gray-300 p-3 rounded-lg"
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-md font-semibold text-gray-700 mb-2">Group Min</label>
                                     <input
-                                        type="text"
-                                        value={program?.title}
-                                        placeholder="Enter title"
-                                        onChange={(e) => handleProgramChange(programIndex, "title", e.target.value)}
-                                        className="w-full border border-gray-300 p-3 rounded-lg"
+                                        type="number"
+                                        value={formData?.oneTimeSubscription?.groupMin || ""}
+                                        placeholder="Min"
+                                        onChange={(e) => setFormData(prev => ({ ...prev, oneTimeSubscription: { ...prev.oneTimeSubscription, groupMin: e.target.value } }))}
+                                        className="text-sm w-full border border-gray-300 p-3 rounded-lg"
                                     />
                                 </div>
-
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Description Points</label>
-
-                                    {program?.points && program?.points.map((point, pointIndex) => (
-                                        <div key={pointIndex} className="mb-4 relative">
-                                            <div className="mb-3">
-                                                <label className="block text-sm text-gray-700 mb-2">Point {pointIndex + 1} Title</label>
-                                                <div className="flex items-center gap-2">
-                                                    <input
-                                                        type="text"
-                                                        value={point?.title}
-                                                        placeholder={`Point ${pointIndex + 1}`}
-                                                        onChange={(e) => handleProgramPointChange(programIndex, pointIndex, e.target.value)}
-                                                        className="w-full border border-gray-300 p-3 rounded-lg"
-                                                    />
-
-                                                    {program?.points.length > 1 && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => removeProgramPoint(programIndex, pointIndex)}
-                                                            className="text-red-500 hover:text-red-700"
-                                                        >
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            <div>
-                                                <div className="flex flex-col items-start justify-between">
-                                                    <label className="block text-sm text-gray-700 mb-2">Sub Points (Optional)</label>
-                                                </div>
-
-                                                {point?.subpoints && point?.subpoints.length > 0 && (
-                                                    <div className="space-y-3 mb-3">
-                                                        {point.subpoints.map((subpoint, subIndex) => (
-                                                            <div key={subIndex} className="flex items-center gap-2">
-                                                                <input
-                                                                    type="text"
-                                                                    value={subpoint}
-                                                                    placeholder={`Sub Point ${subIndex + 1}`}
-                                                                    onChange={(e) => handleProgramSubPointChange(programIndex, pointIndex, subIndex, e.target.value)}
-                                                                    className="w-full border border-gray-300 p-3 rounded-lg"
-                                                                />
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => removeProgramSubPoint(programIndex, pointIndex, subIndex)}
-                                                                    className="text-red-500 hover:text-red-700"
-                                                                >
-                                                                    <FaTimes className="w-4 h-4" />
-                                                                </button>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => addProgramSubPoint(programIndex, pointIndex)}
-                                                    className="w-full px-4 py-3 bg-[#2F6288] text-white rounded-lg transition-colors flex items-center justify-center gap-2"
-                                                >
-                                                    <FaPlus className="w-3 h-3" /> Add Sub Point
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-
-                                    <button
-                                        type="button"
-                                        onClick={() => addProgramPoint(programIndex)}
-                                        className="w-full px-4 py-3 bg-[#2F6288] text-white rounded-lg transition-colors flex items-center justify-center gap-2"
-                                    >
-                                        <FaPlus className="w-3 h-3" /> Add Point
-                                    </button>
+                                    <label className="block text-md font-semibold text-gray-700 mb-2">Group Max</label>
+                                    <input
+                                        type="number"
+                                        value={formData?.oneTimeSubscription?.groupMax || ""}
+                                        placeholder="Max"
+                                        onChange={(e) => setFormData(prev => ({ ...prev, oneTimeSubscription: { ...prev.oneTimeSubscription, groupMax: e.target.value } }))}
+                                        className="text-sm w-full border border-gray-300 p-3 rounded-lg"
+                                    />
                                 </div>
                             </div>
-                        ))}
-
-                        <button
-                            onClick={addProgram}
-                            className="w-full px-4 py-3 bg-[#2F6288] text-white rounded-lg transition-colors flex items-center justify-center gap-2"
-                        >
-                            <FaPlus className="w-5 h-5" />
-                            Add Program Day
-                        </button>
-                    </div>
-                </div>
-
-                {/* Key Highlights */}
-                <div className="mb-8">
-                    <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
-                        Key Highlights <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
-                    </h2>
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block text-md font-semibold text-gray-700 mb-2">Title</label>
-                            <input
-                                type="text"
-                                value={formData.keyHighlights.title}
-                                placeholder="Enter title"
-                                onChange={(e) => setFormData(prev => ({ ...prev, keyHighlights: { ...prev.keyHighlights, title: e.target.value } }))}
-                                className="text-sm w-full border border-gray-300 p-3 rounded-lg"
-                            />
+                            <div className="sm:col-span-2">
+                                <label className="block text-sm text-gray-500 mb-1">Optional Base Price (fallback)</label>
+                                <input
+                                    type="number"
+                                    value={formData?.oneTimeSubscription?.price || ""}
+                                    placeholder="Fallback price used when occupancy-specific price is not set"
+                                    onChange={(e) => setFormData(prev => ({ ...prev, oneTimeSubscription: { ...prev.oneTimeSubscription, price: e.target.value } }))}
+                                    className="text-sm w-full border border-gray-300 p-3 rounded-lg"
+                                />
+                            </div>
                         </div>
+
+                        {/* Description */}
                         <div>
-                            <label className="block text-md font-semibold text-gray-700 mb-2">Points</label>
-                            <div className="space-y-3">
-                                {formData.keyHighlights.points.map((pt, idx) => (
-                                    <div key={idx} className="flex items-center gap-2">
-                                        <input
-                                            type="text"
-                                            value={pt}
-                                            placeholder={`Point ${idx + 1}`}
-                                            onChange={(e) => {
-                                                const updated = [...formData.keyHighlights.points];
-                                                updated[idx] = e.target.value;
-                                                setFormData(prev => ({ ...prev, keyHighlights: { ...prev.keyHighlights, points: updated } }));
-                                            }}
-                                            className="w-full border border-gray-300 p-3 rounded-lg"
-                                        />
-                                        {formData.keyHighlights.points.length > 1 && (
+                            <label className="block text-md font-semibold text-gray-700 mb-2">Description</label>
+                            <textarea
+                                placeholder="Enter Description"
+                                value={formData?.oneTimeSubscription?.description}
+                                onChange={(e) => handleFieldChange("oneTimeSubscription", "description", e.target.value)}
+                                className="text-sm w-full border border-gray-300 p-3 rounded-lg"
+                                rows={3}
+                            ></textarea>
+                            {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description}</p>}
+                        </div>
+
+                        {/* Slots (Live + One-Time) */}
+                        <div className="mt-8">
+                            <h3 className="text-lg font-semibold text-gray-700 mb-4">Slots</h3>
+                            {/* Live Slots (per-date) */}
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    {(() => {
+                                        const today = new Date();
+                                        const isPrevDisabled = calendarMonth.getFullYear() === today.getFullYear() && calendarMonth.getMonth() === today.getMonth();
+                                        return (
                                             <button
                                                 type="button"
-                                                onClick={() => {
-                                                    const updated = [...formData.keyHighlights.points];
-                                                    updated.splice(idx, 1);
-                                                    setFormData(prev => ({ ...prev, keyHighlights: { ...prev.keyHighlights, points: updated } }));
-                                                }}
-                                                className="text-red-500 hover:text-red-700"
+                                                onClick={goPrevMonth}
+                                                disabled={isPrevDisabled}
+                                                className={`px-3 py-1.5 border border-gray-300 rounded-md ${isPrevDisabled ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'hover:bg-gray-50'}`}
                                             >
-                                                <Trash2 className="w-4 h-4" />
+                                                Prev
                                             </button>
-                                        )}
+                                        );
+                                    })()}
+                                    <p className="font-semibold text-gray-800">
+                                        {calendarMonth instanceof Date ? calendarMonth.toLocaleString('default', { month: 'long' }) : ''} {calendarMonth instanceof Date ? calendarMonth.getFullYear() : ''}
+                                    </p>
+                                    <button type="button" onClick={goNextMonth} className="px-3 py-1.5 border border-gray-300 rounded-md hover:bg-gray-50">Next</button>
+                                </div>
+
+                                <div className="grid grid-cols-7 text-xs text-gray-500">
+                                    {dayLabels.map(d => (
+                                        <div key={d} className="px-2 py-1 text-center">{d}</div>
+                                    ))}
+                                </div>
+
+                                <div className="grid grid-cols-7 gap-1">
+                                    {getCalendarGrid(calendarMonth).map((dateObj, idx) => {
+                                        const isCurrentMonth = dateObj && dateObj.getMonth() === calendarMonth.getMonth();
+                                        const ymd = dateObj ? formatYMD(dateObj) : '';
+                                        const isSelected = dateObj && ymd === selectedDate;
+                                        const has = dayHasSlots(dateObj);
+                                        const isPast = isPastDate(dateObj);
+                                        return (
+                                            <button
+                                                key={idx}
+                                                type="button"
+                                                disabled={!dateObj || isPast}
+                                                onClick={() => dateObj && !isPast && setSelectedDate(formatYMD(dateObj))}
+                                                className={`h-10 rounded-md text-sm border ${!isCurrentMonth ? 'bg-gray-50 text-gray-300' : 'bg-white'} ${isSelected ? 'border-[#2F6288]' : 'border-gray-200'} ${has ? 'ring-2 ring-green-200' : ''} ${isPast ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                            >
+                                                {dateObj instanceof Date ? dateObj.getDate() : ''}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                <div className="border border-gray-200 rounded-lg p-4 space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <p className="font-semibold text-gray-800">Selected Date: {selectedDate}</p>
+                                        <button
+                                            type="button"
+                                            onClick={addSlotForSelectedDate}
+                                            className="text-xs px-3 py-1.5 bg-[#2F6288] text-white rounded-md"
+                                        >
+                                            Add Time Range
+                                        </button>
                                     </div>
-                                ))}
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => setFormData(prev => ({ ...prev, keyHighlights: { ...prev.keyHighlights, points: [...prev.keyHighlights.points, ""] } }))}
-                                className="w-full mt-3 px-4 py-3 bg-[#2F6288] text-white rounded-lg transition-colors flex items-center justify-center gap-2"
-                            >
-                                <FaPlus className="w-3 h-3" /> Add Point
-                            </button>
-                        </div>
-                    </div>
-                </div>
 
-                {/* Features (like retreat form) */}
-                <div className="mb-8">
-                    <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
-                        Features<span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
-                    </h2>
+                                    {getSlotsForDate(selectedDate).length === 0 && (
+                                        <p className="text-xs text-gray-500">No time ranges added for this date.</p>
+                                    )}
 
-                    <div className="space-y-6">
-                        {formData?.features && formData?.features.map((feature, index) => (
-                            <div key={index} className="p-6 bg-gray-50 rounded-lg border border-gray-200 relative">
-                                <button
-                                    onClick={() => removeFeature(index)}
-                                    className="absolute top-4 right-4 text-red-500 hover:text-red-700 p-1"
-                                    title="Delete Feature"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
-
-                                <div className="mb-4">
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Feature Icon</label>
-                                    {feature.image ? (
-                                        <div className="relative inline-block mb-4">
-                                            <img
-                                                src={feature?.image}
-                                                alt="Preview"
-                                                className="w-32 h-32 object-contain rounded"
+                                    {getSlotsForDate(selectedDate).map((s, localIdx) => (
+                                        <div key={localIdx} className="grid sm:grid-cols-[auto_1fr_auto_1fr_auto_auto] grid-cols-1 gap-2 items-center">
+                                            <div className="flex items-center gap-3">
+                                                <label className="inline-flex items-center text-xs">
+                                                    <input type="radio" name={`live-${selectedDate}-${localIdx}`} checked={(s.type||'individual')==='individual'} onChange={()=>updateSlotForSelectedDate(localIdx,'type','individual')} className="h-4 w-4 text-[#2F6288]" />
+                                                    <span className="ml-1">Individual</span>
+                                                </label>
+                                                <label className="inline-flex items-center text-xs">
+                                                    <input type="radio" name={`live-${selectedDate}-${localIdx}`} checked={s.type==='couple'} onChange={()=>updateSlotForSelectedDate(localIdx,'type','couple')} className="h-4 w-4 text-[#2F6288]" />
+                                                    <span className="ml-1">Couple</span>
+                                                </label>
+                                                <label className="inline-flex items-center text-xs">
+                                                    <input type="radio" name={`live-${selectedDate}-${localIdx}`} checked={s.type==='group'} onChange={()=>updateSlotForSelectedDate(localIdx,'type','group')} className="h-4 w-4 text-[#2F6288]" />
+                                                    <span className="ml-1">Group</span>
+                                                </label>
+                                            </div>
+                                            <input
+                                                type="time"
+                                                value={s.startTime}
+                                                onChange={(e) => updateSlotForSelectedDate(localIdx, 'startTime', e.target.value)}
+                                                className="text-sm w-full border border-gray-300 p-2 rounded-lg"
+                                            />
+                                            <span className="hidden sm:flex justify-center text-gray-500">-</span>
+                                            <input
+                                                type="time"
+                                                value={s.endTime}
+                                                onChange={(e) => updateSlotForSelectedDate(localIdx, 'endTime', e.target.value)}
+                                                className="text-sm w-full border border-gray-300 p-2 rounded-lg"
                                             />
                                             <button
-                                                onClick={() => handleFeatureChange(index, "image", null)}
-                                                className="absolute top-1 right-1 bg-white border border-gray-300 rounded-full p-1 hover:bg-gray-200"
+                                                type="button"
+                                                onClick={() => removeSlotForSelectedDate(localIdx)}
+                                                className="text-red-500 hover:text-red-600 text-xs"
                                             >
-                                                <FaTimes size={12} />
+                                                Delete
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const current = getSlotsForDate(selectedDate)[localIdx];
+                                                    if (!current) return;
+                                                    setFormData(prev => ({
+                                                        ...prev,
+                                                        liveSlots: [...prev.liveSlots, { date: selectedDate, startTime: current.startTime, endTime: current.endTime }]
+                                                    }));
+                                                }}
+                                                className="text-[#2F6288] hover:text-blue-700 text-xs"
+                                            >
+                                                Copy
                                             </button>
                                         </div>
-                                    ) : (
-                                        <div className="mb-4">
-                                            <label
-                                                htmlFor={`feature-upload-${index}`}
-                                                className="w-full h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50"
-                                            >
-                                                <img
-                                                    src="/assets/admin/upload.svg"
-                                                    alt="Upload Icon"
-                                                    className="w-12 h-12 mb-2"
-                                                />
-                                                <span>Click to upload feature icon</span>
-                                                <input
-                                                    id={`feature-upload-${index}`}
-                                                    type="file"
-                                                    accept="image/*"
-                                                    onChange={(e) => handleFeatureImageChange(index, e.target.files[0])}
-                                                    className="hidden"
-                                                />
-                                            </label>
-                                        </div>
-                                    )}
+                                    ))}
                                 </div>
+                            </div>
 
-                                <div className="mb-4">
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Title</label>
+                            {/* Removed One-Time Slots editor as requested */}
+                        </div>
+
+                        {/* Images */}
+                        <label className="block font-semibold my-5">Add Thumbnail Images ( Maximum 5 Images )</label>
+                        <div className="mb-6">
+                            {(!formData?.oneTimeSubscription?.images || formData?.oneTimeSubscription?.images.length < 5) && (
+                                <label className={`w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50 ${Object.keys(isImageUploading || {}).length > 0 ? 'pointer-events-none opacity-75' : ''}`}>
+                                    <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-10 h-10 mb-2" />
+                                    <span>Click to upload image<br />Size: (1126×626)px</span>
                                     <input
-                                        type="text"
-                                        value={feature?.title}
-                                        placeholder="Enter title"
-                                        onChange={(e) => handleFeatureChange(index, "title", e.target.value)}
-                                        className="w-full border border-gray-300 p-3 rounded-lg"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Description</label>
-                                    <textarea
-                                        rows={3}
-                                        value={feature?.shortdescription}
-                                        placeholder="Enter short description"
-                                        onChange={(e) => handleFeatureChange(index, "shortdescription", e.target.value)}
-                                        className="w-full border border-gray-300 p-3 rounded-lg"
-                                    />
-                                </div>
-                            </div>
-                        ))}
-
-                        <button
-                            onClick={addFeature}
-                            className="w-full px-4 py-3 bg-[#2F6288] text-white rounded-lg transition-colors flex items-center justify-center gap-2"
-                        >
-                            <FaPlus className="w-5 h-5" />
-                            Add Feature
-                        </button>
-                    </div>
-                </div>
-
-                {/* FAQS */}
-                <div className="mb-8">
-                    <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
-                        {isEditing ? "Edit FAQS" : "FAQS"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
-                    </h2>
-                    <div className="relative space-y-4">
-                        {formData.faqs.map((faq, i) => (
-                            <div key={i} className="space-y-4">
-                                <div className="absolute right-0 justify-between items-center">
-                                    {formData.faqs.length > 1 && (
-                                        <button
-                                            onClick={() => removeFaq(i)}
-                                            className="text-red-500 hover:text-red-700 p-1"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    )}
-                                </div>
-
-                                <div>
-                                    <label className="block text-md font-semibold text-gray-700 mb-2">FAQ Title</label>
-                                    <input
-                                        placeholder="Enter FAQ Title"
-                                        value={faq.title}
-                                        onChange={(e) => handleFaqChange(i, "title", e.target.value)}
-                                        className="text-sm w-full border border-gray-300 p-3 rounded-lg "
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-md font-semibold text-gray-700 mb-2">Description</label>
-                                    <textarea
-                                        rows={4}
-                                        placeholder="Enter FAQ Description"
-                                        value={faq.description}
-                                        onChange={(e) => handleFaqChange(i, "description", e.target.value)}
-                                        className="text-sm w-full border border-gray-300 p-3 rounded-lg "
-                                    />
-                                </div>
-
-                                {errors[`faq_${i}`] && <p className="text-red-500 text-sm">{errors[`faq_${i}`]}</p>}
-                            </div>
-                        ))}
-
-                        <button
-                            onClick={addFaq}
-                            className="w-full px-4 py-3 bg-[#2F6288] text-white rounded-lg  transition-colors flex items-center justify-center gap-2"
-                        >
-                            Add New FAQ
-                        </button>
-                    </div>
-                </div>
-
-                {/* Meet Your Pilgrim Guide */}
-                <div className="mb-8">
-                    <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
-                        {isEditing ? "Edit Meet Your Pilgrim Guide" : "Meet Your Pilgrim Guide"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
-                    </h2>
-
-                    <div className="mb-6 pt-4 relative flex flex-col space-y-4">
-                        <label className="block text-md font-semibold text-gray-700 mb-2">Add Photo</label>
-                        {formData.guide[0].image ? (
-                            <div className="relative inline-block mb-4">
-                                <img
-                                    src={formData.guide[0].image}
-                                    alt="Preview"
-                                    className="w-64 h-auto object-contain rounded shadow"
-                                />
-                                <button
-                                    onClick={handleGuideImageRemove}
-                                    className="absolute top-0 right-0 bg-white border border-gray-300 rounded-full p-1 transform translate-x-1/2 -translate-y-1/2 hover:bg-gray-200"
-                                >
-                                    <X size={14} />
-                                </button>
-                            </div>
-                        ) : isGuideUploading ? (
-                            <div className="max-w-xs aspect-square border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center mb-4">
-                                <div className="text-center flex flex-col items-center">
-                                    <div className="relative w-12 h-12 mb-3">
-                                        <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
-                                        <div
-                                            className="absolute inset-0 border-4 border-[#2F6288] rounded-full border-t-transparent animate-spin"
-                                            style={{
-                                                background: `conic-gradient(from 0deg, #2F6288 ${guideUploadProgress * 3.6}deg, transparent ${guideUploadProgress * 3.6}deg)`
-                                            }}
-                                        ></div>
-                                        <div className="absolute inset-0 flex items-center justify-center">
-                                            <span className="text-xs font-semibold text-[#2F6288]">{guideUploadProgress}%</span>
-                                        </div>
-                                    </div>
-                                    <p className="text-sm text-[#2F6288] font-medium">Uploading Guide Image...</p>
-                                    <div className="w-24 bg-gray-200 rounded-full h-2 mt-2">
-                                        <div
-                                            className="bg-[#2F6288] h-2 rounded-full transition-all duration-300"
-                                            style={{ width: `${guideUploadProgress}%` }}
-                                        ></div>
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="mb-4">
-                                <label
-                                    htmlFor="guide-upload"
-                                    className="max-w-xs aspect-square border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50"
-                                >
-                                    <img
-                                        src="/assets/admin/upload.svg"
-                                        alt="Upload Icon"
-                                        className="w-12 h-12 mb-2"
-                                    />
-                                    <span>Click to upload image</span>
-                                    <span className="text-sm text-gray-400">Size: (402×453)px</span>
-                                    <input
-                                        id="guide-upload"
                                         type="file"
                                         accept="image/*"
-                                        onChange={(e) => handleGuideImageChange(e.target.files[0])}
+                                        multiple
+                                        onChange={handleImageUpload}
                                         className="hidden"
-                                        disabled={isGuideUploading}
+                                        disabled={Object.keys(isImageUploading || {}).length > 0}
                                     />
                                 </label>
-                            </div>
-                        )}
+                            )}
 
-                        <label className="block text-md font-semibold text-gray-700 mb-2">Title</label>
-                        <input
-                            type="text"
-                            value={formData.guide[0].title}
-                            placeholder="Enter title"
-                            onChange={(e) => handleGuideChange("title", e.target.value)}
-                            className="text-sm w-full border border-gray-300 p-3 rounded-lg"
-                        />
+                            {/* Upload Progress Indicators */}
+                            {Object.entries(isImageUploading || {}).map(([uploadId, isUploading]) => {
+                                if (!isUploading) return null;
+                                const progress = imageUploadProgress[uploadId] || 0;
+                                return (
+                                    <div key={uploadId} className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center mt-4">
+                                        <div className="text-center flex flex-col items-center">
+                                            <div className="relative w-12 h-12 mb-3">
+                                                <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
+                                                <div
+                                                    className="absolute inset-0 border-4 border-[#2F6288] rounded-full border-t-transparent animate-spin"
+                                                    style={{
+                                                        background: `conic-gradient(from 0deg, #2F6288 ${progress * 3.6}deg, transparent ${progress * 3.6}deg)`
+                                                    }}
+                                                ></div>
+                                                <div className="absolute inset-0 flex items-center justify-center">
+                                                    <span className="text-xs font-semibold text-[#2F6288]">{progress}%</span>
+                                                </div>
+                                            </div>
+                                            <p className="text-sm text-[#2F6288] font-medium">Uploading Image...</p>
+                                            <div className="w-24 bg-gray-200 rounded-full h-2 mt-2">
+                                                <div
+                                                    className="bg-[#2F6288] h-2 rounded-full transition-all duration-300"
+                                                    style={{ width: `${progress}%` }}
+                                                ></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
 
-                        <label className="block text-md font-semibold text-gray-700 mb-2">Description</label>
-                        <textarea
-                            rows={4}
-                            value={formData.guide[0].description}
-                            placeholder="Enter description"
-                            onChange={(e) => handleGuideChange("description", e.target.value)}
-                            className="text-sm w-full border border-gray-300 p-3 rounded-lg"
-                        />
-                    </div>
-                </div>
-
-                {/* Save Button */}
-                <div className="flex gap-4">
-                    <button
-                        onClick={onSaveLive}
-                        className="text-sm flex p-4 bg-gradient-to-b from-[#C5703F] to-[#C16A00] text-white font-bold rounded-lg hover:bg-green-700 transition-colors"
-                    >
-                        {isEditing ? "Update Live Session" : "Add Live Session"}
-                    </button>
-                    {isEditing && (
-                        <button
-                            onClick={cancelEdit}
-                            className="text-sm px-8 py-4 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition-colors"
-                        >
-                            Cancel
-                        </button>
-                    )}
-                </div>
-
-                {/* Current Recorded Sessions */}
-                {allData && (
-                    <div className="mt-8">
-                        <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">Current Live Sessions <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span></h2>
-                        <DndProvider backend={HTML5Backend}>
-                            <div className="space-y-3">
-                                {slideData.map((slide, index) => (
-                                    <SlideItem
-                                        key={index}
-                                        index={index}
-                                        slide={slide}
-                                        moveSlide={moveSlide}
-                                        removeSlide={removeSlide}
-                                        editSlide={editSlide}
-                                    />
+                            <div className="flex flex-wrap gap-4 mt-4">
+                                {formData?.oneTimeSubscription?.images && formData?.oneTimeSubscription?.images.map((img, index) => (
+                                    <div key={index} className="relative w-40 h-28">
+                                        <img src={img} alt={`img-${index}`} className="w-full h-full object-cover rounded shadow" />
+                                        <button
+                                            onClick={() => removeImage(index)}
+                                            className="absolute top-1 right-1 bg-white border border-gray-300 rounded-full p-1 
+                                        hover:bg-gray-200"
+                                        >
+                                            <FaTimes size={12} />
+                                        </button>
+                                    </div>
                                 ))}
                             </div>
-                        </DndProvider>
+                        </div>
+
+                        {/* Videos */}
+                        <label className="block font-semibold my-5">Add Thumbnail Videos ( Maximum 6 Videos )</label>
+                        <div className="mb-4">
+                            {(!formData?.oneTimeSubscription?.videos || formData?.oneTimeSubscription?.videos.length < 6) && (
+                                <label className={`w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50 ${Object.keys(isVideoUploading || {}).length > 0 ? 'pointer-events-none opacity-75' : ''}`}>
+                                    <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-10 h-10 mb-2" />
+                                    <span>Click to upload Videos</span>
+                                    <input
+                                        type="file"
+                                        accept="video/*"
+                                        multiple
+                                        onChange={handleVideoUpload}
+                                        className="hidden"
+                                        disabled={Object.keys(isVideoUploading || {}).length > 0}
+                                    />
+                                </label>
+                            )}
+
+                            {/* Upload Progress Indicators */}
+                            {Object.entries(isVideoUploading || {}).map(([uploadId, isUploading]) => {
+                                if (!isUploading) return null;
+                                const progress = videoUploadProgress[uploadId] || 0;
+                                return (
+                                    <div key={uploadId} className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center mt-4">
+                                        <div className="text-center flex flex-col items-center">
+                                            <div className="relative w-12 h-12 mb-3">
+                                                <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
+                                                <div
+                                                    className="absolute inset-0 border-4 border-[#2F6288] rounded-full border-t-transparent animate-spin"
+                                                    style={{
+                                                        background: `conic-gradient(from 0deg, #2F6288 ${progress * 3.6}deg, transparent ${progress * 3.6}deg)`
+                                                    }}
+                                                ></div>
+                                                <div className="absolute inset-0 flex items-center justify-center">
+                                                    <span className="text-xs font-semibold text-[#2F6288]">{progress}%</span>
+                                                </div>
+                                            </div>
+                                            <p className="text-sm text-[#2F6288] font-medium">Uploading Video...</p>
+                                            <div className="w-24 bg-gray-200 rounded-full h-2 mt-2">
+                                                <div
+                                                    className="bg-[#2F6288] h-2 rounded-full transition-all duration-300"
+                                                    style={{ width: `${progress}%` }}
+                                                ></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+
+                            <div className="flex flex-wrap gap-4 mt-4">
+                                {formData?.oneTimeSubscription?.videos && formData?.oneTimeSubscription?.videos.map((vid, index) => (
+                                    <div key={index} className="relative w-40 h-28 bg-black">
+                                        <video src={vid} controls className="w-full h-full rounded shadow object-cover" />
+                                        <button
+                                            onClick={() => removeVideo(index)}
+                                            className="absolute top-1 right-1 bg-white border border-gray-300 
+                                        rounded-full p-1 hover:bg-gray-200"
+                                        >
+                                            <FaTimes size={12} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
                     </div>
-                )}
+
+                    {/* About the Program */}
+                    <div className="mb-8">
+                        <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+                            About the Program <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
+                        </h2>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-md font-semibold text-gray-700 mb-2">Title</label>
+                                <input
+                                    type="text"
+                                    value={formData.aboutProgram.title}
+                                    placeholder="Enter title"
+                                    onChange={(e) => setFormData(prev => ({ ...prev, aboutProgram: { ...prev.aboutProgram, title: e.target.value } }))}
+                                    className="text-sm w-full border border-gray-300 p-3 rounded-lg"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-md font-semibold text-gray-700 mb-2">Short Description</label>
+                                <textarea
+                                    rows={3}
+                                    value={formData.aboutProgram.shortDescription}
+                                    placeholder="Enter short description"
+                                    onChange={(e) => setFormData(prev => ({ ...prev, aboutProgram: { ...prev.aboutProgram, shortDescription: e.target.value } }))}
+                                    className="text-sm w-full border border-gray-300 p-3 rounded-lg"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-md font-semibold text-gray-700 mb-2">Points</label>
+                                <div className="space-y-3">
+                                    {formData.aboutProgram.points.map((pt, idx) => (
+                                        <div key={idx} className="flex items-center gap-2">
+                                            <input
+                                                type="text"
+                                                value={pt}
+                                                placeholder={`Point ${idx + 1}`}
+                                                onChange={(e) => {
+                                                    const updated = [...formData.aboutProgram.points];
+                                                    updated[idx] = e.target.value;
+                                                    setFormData(prev => ({ ...prev, aboutProgram: { ...prev.aboutProgram, points: updated } }));
+                                                }}
+                                                className="w-full border border-gray-300 p-3 rounded-lg"
+                                            />
+                                            {formData.aboutProgram.points.length > 1 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const updated = [...formData.aboutProgram.points];
+                                                        updated.splice(idx, 1);
+                                                        setFormData(prev => ({ ...prev, aboutProgram: { ...prev.aboutProgram, points: updated } }));
+                                                    }}
+                                                    className="text-red-500 hover:text-red-700"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setFormData(prev => ({ ...prev, aboutProgram: { ...prev.aboutProgram, points: [...prev.aboutProgram.points, ""] } }))}
+                                    className="w-full mt-3 px-4 py-3 bg-[#2F6288] text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                                >
+                                    <FaPlus className="w-3 h-3" /> Add Point
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Program Schedule (Richer) */}
+                    <div className="mb-8">
+                        <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+                            {isEditing ? "Edit Program Schedule" : "Program Schedule"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
+                        </h2>
+                        <div className="space-y-6">
+                            {formData?.programSchedule && formData?.programSchedule.map((program, programIndex) => (
+                                <div key={programIndex} className="p-6 bg-gray-50 rounded-lg border border-gray-200 relative">
+                                    <button
+                                        onClick={() => removeProgram(programIndex)}
+                                        className="absolute top-4 right-4 text-red-500 hover:text-red-700 p-1"
+                                        title="Delete Program"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+
+                                    <div className="mb-4">
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Day {programIndex + 1} Title</label>
+                                        <input
+                                            type="text"
+                                            value={program?.title}
+                                            placeholder="Enter title"
+                                            onChange={(e) => handleProgramChange(programIndex, "title", e.target.value)}
+                                            className="w-full border border-gray-300 p-3 rounded-lg"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Description Points</label>
+
+                                        {program?.points && program?.points.map((point, pointIndex) => (
+                                            <div key={pointIndex} className="mb-4 relative">
+                                                <div className="mb-3">
+                                                    <label className="block text-sm text-gray-700 mb-2">Point {pointIndex + 1} Title</label>
+                                                    <div className="flex items-center gap-2">
+                                                        <input
+                                                            type="text"
+                                                            value={point?.title}
+                                                            placeholder={`Point ${pointIndex + 1}`}
+                                                            onChange={(e) => handleProgramPointChange(programIndex, pointIndex, e.target.value)}
+                                                            className="w-full border border-gray-300 p-3 rounded-lg"
+                                                        />
+
+                                                        {program?.points.length > 1 && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => removeProgramPoint(programIndex, pointIndex)}
+                                                                className="text-red-500 hover:text-red-700"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <div className="flex flex-col items-start justify-between">
+                                                        <label className="block text-sm text-gray-700 mb-2">Sub Points (Optional)</label>
+                                                    </div>
+
+                                                    {point?.subpoints && point?.subpoints.length > 0 && (
+                                                        <div className="space-y-3 mb-3">
+                                                            {point.subpoints.map((subpoint, subIndex) => (
+                                                                <div key={subIndex} className="flex items-center gap-2">
+                                                                    <input
+                                                                        type="text"
+                                                                        value={subpoint}
+                                                                        placeholder={`Sub Point ${subIndex + 1}`}
+                                                                        onChange={(e) => handleProgramSubPointChange(programIndex, pointIndex, subIndex, e.target.value)}
+                                                                        className="w-full border border-gray-300 p-3 rounded-lg"
+                                                                    />
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => removeProgramSubPoint(programIndex, pointIndex, subIndex)}
+                                                                        className="text-red-500 hover:text-red-700"
+                                                                    >
+                                                                        <FaTimes className="w-4 h-4" />
+                                                                    </button>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => addProgramSubPoint(programIndex, pointIndex)}
+                                                        className="w-full px-4 py-3 bg-[#2F6288] text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                                                    >
+                                                        <FaPlus className="w-3 h-3" /> Add Sub Point
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+
+                                        <button
+                                            type="button"
+                                            onClick={() => addProgramPoint(programIndex)}
+                                            className="w-full px-4 py-3 bg-[#2F6288] text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                                        >
+                                            <FaPlus className="w-3 h-3" /> Add Point
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+
+                            <button
+                                onClick={addProgram}
+                                className="w-full px-4 py-3 bg-[#2F6288] text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                            >
+                                <FaPlus className="w-5 h-5" />
+                                Add Program Day
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Key Highlights */}
+                    <div className="mb-8">
+                        <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+                            Key Highlights <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
+                        </h2>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-md font-semibold text-gray-700 mb-2">Title</label>
+                                <input
+                                    type="text"
+                                    value={formData.keyHighlights.title}
+                                    placeholder="Enter title"
+                                    onChange={(e) => setFormData(prev => ({ ...prev, keyHighlights: { ...prev.keyHighlights, title: e.target.value } }))}
+                                    className="text-sm w-full border border-gray-300 p-3 rounded-lg"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-md font-semibold text-gray-700 mb-2">Points</label>
+                                <div className="space-y-3">
+                                    {formData.keyHighlights.points.map((pt, idx) => (
+                                        <div key={idx} className="flex items-center gap-2">
+                                            <input
+                                                type="text"
+                                                value={pt}
+                                                placeholder={`Point ${idx + 1}`}
+                                                onChange={(e) => {
+                                                    const updated = [...formData.keyHighlights.points];
+                                                    updated[idx] = e.target.value;
+                                                    setFormData(prev => ({ ...prev, keyHighlights: { ...prev.keyHighlights, points: updated } }));
+                                                }}
+                                                className="w-full border border-gray-300 p-3 rounded-lg"
+                                            />
+                                            {formData.keyHighlights.points.length > 1 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const updated = [...formData.keyHighlights.points];
+                                                        updated.splice(idx, 1);
+                                                        setFormData(prev => ({ ...prev, keyHighlights: { ...prev.keyHighlights, points: updated } }));
+                                                    }}
+                                                    className="text-red-500 hover:text-red-700"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setFormData(prev => ({ ...prev, keyHighlights: { ...prev.keyHighlights, points: [...prev.keyHighlights.points, ""] } }))}
+                                    className="w-full mt-3 px-4 py-3 bg-[#2F6288] text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                                >
+                                    <FaPlus className="w-3 h-3" /> Add Point
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Features (like retreat form) */}
+                    <div className="mb-8">
+                        <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+                            Features<span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
+                        </h2>
+
+                        <div className="space-y-6">
+                            {formData?.features && formData?.features.map((feature, index) => (
+                                <div key={index} className="p-6 bg-gray-50 rounded-lg border border-gray-200 relative">
+                                    <button
+                                        onClick={() => removeFeature(index)}
+                                        className="absolute top-4 right-4 text-red-500 hover:text-red-700 p-1"
+                                        title="Delete Feature"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+
+                                    <div className="mb-4">
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Feature Icon</label>
+                                        {feature.image ? (
+                                            <div className="relative inline-block mb-4">
+                                                <img
+                                                    src={feature?.image}
+                                                    alt="Preview"
+                                                    className="w-32 h-32 object-contain rounded"
+                                                />
+                                                <button
+                                                    onClick={() => handleFeatureChange(index, "image", null)}
+                                                    className="absolute top-1 right-1 bg-white border border-gray-300 rounded-full p-1 hover:bg-gray-200"
+                                                >
+                                                    <FaTimes size={12} />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className="mb-4">
+                                                <label
+                                                    htmlFor={`feature-upload-${index}`}
+                                                    className="w-full h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50"
+                                                >
+                                                    <img
+                                                        src="/assets/admin/upload.svg"
+                                                        alt="Upload Icon"
+                                                        className="w-12 h-12 mb-2"
+                                                    />
+                                                    <span>Click to upload feature icon</span>
+                                                    <input
+                                                        id={`feature-upload-${index}`}
+                                                        type="file"
+                                                        accept="image/*"
+                                                        onChange={(e) => handleFeatureImageChange(index, e.target.files[0])}
+                                                        className="hidden"
+                                                    />
+                                                </label>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="mb-4">
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Title</label>
+                                        <input
+                                            type="text"
+                                            value={feature?.title}
+                                            placeholder="Enter title"
+                                            onChange={(e) => handleFeatureChange(index, "title", e.target.value)}
+                                            className="w-full border border-gray-300 p-3 rounded-lg"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                                        <textarea
+                                            rows={3}
+                                            value={feature?.shortdescription}
+                                            placeholder="Enter short description"
+                                            onChange={(e) => handleFeatureChange(index, "shortdescription", e.target.value)}
+                                            className="w-full border border-gray-300 p-3 rounded-lg"
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+
+                            <button
+                                onClick={addFeature}
+                                className="w-full px-4 py-3 bg-[#2F6288] text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                            >
+                                <FaPlus className="w-5 h-5" />
+                                Add Feature
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* FAQS */}
+                    <div className="mb-8">
+                        <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+                            {isEditing ? "Edit FAQS" : "FAQS"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
+                        </h2>
+                        <div className="relative space-y-4">
+                            {formData.faqs.map((faq, i) => (
+                                <div key={i} className="space-y-4">
+                                    <div className="absolute right-0 justify-between items-center">
+                                        {formData.faqs.length > 1 && (
+                                            <button
+                                                onClick={() => removeFaq(i)}
+                                                className="text-red-500 hover:text-red-700 p-1"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-md font-semibold text-gray-700 mb-2">FAQ Title</label>
+                                        <input
+                                            placeholder="Enter FAQ Title"
+                                            value={faq.title}
+                                            onChange={(e) => handleFaqChange(i, "title", e.target.value)}
+                                            className="text-sm w-full border border-gray-300 p-3 rounded-lg "
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-md font-semibold text-gray-700 mb-2">Description</label>
+                                        <textarea
+                                            rows={4}
+                                            placeholder="Enter FAQ Description"
+                                            value={faq.description}
+                                            onChange={(e) => handleFaqChange(i, "description", e.target.value)}
+                                            className="text-sm w-full border border-gray-300 p-3 rounded-lg "
+                                        />
+                                    </div>
+
+                                    {errors[`faq_${i}`] && <p className="text-red-500 text-sm">{errors[`faq_${i}`]}</p>}
+                                </div>
+                            ))}
+
+                            <button
+                                onClick={addFaq}
+                                className="w-full px-4 py-3 bg-[#2F6288] text-white rounded-lg  transition-colors flex items-center justify-center gap-2"
+                            >
+                                Add New FAQ
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Meet Your Pilgrim Guide */}
+                    <div className="mb-8">
+                        <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+                            {isEditing ? "Edit Meet Your Pilgrim Guide" : "Meet Your Pilgrim Guide"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
+                        </h2>
+
+                        <div className="mb-6 pt-4 relative flex flex-col space-y-4">
+                            <label className="block text-md font-semibold text-gray-700 mb-2">Add Photo</label>
+                            {formData.guide[0].image ? (
+                                <div className="relative inline-block mb-4">
+                                    <img
+                                        src={formData.guide[0].image}
+                                        alt="Preview"
+                                        className="w-64 h-auto object-contain rounded shadow"
+                                    />
+                                    <button
+                                        onClick={handleGuideImageRemove}
+                                        className="absolute top-0 right-0 bg-white border border-gray-300 rounded-full p-1 transform translate-x-1/2 -translate-y-1/2 hover:bg-gray-200"
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                </div>
+                            ) : isGuideUploading ? (
+                                <div className="max-w-xs aspect-square border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center mb-4">
+                                    <div className="text-center flex flex-col items-center">
+                                        <div className="relative w-12 h-12 mb-3">
+                                            <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
+                                            <div
+                                                className="absolute inset-0 border-4 border-[#2F6288] rounded-full border-t-transparent animate-spin"
+                                                style={{
+                                                    background: `conic-gradient(from 0deg, #2F6288 ${guideUploadProgress * 3.6}deg, transparent ${guideUploadProgress * 3.6}deg)`
+                                                }}
+                                            ></div>
+                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                <span className="text-xs font-semibold text-[#2F6288]">{guideUploadProgress}%</span>
+                                            </div>
+                                        </div>
+                                        <p className="text-sm text-[#2F6288] font-medium">Uploading Guide Image...</p>
+                                        <div className="w-24 bg-gray-200 rounded-full h-2 mt-2">
+                                            <div
+                                                className="bg-[#2F6288] h-2 rounded-full transition-all duration-300"
+                                                style={{ width: `${guideUploadProgress}%` }}
+                                            ></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="mb-4">
+                                    <label
+                                        htmlFor="guide-upload"
+                                        className="max-w-xs aspect-square border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50"
+                                    >
+                                        <img
+                                            src="/assets/admin/upload.svg"
+                                            alt="Upload Icon"
+                                            className="w-12 h-12 mb-2"
+                                        />
+                                        <span>Click to upload image</span>
+                                        <span className="text-sm text-gray-400">Size: (402×453)px</span>
+                                        <input
+                                            id="guide-upload"
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => handleGuideImageChange(e.target.files[0])}
+                                            className="hidden"
+                                            disabled={isGuideUploading}
+                                        />
+                                    </label>
+                                </div>
+                            )}
+
+                            <label className="block text-md font-semibold text-gray-700 mb-2">Title</label>
+                            <input
+                                type="text"
+                                value={formData.guide[0].title}
+                                placeholder="Enter title"
+                                onChange={(e) => handleGuideChange("title", e.target.value)}
+                                className="text-sm w-full border border-gray-300 p-3 rounded-lg"
+                            />
+
+                            <label className="block text-md font-semibold text-gray-700 mb-2">Description</label>
+                            <textarea
+                                rows={4}
+                                value={formData.guide[0].description}
+                                placeholder="Enter description"
+                                onChange={(e) => handleGuideChange("description", e.target.value)}
+                                className="text-sm w-full border border-gray-300 p-3 rounded-lg"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Save Button */}
+                    <div className="flex gap-4">
+                        <button
+                            onClick={onSaveLive}
+                            className="text-sm flex p-4 bg-gradient-to-b from-[#C5703F] to-[#C16A00] text-white font-bold rounded-lg hover:bg-green-700 transition-colors"
+                        >
+                            {isEditing ? "Update Live Session" : "Add Live Session"}
+                        </button>
+                        {isEditing && (
+                            <button
+                                onClick={cancelEdit}
+                                className="text-sm px-8 py-4 bg-gray-500 text-white font-bold rounded-lg hover:bg-gray-600 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Current Recorded Sessions */}
+                    {allData && (
+                        <div className="mt-8">
+                            <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">Current Live Sessions <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span></h2>
+                            <DndProvider backend={HTML5Backend}>
+                                <div className="space-y-3">
+                                    {slideData.map((slide, index) => (
+                                        <SlideItem
+                                            key={index}
+                                            index={index}
+                                            slide={slide}
+                                            moveSlide={moveSlide}
+                                            removeSlide={removeSlide}
+                                            editSlide={editSlide}
+                                        />
+                                    ))}
+                                </div>
+                            </DndProvider>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );

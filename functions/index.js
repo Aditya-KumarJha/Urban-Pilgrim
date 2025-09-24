@@ -16,6 +16,161 @@ const cors = require("cors")({ origin: true });
 admin.initializeApp();
 const db = admin.firestore();
 
+// Live Session Slot Booking (Transactional)
+// Params: { sessionTitle, date, startTime, endTime, occupancyType: 'individual'|'couple'|'group', userId }
+exports.bookLiveSessionSlot = functions.https.onCall(async (data, context) => {
+    const { sessionTitle, date, startTime, endTime, occupancyType, userId } = data.data || {};
+
+    if (!sessionTitle || !date || !startTime || !endTime || !occupancyType || !userId) {
+        throw new functions.https.HttpsError('invalid-argument', 'Missing required parameters');
+    }
+
+    const docRef = db
+        .collection('pilgrim_sessions')
+        .doc('pilgrim_sessions')
+        .collection('sessions')
+        .doc('liveSession');
+
+    return await db.runTransaction(async (tx) => {
+        const snap = await tx.get(docRef);
+        if (!snap.exists) {
+            throw new functions.https.HttpsError('not-found', 'Live sessions data not found');
+        }
+
+        const dataObj = snap.data() || {};
+        const slides = Array.isArray(dataObj.slides) ? [...dataObj.slides] : [];
+        const idx = slides.findIndex((s) => {
+            const title = (s?.liveSessionCard?.title || '').toString();
+            return title === sessionTitle;
+        });
+        if (idx === -1) {
+            throw new functions.https.HttpsError('not-found', 'Live session not found');
+        }
+
+        const slide = { ...slides[idx] };
+        const liveSlots = Array.isArray(slide.liveSlots) ? [...slide.liveSlots] : [];
+        
+        // Find the specific slot
+        const slotIndex = liveSlots.findIndex(slot => 
+            slot.date === date && 
+            slot.startTime === startTime && 
+            slot.endTime === endTime
+        );
+        
+        if (slotIndex === -1) {
+            throw new functions.https.HttpsError('not-found', 'Slot not found');
+        }
+
+        const currentSlot = { ...liveSlots[slotIndex] };
+        const occType = occupancyType.toLowerCase();
+
+        // Determine capacity
+        let maxCap = 1;
+        if (occType === 'couple' || occType === 'twin') {
+            maxCap = 2;
+        } else if (occType === 'group') {
+            const gMax = Number(slide?.oneTimeSubscription?.groupMax || 0);
+            if (!gMax || gMax <= 0) {
+                throw new functions.https.HttpsError('failed-precondition', 'Group max not configured');
+            }
+            maxCap = gMax;
+        }
+
+        // Check if slot is locked for different occupancy type
+        const existingLock = currentSlot.lockedForType;
+        if (existingLock && existingLock !== occType) {
+            throw new functions.https.HttpsError('failed-precondition', `Slot is locked for ${existingLock} bookings`);
+        }
+
+        const booked = Number(currentSlot.bookedCount || 0);
+        if (booked >= maxCap) {
+            throw new functions.https.HttpsError('resource-exhausted', 'Slot is full');
+        }
+
+        // Update slot
+        currentSlot.bookedCount = booked + 1;
+        currentSlot.lockedForType = existingLock || occType; // Lock on first booking
+        liveSlots[slotIndex] = currentSlot;
+
+        slides[idx] = {
+            ...slide,
+            liveSlots,
+            bookings: [
+                ...(Array.isArray(slide.bookings) ? slide.bookings : []),
+                {
+                    userId,
+                    at: new Date().toISOString(),
+                    occupancyType: occType,
+                    date,
+                    startTime,
+                    endTime,
+                },
+            ],
+        };
+
+        tx.update(docRef, { slides });
+        return { success: true, bookedCount: currentSlot.bookedCount, maxCap, lockedForType: currentSlot.lockedForType };
+    });
+});
+
+// Cancel Live Session Slot Booking
+exports.cancelLiveSessionSlot = functions.https.onCall(async (data, context) => {
+    const { sessionTitle, date, startTime, endTime, occupancyType, userId } = data.data || {};
+    
+    if (!sessionTitle || !date || !startTime || !endTime || !occupancyType) {
+        throw new functions.https.HttpsError('invalid-argument', 'Missing required parameters');
+    }
+
+    const docRef = db
+        .collection('pilgrim_sessions')
+        .doc('pilgrim_sessions')
+        .collection('sessions')
+        .doc('liveSession');
+
+    return await db.runTransaction(async (tx) => {
+        const snap = await tx.get(docRef);
+        if (!snap.exists) throw new functions.https.HttpsError('not-found', 'Live sessions data not found');
+
+        const dataObj = snap.data() || {};
+        const slides = Array.isArray(dataObj.slides) ? [...dataObj.slides] : [];
+        const idx = slides.findIndex((s) => ((s?.liveSessionCard?.title || '') === sessionTitle));
+        if (idx === -1) throw new functions.https.HttpsError('not-found', 'Live session not found');
+
+        const slide = { ...slides[idx] };
+        const liveSlots = Array.isArray(slide.liveSlots) ? [...slide.liveSlots] : [];
+        
+        const slotIndex = liveSlots.findIndex(slot => 
+            slot.date === date && 
+            slot.startTime === startTime && 
+            slot.endTime === endTime
+        );
+        
+        if (slotIndex === -1) throw new functions.https.HttpsError('not-found', 'Slot not found');
+
+        const currentSlot = { ...liveSlots[slotIndex] };
+        const booked = Number(currentSlot.bookedCount || 0);
+        currentSlot.bookedCount = Math.max(0, booked - 1);
+        
+        // Remove lock if no more bookings
+        if (currentSlot.bookedCount === 0) {
+            delete currentSlot.lockedForType;
+        }
+        
+        liveSlots[slotIndex] = currentSlot;
+
+        slides[idx] = {
+            ...slide,
+            liveSlots,
+            bookings: (Array.isArray(slide.bookings) ? slide.bookings : []).filter(b => 
+                !(b.userId === userId && b.date === date && b.startTime === startTime && b.endTime === endTime && b.occupancyType === occupancyType.toLowerCase())
+            ),
+        };
+
+        tx.update(docRef, { slides });
+        return { success: true, bookedCount: currentSlot.bookedCount };
+    });
+});
+
 // Guide Monthly Weekly Slot Booking (Transactional)
 // Params: { guideTitle, mode: 'online'|'offline', rowIdx, tIdx, type: 'individual'|'couple'|'group', userId }
 exports.bookGuideMonthlyWeeklySlot = functions.https.onCall(async (data, context) => {
@@ -870,7 +1025,8 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                             if (
                                 slide?.liveSessionCard?.title === program.title
                             ) {
-                                return {
+                                // Add user to purchasedUsers array
+                                const updatedSlide = {
                                     ...slide,
                                     purchasedUsers: [
                                         ...(slide.purchasedUsers || []),
@@ -878,16 +1034,81 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                                             uid: userId,
                                             name,
                                             email,
-                                            purchasedAt:
-                                                new Date().toISOString(),
-                                            paymentId:
-                                                paymentResponse.razorpay_payment_id,
-                                            orderId:
-                                                paymentResponse.razorpay_order_id,
+                                            purchasedAt: new Date().toISOString(),
+                                            paymentId: paymentResponse.razorpay_payment_id,
+                                            orderId: paymentResponse.razorpay_order_id,
+                                            occupancyType: program.occupancyType,
+                                            slots: program.slots,
                                             ...formData,
                                         },
                                     ],
                                 };
+
+                                // Handle slot booking and capacity management for live sessions
+                                try {
+                                    if (Array.isArray(program.slots) && program.slots.length > 0) {
+                                        // Update liveSlots array with booking counts and locks
+                                        let liveSlots = Array.isArray(updatedSlide.liveSlots) ? [...updatedSlide.liveSlots] : [];
+                                        
+                                        program.slots.forEach(bookedSlot => {
+                                            const slotKey = `${bookedSlot.date}|${bookedSlot.startTime}|${bookedSlot.endTime}`;
+                                            
+                                            // Find matching slot in liveSlots array
+                                            const slotIndex = liveSlots.findIndex(slot => 
+                                                slot.date === bookedSlot.date && 
+                                                slot.startTime === bookedSlot.startTime && 
+                                                slot.endTime === bookedSlot.endTime
+                                            );
+                                            
+                                            if (slotIndex !== -1) {
+                                                const currentSlot = { ...liveSlots[slotIndex] };
+                                                const currentBooked = Number(currentSlot.bookedCount || 0);
+                                                const occType = (program.occupancyType || '').toString().toLowerCase();
+                                                
+                                                // Determine capacity based on occupancy type
+                                                let maxCapacity = 1; // default for individual
+                                                if (occType.includes('couple') || occType.includes('twin')) {
+                                                    maxCapacity = 2;
+                                                } else if (occType.includes('group')) {
+                                                    const groupMax = Number(updatedSlide?.oneTimeSubscription?.groupMax || 0);
+                                                    maxCapacity = groupMax > 0 ? groupMax : 1;
+                                                }
+                                                
+                                                // Check if slot is already locked for different occupancy type
+                                                const existingLock = currentSlot.lockedForType;
+                                                if (existingLock && existingLock !== occType) {
+                                                    console.log(`Slot ${slotKey} is locked for ${existingLock}, cannot book for ${occType}`);
+                                                    return; // Skip this slot
+                                                }
+                                                
+                                                // Check capacity
+                                                if (currentBooked >= maxCapacity) {
+                                                    console.log(`Slot ${slotKey} is full (${currentBooked}/${maxCapacity})`);
+                                                    return; // Skip this slot
+                                                }
+                                                
+                                                // Update slot with new booking count and lock
+                                                const newBookedCount = Math.min(maxCapacity, currentBooked + 1);
+                                                liveSlots[slotIndex] = {
+                                                    ...currentSlot,
+                                                    bookedCount: newBookedCount,
+                                                    lockedForType: existingLock || occType // Lock on first booking
+                                                };
+                                                
+                                                console.log(`Updated slot ${slotKey}: bookedCount=${newBookedCount}, lockedForType=${liveSlots[slotIndex].lockedForType}`);
+                                            } else {
+                                                console.log(`Slot not found in liveSlots array: ${slotKey}`);
+                                            }
+                                        });
+                                        
+                                        // Update the slide with modified liveSlots
+                                        updatedSlide.liveSlots = liveSlots;
+                                    }
+                                } catch (slotErr) {
+                                    console.error('Error updating live session slots after booking:', slotErr);
+                                }
+
+                                return updatedSlide;
                             }
                             return slide;
                         });

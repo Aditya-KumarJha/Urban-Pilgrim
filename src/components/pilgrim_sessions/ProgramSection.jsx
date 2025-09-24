@@ -1,6 +1,6 @@
 export default function ProgramSection( { program, journey } ) {
   return (
-    <div className="max-w-7xl md:px-6 pt-0 pb-8 space-y-10 text-[#111]">
+    <div className="max-w-7xl md:px-6 pt-5 pb-8 space-y-10 text-[#111]">
       {/* About the Program */}
       <section className="space-y-4">
         <h2 className="md:text-2xl text-xl font-bold">{program?.title}</h2>

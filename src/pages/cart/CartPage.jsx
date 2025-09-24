@@ -13,6 +13,7 @@ import { setUser } from "../../features/authSlice";
 import Loader2 from "../../components/Loader2.jsx";
 import { addUserPrograms } from "../../features/userProgramsSlice.js";
 import { prepareCheckoutData, prepareUserProgramsData } from "../../utils/cartUtils.js";
+import { reserveLiveSlotsAfterPayment } from "../../utils/liveBookingUtils";
 import { validateCoupon } from "../../utils/couponUtils.js";
 
 export default function CartPage() {
@@ -140,6 +141,18 @@ export default function CartPage() {
 							originalCartData: checkoutData.originalCartData // Original bundles for reference
 						});
 						console.log("data from confirmPayment: ", dataContent);
+
+						// Reserve live session slots (AFTER payment success)
+						try {
+							const liveItems = (cartData || []).filter(it => it?.type === 'live' && Array.isArray(it?.slots) && it?.sessionId);
+							for (const item of liveItems) {
+								const occ = (item.occupancyType || '').toLowerCase();
+								await reserveLiveSlotsAfterPayment(item.sessionId, occ, item.slots);
+							}
+						} catch (e) {
+							console.error('Failed to reserve live slots after payment', e);
+							// Do not block success flow; proceed
+						}
 
 						// Add programs to user's purchased programs in Redux with expiration data
 						// Also attach paymentId so UserDashboard shows status as Completed immediately

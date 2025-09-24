@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { FiChevronDown } from "react-icons/fi";
 import { motion } from "framer-motion";
 import { useNavigate, useParams } from "react-router-dom";
 import ProgramSchedule from "../../components/pilgrim_retreats/ProgramSchedule";
@@ -12,9 +13,10 @@ import SubscriptionCard from "../../components/pilgrim_sessions/SubscriptionCard
 import ProgramSection from "../../components/pilgrim_sessions/ProgramSection";
 import { useDispatch, useSelector } from "react-redux";
 import { addToCart } from "../../features/cartSlice.js";
-import { showSuccess } from "../../utils/toast.js";
+import { showSuccess, showError } from "../../utils/toast.js";
 import BundlesPopup from "../../components/pilgrim_retreats/BundlesPopup.jsx";
 import { fetchAllEvents } from "../../utils/fetchEvents";
+import LiveCalendarModal from "../../components/pilgrim_sessions/LiveCalendarModal";
 
 export default function LiveDetails() {
     const params = useParams();
@@ -26,8 +28,37 @@ export default function LiveDetails() {
     const navigate = useNavigate();
 
     const [showAll, setShowAll] = useState(false);
+    const [showCalendar, setShowCalendar] = useState(false);
+    const [occupancyType, setOccupancyType] = useState('individual'); // individual | couple | group
+    const [mode, setMode] = useState(null); // Offline | Online
+    const [dropdownOpen, setDropdownOpen] = useState(false);
 
-    const slots = programData?.liveSlots || [];
+    // Auto-set mode based on availability if provided (mirror Guide)
+    useEffect(() => {
+        if (programData?.liveSessionCard?.subCategory) {
+            const sub = programData.liveSessionCard.subCategory.toLowerCase();
+            if (sub === "offline") setMode("Offline");
+            else if (sub === "online") setMode("Online");
+            else if (sub === "both") setMode("Offline"); // default
+        }
+    }, [programData]);
+
+    // Use admin liveSlots (since One-Time Slots editor is removed)
+    const slots = (programData?.liveSlots || []).filter(s => !!s?.date);
+
+    // Available types are determined ONLY by pricing provided in admin
+    const otp = programData?.oneTimeSubscription || {};
+    const availableTypes = [
+        (otp?.individualPrice || otp?.price) ? 'individual' : null,
+        otp?.couplesPrice ? 'couple' : null,
+        otp?.groupPrice ? 'group' : null,
+    ].filter(Boolean);
+
+    useEffect(() => {
+        if (availableTypes.length > 0 && !availableTypes.includes(occupancyType)) {
+            setOccupancyType(availableTypes[0]);
+        }
+    }, [programData, availableTypes.join(',' )]);
     // Group slots by date to support multiple time ranges per date
     const groupedByDate = (slots || []).reduce((acc, s) => {
         if (!s?.date) return acc;
@@ -35,7 +66,14 @@ export default function LiveDetails() {
         acc[s.date].push(s);
         return acc;
     }, {});
-    const sortedDates = Object.keys(groupedByDate).sort();
+    const sortedDates = Object.keys(groupedByDate)
+        .filter(d => {
+            // Only show upcoming dates using local YMD comparison
+            const now = new Date();
+            const todayYmd = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+            return (d || '') >= todayYmd;
+        })
+        .sort();
     const visibleDates = showAll ? sortedDates : sortedDates.slice(0, 2);
 
     useEffect(() => {
@@ -43,6 +81,7 @@ export default function LiveDetails() {
     }, []);
 
     const Data = useSelector((state) => state.pilgrimLiveSession.LiveSession);
+    const cartItems = useSelector((state) => state.cart.items || []);
     const userPrograms = useSelector((state) => state.userProgram);
     
     // Get events from Redux store
@@ -92,29 +131,24 @@ export default function LiveDetails() {
     const decrement = () => setPersons((prev) => (prev > 1 ? prev - 1 : 1));
 
     const handleSubscriptionClick = () => {
-        // Show bundles popup instead of directly adding to cart
-        setShowBundlesPopup(true);
+        // Open calendar modal for slot selection for one-time live sessions
+        setShowCalendar(true);
     };
 
-    const handleDirectAddToCart = () => {
-        if (!programData) return;
-
-        const cartItem = {
-            id: programData?.liveSessionCard?.title, // use unique id if available
-            title: programData.liveSessionCard?.title,
-            price: programData?.oneTimeSubscription?.price,
-            persons,
-            image: programData?.liveSessionCard?.thumbnail,
-            quantity: 1,
-            type: "live",
-            organizer: programData?.organizer,
-            slots: programData?.liveSlots || [],
-        };
-
-        dispatch(addToCart(cartItem));
-        console.log("Added to cart:", cartItem);
-        showSuccess("Added to cart!");
+    const handleFreeTrialClick = () => {
+        // If there is a free trial asset on the program, open it; else show message
+        const trial = programData?.freeTrialVideo || programData?.freeTrialLink;
+        if (trial && typeof trial === 'string') {
+            window.open(trial, '_blank');
+        } else {
+            showError('Free trial is not available for this program');
+        }
     };
+
+    const handleViewPreviousBooking = () => {
+        navigate('/user-dashboard');
+    };
+
 
     const redirectToSession = () => {
         if (!programData) return;
@@ -223,36 +257,32 @@ export default function LiveDetails() {
                             </span>
                         </div>
 
-                        {/* No. of persons/session */}
-                        <div className="flex flex-wrap items-center gap-2 text-sm text-[#787B7B] font-bold">
-                            <img
-                                src="/assets/program/people.svg"
-                                alt="package"
-                                className="h-4 w-4"
-                            />
-                            <span className="mr-1">No. of persons/session:</span>
-                            <span className="flex items-center gap-2 px-2 sm:px-4 py-1 sm:py-2 bg-white border-[#D69A75] border rounded-full">
-                                <button
-                                    onClick={decrement}
-                                    className="px-1 sm:px-2 text-base sm:text-lg font-bold"
-                                    aria-label="Decrease persons"
-                                >
-                                    −
-                                </button>
-                                <span className="min-w-[20px] text-center">{persons}</span>
-                                <button
-                                    onClick={increment}
-                                    className="px-1 sm:px-2 text-base sm:text-lg font-bold"
-                                    aria-label="Increase persons"
-                                >
-                                    +
-                                </button>
-                            </span>
-                        </div>
+                        {/* Occupancy selection - show only available types based on pricing */}
+                        {(() => {
+                            const available = availableTypes;
+                            if (available.length === 0) return null;
+                            return (
+                                <div className="flex flex-wrap items-center gap-2 text-sm text-[#787B7B] font-bold">
+                                    <img src="/assets/program/people.svg" alt="people" className="h-4 w-4" />
+                                    <span className="mr-1">Type:</span>
+                                    <div className="flex items-center gap-2">
+                                        {available.includes('individual') && (
+                                            <button onClick={() => setOccupancyType('individual')} className={`px-3 py-1 rounded-full border ${occupancyType==='individual' ? 'border-[#C5703F] bg-[#C5703F] text-white' : 'border-gray-300 bg-white'}`}>Individual</button>
+                                        )}
+                                        {available.includes('couple') && (
+                                            <button onClick={() => setOccupancyType('couple')} className={`px-3 py-1 rounded-full border ${occupancyType==='couple' ? 'border-[#C5703F] bg-[#C5703F] text-white' : 'border-gray-300 bg-white'}`}>Couple</button>
+                                        )}
+                                        {available.includes('group') && (
+                                            <button onClick={() => setOccupancyType('group')} className={`px-3 py-1 rounded-full border ${occupancyType==='group' ? 'border-[#C5703F] bg-[#C5703F] text-white' : 'border-gray-300 bg-white'}`}>Group</button>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })()}
                     </div>
 
                     {/* time slots (grouped by date) */}
-                    {sortedDates.length > 0 && (
+                    {sortedDates.length > 0 ? (
                         <div className="text-[#787B7B] mt-5">
                             <p>
                                 <span className="font-medium">Program starts - </span>
@@ -307,18 +337,40 @@ export default function LiveDetails() {
                                 </button>
                             )}
                         </div>
-                    )}
+                    ) : null}
 
-                    <SubscriptionCard
-                        price={programData?.oneTimeSubscription?.price}
-                        handleClick={handleSubscriptionClick}
-                        title={programData?.liveSessionCard?.title}
-                        redirectToProgram={redirectToSession}
-                        programType="session"
-                    />
+                    {/* Primary CTA: Book Now (full-width, blue, rounded) */}
+                    <button
+                        type="button"
+                        onClick={handleSubscriptionClick}
+                        className="w-full sm:w-[360px] px-5 py-3 rounded-md bg-[#2F6288] text-white font-semibold hover:bg-[#244c6a] self-start"
+                    >
+                        Book Now
+                    </button>
 
-                    {   programData?.programSchedule.length>0 && (
-                            <div className="flex flex-col">
+                    {/* Secondary CTA below Book Now */}
+                    <div className="mt-3 flex flex-col gap-3">
+                        {!alreadyPurchased ? (
+                            <button
+                                type="button"
+                                onClick={handleFreeTrialClick}
+                                className="w-full sm:w-[360px] px-5 py-3 rounded-md border-2 border-[#2F6288] text-[#2F6288] font-semibold hover:bg-[#f7fbff] text-sm self-start"
+                            >
+                                Get a Free Trial
+                            </button>
+                        ) : (
+                            <button
+                                type="button"
+                                onClick={handleViewPreviousBooking}
+                                className="w-full sm:w-[360px] px-5 py-3 rounded-md border-2 border-[#2F6288] text-[#2F6288] font-semibold hover:bg-[#f7fbff] text-sm self-start"
+                            >
+                                See your previous booking
+                            </button>
+                        )}
+                    </div>
+
+                    {   programData?.programSchedule.length > 0 && (
+                            <div className="flex flex-col mt-5">
                                 <p className="text-lg font-semibold text-gray-800 mt-4">
                                     Program Schedule
                                 </p>
@@ -328,7 +380,10 @@ export default function LiveDetails() {
                     }
 
                     <ProgramSection program={programData?.aboutProgram} journey={programData?.keyHighlights} />
-                    <FeatureProgram features={programData?.features} />
+                    {
+                        programData?.features.length > 0 &&
+                        <FeatureProgram features={programData?.features} />
+                    }
                     { programData?.faqs[0].title !== "" && 
                         <Faqs faqs={programData?.faqs} />
                     }
@@ -377,22 +432,90 @@ export default function LiveDetails() {
                 </motion.div>
             </div>
 
-            {/* Bundles Popup */}
-            <BundlesPopup 
-                isOpen={showBundlesPopup}
-                onClose={() => setShowBundlesPopup(false)}
-                programType="live"
-                retreatData={{
-                    id: programData?.liveSessionCard?.title,
-                    pilgrimRetreatCard: {
+            {/* Calendar Modal for one-time live sessions */}
+            <LiveCalendarModal
+                isOpen={showCalendar}
+                onClose={() => setShowCalendar(false)}
+                sessionData={{
+                    guideCard: {
                         title: programData?.liveSessionCard?.title,
-                        price: programData?.oneTimeSubscription?.price,
-                        location: programData?.liveSessionCard?.location
+                        thumbnail: programData?.liveSessionCard?.thumbnail
                     },
-                    oneTimeSubscription: {
-                        images: [programData?.liveSessionCard?.thumbnail]
+                    organizer: programData?.organizer,
+                    online: {
+                        oneTime: {
+                            price: (() => {
+                                const occ = (occupancyType || '').toLowerCase();
+                                const otp = programData?.oneTimeSubscription || {};
+                                if (occ.includes('individual')) return Number(otp?.individualPrice || otp?.price || 0);
+                                if (occ.includes('couple') || occ.includes('twin')) return Number(otp?.couplesPrice || otp?.price || 0);
+                                if (occ.includes('group')) return Number(otp?.groupPrice || otp?.price || 0);
+                                return Number(otp?.price || 0);
+                            })(),
+                            slotBookings: (() => {
+                                // Convert slot bookedCount to slotBookings format expected by CalendarModal
+                                const bookings = {};
+                                (programData?.liveSlots || []).forEach(slot => {
+                                    const key = `${slot.date}|${slot.startTime}|${slot.endTime}`;
+                                    bookings[key] = slot.bookedCount || 0;
+                                });
+                                return bookings;
+                            })(),
+                            slotLocks: (() => {
+                                // Create slot locks based on first booking occupancy type
+                                const locks = {};
+                                (programData?.liveSlots || []).forEach(slot => {
+                                    if (slot.bookedCount > 0 && slot.lockedForType) {
+                                        const key = `${slot.date}|${slot.startTime}|${slot.endTime}`;
+                                        locks[key] = slot.lockedForType;
+                                    }
+                                });
+                                return locks;
+                            })()
+                        }
+                    },
+                    offline: {
+                        oneTime: {
+                            price: (() => {
+                                const occ = (occupancyType || '').toLowerCase();
+                                const otp = programData?.oneTimeSubscription || {};
+                                if (occ.includes('individual')) return Number(otp?.individualPrice || otp?.price || 0);
+                                if (occ.includes('couple') || occ.includes('twin')) return Number(otp?.couplesPrice || otp?.price || 0);
+                                if (occ.includes('group')) return Number(otp?.groupPrice || otp?.price || 0);
+                                return Number(otp?.price || 0);
+                            })(),
+                            slotBookings: (() => {
+                                const bookings = {};
+                                (programData?.liveSlots || []).forEach(slot => {
+                                    const key = `${slot.date}|${slot.startTime}|${slot.endTime}`;
+                                    bookings[key] = slot.bookedCount || 0;
+                                });
+                                return bookings;
+                            })(),
+                            slotLocks: (() => {
+                                const locks = {};
+                                (programData?.liveSlots || []).forEach(slot => {
+                                    if (slot.bookedCount > 0 && slot.lockedForType) {
+                                        const key = `${slot.date}|${slot.startTime}|${slot.endTime}`;
+                                        locks[key] = slot.lockedForType;
+                                    }
+                                });
+                                return locks;
+                            })()
+                        }
                     }
                 }}
+                selectedPlan="oneTime"
+                mode={mode || "Online"}
+                availableSlots={programData?.liveSlots || []}
+                personsPerBooking={1}
+                occupancyType={occupancyType}
+                capacityMax={(() => {
+                    const occ = (occupancyType || '').toLowerCase();
+                    if (occ.includes('group')) return Number(programData?.oneTimeSubscription?.groupMax || 0);
+                    if (occ.includes('couple')) return 2;
+                    return 1; // individual
+                })()}
             />
         </>
     );
