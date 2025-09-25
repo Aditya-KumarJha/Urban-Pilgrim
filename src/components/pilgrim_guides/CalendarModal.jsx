@@ -14,7 +14,8 @@ export default function CalendarModal({
     availableSlots = [],
     personsPerBooking = 1,
     occupancyType = '',
-    capacityMax = 0
+    capacityMax = 0,
+    onAddToCart
 }) {
     console.log("sessionData", sessionData);
     console.log("selectedPlan", selectedPlan);
@@ -109,7 +110,13 @@ export default function CalendarModal({
                 date: slot.date,
                 timestamp: new Date().toISOString()
             };
-            dispatch(addToCart(cartItem));
+            
+            // Use parent onAddToCart if provided, otherwise dispatch
+            if (typeof onAddToCart === 'function') {
+                onAddToCart(cartItem);
+            } else {
+                dispatch(addToCart(cartItem));
+            }
         });
 
         showSuccess(`${selectedSlotsMulti.length} slot(s) added to cart!`);

@@ -1172,9 +1172,38 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
         // ------------------------
         // 3) Send Emails
         // ------------------------
+        // Enhanced program list with monthly slot details
         const programList = cartData
-            .map((p) => `${p.title} (₹${p.price} x${p.quantity})`)
-            .join(", ");
+            .map((p) => {
+                let programDetails = `<strong>${p.title}</strong> (₹${p.price} x${p.quantity})`;
+                
+                // Add monthly slot details if available
+                if (p.selectedSlots && Array.isArray(p.selectedSlots) && p.selectedSlots.length > 0) {
+                    programDetails += `<br><small style="color: #666; margin-left: 10px;">`;
+                    programDetails += `📅 ${p.selectedSlots.length} sessions scheduled`;
+                    
+                    // Show occupancy type and status
+                    if (p.occupancyType) {
+                        const occupancyLabel = p.occupancyType.charAt(0).toUpperCase() + p.occupancyType.slice(1);
+                        programDetails += ` • ${occupancyLabel} booking`;
+                        
+                        if (p.occupancyType === 'group') {
+                            if (p.status === 'waiting') {
+                                programDetails += ` • ⏳ Waiting for minimum participants`;
+                            } else if (p.status === 'active') {
+                                programDetails += ` • ✅ Active`;
+                            }
+                        } else {
+                            programDetails += ` • ✅ Confirmed`;
+                        }
+                    }
+                    
+                    programDetails += `</small>`;
+                }
+                
+                return programDetails;
+            })
+            .join("<br><br>");
 
         // Email to user
         await transporter.sendMail({
@@ -1225,10 +1254,47 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                                 </div>
                             </div>
                             
+                            ${cartData.some(p => p.selectedSlots && p.selectedSlots.length > 0) ? `
+                            <!-- Monthly Schedule Details -->
+                            <div style="background: #e8f4fd; border: 1px solid #b3d9ff; border-radius: 12px; padding: 20px; margin: 25px 0;">
+                                <h3 style="color: #1976d2; margin: 0 0 15px 0; font-size: 18px;">📅 Your Session Schedule</h3>
+                                ${cartData.filter(p => p.selectedSlots && p.selectedSlots.length > 0).map(program => `
+                                    <div style="background: white; border-radius: 8px; padding: 15px; margin: 10px 0; border-left: 4px solid #1976d2;">
+                                        <h4 style="color: #2F6288; margin: 0 0 10px 0; font-size: 16px;">${program.title}</h4>
+                                        <p style="color: #666; margin: 0 0 10px 0; font-size: 14px;">
+                                            <strong>Mode:</strong> ${program.mode} • 
+                                            <strong>Type:</strong> ${program.occupancyType ? program.occupancyType.charAt(0).toUpperCase() + program.occupancyType.slice(1) : 'Individual'}
+                                        </p>
+                                        ${program.occupancyType === 'group' && program.status === 'waiting' ? `
+                                            <div style="background: #fff3cd; padding: 8px 12px; border-radius: 4px; margin: 8px 0;">
+                                                <small style="color: #856404;">⏳ <strong>Group Status:</strong> Waiting for minimum participants (7 days). You'll be notified once confirmed.</small>
+                                            </div>
+                                        ` : ''}
+                                        <div style="margin-top: 10px;">
+                                            <strong style="color: #333;">Sessions (${program.selectedSlots.length}):</strong>
+                                            <div style="margin-top: 8px;">
+                                                ${program.selectedSlots.map((slot, index) => `
+                                                    <div style="background: #f8f9fa; padding: 8px 12px; border-radius: 4px; margin: 4px 0; font-size: 13px;">
+                                                        <strong>Session ${index + 1}:</strong> ${new Date(slot.date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })} 
+                                                        at ${slot.startTime.split('T')[1]?.split('+')[0] || slot.startTime} - ${slot.endTime.split('T')[1]?.split('+')[0] || slot.endTime}
+                                                    </div>
+                                                `).join('')}
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            ` : ''}
+                            
                             <!-- Next Steps -->
                             <div style="background: linear-gradient(135deg, #2F6288, #C5703F); border-radius: 12px; padding: 20px; margin: 25px 0; text-align: center;">
                                 <h3 style="color: #ffffff; margin: 0 0 10px 0; font-size: 18px;">🚀 What's Next?</h3>
-                                <p style="color: #ffffff; margin: 0; opacity: 0.9; font-size: 14px;">You'll receive separate emails with session details and calendar invites for your programs.</p>
+                                <p style="color: #ffffff; margin: 0; opacity: 0.9; font-size: 14px;">
+                                    ${cartData.some(p => p.selectedSlots && p.selectedSlots.length > 0) ? 
+                                        'Calendar invites have been sent for all your sessions. Check your email and calendar for session details.' : 
+                                        'You\'ll receive separate emails with session details and calendar invites for your programs.'
+                                    }
+                                </p>
                             </div>
                             
                             <div style="text-align: center; margin: 30px 0;">
@@ -1433,18 +1499,42 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                 (program.type === "guide" || program.category === "guide") &&
                 program.slot && program.date
             ) {
+                // Debug: Log program data for guide calendar
+                console.log("=== GUIDE CALENDAR DEBUG ===");
+                console.log("Program data:", JSON.stringify(program, null, 2));
+                console.log("Program date:", program.date);
+                console.log("Program slot:", JSON.stringify(program.slot, null, 2));
+                
                 // Build local datetime strings and validate range
                 const durationMin = Number(program?.slot?.duration || program?.duration || 60);
-                const startLocal = `${program.date}T${program.slot.time}:00`;
-                let endLocal = `${program.date}T${program.slot.endTime || program.slot.time}:00`;
+                
+                // Handle different time formats - check if already in RFC3339 format
+                let startTime = program.slot.startTime || program.slot.time;
+                let endTime = program.slot.endTime;
+                
+                let startLocal, endLocal;
+                
+                // Check if startTime is already in RFC3339 format (contains 'T' and timezone)
+                if (startTime && startTime.includes('T') && startTime.includes('+')) {
+                    // Already in RFC3339 format
+                    startLocal = startTime;
+                    endLocal = endTime || startTime;
+                } else {
+                    // Convert from simple time format
+                    startLocal = `${program.date}T${startTime}:00+05:30`;
+                    endLocal = endTime ? `${program.date}T${endTime}:00+05:30` : `${program.date}T${startTime}:00+05:30`;
+                }
 
+                // Validate and fix end time if needed
                 const toMs = (s) => new Date(s).getTime();
-                if (!program.slot.endTime || toMs(endLocal) <= toMs(startLocal)) {
+                if (!endTime || toMs(endLocal) <= toMs(startLocal)) {
                     const duration = Number(program.slot.duration || program.duration || 60);
                     const endMs = new Date(startLocal).getTime() + duration * 60 * 1000;
-                    const endIso = new Date(endMs).toISOString();
-                    endLocal = endIso.slice(0, 19); // YYYY-MM-DDTHH:MM:SS
+                    endLocal = new Date(endMs).toISOString().replace('Z', '+05:30');
                 }
+
+                console.log("Processed startLocal:", startLocal);
+                console.log("Processed endLocal:", endLocal);
 
                 // Occupancy type label for event/email
                 const occRaw = (program.occupancyType || 'individual').toString().toLowerCase();
@@ -1453,7 +1543,7 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                 // Build Google Calendar event for organizer calendar
                 const guideEvent = {
                     summary: `Guide Session: ${program.title}`,
-                    description: `Urban Pilgrim — Guide session booking for ${program.title}\nMode: ${program.mode}\nType: ${typeLabel}\nDate: ${program.date}\nTime: ${program.slot.time}${program.slot.endTime ? ` - ${program.slot.endTime}` : ''}`,
+                    description: `Urban Pilgrim — Guide session booking for ${program.title}\nMode: ${program.mode}\nType: ${typeLabel}\nDate: ${program.date}\nTime: ${startTime}${endTime ? ` - ${endTime}` : ''}`,
                     location: program.mode === 'Offline' ? (program.slot.location || 'In-person Session') : (program?.organizer?.googleMeetLink || 'Online'),
                     start: { dateTime: startLocal, timeZone: "Asia/Kolkata" },
                     end:   { dateTime: endLocal,   timeZone: "Asia/Kolkata" },
@@ -1464,22 +1554,102 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                     ],
                     source: { title: 'Urban Pilgrim', url: 'https://urbanpilgrim.in' },
                 };
+                
+                console.log("Google Calendar Insert Payload:", JSON.stringify(guideEvent, null, 2));
+                console.log("=== END GUIDE CALENDAR DEBUG ===");
 
                 // Insert calendar event only for Online mode; do not block on failure
                 if (calendar) {
                     try {
-                        await calendar.events.insert({
+                        console.log("Attempting calendar insert with calendarId:", organizerCalendar);
+                        const result = await calendar.events.insert({
                             calendarId: organizerCalendar,
                             resource: guideEvent,
                             sendUpdates: "all",
                         });
+                        console.log("Guide calendar insert successful:", result.data.id);
                     } catch (e) {
-                        console.warn('Guide calendar insert failed:', e?.message || e);
+                        console.error('Guide calendar insert failed:', e?.message || e);
+                        console.error('Calendar ID used:', organizerCalendar);
+                        console.error('Event payload that failed:', JSON.stringify(guideEvent, null, 2));
+                        // Don't throw error - just log it so payment can continue
                     }
                 }
 
-                // Organizer mail HTML (Urban Pilgrim branding) including Type
+                // Enhanced email template for monthly bookings with all slots
                 const meetLink = program?.organizer?.googleMeetLink || '';
+                
+                // Generate slots HTML for monthly bookings
+                let slotsHtml = '';
+                let calendarEventsToCreate = [];
+                
+                if (program.selectedSlots && Array.isArray(program.selectedSlots) && program.selectedSlots.length > 0) {
+                    // Monthly booking - show all selected slots
+                    slotsHtml = `
+                        <div style="background: #e8f4fd; border: 1px solid #b3d9ff; border-radius: 10px; padding: 16px; margin: 16px 0;">
+                            <h3 style="color: #1976d2; margin: 0 0 12px 0; font-size: 16px;">📅 Monthly Session Schedule (${program.selectedSlots.length} sessions)</h3>
+                            <div style="display: grid; gap: 8px;">
+                    `;
+                    
+                    program.selectedSlots.forEach((slot, index) => {
+                        const slotDate = new Date(slot.date).toLocaleDateString('en-US', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                        });
+                        
+                        slotsHtml += `
+                            <div style="background: white; padding: 12px; border-radius: 6px; border-left: 4px solid #1976d2;">
+                                <strong>Session ${index + 1}:</strong> ${slotDate}<br>
+                                <span style="color: #666;">⏰ ${slot.startTime} - ${slot.endTime} (Asia/Kolkata)</span>
+                                ${program.mode === 'Online' && meetLink ? `<br><span style="color: #1976d2;">🔗 <a href="${meetLink}" target="_blank">Join Meeting</a></span>` : ''}
+                            </div>
+                        `;
+                        
+                        // Prepare calendar events for each slot
+                        calendarEventsToCreate.push({
+                            summary: `${program.title} - Session ${index + 1}`,
+                            description: `Urban Pilgrim — Guide session booking for ${program.title}\nMode: ${program.mode}\nType: ${typeLabel}\nSession ${index + 1} of ${program.selectedSlots.length}`,
+                            location: program.mode === 'Offline' ? (slot.location || 'In-person Session') : meetLink,
+                            start: { dateTime: slot.startTime, timeZone: "Asia/Kolkata" },
+                            end: { dateTime: slot.endTime, timeZone: "Asia/Kolkata" },
+                            attendees: [
+                                { email },
+                                { email: adminEmail },
+                                { email: program?.organizer?.email },
+                            ],
+                            source: { title: 'Urban Pilgrim', url: 'https://urbanpilgrim.in' }
+                        });
+                    });
+                    
+                    slotsHtml += `
+                            </div>
+                            <div style="margin-top: 12px; padding: 8px; background: #f0f8ff; border-radius: 4px;">
+                                <small style="color: #1976d2;">
+                                    <strong>Booking Status:</strong> 
+                                    ${program.occupancyType === 'group' ? 
+                                        (program.status === 'waiting' ? 
+                                            '⏳ Waiting for minimum participants (7 days)' : 
+                                            '✅ Active - Sessions will begin as scheduled'
+                                        ) : 
+                                        '✅ Confirmed - Sessions start immediately'
+                                    }
+                                </small>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // Single session booking
+                    slotsHtml = `
+                        <div style="background: #f8fafc; border: 1px solid #eef2f7; border-radius: 10px; padding: 16px;">
+                            <p style="margin: 6px 0; color: #333;"><strong>Date:</strong> ${program.date}</p>
+                            <p style="margin: 6px 0; color: #333;"><strong>Time:</strong> ${program.slot.time}${program.slot.endTime ? ` - ${program.slot.endTime}` : ''} (Asia/Kolkata)</p>
+                            ${program.mode === 'Online' && meetLink ? `<p style="margin: 6px 0; color: #333;"><strong>Meet Link:</strong> <a href="${meetLink}" target="_blank" style="color: #1976d2;">${meetLink}</a></p>` : ''}
+                        </div>
+                    `;
+                }
+                
                 const guideMailHtml = `
                     <!DOCTYPE html>
                     <html>
@@ -1491,33 +1661,68 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                     <body style="font-family: Arial, sans-serif; background: #f6f9fc; margin: 0; padding: 0;">
                         <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
                             <div style="background: linear-gradient(135deg, #2F6288 0%, #C5703F 100%); padding: 25px 20px; text-align: center;">
-                                <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Guide Session Booked</h1>
-                                <p style="color: #e6f0f7; margin: 6px 0 0 0; font-size: 14px;">Urban Pilgrim • Confirmation for organizer</p>
+                                <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">
+                                    ${program.selectedSlots && program.selectedSlots.length > 1 ? 'Monthly Guide Sessions Booked' : 'Guide Session Booked'}
+                                </h1>
+                                <p style="color: #e6f0f7; margin: 6px 0 0 0; font-size: 14px;">Urban Pilgrim • Organizer Notification</p>
                             </div>
                             <div style="padding: 24px;">
-                                <p style="color: #333; margin: 0 0 14px 0; font-size: 14px;">A new guide session has been booked. Details are below:</p>
-                                <div style="background: #f8fafc; border: 1px solid #eef2f7; border-radius: 10px; padding: 16px;">
-                                    <p style="margin: 6px 0; color: #333;"><strong>Title:</strong> ${program.title}</p>
+                                <p style="color: #333; margin: 0 0 14px 0; font-size: 14px;">
+                                    ${program.selectedSlots && program.selectedSlots.length > 1 ? 
+                                        `A new monthly guide session package has been booked with ${program.selectedSlots.length} sessions.` : 
+                                        'A new guide session has been booked.'
+                                    }
+                                </p>
+                                
+                                <div style="background: #f8fafc; border: 1px solid #eef2f7; border-radius: 10px; padding: 16px; margin-bottom: 16px;">
+                                    <h3 style="color: #2F6288; margin: 0 0 12px 0; font-size: 16px;">📋 Booking Details</h3>
+                                    <p style="margin: 6px 0; color: #333;"><strong>Program:</strong> ${program.title}</p>
                                     <p style="margin: 6px 0; color: #333;"><strong>Mode:</strong> ${program.mode}</p>
-                                    <p style="margin: 6px 0; color: #333;"><strong>Type:</strong> ${typeLabel}</p>
-                                    <p style="margin: 6px 0; color: #333;"><strong>Date:</strong> ${program.date}</p>
-                                    <p style="margin: 6px 0; color: #333;"><strong>Time:</strong> ${program.slot.time}${program.slot.endTime ? ` - ${program.slot.endTime}` : ''} (Asia/Kolkata)</p>
-                                    ${program.mode === 'Online' && meetLink ? `<p style="margin: 6px 0; color: #333;"><strong>Meet Link:</strong> <a href="${meetLink}" target="_blank" style="color: #1976d2;">${meetLink}</a></p>` : ''}
+                                    <p style="margin: 6px 0; color: #333;"><strong>Occupancy:</strong> ${typeLabel}</p>
+                                    <p style="margin: 6px 0; color: #333;"><strong>Customer:</strong> ${email}</p>
+                                    <p style="margin: 6px 0; color: #333;"><strong>Booking Date:</strong> ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                                </div>
+                                
+                                ${slotsHtml}
+                                
+                                <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 12px; margin-top: 16px;">
+                                    <p style="margin: 0; color: #856404; font-size: 13px;">
+                                        <strong>📝 Note:</strong> Calendar events have been created for ${program.selectedSlots && program.selectedSlots.length > 1 ? 'all sessions' : 'this session'}. 
+                                        Please ensure your availability for the scheduled times.
+                                    </p>
                                 </div>
                             </div>
                             <div style="background: #f8f9fa; padding: 15px; text-align: center; border-top: 1px solid #eee;">
-                                <p style="color: #999; margin: 0; font-size: 12px;">Urban Pilgrim Guide Sessions</p>
+                                <p style="color: #999; margin: 0; font-size: 12px;">Urban Pilgrim Guide Sessions • Organizer Dashboard</p>
                             </div>
                         </div>
                     </body>
                     </html>
                 `;
 
+                // Create calendar events for all monthly slots
+                if (calendar && calendarEventsToCreate.length > 0) {
+                    console.log(`Creating ${calendarEventsToCreate.length} calendar events for monthly sessions...`);
+                    
+                    for (let i = 0; i < calendarEventsToCreate.length; i++) {
+                        try {
+                            const eventResult = await calendar.events.insert({
+                                calendarId: organizerCalendar,
+                                resource: calendarEventsToCreate[i],
+                                sendUpdates: "all",
+                            });
+                            console.log(`Calendar event ${i + 1} created successfully:`, eventResult.data.id);
+                        } catch (e) {
+                            console.error(`Failed to create calendar event ${i + 1}:`, e?.message || e);
+                        }
+                    }
+                }
+
                 // Mail to admin (organizer)
                 await transporter.sendMail({
                     from: `Urban Pilgrim <${gmailEmail}>`,
                     to: adminEmail,
-                    subject: `🧘‍♀️ Urban Pilgrim • Guide Session Booked - ${program.title}`,
+                    subject: `🧘‍♀️ Urban Pilgrim • ${program.selectedSlots && program.selectedSlots.length > 1 ? 'Monthly Sessions' : 'Guide Session'} Booked - ${program.title}`,
                     html: guideMailHtml,
                 });
 
@@ -1842,4 +2047,352 @@ exports.sendWhatsappReminder = functions.https.onCall(async (data, context) => {
     }
 });
 
-  
+// ========================
+// BOOKING LIFECYCLE MANAGEMENT
+// ========================
+/**
+ * Scheduled function to process group waiting periods and cleanup expired bookings
+ * Runs daily at 9 AM IST
+ */
+exports.processBookingLifecycle = onSchedule({
+    schedule: "0 9 * * *", // Daily at 9 AM
+    timeZone: "Asia/Kolkata",
+    memory: "256MiB",
+    timeoutSeconds: 540
+}, async (event) => {
+    try {
+        console.log('Starting booking lifecycle processing...');
+        
+        const today = new Date().toISOString().slice(0, 10);
+        
+        // Process group bookings that have completed waiting period
+        await processGroupWaitingPeriods(today);
+        
+        // Cleanup expired bookings
+        await cleanupExpiredBookings(today);
+        
+        console.log('Booking lifecycle processing completed successfully');
+        return null;
+        
+    } catch (error) {
+        console.error('Error in booking lifecycle processing:', error);
+        throw error;
+    }
+});
+
+/**
+ * Process group bookings that have completed their 7-day waiting period
+ */
+async function processGroupWaitingPeriods(today) {
+    try {
+        // Find all group bookings where waiting period has ended
+        const waitingBookings = await db.collection('carts')
+            .where('occupancyType', '==', 'group')
+            .where('status', '==', 'waiting')
+            .where('waitingPeriodEnd', '<=', today)
+            .get();
+        
+        console.log(`Found ${waitingBookings.size} group bookings with ended waiting periods`);
+        
+        for (const bookingDoc of waitingBookings.docs) {
+            const booking = bookingDoc.data();
+            const bookingId = bookingDoc.id;
+            
+            // Count total bookings for the same slots and program
+            const slotBookingCount = await getSlotBookingCount(booking);
+            
+            console.log(`Group booking ${bookingId}: ${slotBookingCount}/${booking.minPersons} minimum required`);
+            
+            if (slotBookingCount >= booking.minPersons) {
+                // Minimum reached - activate the group
+                await bookingDoc.ref.update({
+                    status: 'active',
+                    actualStartDate: today,
+                    updatedAt: new Date()
+                });
+                
+                console.log(`Group booking ${bookingId} activated - minimum persons reached`);
+                
+                // Send activation email
+                await sendGroupActivationEmail(booking);
+                
+            } else {
+                // Minimum not reached - process refund
+                await processGroupRefund(booking, bookingDoc.ref);
+                console.log(`Group booking ${bookingId} refunded - minimum persons not reached`);
+            }
+        }
+        
+    } catch (error) {
+        console.error('Error processing group waiting periods:', error);
+        throw error;
+    }
+}
+
+/**
+ * Clean up expired bookings (after 1 month completion)
+ */
+async function cleanupExpiredBookings(today) {
+    try {
+        // Find all bookings that have expired
+        const expiredBookings = await db.collection('carts')
+            .where('endDate', '<', today)
+            .where('status', 'in', ['active'])
+            .get();
+        
+        console.log(`Found ${expiredBookings.size} expired bookings to cleanup`);
+        
+        for (const bookingDoc of expiredBookings.docs) {
+            const booking = bookingDoc.data();
+            const bookingId = bookingDoc.id;
+            
+            // Mark as completed
+            await bookingDoc.ref.update({
+                status: 'completed',
+                completedDate: today,
+                updatedAt: new Date()
+            });
+            
+            console.log(`Booking ${bookingId} marked as completed and slots freed up`);
+            
+            // Send completion notification
+            await sendBookingCompletionEmail(booking);
+        }
+        
+    } catch (error) {
+        console.error('Error cleaning up expired bookings:', error);
+        throw error;
+    }
+}
+
+/**
+ * Get booking count for specific slots and program
+ */
+async function getSlotBookingCount(booking) {
+    try {
+        // Count bookings for the same program, mode, and occupancy type
+        const bookings = await db.collection('carts')
+            .where('occupancyType', '==', booking.occupancyType)
+            .where('title', '==', booking.title)
+            .where('mode', '==', booking.mode)
+            .where('status', 'in', ['waiting', 'active'])
+            .get();
+        
+        let count = 0;
+        const targetSlotKeys = booking.selectedSlots?.map(slot => 
+            `${slot.date}-${slot.startTime}-${slot.endTime}`
+        ) || [];
+        
+        bookings.forEach(doc => {
+            const data = doc.data();
+            if (data.selectedSlots) {
+                const hasMatchingSlot = data.selectedSlots.some(slot => {
+                    const slotKey = `${slot.date}-${slot.startTime}-${slot.endTime}`;
+                    return targetSlotKeys.includes(slotKey);
+                });
+                
+                if (hasMatchingSlot) {
+                    count++;
+                }
+            }
+        });
+        
+        return count;
+        
+    } catch (error) {
+        console.error('Error getting slot booking count:', error);
+        return 0;
+    }
+}
+
+/**
+ * Process refund for group booking that didn't meet minimum
+ */
+async function processGroupRefund(booking, bookingRef) {
+    try {
+        // Update booking status
+        await bookingRef.update({
+            status: 'refunded',
+            refundDate: new Date().toISOString().slice(0, 10),
+            refundReason: 'Minimum group size not reached',
+            updatedAt: new Date()
+        });
+        
+        console.log(`Refund processed for booking ${bookingRef.id}:`, {
+            amount: booking.price,
+            customerEmail: booking.customerEmail,
+            reason: 'Minimum group size not reached'
+        });
+        
+        // Send refund notification email
+        await sendRefundNotificationEmail(booking);
+        
+        // Here you would integrate with Razorpay to process actual refund
+        // await processRazorpayRefund(booking.paymentId, booking.price);
+        
+    } catch (error) {
+        console.error('Error processing group refund:', error);
+        throw error;
+    }
+}
+
+/**
+ * Send group activation email
+ */
+async function sendGroupActivationEmail(booking) {
+    try {
+        const html = `
+            <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                <h2 style="color: #2F6288;">🎉 Your Group Session is Now Active!</h2>
+                <p>Hi there,</p>
+                <p>Great news! Your group booking for <strong>${booking.title}</strong> has reached the minimum number of participants and is now active.</p>
+                
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                    <h3 style="margin-top: 0; color: #2F6288;">Booking Details:</h3>
+                    <p><strong>Program:</strong> ${booking.title}</p>
+                    <p><strong>Mode:</strong> ${booking.mode}</p>
+                    <p><strong>Start Date:</strong> ${booking.actualStartDate || booking.startDate}</p>
+                    <p><strong>End Date:</strong> ${booking.endDate}</p>
+                    <p><strong>Sessions:</strong> ${booking.selectedSlots?.length || 0} slots</p>
+                </div>
+                
+                ${booking.selectedSlots && booking.selectedSlots.length > 0 ? `
+                <div style="background: #e8f4fd; border: 1px solid #b3d9ff; border-radius: 8px; padding: 15px; margin: 20px 0;">
+                    <h3 style="margin-top: 0; color: #1976d2;">📅 Your Session Schedule:</h3>
+                    ${booking.selectedSlots.map((slot, index) => `
+                        <div style="background: white; padding: 10px; border-radius: 4px; margin: 8px 0; border-left: 3px solid #1976d2;">
+                            <strong>Session ${index + 1}:</strong> ${new Date(slot.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}<br>
+                            <span style="color: #666;">⏰ ${slot.startTime.split('T')[1]?.split('+')[0] || slot.startTime} - ${slot.endTime.split('T')[1]?.split('+')[0] || slot.endTime} (Asia/Kolkata)</span>
+                            ${booking.mode === 'Online' && booking.organizerEmail ? '<br><span style="color: #1976d2;">🔗 Online session - Calendar invite sent</span>' : ''}
+                        </div>
+                    `).join('')}
+                </div>
+                ` : ''}
+                
+                <p>Your sessions will begin as scheduled. Please check your calendar for session timings.</p>
+                <p>Thank you for choosing Urban Pilgrim!</p>
+                
+                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+                    <p style="color: #666; font-size: 12px;">
+                        This is an automated message from Urban Pilgrim.<br>
+                        For support, contact us at support@urbanpilgrim.in
+                    </p>
+                </div>
+            </div>
+        `;
+        
+        await transporter.sendMail({
+            from: gmailEmail,
+            to: booking.customerEmail,
+            subject: `🎉 Your Group Session "${booking.title}" is Now Active!`,
+            html
+        });
+        
+        console.log(`Group activation email sent to ${booking.customerEmail}`);
+        
+    } catch (error) {
+        console.error('Error sending group activation email:', error);
+    }
+}
+
+/**
+ * Send refund notification email
+ */
+async function sendRefundNotificationEmail(booking) {
+    try {
+        const html = `
+            <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                <h2 style="color: #2F6288;">Refund Processed - Group Session</h2>
+                <p>Hi there,</p>
+                <p>We're writing to inform you that your group booking for <strong>${booking.title}</strong> did not reach the minimum number of participants required.</p>
+                
+                <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+                    <h3 style="margin-top: 0; color: #856404;">Refund Details:</h3>
+                    <p><strong>Program:</strong> ${booking.title}</p>
+                    <p><strong>Amount:</strong> ₹${booking.price}</p>
+                    <p><strong>Refund Date:</strong> ${booking.refundDate}</p>
+                    <p><strong>Reason:</strong> Minimum group size not reached</p>
+                </div>
+                
+                <p>Your refund will be processed within 5-7 business days to your original payment method.</p>
+                <p>We apologize for any inconvenience caused. Please feel free to explore our other programs!</p>
+                
+                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+                    <p style="color: #666; font-size: 12px;">
+                        This is an automated message from Urban Pilgrim.<br>
+                        For support, contact us at support@urbanpilgrim.in
+                    </p>
+                </div>
+            </div>
+        `;
+        
+        await transporter.sendMail({
+            from: gmailEmail,
+            to: booking.customerEmail,
+            subject: `Refund Processed - ${booking.title}`,
+            html
+        });
+        
+        console.log(`Refund notification email sent to ${booking.customerEmail}`);
+        
+    } catch (error) {
+        console.error('Error sending refund notification email:', error);
+    }
+}
+
+/**
+ * Send booking completion email
+ */
+async function sendBookingCompletionEmail(booking) {
+    try {
+        const html = `
+            <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                <h2 style="color: #2F6288;">🎊 Congratulations on Completing Your Journey!</h2>
+                <p>Hi there,</p>
+                <p>Congratulations on successfully completing your <strong>${booking.title}</strong> program with Urban Pilgrim!</p>
+                
+                <div style="background: #d4edda; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #28a745;">
+                    <h3 style="margin-top: 0; color: #155724;">Program Completed:</h3>
+                    <p><strong>Program:</strong> ${booking.title}</p>
+                    <p><strong>Mode:</strong> ${booking.mode}</p>
+                    <p><strong>Duration:</strong> ${booking.startDate} to ${booking.endDate}</p>
+                    <p><strong>Sessions Completed:</strong> ${booking.selectedSlots?.length || 0}</p>
+                </div>
+                
+                ${booking.selectedSlots && booking.selectedSlots.length > 0 ? `
+                <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; margin: 20px 0;">
+                    <h3 style="margin-top: 0; color: #495057;">📋 Sessions You Completed:</h3>
+                    ${booking.selectedSlots.map((slot, index) => `
+                        <div style="background: white; padding: 8px 12px; border-radius: 4px; margin: 6px 0; border-left: 3px solid #28a745;">
+                            <strong>Session ${index + 1}:</strong> ${new Date(slot.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                            <span style="color: #666; margin-left: 10px;">✅ Completed</span>
+                        </div>
+                    `).join('')}
+                </div>
+                ` : ''}
+                
+                <p>We hope you had a transformative experience. Your dedication to personal growth is truly inspiring!</p>
+                <p>Feel free to explore our other programs to continue your journey with us.</p>
+                
+                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+                    <p style="color: #666; font-size: 12px;">
+                        This is an automated message from Urban Pilgrim.<br>
+                        We'd love to hear about your experience! Reply to share your feedback.
+                    </p>
+                </div>
+            </div>
+        `;
+        
+        await transporter.sendMail({
+            from: gmailEmail,
+            to: booking.customerEmail,
+            subject: `🎊 Congratulations! You've completed "${booking.title}"`,
+            html
+        });
+        
+        console.log(`Completion email sent to ${booking.customerEmail}`);
+        
+    } catch (error) {
+        console.error('Error sending completion email:', error);
+    }
+}

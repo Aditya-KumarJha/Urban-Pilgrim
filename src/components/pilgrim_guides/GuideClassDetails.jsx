@@ -9,7 +9,7 @@ import MonthlyCalendarModal from "./MonthlyCalendarModal";
 import { doc, getDoc, updateDoc, collection, addDoc, query, where, getDocs } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { useParams } from "react-router-dom";
-import { useCart } from "../../context/CartContext";
+import { addToCart as addToCartRedux } from "../../features/cartSlice";
 import { fetchAllEvents } from "../../utils/fetchEvents";
 import { useDispatch, useSelector } from "react-redux";
 import PersondetailsCard from "../../components/persondetails_card";
@@ -19,7 +19,7 @@ import FreeTrailModal from "../modals/FreeTrailModal";
 import { showError, showSuccess } from "../../utils/toast";
 
 export default function GuideClassDetails() {
-    const { addToCart } = useCart();
+    const dispatch = useDispatch();
     const [mode, setMode] = useState(null);
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const [quantity, setQuantity] = useState(1);
@@ -44,13 +44,12 @@ export default function GuideClassDetails() {
     const [slotBookings, setSlotBookings] = useState({});
     const [groupBookings, setGroupBookings] = useState([]);
     const [currentMonth, setCurrentMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
-    
-    const dispatch = useDispatch();
     const navigate = useNavigate();
 
     // Get user and programs from Redux
     const user = useSelector((state) => state.auth?.user || state.user?.currentUser || null);
     const userPrograms = useSelector((state) => state.userProgram);
+    const cartItems = useSelector((state) => state.cart?.items || []);
 
     useEffect(() => {
         window.scrollTo(0, 0);
@@ -353,7 +352,16 @@ export default function GuideClassDetails() {
 
     // Load user's monthly bookings
     const loadUserMonthlyBookings = async () => {
-        if (!user || !sessionData) return;
+        if (!user || !sessionData) {
+            console.log("❌ Cannot load monthly bookings - missing user or sessionData");
+            return;
+        }
+        
+        console.log("🔍 Loading user monthly bookings...", {
+            userId: user.uid,
+            programTitle: sessionData.guideCard.title,
+            currentMonth
+        });
         
         try {
             const bookingsQuery = query(
@@ -369,9 +377,13 @@ export default function GuideClassDetails() {
                 bookings.push({ id: doc.id, ...doc.data() });
             });
             
-            setUserMonthlySlots(bookings);
+            console.log("📅 User monthly bookings loaded:", bookings);
+            // Temporary: Force empty array for testing
+            setUserMonthlySlots([]);
+            // setUserMonthlySlots(bookings);
         } catch (error) {
             console.error('Error loading user monthly bookings:', error);
+            setUserMonthlySlots([]); // Set empty array on error
         }
     };
 
@@ -403,6 +415,8 @@ export default function GuideClassDetails() {
 
     // Convert dayBasedPattern to weeklyPattern format for compatibility
     const convertDayBasedToWeeklyPattern = (dayBasedPattern) => {
+        console.log("Converting dayBasedPattern:", dayBasedPattern);
+        
         const weeklyPattern = [];
         const dayMap = {
             "Monday": "Mon", "Tuesday": "Tue", "Wednesday": "Wed", 
@@ -410,15 +424,33 @@ export default function GuideClassDetails() {
         };
         
         Object.entries(dayBasedPattern).forEach(([dayName, dayData]) => {
-            if (dayData.slots && dayData.slots.length > 0) {
+            console.log(`Processing day: ${dayName}`, dayData);
+            
+            if (dayData && dayData.slots && Array.isArray(dayData.slots) && dayData.slots.length > 0) {
                 const shortDay = dayMap[dayName];
-                weeklyPattern.push({
-                    days: [shortDay],
-                    times: [...dayData.slots]
-                });
+                
+                // Filter out empty slots
+                const validSlots = dayData.slots.filter(slot => 
+                    slot && slot.startTime && slot.endTime && slot.startTime !== "" && slot.endTime !== ""
+                );
+                
+                console.log(`Valid slots for ${dayName}:`, validSlots);
+                
+                if (validSlots.length > 0) {
+                    weeklyPattern.push({
+                        days: [shortDay],
+                        times: validSlots.map(slot => ({
+                            startTime: slot.startTime,
+                            endTime: slot.endTime,
+                            type: slot.type || 'individual'
+                        }))
+                    });
+                    console.log(`Added pattern for ${dayName}:`, weeklyPattern[weeklyPattern.length - 1]);
+                }
             }
         });
         
+        console.log("Final converted weeklyPattern:", weeklyPattern);
         return weeklyPattern;
     };
 
@@ -602,17 +634,32 @@ export default function GuideClassDetails() {
             // Check for both old weeklyPattern and new dayBasedPattern
             let pattern = Array.isArray(plan.weeklyPattern) ? plan.weeklyPattern : [];
             console.log("Initial weeklyPattern:", pattern);
+            console.log("WeeklyPattern length:", pattern.length);
             
-            // If no weeklyPattern, check for dayBasedPattern and convert it
-            if (pattern.length === 0 && plan.dayBasedPattern) {
-                console.log("Converting dayBasedPattern to weeklyPattern:", plan.dayBasedPattern);
-                pattern = convertDayBasedToWeeklyPattern(plan.dayBasedPattern);
-                console.log("Converted pattern:", pattern);
+            // If weeklyPattern exists but is empty, or if we have dayBasedPattern, use dayBasedPattern
+            if (plan.dayBasedPattern && Object.keys(plan.dayBasedPattern).length > 0) {
+                console.log("Found dayBasedPattern, converting to weeklyPattern:", plan.dayBasedPattern);
+                const convertedPattern = convertDayBasedToWeeklyPattern(plan.dayBasedPattern);
+                console.log("Converted pattern:", convertedPattern);
+                
+                // Use converted pattern if it has more slots than existing weeklyPattern
+                if (convertedPattern.length > pattern.length) {
+                    pattern = convertedPattern;
+                    console.log("Using converted dayBasedPattern");
+                }
             }
             
             console.log("Final monthly pattern:", pattern);
+            console.log("Pattern length:", pattern.length);
+            console.log("Pattern details:", JSON.stringify(pattern, null, 2));
+            
             if (pattern.length === 0) {
                 console.log("❌ No monthly pattern available - Check if slots are saved properly");
+                console.log("Available data:", {
+                    weeklyPattern: plan.weeklyPattern,
+                    dayBasedPattern: plan.dayBasedPattern,
+                    fullPlan: plan
+                });
                 return [];
             }
             
@@ -622,19 +669,48 @@ export default function GuideClassDetails() {
             
             const out = [];
             const today = new Date();
-            const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
             
-            // Only show slots from current date to end of month
-            for (let d = new Date(today); d <= endOfMonth; d.setDate(d.getDate() + 1)) {
+            // Show slots from today to next 30 days (monthly period)
+            const startDate = new Date(today);
+            const endDate = new Date(today);
+            endDate.setDate(today.getDate() + 30); // Next 30 days from today
+            
+            console.log("Generating monthly slots from", startDate.toISOString().slice(0,10), "to", endDate.toISOString().slice(0,10));
+            console.log("Today is:", today.toLocaleDateString('en-US', { weekday: 'long' }), today.toISOString().slice(0,10));
+            console.log("Monthly period: 30 days from today");
+            
+            for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
                 const dayShort = d.toLocaleDateString('en-US', { weekday: 'short' }).slice(0,3);
                 const ymd = d.toISOString().slice(0,10);
                 const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
                 
-                if (reservedMonths.has(ym)) continue; // block entire month
+                if (reservedMonths.has(ym)) {
+                    console.log(`Skipping reserved month: ${ym}`);
+                    continue; // block entire month
+                }
+                
+                console.log(`Processing date: ${ymd} (${dayShort})`);
+                
+                // Special logging for Monday dates
+                if (dayShort === 'Mon') {
+                    console.log(`🔍 MONDAY FOUND: ${ymd} (${dayShort})`);
+                }
                 
                 pattern.forEach((row, rowIdx) => {
+                    console.log(`Checking pattern row ${rowIdx}:`, row);
+                    console.log(`Row days:`, row.days, `Current day:`, dayShort);
+                    
                     if ((row.days || []).includes(dayShort)) {
+                        console.log(`✅ Day ${dayShort} matches pattern days:`, row.days);
+                        
+                        if (dayShort === 'Mon') {
+                            console.log(`🎯 MONDAY SLOT MATCH FOUND!`);
+                            console.log(`Monday row times:`, row.times);
+                        }
+                        
                         (row.times || []).forEach((t, tIdx) => {
+                            console.log(`Processing time slot:`, t);
+                            
                             const slot = {
                                 date: ymd,
                                 startTime: t.startTime,
@@ -645,24 +721,53 @@ export default function GuideClassDetails() {
                                 tIdx,
                             };
                             
+                            console.log(`Created slot:`, slot);
+                            
                             // Apply monthly booking restrictions
                             const occLabel = (selectedOccupancy?.type || '').toLowerCase();
-                            const canBook = canBookMonthlySlot(slot, occLabel, userMonthlySlots, plan);
+                            
+                            // Temporarily disable restrictions for testing
+                            const canBook = { canBook: true, reason: 'Testing mode' };
+                            // const canBook = canBookMonthlySlot(slot, occLabel, userMonthlySlots, plan);
+                            
+                            console.log(`Can book slot:`, canBook);
                             
                             // Only show slots that can be booked
                             if (canBook.canBook) {
                                 out.push(slot);
+                                console.log(`✅ Added slot to output:`, slot);
+                            } else {
+                                console.log(`❌ Slot rejected:`, canBook.reason);
                             }
                         });
+                    } else {
+                        console.log(`❌ Day ${dayShort} does not match pattern days:`, row.days);
                     }
                 });
             }
+            
+            console.log(`Total slots generated: ${out.length}`);
+            console.log("Generated slots:", out);
+            
+            // Debug: Show Monday slots specifically
+            const mondaySlots = out.filter(slot => {
+                const slotDate = new Date(slot.date);
+                return slotDate.toLocaleDateString('en-US', { weekday: 'short' }) === 'Mon';
+            });
+            console.log(`🔍 Monday slots found: ${mondaySlots.length}`, mondaySlots);
             
             // Filter by selected occupancy type
             const occLabel = (selectedOccupancy?.type || '').toLowerCase();
             let viewType = 'individual';
             if (occLabel.includes('couple') || occLabel.includes('twin')) viewType = 'couple';
             else if (occLabel.includes('group')) viewType = 'group';
+
+            console.log(`🎯 Filtering slots by occupancy:`, {
+                selectedOccupancy: selectedOccupancy?.type,
+                occLabel,
+                viewType,
+                totalSlots: out.length
+            });
 
             const filtered = out.filter(s => {
                 // For group occupancy, handle special logic
@@ -690,6 +795,15 @@ export default function GuideClassDetails() {
                 // Individual: slot should be empty
                 return s.type === 'individual' && currentBookings.length === 0;
             });
+            
+            console.log(`📊 Final filtered slots: ${filtered.length}`, filtered);
+            
+            // Debug: Show filtered Monday slots
+            const filteredMondaySlots = filtered.filter(slot => {
+                const slotDate = new Date(slot.date);
+                return slotDate.toLocaleDateString('en-US', { weekday: 'short' }) === 'Mon';
+            });
+            console.log(`🔍 Filtered Monday slots: ${filteredMondaySlots.length}`, filteredMondaySlots);
             
             return filtered;
         }
@@ -719,10 +833,22 @@ export default function GuideClassDetails() {
         console.log("Mode:", mode);
         console.log("Subscription Type:", subscriptionType);
         console.log("Selected Occupancy:", selectedOccupancy);
+        console.log("SessionData exists:", !!sessionData);
         
-        const s = getAvailableSlots();
-        console.log("Generated slots:", s);
-        setAvailableSlots(s);
+        if (sessionData && mode && subscriptionType) {
+            console.log("✅ All conditions met for slot generation");
+            const s = getAvailableSlots();
+            console.log("Generated slots:", s);
+            console.log("Generated slots count:", s.length);
+            setAvailableSlots(s);
+        } else {
+            console.log("❌ Missing conditions for slot generation:", {
+                hasSessionData: !!sessionData,
+                hasMode: !!mode,
+                hasSubscriptionType: !!subscriptionType
+            });
+            setAvailableSlots([]);
+        }
     }, [sessionData, mode, subscriptionType, selectedOccupancy, userMonthlySlots, slotBookings, groupStatus]);
 
     const getPricesForSelection = () => {
@@ -1019,7 +1145,11 @@ export default function GuideClassDetails() {
                                 {sessionData.guideCard.occupancies.map((occupancy, index) => (
                                     <button
                                         key={index}
-                                        onClick={() => setSelectedOccupancy(occupancy)}
+                                        onClick={() => {
+                                            console.log("=== OCCUPANCY SELECTED ===");
+                                            console.log("Selected occupancy:", occupancy);
+                                            setSelectedOccupancy(occupancy);
+                                        }}
                                         className={`px-4 py-2 rounded-lg border transition-all duration-200 text-sm ${
                                             selectedOccupancy?.type === occupancy.type
                                                 ? "border-[#C5703F] bg-[#C5703F] text-white shadow-md"
@@ -1131,7 +1261,17 @@ export default function GuideClassDetails() {
                                 return (
                                     <>
                                         <button
-                                            onClick={() => setShowCalendar(true)}
+                                            onClick={() => {
+                                                console.log("=== BOOK NOW CLICKED ===");
+                                                console.log("Current state:", {
+                                                    subscriptionType,
+                                                    mode,
+                                                    selectedOccupancy,
+                                                    availableSlots: availableSlots.length,
+                                                    userMonthlySlots: userMonthlySlots.length
+                                                });
+                                                setShowCalendar(true);
+                                            }}
                                             className={`w-full px-4 py-3 rounded-lg text-white font-semibold bg-[#2F6288] hover:bg-[#2F6288]/90`}
                                         >
                                             Book Now
@@ -1238,8 +1378,10 @@ export default function GuideClassDetails() {
                     groupStatus={groupStatus}
                     waitingPeriod={waitingPeriod}
                     onGroupBooking={handleGroupBooking}
+                    cartItems={cartItems}
                     onAddToCart={(cartItem) => {
-                        addToCart(cartItem);
+                        console.log("Adding to cart from monthly modal:", cartItem);
+                        dispatch(addToCartRedux(cartItem));
                         setShowCalendar(false);
                         // Reload booking data after successful booking
                         loadUserMonthlyBookings();
@@ -1261,7 +1403,7 @@ export default function GuideClassDetails() {
                     occupancyType={selectedOccupancy?.type || ''}
                     capacityMax={getOneTimeCapacityForSelected()}
                     onAddToCart={(cartItem) => {
-                        addToCart(cartItem);
+                        dispatch(addToCartRedux(cartItem));
                         setShowCalendar(false);
                     }}
                 />

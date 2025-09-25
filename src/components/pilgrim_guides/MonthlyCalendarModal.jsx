@@ -1,30 +1,39 @@
-import { useState, useEffect } from 'react';
-import { X, Calendar, Clock, Users, AlertCircle, CheckCircle } from 'lucide-react';
-import { showError, showSuccess } from '../../utils/toast';
-import { useSelector } from 'react-redux';
-import { collection, addDoc, updateDoc, doc } from 'firebase/firestore';
-import { db } from '../../services/firebase';
+import { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
+import { FiChevronLeft, FiChevronRight, FiX, FiArrowLeft } from "react-icons/fi";
+import { useDispatch } from "react-redux";
+import { addToCart } from "../../features/cartSlice.js";
+import { showSuccess, showError } from "../../utils/toast.js";
 
-export default function MonthlyCalendarModal({
-    isOpen,
-    onClose,
-    sessionData,
-    selectedPlan,
+export default function MonthlyCalendarModal({ 
+    isOpen, 
+    onClose, 
+    sessionData, 
+    selectedPlan, 
     mode,
-    availableSlots,
-    occupancyType,
-    userMonthlySlots,
-    slotBookings,
-    groupStatus,
-    waitingPeriod,
-    onGroupBooking,
-    onAddToCart
+    availableSlots = [],
+    occupancyType = '',
+    userMonthlySlots = [],
+    slotBookings = {},
+    onAddToCart,
+    cartItems = []
 }) {
-    const [selectedSlots, setSelectedSlots] = useState([]);
+    console.log("Monthly Modal - sessionData", sessionData);
+    console.log("Monthly Modal - selectedPlan", selectedPlan);
+    console.log("Monthly Modal - availableSlots", availableSlots);
+    console.log("Monthly Modal - occupancyType", occupancyType);
+    console.log("Monthly Modal - userMonthlySlots", userMonthlySlots);
+    console.log("Monthly Modal - slotBookings", slotBookings);
+    
     const [currentDate, setCurrentDate] = useState(new Date());
+    const [selectedDate, setSelectedDate] = useState(null);
+    const [selectedSlot, setSelectedSlot] = useState(null);
+    const [selectedSlotsMulti, setSelectedSlotsMulti] = useState([]);
+    const [localSlots, setLocalSlots] = useState([]);
+    const [view, setView] = useState('monthly');
     const [loading, setLoading] = useState(false);
     
-    // Get user from Redux
+    const dispatch = useDispatch();
     const user = useSelector((state) => state.auth?.user || state.user?.currentUser || null);
 
     if (!isOpen) return null;
@@ -32,356 +41,841 @@ export default function MonthlyCalendarModal({
     const plan = sessionData?.[mode?.toLowerCase()]?.[selectedPlan] || {};
     const sessionsPerMonth = Number(plan.sessionsCount || 0);
     const remainingSessions = sessionsPerMonth - userMonthlySlots.length;
-    const groupMin = Number(plan.groupMin || 0);
-    const groupMax = Number(plan.groupMax || 0);
-
-    // Get calendar days for current month
-    const getCalendarDays = () => {
-        const year = currentDate.getFullYear();
-        const month = currentDate.getMonth();
-        const firstDay = new Date(year, month, 1);
-        const lastDay = new Date(year, month + 1, 0);
-        const startDate = new Date(firstDay);
-        startDate.setDate(startDate.getDate() - firstDay.getDay());
-
-        const days = [];
-        const currentDay = new Date(startDate);
+    
+    // Get slots already in cart for this program
+    const slotsInCart = cartItems
+        .filter(item => 
+            item.title === sessionData?.guideCard?.title && 
+            item.subscriptionType === 'monthly' && 
+            item.mode === mode
+        )
+        .flatMap(item => item.selectedSlots || [])
+        .map(slot => `${slot.date}-${slot.startTime}-${slot.endTime}`);
+    
+    // Count how many sessions user has already added to cart
+    const sessionsInCart = slotsInCart.length;
+    const remainingSessionsAfterCart = Math.max(0, sessionsPerMonth - userMonthlySlots.length - sessionsInCart);
+    
+    // Get slot capacity information based on occupancy type
+    const getSlotCapacityInfo = (slot) => {
+        const slotKey = `${slot.date}-${slot.startTime}-${slot.endTime}`;
         
-        while (currentDay <= lastDay || days.length % 7 !== 0) {
-            days.push(new Date(currentDay));
-            currentDay.setDate(currentDay.getDate() + 1);
+        // Count actual bookings from slotBookings prop
+        const actualBookings = slotBookings[`${slot.date}|${slot.startTime}|${slot.endTime}`] || [];
+        
+        // Count items in current user's cart for this slot
+        const cartCount = slotsInCart.filter(cartSlot => cartSlot === slotKey).length;
+        
+        // For individual bookings, check if slot is reserved by anyone
+        let individualBookingCount = 0;
+        if (occupancyType.toLowerCase() === 'individual') {
+            // Check multiple sources for individual bookings:
+            // 1. actualBookings from slotBookings prop (from database)
+            // 2. userMonthlySlots (current user's existing bookings)
+            // 3. Check if slot appears in any individual booking in slotBookings
+            
+            const isSlotBookedByCurrentUser = userMonthlySlots.some(userSlot => 
+                `${userSlot.date}-${userSlot.startTime}-${userSlot.endTime}` === slotKey
+            );
+            
+            const isSlotBookedByOthers = actualBookings.length > 0;
+            
+            // For individual slots, if it's booked by anyone (including current user), count as 1
+            individualBookingCount = (isSlotBookedByCurrentUser || isSlotBookedByOthers) ? 1 : 0;
+            
+            console.log(`Slot ${slotKey} - Individual booking check:`, {
+                isSlotBookedByCurrentUser,
+                isSlotBookedByOthers,
+                actualBookings: actualBookings.length,
+                userMonthlySlots: userMonthlySlots.length,
+                individualBookingCount
+            });
         }
         
-        return days;
+        const occupancy = occupancyType.toLowerCase();
+        let maxCapacity, displayText, isFull, currentBookings;
+        
+        if (occupancy === 'group') {
+            // For group: get max from admin settings or default to 10
+            maxCapacity = sessionData?.guideCard?.occupancies?.find(occ => occ.type.toLowerCase() === 'group')?.max || 10;
+            currentBookings = actualBookings.length + cartCount;
+            displayText = `${currentBookings}/${maxCapacity}`;
+            isFull = currentBookings >= maxCapacity;
+        } else if (occupancy === 'couple') {
+            // For couple: max is always 2 (1 couple = 2 people)
+            maxCapacity = 2;
+            currentBookings = actualBookings.length + cartCount;
+            displayText = `${currentBookings}/${maxCapacity}`;
+            isFull = currentBookings >= 2;
+        } else {
+            // For individual: max is 1, once booked it's reserved
+            maxCapacity = 1;
+            currentBookings = individualBookingCount + cartCount;
+            displayText = currentBookings >= 1 ? 'Reserved' : 'Available';
+            isFull = currentBookings >= 1;
+        }
+        
+        return { currentBookings, maxCapacity, displayText, isFull };
     };
 
-    // Get slots for a specific date
-    const getSlotsForDate = (date) => {
-        const dateStr = date.toISOString().slice(0, 10);
-        return availableSlots.filter(slot => slot.date === dateStr);
+    useEffect(() => {
+        if (isOpen) {
+            fetchAvailableSlots();
+        }
+    }, [isOpen, availableSlots, mode, selectedPlan]);
+    
+    // Auto-select all slots for group occupancy
+    useEffect(() => {
+        if (occupancyType.toLowerCase() === 'group' && localSlots.length > 0) {
+            // Auto-select all available slots for group
+            const availableGroupSlots = localSlots.filter(slot => isSlotVisible(slot));
+            setSelectedSlotsMulti(availableGroupSlots);
+        }
+    }, [localSlots, occupancyType]);
+
+    const fetchAvailableSlots = async () => {
+        if (availableSlots.length > 0) {
+            console.log("Using monthly slots from parent:", availableSlots);
+            console.log("Current occupancyType:", occupancyType);
+            
+            const processedSlots = availableSlots.map((slot, index) => ({
+                id: slot.id || `monthly-${slot.date}-${slot.startTime}-${index}`,
+                date: slot.date,
+                time: slot.startTime,
+                endTime: slot.endTime,
+                location: slot.location || '',
+                available: true,
+                type: slot.type || 'individual',
+                rowIdx: slot.rowIdx,
+                tIdx: slot.tIdx,
+                duration: 60
+            }));
+            
+            console.log("Processed slots:", processedSlots);
+            console.log("Slots by type:", processedSlots.reduce((acc, slot) => {
+                acc[slot.type] = (acc[slot.type] || 0) + 1;
+                return acc;
+            }, {}));
+            
+            setLocalSlots(processedSlots);
+        }
     };
 
-    // Check if user already has a slot on this date
+    const resetModal = () => {
+        setView('monthly');
+        setSelectedDate(null);
+        setSelectedSlot(null);
+        setSelectedSlotsMulti([]);
+    };
+
+    const handleCloseModal = () => {
+        resetModal();
+        onClose();
+    };
+
+    // Monthly booking restrictions
+    const canSelectMoreSlots = () => {
+        return selectedSlotsMulti.length < remainingSessionsAfterCart;
+    };
+    
+    // Check if a slot should be visible based on occupancy type and bookings
+    const isSlotVisible = (slot) => {
+        const slotKey = `${slot.date}-${slot.startTime}-${slot.endTime}`;
+        const capacityInfo = getSlotCapacityInfo(slot);
+        
+        // For group: show slots unless full capacity reached
+        if (occupancyType.toLowerCase() === 'group') {
+            return !capacityInfo.isFull;
+        }
+        
+        // For couple: show slots unless 2/2 (full)
+        if (occupancyType.toLowerCase() === 'couple') {
+            return !capacityInfo.isFull;
+        }
+        
+        // For individual: hide if slot is reserved by anyone (including the current user)
+        if (occupancyType.toLowerCase() === 'individual') {
+            // If reserved, do not show at all
+            if (capacityInfo.isFull) return false;
+            return true; // Show if available
+        }
+        
+        return true;
+    };
+    
+    // Check if group plan already added to cart
+    const isGroupPlanInCart = () => {
+        return occupancyType.toLowerCase() === 'group' && cartItems.some(item => 
+            item.title === sessionData?.guideCard?.title && 
+            item.subscriptionType === 'monthly' && 
+            item.mode === mode &&
+            item.occupancyType?.toLowerCase() === 'group'
+        );
+    };
+
     const hasSlotOnDate = (date) => {
-        const dateStr = date.toISOString().slice(0, 10);
+        const dateStr = typeof date === 'string' ? date : date.toISOString().slice(0, 10);
+        // Only check userMonthlySlots (actual booked slots), not selectedSlotsMulti (current selection)
         return userMonthlySlots.some(slot => slot.date === dateStr);
     };
 
-    // Handle slot selection
-    const handleSlotSelect = async (slot) => {
-        if (loading) return;
-
-        const dateStr = slot.date;
-        
-        // Check if user already has a slot on this date
-        if (hasSlotOnDate(new Date(dateStr)) && occupancyType.toLowerCase() !== 'group') {
-            showError('You can only book one slot per day');
-            return;
-        }
-
-        // Check session limit
-        if (userMonthlySlots.length >= sessionsPerMonth && occupancyType.toLowerCase() !== 'group') {
-            showError(`You have reached the monthly limit of ${sessionsPerMonth} sessions`);
-            return;
-        }
-
-        setLoading(true);
-
+    const handleAddMonthlyToCart = async () => {
         try {
-            if (occupancyType.toLowerCase() === 'group') {
-                // Handle group booking
-                const result = await onGroupBooking(slot, plan);
-                if (result.success) {
-                    showSuccess('Successfully joined the group!');
-                    onClose();
+            if (!sessionData) {
+                showError('Missing session data');
+                return;
+            }
+            
+            // Check if group plan already in cart
+            if (isGroupPlanInCart()) {
+                showError('Group monthly plan already added to cart');
+                return;
+            }
+            
+            // Check if user has reached session limit (not applicable for group)
+            if (remainingSessionsAfterCart <= 0 && occupancyType.toLowerCase() !== 'group') {
+                showError('You have reached your monthly session limit');
+                return;
+            }
+
+            setLoading(true);
+
+            const modeKey = mode?.toLowerCase();
+            const subscriptionKey = selectedPlan;
+            const planData = sessionData?.[modeKey]?.[subscriptionKey] || {};
+            
+            // Get price based on occupancy type from plan data structure
+            let pricePerSession = 0;
+            const occupancy = occupancyType.toLowerCase();
+            
+            // Debug: Check plan data structure
+            console.log('=== PRICING DEBUG ===');
+            console.log('Plan data:', JSON.stringify(planData, null, 2));
+            console.log('Occupancy type:', occupancy);
+            console.log('Mode:', mode, 'Selected plan:', selectedPlan);
+              
+            // Get price from guideCard occupancies array
+            console.log('Looking for occupancy-specific pricing in guideCard...');
+            
+            if (sessionData?.guideCard?.occupancies && Array.isArray(sessionData.guideCard.occupancies)) {
+                const matchingOccupancy = sessionData.guideCard.occupancies.find(occ => 
+                    occ.type && occ.type.toLowerCase() === occupancy
+                );
+                
+                if (matchingOccupancy && matchingOccupancy.price) {
+                    pricePerSession = Number(matchingOccupancy.price) || 0;
+                    console.log(`Found ${occupancy} price in guideCard:`, pricePerSession);
+                } else {
+                    // Fallback to plan price
+                    pricePerSession = Number(planData.price) || 0;
+                    console.log(`Using plan fallback price for ${occupancy}:`, pricePerSession);
                 }
             } else {
-                // Handle individual/couple booking
-                await handleIndividualCoupleBooking(slot);
+                // Fallback to plan price
+                pricePerSession = Number(planData.price) || 0;
+                console.log(`Using plan price for ${occupancy}:`, pricePerSession);
             }
-        } catch (error) {
-            console.error('Error booking slot:', error);
-            showError('Failed to book slot. Please try again.');
+            
+            console.log('Final price per session:', pricePerSession);
+            console.log('=== END PRICING DEBUG ===');
+            
+            let finalSlots = [];
+            let cartItemId = '';
+            
+            // Individual/Couple/Group: Use selected slots
+            if (selectedSlotsMulti.length === 0) {
+                showError('Please select at least one slot');
+                setLoading(false);
+                return;
+            }
+            
+            // Helper function to convert to RFC3339 format with timezone
+            const formatToRFC3339 = (date, time) => {
+                if (!date || !time) return null;
+                // Create datetime string and add IST timezone
+                const dateTimeStr = `${date}T${time}:00+05:30`;
+                return dateTimeStr;
+            };
+            
+            finalSlots = selectedSlotsMulti.map(s => ({
+                id: s.id || `slot-${Date.now()}-${Math.random()}`,
+                date: s.date || '',
+                startTime: formatToRFC3339(s.date, s.time || s.startTime) || '',
+                endTime: formatToRFC3339(s.date, s.endTime) || '',
+                location: s.location || '',
+                type: s.type || 'monthly'
+            })).filter(slot => slot.date && slot.startTime && slot.endTime); // Remove invalid slots
+            
+            // Validate we have valid slots after filtering
+            if (finalSlots.length === 0) {
+                showError('Invalid slot data. Please try selecting slots again.');
+                setLoading(false);
+                return;
+            }
+            
+            cartItemId = `${sessionData?.guideCard?.title || 'guide'}-monthly-${occupancyType}-${Date.now()}`;
+
+            // Calculate booking lifecycle dates
+            const bookingDate = new Date();
+            const bookingDateStr = bookingDate.toISOString().slice(0, 10);
+            
+            let startDate, endDate, waitingPeriodEnd;
+            
+            if (occupancy === 'group') {
+                // Group: 7-day waiting period, then 1 month from start
+                waitingPeriodEnd = new Date(bookingDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+                startDate = new Date(waitingPeriodEnd.getTime() + 24 * 60 * 60 * 1000); // Day after waiting period
+                endDate = new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000); // 1 month from start
+            } else {
+                // Individual/Couple: Immediate start, 1 month duration
+                startDate = bookingDate;
+                endDate = new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+                waitingPeriodEnd = null;
+            }
+
+            const cartItem = {
+                id: cartItemId,
+                title: sessionData?.guideCard?.title || 'Monthly Session',
+                price: Number(pricePerSession), // Fixed monthly price regardless of slot count for all occupancy types
+                persons: 1,
+                image: sessionData?.guideCard?.thumbnail || '',
+                quantity: 1,
+                type: 'guide',
+                mode: mode,
+                subscriptionType: selectedPlan,
+                occupancyType: occupancyType || '',
+                organizer: sessionData?.organizer || {},
+                calendarId: sessionData?.organizer?.calendarId || sessionData?.organizer?.email || 'primary',
+                // Add fields needed for Google Calendar event creation
+                summary: sessionData?.guideCard?.title || 'Monthly Session',
+                description: `${sessionData?.guideCard?.title || 'Monthly Session'} - ${occupancyType} booking confirmed via Urban Pilgrim`,
+                timeZone: 'Asia/Kolkata',
+                customerEmail: user?.email || '',
+                organizerEmail: sessionData?.organizer?.email || '',
+                selectedSlots: finalSlots,
+                // Booking lifecycle management
+                bookingDate: bookingDateStr,
+                startDate: startDate.toISOString().slice(0, 10),
+                endDate: endDate.toISOString().slice(0, 10),
+                waitingPeriodEnd: waitingPeriodEnd ? waitingPeriodEnd.toISOString().slice(0, 10) : null,
+                status: occupancy === 'group' ? 'waiting' : 'active',
+                minPersons: sessionData?.guideCard?.occupancies?.find(occ => occ.type.toLowerCase() === occupancy)?.min || (occupancy === 'group' ? 2 : 1),
+                maxPersons: sessionData?.guideCard?.occupancies?.find(occ => occ.type.toLowerCase() === occupancy)?.max || (occupancy === 'group' ? 10 : 1),
+                // Use first slot as primary slot for backend compatibility (similar to CalendarModal)
+                slot: finalSlots.length > 0 ? {
+                    id: finalSlots[0].id,
+                    date: finalSlots[0].date,
+                    startTime: finalSlots[0].startTime, // Already in RFC3339 format
+                    endTime: finalSlots[0].endTime,     // Already in RFC3339 format
+                    location: finalSlots[0].location || '',
+                    type: finalSlots[0].type || 'monthly'
+                } : {
+                    id: `default-${Date.now()}`,
+                    date: new Date().toISOString().slice(0, 10),
+                    startTime: formatToRFC3339(new Date().toISOString().slice(0, 10), '09:00'),
+                    endTime: formatToRFC3339(new Date().toISOString().slice(0, 10), '10:00'),
+                    location: '',
+                    type: 'monthly'
+                },
+                date: finalSlots.length > 0 ? finalSlots[0].date : new Date().toISOString().slice(0, 10),
+                timestamp: new Date().toISOString()
+            };
+
+            // Debug: Log cart item before sending
+            console.log('=== MONTHLY CART ITEM DEBUG ===');
+            console.log('Cart item being sent:', JSON.stringify(cartItem, null, 2));
+            console.log('Selected slots:', JSON.stringify(finalSlots, null, 2));
+            console.log('User email:', user?.email);
+            console.log('Organizer data:', JSON.stringify(sessionData?.organizer, null, 2));
+            console.log('Session title:', sessionData?.guideCard?.title);
+            console.log('=== END DEBUG ===');
+            
+            // Prefer parent handler if provided; otherwise fallback to Redux dispatch
+            try {
+                if (typeof onAddToCart === 'function') {
+                    console.log('Using parent onAddToCart function...');
+                    await onAddToCart(cartItem);
+                    console.log('Parent onAddToCart completed successfully');
+                } else {
+                    console.log('Using Redux dispatch...');
+                    dispatch(addToCart(cartItem));
+                    console.log('Redux dispatch completed successfully');
+                }
+
+                const slotCount = finalSlots.length;
+                const message = `${slotCount} session(s) added to cart! Remaining: ${remainingSessionsAfterCart - slotCount}`;
+                
+                showSuccess(message);
+                handleCloseModal();
+            } catch (addToCartError) {
+                console.error('Error in onAddToCart/dispatch:', addToCartError);
+                showError(`Failed to add to cart: ${addToCartError.message || 'Unknown error'}`);
+                setLoading(false);
+                return;
+            }
+        } catch (err) {
+            console.error('Error adding monthly booking to cart:', err);
+            showError(`Failed to add to cart: ${err.message || 'Unknown error'}`);
         } finally {
             setLoading(false);
         }
     };
 
-    // Handle individual/couple booking
-    const handleIndividualCoupleBooking = async (slot) => {
-        try {
-            // Create booking record
-            const bookingData = {
-                userId: user.uid,
-                userName: user.displayName || user.email,
-                programTitle: sessionData.guideCard.title,
-                mode: mode,
-                occupancyType: occupancyType,
-                date: slot.date,
-                startTime: slot.startTime,
-                endTime: slot.endTime,
-                month: new Date().toISOString().slice(0, 7),
-                bookedAt: new Date().toISOString()
-            };
-
-            // Save to monthlyBookings collection
-            await addDoc(collection(db, 'monthlyBookings'), bookingData);
-
-            // Save to slotBookings collection for visibility management
-            await addDoc(collection(db, 'slotBookings'), {
-                ...bookingData,
-                slotKey: `${slot.date}|${slot.startTime}|${slot.endTime}`
-            });
-
-            // Create cart item
-            const cartItem = {
-                id: `${sessionData.guideCard.title}-${slot.date}-${slot.startTime}`,
-                title: sessionData.guideCard.title,
-                price: getSlotPrice(),
-                persons: 1,
-                image: sessionData.guideCard.thumbnail,
-                quantity: 1,
-                type: 'monthly',
-                category: 'guide',
-                mode: mode,
-                subscriptionType: selectedPlan,
-                organizer: sessionData.organizer,
-                slots: [slot],
-                occupancyType: occupancyType,
-                timestamp: new Date().toISOString()
-            };
-
-            onAddToCart(cartItem);
-            showSuccess('Slot booked successfully!');
-        } catch (error) {
-            console.error('Error in individual/couple booking:', error);
-            throw error;
+    // Get next 30 days from today (rolling monthly period)
+    const getNext30Days = () => {
+        const days = [];
+        const today = new Date();
+        
+        for (let i = 0; i < 30; i++) {
+            const date = new Date(today);
+            date.setDate(today.getDate() + i);
+            days.push(date);
         }
+        
+        return days;
     };
 
-    // Get price for the selected occupancy type
-    const getSlotPrice = () => {
-        const occType = occupancyType.toLowerCase();
-        if (occType.includes('individual')) return Number(plan.individualPrice || plan.price || 0);
-        if (occType.includes('couple')) return Number(plan.couplesPrice || 0);
-        if (occType.includes('group')) return Number(plan.groupPrice || 0);
-        return Number(plan.price || 0);
+    const getDaysInMonth = (date) => {
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        const daysInMonth = lastDay.getDate();
+        const startingDayOfWeek = firstDay.getDay();
+
+        const days = [];
+        
+        // Add empty cells for days before the first day of the month
+        for (let i = 0; i < startingDayOfWeek; i++) {
+            days.push(null);
+        }
+        
+        // Add days of the month
+        for (let day = 1; day <= daysInMonth; day++) {
+            days.push(day);
+        }
+        
+        return days;
     };
 
-    // Render group status information
-    const renderGroupStatus = () => {
-        if (occupancyType.toLowerCase() !== 'group') return null;
-
-        if (groupStatus?.status === 'waiting') {
-            const daysLeft = waitingPeriod ? 
-                Math.ceil((new Date(waitingPeriod.endDate) - new Date()) / (1000 * 60 * 60 * 24)) : 0;
+    const hasAvailableSlots = (day) => {
+        if (!day) return false;
+        
+        // Handle both Date objects and day numbers
+        let dateStr;
+        if (day instanceof Date) {
+            dateStr = day.toISOString().slice(0, 10);
+        } else {
+            dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        }
+        
+        return localSlots.some(slot => {
+            // Check date and availability
+            if (slot.date !== dateStr || !slot.available) return false;
             
-            return (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-                    <div className="flex items-center gap-2 mb-2">
-                        <AlertCircle className="w-5 h-5 text-yellow-600" />
-                        <h3 className="font-semibold text-yellow-800">Group Formation in Progress</h3>
-                    </div>
-                    <p className="text-sm text-yellow-700 mb-2">
-                        Current members: {groupStatus.bookings.length} / {groupMax}
-                    </p>
-                    <p className="text-sm text-yellow-700 mb-2">
-                        Minimum required: {groupMin} members
-                    </p>
-                    <p className="text-sm text-yellow-700">
-                        Time remaining: {daysLeft} days
-                    </p>
-                    {groupStatus.bookings.some(b => b.userId === user?.uid) && (
-                        <p className="text-sm text-green-700 font-medium mt-2">
-                            ✓ You have already joined this group
-                        </p>
-                    )}
-                </div>
-            );
-        }
-
-        if (groupStatus?.status === 'active') {
-            return (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-                    <div className="flex items-center gap-2 mb-2">
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                        <h3 className="font-semibold text-green-800">Group Active</h3>
-                    </div>
-                    <p className="text-sm text-green-700">
-                        This group is currently running sessions. New groups will be available after completion.
-                    </p>
-                </div>
-            );
-        }
-
-        return (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                <div className="flex items-center gap-2 mb-2">
-                    <Users className="w-5 h-5 text-blue-600" />
-                    <h3 className="font-semibold text-blue-800">Group Booking Available</h3>
-                </div>
-                <p className="text-sm text-blue-700 mb-2">
-                    Join a group session! Minimum {groupMin} members required.
-                </p>
-                <p className="text-sm text-blue-700">
-                    Maximum {groupMax} members allowed.
-                </p>
-            </div>
-        );
+            // Check occupancy type match
+            const slotType = (slot.type || 'individual').toLowerCase();
+            const selectedOccupancy = (occupancyType || 'individual').toLowerCase();
+            
+            return slotType === selectedOccupancy;
+        });
     };
 
-    // Render monthly booking summary
-    const renderBookingSummary = () => {
-        return (
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
-                <h3 className="font-semibold text-gray-800 mb-2">Monthly Booking Summary</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                        <p className="text-gray-600">Sessions booked:</p>
-                        <p className="font-medium">{userMonthlySlots.length} / {sessionsPerMonth}</p>
-                    </div>
-                    <div>
-                        <p className="text-gray-600">Remaining sessions:</p>
-                        <p className="font-medium">{remainingSessions}</p>
-                    </div>
-                    <div>
-                        <p className="text-gray-600">Occupancy type:</p>
-                        <p className="font-medium">{occupancyType}</p>
-                    </div>
-                    <div>
-                        <p className="text-gray-600">Price per session:</p>
-                        <p className="font-medium">₹{getSlotPrice()}</p>
-                    </div>
-                </div>
-            </div>
-        );
+    const getSlotsForDate = (dateStr) => {
+        const slotsForDate = localSlots.filter(slot => slot.date === dateStr && slot.available);
+        const selectedOccupancy = (occupancyType || 'individual').toLowerCase();
+        
+        const filteredSlots = slotsForDate.filter(slot => {
+            const slotType = (slot.type || 'individual').toLowerCase();
+            return slotType === selectedOccupancy;
+        });
+        
+        console.log(`Slots for ${dateStr}:`, {
+            totalSlots: slotsForDate.length,
+            selectedOccupancy,
+            filteredSlots: filteredSlots.length,
+            slotTypes: slotsForDate.map(s => s.type)
+        });
+        
+        return filteredSlots;
     };
 
-    const calendarDays = getCalendarDays();
-    const today = new Date();
-    const currentMonth = currentDate.getMonth();
+    const handleDateClick = (day) => {
+        if (!day || !hasAvailableSlots(day)) return;
+        
+        // Handle both Date objects and day numbers
+        let dateStr;
+        if (day instanceof Date) {
+            dateStr = day.toISOString().slice(0, 10);
+        } else {
+            dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        }
+        
+        setSelectedDate(dateStr);
+    };
+
+    const handleSlotSelect = (slot) => {
+        const isSelected = selectedSlotsMulti.some(s => s.id === slot.id);
+        
+        if (isSelected) {
+            // Remove the slot if already selected
+            setSelectedSlotsMulti(prev => prev.filter(s => s.id !== slot.id));
+            return;
+        }
+
+        // Check if can select more slots
+        if (!canSelectMoreSlots()) {
+            showError(`You can only select up to ${sessionsPerMonth} sessions per month`);
+            return;
+        }
+
+        // Check if user already has a booked slot on this date
+        if (hasSlotOnDate(slot.date)) {
+            showError('You already have a booked slot on this date');
+            return;
+        }
+
+        // Check if user already selected a slot on this date
+        const hasSelectedSlotOnDate = selectedSlotsMulti.some(s => s.date === slot.date);
+        if (hasSelectedSlotOnDate) {
+            showError('You can only select one slot per day');
+            return;
+        }
+
+        // Add the slot to selection
+        setSelectedSlotsMulti(prev => [...prev, slot]);
+    };
+
+    const navigateMonth = (direction) => {
+        setCurrentDate(prev => {
+            const newDate = new Date(prev);
+            newDate.setMonth(prev.getMonth() + direction);
+            return newDate;
+        });
+    };
+
+    const monthName = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b">
+                <div className="flex justify-between items-center p-6 border-b">
                     <div>
-                        <h2 className="text-xl font-semibold">Monthly Booking Calendar</h2>
-                        <p className="text-sm text-gray-600">{sessionData?.guideCard?.title}</p>
+                        <h2 className="text-xl font-bold text-gray-800">
+                            Monthly Booking Calendar
+                        </h2>
+                        <p className="text-sm text-gray-600 mt-1">
+                            {mode} - Monthly Plan ({sessionsPerMonth} sessions per month)
+                        </p>
                     </div>
                     <button
-                        onClick={onClose}
-                        className="p-2 hover:bg-gray-100 rounded-full"
+                        onClick={handleCloseModal}
+                        className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                     >
-                        <X className="w-5 h-5" />
+                        <FiX className="w-6 h-6" />
                     </button>
                 </div>
 
+                {/* Content */}
                 <div className="p-6">
-                    {renderBookingSummary()}
-                    {renderGroupStatus()}
-
-                    {/* Calendar Navigation */}
-                    <div className="flex items-center justify-between mb-4">
-                        <button
-                            onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}
-                            className="px-3 py-1 border rounded hover:bg-gray-50"
-                            disabled={currentDate.getMonth() === today.getMonth() && currentDate.getFullYear() === today.getFullYear()}
-                        >
-                            Previous
-                        </button>
-                        <h3 className="text-lg font-semibold">
-                            {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                        </h3>
-                        <button
-                            onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}
-                            className="px-3 py-1 border rounded hover:bg-gray-50"
-                        >
-                            Next
-                        </button>
-                    </div>
-
-                    {/* Calendar Grid */}
-                    <div className="grid grid-cols-7 gap-1 mb-4">
-                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                            <div key={day} className="p-2 text-center text-sm font-medium text-gray-500">
-                                {day}
-                            </div>
-                        ))}
-                        
-                        {calendarDays.map((day, index) => {
-                            const isCurrentMonth = day.getMonth() === currentMonth;
-                            const isPast = day < today.setHours(0, 0, 0, 0);
-                            const slotsForDay = getSlotsForDate(day);
-                            const hasUserSlot = hasSlotOnDate(day);
-                            
-                            return (
-                                <div
-                                    key={index}
-                                    className={`min-h-[100px] border rounded p-1 ${
-                                        isCurrentMonth ? 'bg-white' : 'bg-gray-50'
-                                    } ${isPast ? 'opacity-50' : ''}`}
-                                >
-                                    <div className={`text-sm font-medium mb-1 ${
-                                        isCurrentMonth ? 'text-gray-900' : 'text-gray-400'
-                                    }`}>
-                                        {day.getDate()}
+                    {loading ? (
+                        <div className="flex justify-center items-center py-12">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2F6288]"></div>
+                        </div>
+                    ) : (
+                        <>
+                            {/* Session Counter */}
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-sm text-blue-800 font-medium">
+                                            Sessions Selected: {selectedSlotsMulti.length} / {sessionsPerMonth}
+                                        </p>
+                                        <p className="text-xs text-blue-600">
+                                            Already Booked: {userMonthlySlots.length} sessions this month
+                                        </p>
                                     </div>
-                                    
-                                    {hasUserSlot && (
-                                        <div className="bg-green-100 text-green-800 text-xs px-1 py-0.5 rounded mb-1">
-                                            Booked
-                                        </div>
-                                    )}
-                                    
-                                    {isCurrentMonth && !isPast && slotsForDay.map((slot, slotIndex) => (
-                                        <button
-                                            key={slotIndex}
-                                            onClick={() => handleSlotSelect(slot)}
-                                            disabled={loading || (hasUserSlot && occupancyType.toLowerCase() !== 'group')}
-                                            className={`w-full text-xs p-1 rounded mb-1 transition-colors ${
-                                                loading || (hasUserSlot && occupancyType.toLowerCase() !== 'group')
-                                                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                                                    : 'bg-blue-100 text-blue-800 hover:bg-blue-200'
-                                            }`}
-                                        >
-                                            <div className="flex items-center gap-1">
-                                                <Clock className="w-3 h-3" />
-                                                <span>{slot.startTime}</span>
-                                            </div>
-                                            <div className="text-xs opacity-75">
-                                                {slot.type}
-                                            </div>
-                                        </button>
-                                    ))}
+                                    <div className="text-right">
+                                        <p className="text-sm text-blue-800 font-medium">
+                                            Remaining: {sessionsPerMonth - userMonthlySlots.length - selectedSlotsMulti.length}
+                                        </p>
+                                        <p className="text-xs text-blue-600">
+                                            Price: ₹{plan.price || 0} per session
+                                        </p>
+                                    </div>
                                 </div>
-                            );
-                        })}
-                    </div>
+                            </div>
 
-                    {/* Instructions */}
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <h4 className="font-medium text-blue-800 mb-2">Booking Instructions:</h4>
-                        <ul className="text-sm text-blue-700 space-y-1">
-                            <li>• You can book up to {sessionsPerMonth} sessions per month</li>
-                            <li>• Only one slot per day is allowed (except for group bookings)</li>
-                            <li>• Slots are available from today until the end of the month</li>
-                            {occupancyType.toLowerCase() === 'individual' && (
-                                <li>• Individual slots become unavailable after booking</li>
+                            {/* Monthly View with right-side slot panel */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                {/* Calendar */}
+                                <div>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <button
+                                            onClick={() => navigateMonth(-1)}
+                                            className="p-2 hover:bg-gray-100 rounded-full"
+                                        >
+                                            <FiChevronLeft className="w-5 h-5" />
+                                        </button>
+                                        <h3 className="text-lg font-semibold">{monthName}</h3>
+                                        <button
+                                            onClick={() => navigateMonth(1)}
+                                            className="p-2 hover:bg-gray-100 rounded-full"
+                                        >
+                                            <FiChevronRight className="w-5 h-5" />
+                                        </button>
+                                    </div>
+
+                                    <div className="grid grid-cols-7 gap-1 mb-2">
+                                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                                            <div key={day} className="p-2 text-center text-sm font-medium text-gray-500">
+                                                {day}
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <div className="grid grid-cols-7 gap-1">
+                                        {getDaysInMonth(currentDate).map((day, index) => {
+                                            const hasSlots = hasAvailableSlots(day);
+                                            const dateStr = day ? `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}` : '';
+                                            const hasUserSlot = day ? hasSlotOnDate(dateStr) : false;
+                                            
+                                            return (
+                                                <button
+                                                    key={index}
+                                                    onClick={() => handleDateClick(day)}
+                                                    disabled={!day || !hasSlots || hasUserSlot}
+                                                    className={`p-2 text-center text-sm rounded transition-colors ${
+                                                        !day 
+                                                            ? 'invisible' 
+                                                            : hasUserSlot
+                                                                ? 'bg-green-100 text-green-800 cursor-not-allowed'
+                                                                : hasSlots
+                                                                    ? 'bg-blue-100 text-blue-800 hover:bg-blue-200 cursor-pointer'
+                                                                    : 'text-gray-300 cursor-not-allowed'
+                                                    }`}
+                                                >
+                                                    {day}
+                                                    {hasUserSlot && <div className="text-xs">Booked</div>}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* Right-side Slots Panel */}
+                                <div className="space-y-4">
+                                    {!selectedDate ? (
+                                        <div className="space-y-2">
+                                            <h4 className="font-medium text-gray-800">Available Slots</h4>
+                                            <p className="text-sm text-gray-600">
+                                                Select a date on the calendar to view and pick slots. 
+                                                {occupancyType.toLowerCase() === 'group' 
+                                                    ? 'Group slots become unavailable after 2 bookings.'
+                                                    : `You can select up to ${remainingSessionsAfterCart} more session(s).`
+                                                }
+                                            </p>
+                                            {sessionsInCart > 0 && (
+                                                <p className="text-xs text-blue-600 mt-1">
+                                                    {sessionsInCart} session(s) already in cart
+                                                </p>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="flex items-center justify-between">
+                                                <h4 className="font-medium text-gray-800">
+                                                    Slots on {new Date(selectedDate).toLocaleDateString('en-US',{weekday:'long', month:'short', day:'numeric'})}
+                                                </h4>
+                                                <button
+                                                    onClick={() => setSelectedDate(null)}
+                                                    className="text-sm text-[#2F6288] hover:underline"
+                                                >
+                                                    Clear date
+                                                </button>
+                                            </div>
+                                            <div className="grid grid-cols-1 gap-4">
+                                                {getSlotsForDate(selectedDate).filter(slot => isSlotVisible(slot)).map(slot => {
+                                                    const isSelected = selectedSlotsMulti.some(s => s.id === slot.id);
+                                                    const disabled = occupancyType.toLowerCase() !== 'group' && !canSelectMoreSlots() && !isSelected;
+                                                    const capacityInfo = getSlotCapacityInfo(slot);
+                                                    const isGroupMode = occupancyType.toLowerCase() === 'group';
+                                                    const isCoupleMode = occupancyType.toLowerCase() === 'couple';
+                                                    const isIndividualMode = occupancyType.toLowerCase() === 'individual';
+                                                    
+                                                    return (
+                                                        <button
+                                                            key={slot.id}
+                                                            onClick={() => !isGroupMode && !disabled && !capacityInfo.isFull && handleSlotSelect(slot)}
+                                                            className={`p-4 rounded-lg border-2 transition-all text-left ${
+                                                                isGroupMode
+                                                                    ? 'border-blue-300 bg-blue-50 cursor-default'
+                                                                    : capacityInfo.isFull && !isSelected
+                                                                        ? 'border-red-200 bg-red-50 cursor-not-allowed'
+                                                                    : isSelected 
+                                                                        ? 'border-[#2F6288] bg-blue-50' 
+                                                                        : disabled 
+                                                                            ? 'border-gray-200 bg-gray-100 cursor-not-allowed' 
+                                                                            : 'border-green-300 bg-green-50 hover:border-green-500 hover:bg-green-100'
+                                                            }`}
+                                                            disabled={isGroupMode || disabled || (capacityInfo.isFull && !isSelected)}
+                                                        >
+                                                            <div>
+                                                                <p className="font-semibold text-green-800">
+                                                                    {slot.time} - {slot.endTime}
+                                                                </p>
+                                                                <p className="text-sm text-gray-600">
+                                                                    {slot.duration} minutes • {slot.type} • {occupancyType}
+                                                                </p>
+                                                                {slot.location && (
+                                                                    <p className="text-xs text-gray-500">{slot.location}</p>
+                                                                )}
+                                                                <p className={`text-xs mt-1 ${
+                                                                    isGroupMode ? 'text-blue-700' : 
+                                                                    isCoupleMode ? (capacityInfo.isFull ? 'text-red-600' : 'text-green-600') :
+                                                                    isIndividualMode ? (capacityInfo.isFull ? 'text-orange-600' : 'text-green-600') :
+                                                                    isSelected ? 'text-blue-700' : disabled ? 'text-gray-400' : 'text-green-600'
+                                                                }`}>
+                                                                    {isGroupMode ? 
+                                                                        `Auto-selected for group (${capacityInfo.displayText})` :
+                                                                    isCoupleMode ?
+                                                                        `Couple booking (${capacityInfo.displayText})${capacityInfo.isFull ? ' - Full' : ''}` :
+                                                                    isIndividualMode ?
+                                                                        `Individual booking (${capacityInfo.displayText})` :
+                                                                        isSelected ? 'Selected' : disabled ? 'Limit reached' : 'Available'
+                                                                    }
+                                                                </p>
+                                                            </div>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Selected Slots Summary */}
+                            {selectedSlotsMulti.length > 0 && (
+                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                    <h4 className="font-medium text-blue-800 mb-3">
+                                        {occupancyType.toLowerCase() === 'group' ? 'Auto-Selected Group Sessions' : 'Selected Sessions'} ({selectedSlotsMulti.length})
+                                    </h4>
+                                    <div className="space-y-2">
+                                        {selectedSlotsMulti.map((slot, index) => (
+                                            <div key={slot.id} className="flex items-center justify-between bg-white p-3 rounded border">
+                                                <div>
+                                                    <p className="font-medium text-gray-800">
+                                                        {new Date(slot.date).toLocaleDateString('en-US', {weekday: 'short', month: 'short', day: 'numeric'})}
+                                                    </p>
+                                                    <p className="text-sm text-gray-600">{slot.time} - {slot.endTime}</p>
+                                                    {occupancyType.toLowerCase() === 'group' && (
+                                                        <p className="text-xs text-blue-600">Auto-selected for group</p>
+                                                    )}
+                                                </div>
+                                                {/* Only show remove button for non-group types */}
+                                                {occupancyType.toLowerCase() !== 'group' && (
+                                                    <button
+                                                        onClick={() => handleSlotRemove(slot)}
+                                                        className="text-red-600 hover:text-red-800"
+                                                    >
+                                                        Remove
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             )}
-                            {occupancyType.toLowerCase() === 'couple' && (
-                                <li>• Couple slots allow up to 2 bookings before becoming unavailable</li>
+                            {/* Add to Cart Button - Always visible for group until added */}
+                            {((occupancyType.toLowerCase() === 'group' && selectedSlotsMulti.length > 0 && !isGroupPlanInCart()) || 
+                              (occupancyType.toLowerCase() !== 'group' && selectedSlotsMulti.length > 0 && remainingSessionsAfterCart > 0)) && (
+                                <div className="flex justify-end mt-6">
+                                    <button
+                                        onClick={handleAddMonthlyToCart}
+                                        disabled={loading}
+                                        className="px-6 py-3 bg-[#2F6288] text-white rounded-lg hover:bg-[#2F6288]/90 disabled:opacity-50 font-semibold"
+                                    >
+                                        {loading ? 'Adding...' : 
+                                         (() => {
+                                            const occupancy = occupancyType.toLowerCase();
+                                            let pricePerSession = 0;
+                                            let displayText = '';
+                                            
+                                            // Debug button pricing
+                                            console.log('=== BUTTON PRICING DEBUG ===');
+                                            console.log('Button plan object:', JSON.stringify(plan, null, 2));
+                                            console.log('Button occupancy:', occupancy);
+                                            
+                                            // Get price from sessionData.guideCard.occupancies
+                                            if (sessionData?.guideCard?.occupancies && Array.isArray(sessionData.guideCard.occupancies)) {
+                                                const matchingOccupancy = sessionData.guideCard.occupancies.find(occ => 
+                                                    occ.type && occ.type.toLowerCase() === occupancy
+                                                );
+                                                
+                                                if (matchingOccupancy && matchingOccupancy.price) {
+                                                    pricePerSession = Number(matchingOccupancy.price) || 0;
+                                                } else {
+                                                    pricePerSession = Number(plan.price) || 0;
+                                                }
+                                            } else {
+                                                pricePerSession = Number(plan.price) || 0;
+                                            }
+                                            
+                                            if (occupancy === 'group') {
+                                                displayText = `Add Group Monthly Plan - ₹${pricePerSession}`;
+                                            } else if (occupancy.includes('couple') || occupancy.includes('twin')) {
+                                                displayText = `Add Couple Monthly Plan - ₹${pricePerSession}`;
+                                            } else {
+                                                displayText = `Add Individual Monthly Plan - ₹${pricePerSession}`;
+                                            }
+                                            
+                                            console.log(`Button ${occupancy} price:`, pricePerSession);
+                                            
+                                            console.log('Button display text:', displayText);
+                                            console.log('=== END BUTTON PRICING DEBUG ===');
+                                            
+                                            return displayText;
+                                         })()
+                                        }
+                                    </button>
+                                </div>
                             )}
-                            {occupancyType.toLowerCase() === 'group' && (
-                                <>
-                                    <li>• Group requires minimum {groupMin} and maximum {groupMax} members</li>
-                                    <li>• 7-day waiting period starts after first booking</li>
-                                    <li>• Refunds processed if minimum not reached within 7 days</li>
-                                </>
+                            
+                            {/* Group Plan Already Added Message */}
+                            {isGroupPlanInCart() && (
+                                <div className="flex justify-center mt-6">
+                                    <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                                        <p className="text-green-800 font-medium">✓ Group monthly plan already added to cart</p>
+                                        <p className="text-green-600 text-sm mt-1">Check your cart to proceed with payment</p>
+                                    </div>
+                                </div>
                             )}
-                        </ul>
-                    </div>
+                            
+                            {/* Session Limit Reached Message */}
+                            {occupancyType.toLowerCase() !== 'group' && remainingSessionsAfterCart <= 0 && (
+                                <div className="flex justify-center mt-6">
+                                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
+                                        <p className="text-yellow-800 font-medium">Session limit reached</p>
+                                        <p className="text-yellow-600 text-sm mt-1">You have used all {sessionsPerMonth} sessions for this month</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Instructions */}
+                            <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                                <h4 className="font-medium text-yellow-800 mb-2">Booking Instructions:</h4>
+                                <ul className="text-sm text-yellow-700 space-y-1">
+                                    <li>• You can book up to {sessionsPerMonth} sessions per month</li>
+                                    <li>• {occupancyType.toLowerCase() === 'group' ? 'All available group slots are auto-selected' : `Sessions in cart: ${sessionsInCart}, Remaining: ${remainingSessionsAfterCart}`}</li>
+                                    <li>• {occupancyType.toLowerCase() === 'group' ? 'Group slots become unavailable after 2 bookings' : 'Individual slots become unavailable once booked'}</li>
+                                    <li>• Blue highlighted dates have available slots</li>
+                                    <li>• Click on a date to see available time slots</li>
+                                </ul>
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
         </div>

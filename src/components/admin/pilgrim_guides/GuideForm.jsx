@@ -12,7 +12,7 @@ import { showSuccess, showError } from "../../../utils/toast"
 
 const ItemType = "SLIDE";
 
-function SlideItem({ slide, index, moveSlide, removeSlide, editSlide }) {
+function SlideItem({ slide, index, moveSlide, removeSlide, editSlide, isLoading }) {
     const [, ref] = useDrop({
         accept: ItemType,
         hover: (item) => {
@@ -52,9 +52,13 @@ function SlideItem({ slide, index, moveSlide, removeSlide, editSlide }) {
             </div>
             <div className="flex items-center gap-2">
                 <button
-                    onClick={() => editSlide(index)}
-                    className="text-[#2F6288]0 hover:text-blue-700 p-1"
-                    title="Edit Session Card"
+                    onClick={() => {
+                        console.log("Edit button clicked for index:", index);
+                        editSlide(index);
+                    }}
+                    disabled={isLoading}
+                    className={`p-1 ${isLoading ? 'text-gray-400 cursor-not-allowed' : 'text-[#2F6288] hover:text-blue-700'}`}
+                    title={isLoading ? "Loading..." : "Edit Session Card"}
                 >
                     <Edit2 className="w-4 h-4" />
                 </button>
@@ -167,6 +171,7 @@ export default function GuideForm() {
     const [dragActive, setDragActive] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editIndex, setEditIndex] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
     const [thumbnailUploadProgress, setThumbnailUploadProgress] = useState(0);
     const [isThumbnailUploading, setIsThumbnailUploading] = useState(false);
     const [sessionImageUploadProgress, setSessionImageUploadProgress] = useState({});
@@ -427,12 +432,71 @@ export default function GuideForm() {
         }
     };
 
-    const editSlide = (index) => {
-        const slideToEdit = allData[index];
-        console.log("Editing slide:", slideToEdit);
-        console.log("Monthly online data:", slideToEdit?.online?.monthly);
-        console.log("Monthly offline data:", slideToEdit?.offline?.monthly);
-        console.log("Organizer data:", slideToEdit?.organizer);
+    const editSlide = async (index) => {
+        console.log("🔄 Loading latest data for edit...", { 
+            index, 
+            allDataLength: allData.length,
+            guidesLength: guides.length,
+            slideDataLength: slideData.length 
+        });
+        
+        // Check against slideData instead of allData since that's what the UI shows
+        if (index < 0 || index >= slideData.length) {
+            console.error("Invalid index for edit:", index, "slideData length:", slideData.length);
+            showError("Invalid slide index");
+            return;
+        }
+        
+        // Show loading state
+        setIsLoading(true);
+        
+        let slideToEdit;
+
+        // Resolve the full guide object for the clicked slide.
+        // The list UI shows slideData (flattened slides), but the form expects a full guide object
+        // containing guideCard, organizer, online/offline, etc.
+        try {
+            const clickedSlide = slideData[index];
+
+            // Prefer matching by unique title to locate the parent guide
+            if (clickedSlide?.title && Array.isArray(guides)) {
+                slideToEdit = guides.find(g => g?.guideCard?.title === clickedSlide.title);
+            }
+
+            // If not found in current Redux state, fetch latest and try again
+            if (!slideToEdit) {
+                console.log("Guide not found in Redux by title, fetching latest data...");
+                const latestData = await fetchGuideData(uid);
+                setAllData(latestData);
+
+                // Some backends return an object with a `slides` array of guides
+                let guidesArray = Array.isArray(latestData) ? latestData : [];
+                if (!guidesArray.length && latestData && latestData.slides) {
+                    // if `slides` is an object or array of guide entries, normalize it
+                    const raw = latestData.slides;
+                    const arr = Array.isArray(raw) ? raw : Object.values(raw || {});
+                    guidesArray = arr;
+                }
+
+                slideToEdit = guidesArray.find(g => g?.guideCard?.title === clickedSlide?.title);
+            }
+
+            if (!slideToEdit) {
+                setIsLoading(false);
+                showError("Could not resolve the guide for this slide. Please ensure the slide title matches the guide title.");
+                return;
+            }
+            
+            console.log("✅ Editing latest slide data:", slideToEdit);
+            console.log("Monthly online data:", slideToEdit?.online?.monthly);
+            console.log("Monthly offline data:", slideToEdit?.offline?.monthly);
+            console.log("Organizer data:", slideToEdit?.organizer);
+        } catch (error) {
+            console.error("Error in editSlide:", error);
+            setIsLoading(false);
+            showError("Failed to load slide data for editing.");
+            return;
+        }
 
         // Normalize types and add stable ids for backward compatibility
         const normalizeSlots = (slots = []) => slots.map(s => ({ ...s, id: s?.id || uuidv4(), type: s?.type || 'individual' }));
@@ -535,6 +599,9 @@ export default function GuideForm() {
             }
         } catch {}
 
+        // Hide loading state
+        setIsLoading(false);
+        
         // Scroll to top of form
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -778,6 +845,7 @@ export default function GuideForm() {
         });
     };
 
+
     // ========== New Day-Based Weekly Pattern Functions ==========
     const initializeDayBasedWeeklyPattern = (modeKey) => {
         setFormData(prev => {
@@ -848,35 +916,67 @@ export default function GuideForm() {
         setFormData(prev => {
             const next = { ...prev };
             const dayPattern = next[modeKey].monthly.dayBasedPattern;
-            console.log(`Replicating week to month for ${modeKey}:`, dayPattern);
+            console.log(`🔄 Replicating week to month for ${modeKey}:`, dayPattern);
             
-            if (!dayPattern) {
+            if (!dayPattern || Object.keys(dayPattern).length === 0) {
+                showError("❌ No day-based pattern found to replicate. Please add slots first using 'Initialize Day-Based Setup'.");
                 console.log("❌ No dayBasedPattern found to replicate");
-                return next;
+                return prev;
             }
 
             // Convert day-based pattern to old weeklyPattern format for compatibility
             const weeklyPattern = [];
             Object.entries(dayPattern).forEach(([dayName, dayData]) => {
-                if (dayData.slots && dayData.slots.length > 0) {
+                console.log(`Processing ${dayName}:`, dayData);
+                
+                // Check if dayData exists and has slots
+                if (dayData && dayData.slots && Array.isArray(dayData.slots) && dayData.slots.length > 0) {
                     // Map day names to short format
                     const dayMap = {
                         "Monday": "Mon", "Tuesday": "Tue", "Wednesday": "Wed", 
                         "Thursday": "Thu", "Friday": "Fri", "Saturday": "Sat", "Sunday": "Sun"
                     };
                     const shortDay = dayMap[dayName];
-                    weeklyPattern.push({
-                        days: [shortDay],
-                        times: [...dayData.slots]
-                    });
+                    
+                    // Filter out empty slots and process valid ones
+                    const validSlots = dayData.slots.filter(slot => 
+                        slot && slot.startTime && slot.endTime && 
+                        slot.startTime.trim() !== "" && slot.endTime.trim() !== ""
+                    );
+                    
+                    if (validSlots.length > 0) {
+                        // Process each slot and ensure proper format
+                        const processedTimes = validSlots.map(slot => ({
+                            startTime: slot.startTime || "",
+                            endTime: slot.endTime || "",
+                            type: slot.type || "individual",
+                            bookedCount: slot.bookedCount || 0
+                        }));
+                        
+                        weeklyPattern.push({
+                            days: [shortDay],
+                            times: processedTimes
+                        });
+                        
+                        console.log(`✅ Added ${shortDay} with ${processedTimes.length} valid slots`);
+                    } else {
+                        console.log(`❌ ${dayName} has no valid slots (empty times)`);
+                    }
+                } else {
+                    console.log(`❌ ${dayName} has no slots or invalid structure`);
                 }
             });
             
-            console.log(`Generated weeklyPattern:`, weeklyPattern);
-            next[modeKey].monthly.weeklyPattern = weeklyPattern;
-            console.log(`Final monthly data:`, next[modeKey].monthly);
+            if (weeklyPattern.length === 0) {
+                showError("❌ No valid slots found to replicate. Please add time slots to your days.");
+                return prev;
+            }
             
-            showSuccess(`Week pattern replicated to all weeks in the month!`);
+            console.log(`🎯 Generated weeklyPattern:`, weeklyPattern);
+            next[modeKey].monthly.weeklyPattern = weeklyPattern;
+            console.log(`📅 Final monthly data:`, next[modeKey].monthly);
+            
+            showSuccess(`✅ Week pattern replicated! ${weeklyPattern.length} day(s) will repeat every week.`);
             return next;
         });
     };
@@ -1419,6 +1519,16 @@ export default function GuideForm() {
 
     return (
         <div className="min-h-screen bg-gray-50">
+            {/* Loading Overlay */}
+            {isLoading && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded-lg shadow-lg flex items-center gap-3">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#2F6288]"></div>
+                        <span className="text-gray-700">Loading latest data...</span>
+                    </div>
+                </div>
+            )}
+            
             <div className="md:p-8 px-4 py-0 mx-auto">
 
                 {/* Guide Card */}
@@ -1524,7 +1634,7 @@ export default function GuideForm() {
                         <label className="block text-md font-semibold text-gray-700 mb-2">Title</label>
                         <input
                             placeholder="Enter Title"
-                            value={formData.guideCard.title}
+                            value={formData?.guideCard?.title ?? ""}
                             onChange={(e) => handleFieldChange("guideCard", "title", e.target.value)}
                             className="text-sm w-full border p-3 rounded-lg"
                         />
@@ -1739,6 +1849,13 @@ export default function GuideForm() {
                                             className="px-3 py-1.5 rounded border border-[#2F6288] text-[#2F6288] hover:bg-blue-50 text-sm"
                                         >
                                             Quick setup: Create Sun–Sat rows
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => replicateWeekToMonth('online')}
+                                            className="px-3 py-1 rounded border text-sm bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
+                                        >
+                                            Apply Week to All Month
                                         </button>
                                         <span className="text-xs text-gray-500">Tip: Add multiple times inside each weekday row. These slots repeat every week. Users will only see dates within the current month.</span>
                                     </div>
@@ -2898,6 +3015,7 @@ export default function GuideForm() {
                                         moveSlide={moveSlide}
                                         removeSlide={removeSlide}
                                         editSlide={editSlide}
+                                        isLoading={isLoading}
                                     />
                                 ))}
                             </div>
