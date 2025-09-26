@@ -828,24 +828,50 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                         const updatedSlides = slides.map((slide) => {
                             const slideTitle = slide?.guideCard?.title || slide?.title;
                             if (slideTitle === program.title) {
-                                // Append purchaser info
+                                // Append purchaser info — for monthly: one entry PER selected slot
+                                const isMonthly = (program.subscriptionType || '').toLowerCase() === 'monthly';
+                                const hasSelectedSlots = isMonthly && Array.isArray(program.selectedSlots) && program.selectedSlots.length > 0;
+
+                                const slotPurchases = hasSelectedSlots
+                                    ? program.selectedSlots.map((sel) => ({
+                                        uid: userId,
+                                        name,
+                                        email,
+                                        purchasedAt: new Date().toISOString(),
+                                        paymentId: paymentResponse.razorpay_payment_id,
+                                        orderId: paymentResponse.razorpay_order_id,
+                                        slot: {
+                                            id: sel.id,
+                                            date: sel.date,
+                                            startTime: sel.startTime,
+                                            endTime: sel.endTime,
+                                            location: sel.location || '',
+                                            type: (sel.type || program.occupancyType || 'individual')
+                                        },
+                                        date: sel.date,
+                                        mode: program.mode,
+                                        subscriptionType: program.subscriptionType,
+                                        ...formData,
+                                    }))
+                                    : [{
+                                        uid: userId,
+                                        name,
+                                        email,
+                                        purchasedAt: new Date().toISOString(),
+                                        paymentId: paymentResponse.razorpay_payment_id,
+                                        orderId: paymentResponse.razorpay_order_id,
+                                        slot: program.slot,
+                                        date: program.date,
+                                        mode: program.mode,
+                                        subscriptionType: program.subscriptionType,
+                                        ...formData,
+                                    }];
+
                                 const updatedSlide = {
                                     ...slide,
                                     purchasedUsers: [
                                         ...(slide.purchasedUsers || []),
-                                        {
-                                            uid: userId,
-                                            name,
-                                            email,
-                                            purchasedAt: new Date().toISOString(),
-                                            paymentId: paymentResponse.razorpay_payment_id,
-                                            orderId: paymentResponse.razorpay_order_id,
-                                            slot: program.slot,
-                                            date: program.date,
-                                            mode: program.mode,
-                                            subscriptionType: program.subscriptionType,
-                                            ...formData,
-                                        },
+                                        ...slotPurchases,
                                     ],
                                 };
 

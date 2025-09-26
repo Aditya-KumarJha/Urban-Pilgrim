@@ -44,6 +44,7 @@ export default function GuideClassDetails() {
     const [slotBookings, setSlotBookings] = useState({});
     const [groupBookings, setGroupBookings] = useState([]);
     const [currentMonth, setCurrentMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
+    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
     // Get user and programs from Redux
@@ -143,6 +144,27 @@ export default function GuideClassDetails() {
                 
             default:
                 return { canBook: false, reason: 'Invalid occupancy type' };
+        }
+    };
+
+    // Refresh purchasedUsers from Firestore so UI reflects persisted bookings in the modal
+    const loadPurchasedUsers = async () => {
+        try {
+            const sessionRef = doc(db, `pilgrim_guides/${uid}/guides/data`);
+            const snapshot = await getDoc(sessionRef);
+            if (!snapshot.exists()) return;
+            const data = snapshot.data();
+            const slides = data?.slides || [];
+            const found = slides.find((r) => normalize(r?.guideCard?.title) === normalize(formattedTitle));
+            if (!found) return;
+
+            // Update only purchasedUsers inside sessionData to keep other local edits
+            setSessionData((prev) => {
+                if (!prev) return found;
+                return { ...prev, purchasedUsers: found.purchasedUsers || [] };
+            });
+        } catch (err) {
+            console.error('Failed to refresh purchasedUsers:', err);
         }
     };
 
@@ -350,6 +372,17 @@ export default function GuideClassDetails() {
         }
     };
 
+    // Refresh purchased users when the calendar modal is opened
+    useEffect(() => {
+        const refreshData = async () => {
+            if (showCalendar && subscriptionType === 'monthly') {
+                await loadPurchasedUsers();
+                await loadSlotBookings();
+            }
+        };
+        refreshData();
+    }, [showCalendar, subscriptionType]);
+
     // Load user's monthly bookings
     const loadUserMonthlyBookings = async () => {
         if (!user || !sessionData) {
@@ -390,7 +423,8 @@ export default function GuideClassDetails() {
     // Load slot bookings for visibility management
     const loadSlotBookings = async () => {
         if (!sessionData) return;
-        
+        setLoading(true);
+
         try {
             const bookingsQuery = query(
                 collection(db, 'slotBookings'),
@@ -410,6 +444,8 @@ export default function GuideClassDetails() {
             setSlotBookings(bookings);
         } catch (error) {
             console.error('Error loading slot bookings:', error);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -1261,16 +1297,29 @@ export default function GuideClassDetails() {
                                 return (
                                     <>
                                         <button
-                                            onClick={() => {
+                                            onClick={async (e) => {
+                                                e.preventDefault();
                                                 console.log("=== BOOK NOW CLICKED ===");
                                                 console.log("Current state:", {
                                                     subscriptionType,
                                                     mode,
                                                     selectedOccupancy,
                                                     availableSlots: availableSlots.length,
-                                                    userMonthlySlots: userMonthlySlots.length
+                                                    userMonthlySlots: userMonthlySlots.length,
+                                                    showCalendar // Current state of showCalendar
                                                 });
-                                                setShowCalendar(true);
+                                                
+                                                try {
+                                                    console.log("1. Loading purchased users...");
+                                                    await loadPurchasedUsers();
+                                                    console.log("2. Loading slot bookings...");
+                                                    await loadSlotBookings();
+                                                    console.log("3. Setting showCalendar to true");
+                                                    setShowCalendar(true);
+                                                    console.log("4. showCalendar state should now be true");
+                                                } catch (error) {
+                                                    console.error("Error in Book Now click handler:", error);
+                                                }
                                             }}
                                             className={`w-full px-4 py-3 rounded-lg text-white font-semibold bg-[#2F6288] hover:bg-[#2F6288]/90`}
                                         >
@@ -1379,13 +1428,14 @@ export default function GuideClassDetails() {
                     waitingPeriod={waitingPeriod}
                     onGroupBooking={handleGroupBooking}
                     cartItems={cartItems}
-                    onAddToCart={(cartItem) => {
+                    onAddToCart={async (cartItem) => {
                         console.log("Adding to cart from monthly modal:", cartItem);
                         dispatch(addToCartRedux(cartItem));
                         setShowCalendar(false);
-                        // Reload booking data after successful booking
-                        loadUserMonthlyBookings();
-                        loadSlotBookings();
+                        // Reload all booking data to ensure UI is up to date
+                        await loadPurchasedUsers();
+                        await loadUserMonthlyBookings();
+                        await loadSlotBookings();
                     }}
                 />
             )}
