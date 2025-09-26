@@ -20,8 +20,7 @@ const SessionDescription = () => {
         return str
             ?.toLowerCase()
             .trim()
-            .replace(/\s+/g, "-")   // spaces → dashes
-            .replace(/-+/g, "-");   // collapse multiple dashes
+            .replace(/\s/g, '-')   // replace EVERY space with a dash; do not collapse
     }
 
     useEffect(() => {

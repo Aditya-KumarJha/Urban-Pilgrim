@@ -1,13 +1,15 @@
 import { FiPlay, FiCalendar, FiClock } from "react-icons/fi";
 import { motion } from "framer-motion";
 import SEO from "../../components/SEO.jsx";
-import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 
 const SessionSlots = () => {
     const params = useParams();
     const sessionId = params.sessionId;
+    const location = useLocation();
+    const programFromState = location.state?.program;
     const [sessionData, setSessionData] = useState(null);
     const [loading, setLoading] = useState(true);
     
@@ -19,14 +21,18 @@ const SessionSlots = () => {
     },[])
 
     function normalizeSlug(str) {
-        return str
-            ?.toLowerCase()
+        return String(str || '')
             .trim()
-            .replace(/\s+/g, "-")   // spaces → dashes
-            .replace(/-+/g, "-");   // collapse multiple dashes
+            .replace(/\s/g, "-");   // replace EVERY space with a dash; do not collapse
     }
 
     useEffect(() => {
+        // Priority: use program passed via navigation state, fallback to Redux store lookup
+        if (programFromState) {
+            setSessionData(programFromState);
+            setLoading(false);
+            return;
+        }
         if (Data && sessionId) {
             const session = Data.find(
                 (program) =>
@@ -35,10 +41,41 @@ const SessionSlots = () => {
             setSessionData(session || null);
             setLoading(false);
         }
-    }, [Data, sessionId]);
+    }, [Data, sessionId, programFromState]);
 
     // Get slots from session data
-    const slots = sessionData?.liveSlots || [];
+    const slots = sessionData?.liveSlots || sessionData?.selectedSlots || [];
+
+    // Attempt to resolve a Meet/Join link for a given slot or session
+    const resolveJoinLink = (slot) => {
+        return (
+            slot?.meetLink ||
+            slot?.joinLink ||
+            slot?.link ||
+            sessionData?.meetLink ||
+            sessionData?.joinLink ||
+            sessionData?.liveSessionCard?.meetLink ||
+            sessionData?.liveSessionCard?.joinLink ||
+            programFromState?.meetLink ||
+            programFromState?.joinLink ||
+            programFromState?.slot?.meetLink ||
+            programFromState?.slot?.link ||
+            ""
+        );
+    };
+
+    // Time helpers
+    const canJoinNow = (slot) => {
+        try {
+            const start = new Date(slot?.date || slot?.startTime);
+            // If startTime is separate time string, merge with date
+            if (slot?.startTime && /\d{2}:\d{2}/.test(slot.startTime) && slot?.date) {
+                const dt = new Date(slot.date + 'T' + slot.startTime + ':00');
+                if (!isNaN(dt.getTime())) return Date.now() >= dt.getTime() - 15 * 60 * 1000; // 15 min before
+            }
+            return Date.now() >= start.getTime() - 15 * 60 * 1000;
+        } catch { return true; }
+    };
     console.log("sessionData", sessionData)
     return (
         <div className=" bg-gradient-to-b from-[#FAF4F0] to-white mt-[100px]">
@@ -86,6 +123,7 @@ const SessionSlots = () => {
                             const currentDate = new Date();
                             const hasEnded = slotDate < currentDate;
 
+                            const joinUrl = resolveJoinLink(slot);
                             return (
                                 <motion.div
                                     key={slot.id || index}
@@ -135,6 +173,19 @@ const SessionSlots = () => {
                                             })}
                                         </div>
                                     </div>
+                                    {!!joinUrl && !hasEnded && (
+                                        <div className="mt-4">
+                                            <a
+                                                href={joinUrl}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className={`inline-flex items-center px-4 py-2 rounded-md text-white ${canJoinNow(slot) ? 'bg-[#2F6288] hover:bg-[#224b66]' : 'bg-gray-400 cursor-not-allowed'}`}
+                                                onClick={(e) => { if (!canJoinNow(slot)) e.preventDefault(); }}
+                                            >
+                                                Join Now
+                                            </a>
+                                        </div>
+                                    )}
                                 </div>
                             </motion.div>
                             );

@@ -4,6 +4,9 @@ const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
 const Razorpay = require("razorpay");
 const twilio = require("twilio");
+const { onSchedule } = require("firebase-functions/v2/scheduler");
+const { onRequest } = require("firebase-functions/v2/https");
+const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 
 // Import subscription cleanup functions - moved inline to avoid import issues
 
@@ -341,9 +344,146 @@ const gmailEmail = process.env.APP_GMAIL;
 const gmailPassword = process.env.APP_GMAIL_PASSWORD;
 const contactEmail = process.env.CONTACT_EMAIL
 
-const accountSid = process.env.TWILIO_SID;
-const authToken = process.env.TWILIO_AUTH_TOKEN;
-const client = twilio(accountSid, authToken);
+// Twilio credentials are read from environment variables
+// Set: TWILIO_SID and TWILIO_AUTH_TOKEN in your Functions runtime environment
+
+// ============= WhatsApp Utilities ============= //
+function getTwilioClient() {
+    try {
+        const sid = process.env.TWILIO_SID;
+        const token = process.env.TWILIO_AUTH_TOKEN;
+        if (!sid || !token) {
+            console.error('Twilio credentials not configured');
+            return null;
+        }
+        return twilio(sid, token);
+    } catch (e) {
+        console.error('Error getting Twilio client:', e);
+        return null;
+    }
+}
+
+function formatPhoneNumber(raw) {
+    try {
+        if (!raw) return null;
+        let s = String(raw).replace(/[^0-9+]/g, "");
+        // If already starts with +, assume E.164
+        if (s.startsWith("+")) return s;
+        // Handle common Indian numbers (10 digits) by prefixing +91
+        if (/^\d{10}$/.test(s)) return "+91" + s;
+        // If 12-13 digits without +, try prefix with +
+        if (/^\d{11,13}$/.test(s)) return "+" + s;
+        return null;
+    } catch { return null; }
+}
+
+async function sendWhatsApp(toE164, body) {
+    if (!toE164) return { ok: false, error: 'No phone' };
+    try {
+        const client = getTwilioClient();
+        if (!client) return { ok: false, error: 'Twilio client not configured' };
+        const res = await client.messages.create({
+            from: "whatsapp:+14155238886", // Twilio sandbox/approved number
+            to: `whatsapp:${toE164}`,
+            body,
+        });
+        return { ok: true, sid: res.sid };
+    } catch (err) {
+        console.error('WhatsApp send error:', err);
+        return { ok: false, error: err?.message };
+    }
+}
+
+async function createWhatsAppReminderDocs({ userId, name, phoneE164, program, slots }) {
+    try {
+        if (!phoneE164 || !Array.isArray(slots) || slots.length === 0) return;
+        const remindersCol = db.collection('whatsapp_reminders');
+        const batch = db.batch();
+        const now = new Date();
+        for (const slot of slots) {
+            const startStr = slot?.startTime || slot?.start_time; // RFC3339
+            const endStr = slot?.endTime || slot?.end_time;
+            if (!startStr) continue;
+            const startDate = new Date(startStr);
+            if (isNaN(startDate.getTime())) continue;
+
+            const template = (minutes) => (
+                `Reminder: Your Urban Pilgrim session "${program.title}" starts in ${minutes} minutes.\n` +
+                `Date: ${new Date(slot.date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}\n` +
+                `Time: ${startStr.split('T')[1]?.split('+')[0] || startStr} (Asia/Kolkata)\n` +
+                `Mode: ${program.mode}${program.occupancyType ? ` • ${program.occupancyType}` : ''}`
+            );
+
+            const remind60 = new Date(startDate.getTime() - 60 * 60 * 1000);
+            const remind30 = new Date(startDate.getTime() - 30 * 60 * 1000);
+
+            // Create two reminders (60 and 30 minutes before)
+            for (const m of [60, 30]) {
+                const sendAtDate = (m === 60 ? remind60 : remind30);
+                // Skip if reminder time already passed by more than 1 minute
+                if (sendAtDate.getTime() < now.getTime() - 60 * 1000) continue;
+
+                const docRef = remindersCol.doc();
+                batch.set(docRef, {
+                    status: 'pending',
+                    createdAt: admin.firestore.Timestamp.now(),
+                    sendAt: admin.firestore.Timestamp.fromDate(sendAtDate),
+                    to: phoneE164,
+                    userId,
+                    name,
+                    programTitle: program.title,
+                    programMode: program.mode,
+                    occupancyType: program.occupancyType || null,
+                    minutesBefore: m,
+                    slot: {
+                        date: slot.date,
+                        startTime: startStr,
+                        endTime: endStr || null,
+                    },
+                    message: template(m)
+                });
+            }
+        }
+        await batch.commit();
+    } catch (e) {
+        console.error('Failed creating WhatsApp reminder docs:', e);
+    }
+}
+
+// Runs every 5 minutes to send pending WhatsApp reminders
+exports.processWhatsappReminders = onSchedule({
+    schedule: 'every minute',
+    timeZone: 'Asia/Kolkata',
+    memory: '256MiB',
+    timeoutSeconds: 300,
+}, async () => {
+    try {
+        const nowTs = admin.firestore.Timestamp.now();
+        const snap = await db.collection('whatsapp_reminders')
+            .where('status', '==', 'pending')
+            .where('sendAt', '<=', nowTs)
+            .limit(50)
+            .get();
+
+        if (snap.empty) return null;
+        console.log(`Processing ${snap.size} WhatsApp reminders...`);
+
+        for (const doc of snap.docs) {
+            const data = doc.data();
+            const body = data.message || `Reminder: Your Urban Pilgrim session "${data.programTitle}" is starting soon.`;
+            const res = await sendWhatsApp(data.to, body);
+            if (res.ok) {
+                await doc.ref.update({ status: 'sent', sentAt: admin.firestore.Timestamp.now(), sid: res.sid });
+            } else {
+                await doc.ref.update({ status: 'error', error: res.error, updatedAt: admin.firestore.Timestamp.now() });
+            }
+        }
+        return null;
+    } catch (err) {
+        console.error('processWhatsappReminders error:', err);
+        return null;
+    }
+});
 
 const razorpay = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID,
@@ -1196,6 +1336,92 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
         }
 
         // ------------------------
+        // 2.5) Send WhatsApp notifications + schedule reminders (Guide monthly & one-time)
+        // ------------------------
+        try {
+            const rawPhone = formData?.whatsapp || formData?.phone || formData?.contact || formData?.mobile || null;
+            const phoneE164 = formatPhoneNumber(rawPhone);
+            console.log('WA: normalized phone', { rawPhone, phoneE164 });
+            if (phoneE164) {
+                for (const program of cartData) {
+                    const typeKey = ((program.type || program.category || '') + '').toLowerCase().trim();
+                    const sub = (program.subscriptionType || '').toLowerCase();
+                    const isMonthly = sub === 'monthly';
+
+                    // Build slots array for reminders
+                    let slots = [];
+                    if (isMonthly && Array.isArray(program.selectedSlots) && program.selectedSlots.length > 0) {
+                        slots = program.selectedSlots.map(s => ({
+                            date: s.date,
+                            startTime: s.startTime || s.start_time,
+                            endTime: s.endTime || s.end_time
+                        })).filter(s => s.date && s.startTime);
+                    } else if (program.slot && (program.slot.startTime || program.slot.start_time)) {
+                        slots = [{
+                            date: program.date,
+                            startTime: program.slot.startTime || program.slot.start_time,
+                            endTime: program.slot.endTime || program.slot.end_time
+                        }];
+                    }
+
+                    // Send immediate confirmation message (generic "session")
+                    const confirmMsg = isMonthly
+                        ? `Hi ${name || 'Pilgrim'}, ✅ Your monthly session for "${program.title}" has been booked successfully. We'll remind you 60 and 30 minutes before each session here on WhatsApp.\nMode: ${program.mode}${program.occupancyType ? ` • ${program.occupancyType}` : ''}`
+                        : `Hi ${name || 'Pilgrim'}, ✅ Your session "${program.title}" has been booked successfully. We'll remind you 60 and 30 minutes before the session here on WhatsApp.\nMode: ${program.mode}${program.occupancyType ? ` • ${program.occupancyType}` : ''}`;
+
+                    const waRes = await sendWhatsApp(phoneE164, confirmMsg);
+                    console.log('WA: confirmation send result', { ok: waRes?.ok, error: waRes?.error });
+
+                    // Fallback: if immediate send fails, schedule an immediate reminder (+1 minute)
+                    if (!waRes?.ok) {
+                        try {
+                            await db.collection('whatsapp_reminders').add({
+                                status: 'pending',
+                                createdAt: admin.firestore.Timestamp.now(),
+                                sendAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 60 * 1000)),
+                                to: phoneE164,
+                                userId,
+                                name,
+                                programTitle: program.title,
+                                programMode: program.mode,
+                                occupancyType: program.occupancyType || null,
+                                minutesBefore: 0,
+                                slot: slots?.[0] ? {
+                                    date: slots[0].date,
+                                    startTime: slots[0].startTime || null,
+                                    endTime: slots[0].endTime || null,
+                                } : null,
+                                message: confirmMsg,
+                                kind: 'instant-fallback'
+                            });
+                            console.log('WA: scheduled instant fallback reminder (+1m)');
+                        } catch (e) {
+                            console.error('WA: failed to schedule instant fallback', e);
+                        }
+                    }
+
+                    // Create reminder docs for scheduled job
+                    if (Array.isArray(slots) && slots.length > 0) {
+                        await createWhatsAppReminderDocs({
+                            userId,
+                            name,
+                            phoneE164,
+                            program: { title: program.title, mode: program.mode, occupancyType: program.occupancyType },
+                            slots
+                        });
+                        console.log('WA: reminder docs created', { count: slots.length * 2, title: program.title });
+                    } else {
+                        console.log('WA: no slots for reminders', { title: program.title, typeKey, sub });
+                    }
+                }
+            } else {
+                console.log('WA: no valid phone number found in formData');
+            }
+        } catch (waErr) {
+            console.error('WhatsApp notification scheduling failed:', waErr);
+        }
+
+        // ------------------------
         // 3) Send Emails
         // ------------------------
         // Enhanced program list with monthly slot details
@@ -1768,15 +1994,6 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
     }
 });
 
-// Subscription Cleanup Functions
-const { onSchedule } = require("firebase-functions/v2/scheduler");
-const { onRequest } = require("firebase-functions/v2/https");
-
-
-/**
- * Scheduled function to clean up expired subscriptions
- * Runs daily at 2 AM UTC
- */
 exports.cleanupExpiredSubscriptions = onSchedule({
     schedule: "0 2 * * *", // Daily at 2 AM UTC
     timeZone: "UTC",
@@ -1830,10 +2047,6 @@ exports.cleanupExpiredSubscriptions = onSchedule({
     }
 });
 
-/**
- * HTTP function to manually trigger subscription cleanup
- * Useful for testing or manual cleanup
- */
 exports.manualCleanupExpiredSubscriptions = onRequest({
     cors: true,
     memory: "256MiB",
@@ -1893,10 +2106,6 @@ exports.manualCleanupExpiredSubscriptions = onRequest({
     }
 });
 
-/**
- * Function to check and update user's subscription status
- * Called when user logs in or accesses programs
- */
 exports.checkUserSubscriptionStatus = functions.https.onCall(async (data, context) => {
     try {
         const { uid } = context.auth;
@@ -2059,10 +2268,11 @@ exports.confirmGiftCardPayment = functions.https.onCall(async (data, context) =>
 exports.sendWhatsappReminder = functions.https.onCall(async (data, context) => {
     try {
         const { phoneNumber, message } = data.data;
-  
+        const client = getTwilioClient();
+        if (!client) throw new Error('Twilio client not configured');
         const res = await client.messages.create({
-            from: "whatsapp:+14155238886", // Twilio sandbox/approved number
-            to: `whatsapp:${phoneNumber}`, // User's phone e.g. +9198XXXXXXX
+            from: "whatsapp:+14155238886",
+            to: `whatsapp:${phoneNumber}`,
             body: message,
         });
 
@@ -2073,13 +2283,32 @@ exports.sendWhatsappReminder = functions.https.onCall(async (data, context) => {
     }
 });
 
-// ========================
-// BOOKING LIFECYCLE MANAGEMENT
-// ========================
-/**
- * Scheduled function to process group waiting periods and cleanup expired bookings
- * Runs daily at 9 AM IST
- */
+// Instant send for fallback reminders (triggered on document create)
+exports.sendInstantWhatsappOnCreate = onDocumentCreated('whatsapp_reminders/{id}', async (event) => {
+    try {
+        const snap = event.data; // DocumentSnapshot
+        const data = snap?.data() || {};
+        // Only handle instant-fallback or minutesBefore 0 within 2 minutes window
+        const now = new Date();
+        const sendAt = data.sendAt?.toDate ? data.sendAt.toDate() : null;
+        const isInstant = data.kind === 'instant-fallback' || data.minutesBefore === 0;
+        if (!isInstant) return null;
+        if (!sendAt || sendAt.getTime() > now.getTime() + 2 * 60 * 1000) return null;
+
+        const body = data.message || `Reminder: Your Urban Pilgrim session "${data.programTitle}" is starting soon.`;
+        const res = await sendWhatsApp(data.to, body);
+        if (res.ok) {
+            await snap.ref.update({ status: 'sent', sentAt: admin.firestore.Timestamp.now(), sid: res.sid });
+        } else {
+            await snap.ref.update({ status: 'error', error: res.error, updatedAt: admin.firestore.Timestamp.now() });
+        }
+        return null;
+    } catch (e) {
+        console.error('sendInstantWhatsappOnCreate error:', e);
+        return null;
+    }
+});
+
 exports.processBookingLifecycle = onSchedule({
     schedule: "0 9 * * *", // Daily at 9 AM
     timeZone: "Asia/Kolkata",
@@ -2106,9 +2335,6 @@ exports.processBookingLifecycle = onSchedule({
     }
 });
 
-/**
- * Process group bookings that have completed their 7-day waiting period
- */
 async function processGroupWaitingPeriods(today) {
     try {
         // Find all group bookings where waiting period has ended

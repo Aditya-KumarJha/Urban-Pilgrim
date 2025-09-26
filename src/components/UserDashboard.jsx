@@ -92,6 +92,30 @@ function Dashboard() {
         };
     };
 
+    // Navigate to the right page based on program type
+    const handleOpenProgram = (program) => {
+        const type = (program.type || program.category || '').toLowerCase();
+        // Slug rule: replace ALL spaces with '-' and keep existing hyphens
+        const slugifySpaces = (s) => String(s || '').trim().replace(/\s/g, '-');
+        const sessionSlug = slugifySpaces(program.title);
+        const programSlug = slugifySpaces(program.title);
+
+        if (type === 'live' || type === 'guide') {
+            navigate(`/session/${sessionSlug}/slots`, { state: { program } });
+            return;
+        }
+        if (type === 'recorded' || type === 'recordedsession' || type === 'recorded_session') {
+            navigate(`/program/${programSlug}/slots`, { state: { program } });
+            return;
+        }
+        if (type === 'retreat' || type === 'retreats') {
+            // No redirect for retreats as per requirement
+            return;
+        }
+        // Default fallback
+        navigate(`/program/${programSlug}/slots`, { state: { program } });
+    };
+
     return (
         <div className="flex h-screen overflow-hidden bg-[#f8f9fd]">
             {/* Sidebar */}
@@ -261,11 +285,16 @@ function Dashboard() {
                                         <th className="px-6 py-3 font-medium">Category</th>
                                         <th className="px-6 py-3 font-medium">Price</th>
                                         <th className="px-6 py-3 font-medium">Payment Status</th>
+                                        <th className="px-6 py-3 font-medium text-right">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {filteredPrograms.map((program, i) => {
                                         const formattedProgram = formatProgramData(program);
+                                        const type = (program.type || program.category || '').toLowerCase();
+                                        const isLiveOrGuide = type === 'live' || type === 'guide';
+                                        const isRecorded = type === 'recorded' || type === 'recordedsession' || type === 'recorded_session';
+                                        const isRetreat = type === 'retreat' || type === 'retreats';
                                         return (
                                             <tr key={i} className="border-b hover:bg-gray-50">
                                                 <td className="px-6 py-4" title={formattedProgram.session}>
@@ -283,6 +312,29 @@ function Dashboard() {
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <StatusBadge status={formattedProgram.status} />
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex justify-end">
+                                                        {isLiveOrGuide && (
+                                                            <button
+                                                                onClick={() => handleOpenProgram(program)}
+                                                                className="px-3 py-2 rounded-md bg-[#2F6288] text-white text-sm hover:bg-[#224b66]"
+                                                            >
+                                                                View & Join
+                                                            </button>
+                                                        )}
+                                                        {isRecorded && (
+                                                            <button
+                                                                onClick={() => handleOpenProgram(program)}
+                                                                className="px-3 py-2 rounded-md bg-[#C16A00] text-white text-sm hover:bg-[#a85b00]"
+                                                            >
+                                                                Watch Now
+                                                            </button>
+                                                        )}
+                                                        {isRetreat && (
+                                                            <span className="text-xs text-gray-500">Details will be shared</span>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         );
