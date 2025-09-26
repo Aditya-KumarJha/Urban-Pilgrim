@@ -350,6 +350,17 @@ export default function MonthlyCalendarModal({
             
             console.log('Final price per session:', pricePerSession);
             console.log('=== END PRICING DEBUG ===');
+
+            // Determine monthly discount percent from Firestore structure
+            // Primary path: sessionData.slides[0]?.[modeKey]?.monthly?.discount (e.g., "00", "10")
+            const slidesRoot = sessionData?.slides?.[0] || sessionData?.slides || {};
+            const discountFromSlides =
+                slidesRoot?.[modeKey]?.monthly?.discount ??
+                slidesRoot?.online?.monthly?.discount ??
+                slidesRoot?.offline?.monthly?.discount ?? null;
+            const discountFromPlan = planData?.discount ?? null;
+            const monthlyDiscountPercent = discountFromSlides ?? discountFromPlan;
+            const monthlyDiscountPercentNum = monthlyDiscountPercent != null ? Number(monthlyDiscountPercent) : null;
             
             let finalSlots = [];
             let cartItemId = '';
@@ -421,6 +432,8 @@ export default function MonthlyCalendarModal({
                 occupancyType: occupancyType || '',
                 organizer: sessionData?.organizer || {},
                 calendarId: sessionData?.organizer?.calendarId || sessionData?.organizer?.email || 'primary',
+                // Include monthly discount so CartPage can apply it
+                monthly: monthlyDiscountPercent != null ? { discount: String(monthlyDiscountPercent) } : undefined,
                 // Add fields needed for Google Calendar event creation
                 summary: sessionData?.guideCard?.title || 'Monthly Session',
                 description: `${sessionData?.guideCard?.title || 'Monthly Session'} - ${occupancyType} booking confirmed via Urban Pilgrim`,

@@ -28,10 +28,54 @@ export default function CartPage() {
 	const [couponLoading, setCouponLoading] = useState(false);
 
 	// Gift card state
-	const [showGift, setShowGift] = useState(false);
 	const [giftAmount, setGiftAmount] = useState(1000);
 	const [giftProgramIndex, setGiftProgramIndex] = useState(-1); // -1 means any program
 	const [giftLoading, setGiftLoading] = useState(false);
+
+	// Subtotal
+	const subtotal = cartData.reduce(
+		(sum, item) =>
+			sum +
+			item.price *
+			(item.persons ?? 1) *
+			(item.quantity ?? 1) *
+			(item.duration ?? 1),
+		0
+	);
+
+	// Monthly discount applies ONLY to guide monthly items when admin has set a percent
+	const monthlyDiscount = cartData.reduce((acc, item) => {
+		if (
+			String(item?.type).toLowerCase() !== "guide" ||
+			String(item?.subscriptionType).toLowerCase() !== "monthly"
+		)
+			return acc;
+
+        // Try these fields in order; prefer Firestore slides -> (mode) -> monthly -> discount
+        // Support both slides[0] and slides direct object just in case
+        const modeKey = String(item?.mode || '').toLowerCase(); // 'online' | 'offline'
+        const rawPercent =
+            item?.monthly?.discount ??
+            item?.discountPercent ??
+            item?.discount_percentage ??
+            item?.discountPercentage ??
+            item?.discount;
+
+        const percent = Number(rawPercent);
+        if (!percent || isNaN(percent) || percent <= 0) return acc;
+
+        const lineTotal =
+            item.price *
+            (item.persons ?? 1) *
+            (item.quantity ?? 1) *
+            (item.duration ?? 1);
+
+		const lineDiscount = Math.round(lineTotal * (percent / 100));
+		return acc + lineDiscount;
+	}, 0);
+	const couponDiscount = appliedCoupon ? appliedCoupon.discount : 0;
+	const totalDiscount = monthlyDiscount + couponDiscount;
+	const total = subtotal - totalDiscount;
 
 	const handleRemoveItem = (id) => {
 		dispatch(removeFromCart(id));
@@ -49,15 +93,6 @@ export default function CartPage() {
 	const handleCheckout = () => {
 		setShowCheckout(true);
 	};
-
-	const subtotal = cartData.reduce(
-		(sum, item) => sum + (item.price * (item.persons ?? 1) * (item.quantity ?? 1) * (item.duration ?? 1)),
-		0
-	);
-	const baseDiscount = Math.round(subtotal * 0.2);
-	const couponDiscount = appliedCoupon ? appliedCoupon.discount : 0;
-	const totalDiscount = baseDiscount + couponDiscount;
-	const total = subtotal - totalDiscount;
 
 	if (cartData.length === 0) {
 		return (
@@ -218,7 +253,7 @@ export default function CartPage() {
 		try {
 			const result = await validateCoupon(couponCode, cartData);
 			console.log("Coupon validation result:", result);
-			
+
 			if (result.valid) {
 				setAppliedCoupon({
 					code: result.coupon.code,
@@ -349,11 +384,13 @@ export default function CartPage() {
 							<span>Subtotal</span>
 							<span>₹ {subtotal.toLocaleString()}</span>
 						</div>
-						<div className="flex justify-between text-sm mb-2">
-							<span>Discount(-20%)</span>
-							<span className="text-red-600">−₹ {baseDiscount.toLocaleString()}</span>
-						</div>
-						
+						{monthlyDiscount > 0 && (
+							<div className="flex justify-between text-sm mb-2">
+								<span>Monthly Discount</span>
+								<span className="text-red-600">−₹ {monthlyDiscount.toLocaleString()}</span>
+							</div>
+						)}
+
 						{/* Coupon Section */}
 						<div className="mt-4 mb-4">
 							{!appliedCoupon ? (
@@ -386,8 +423,8 @@ export default function CartPage() {
 												Coupon Applied: {appliedCoupon.code}
 											</div>
 											<div className="text-xs text-green-600">
-												{appliedCoupon.discountType === 'percentage' 
-													? `${appliedCoupon.discountValue}% off` 
+												{appliedCoupon.discountType === 'percentage'
+													? `${appliedCoupon.discountValue}% off`
 													: `₹${appliedCoupon.discountValue} off`}
 											</div>
 										</div>

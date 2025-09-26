@@ -136,6 +136,15 @@ export const prepareUserProgramsData = (expandedCartData) => {
             slotStart: item.slot?.startTime || item.slot?.time,
             slotEnd: item.slot?.endTime,
         } : {}),
+        // Guide monthly: selectedSlots booked by user (if provided in checkout item)
+        ...(item.type === 'guide' && (item.subscriptionType === 'monthly' || item.subscriptionType === 'Monthly') && Array.isArray(item.selectedSlots) && item.selectedSlots.length > 0 ? {
+            selectedSlots: item.selectedSlots,
+        } : {}),
+        // Live sessions: include booked slots and sessionId if present so dashboard can deep-link
+        ...(item.type === 'live' && Array.isArray(item.slots) && item.slots.length > 0 ? {
+            slots: item.slots,
+            sessionId: item.sessionId || null,
+        } : {}),
         // Bundle information if applicable
         ...(item.isFromBundle && {
             bundleId: item.bundleId,

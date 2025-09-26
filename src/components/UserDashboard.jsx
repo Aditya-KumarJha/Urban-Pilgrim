@@ -8,6 +8,7 @@ import Pagination from "./Pagination";
 import { useDispatch, useSelector } from "react-redux";
 import { signOut } from "firebase/auth";
 import { auth, db } from "../services/firebase";
+import { collection, query as fsQuery, where, limit, getDocs } from "firebase/firestore";
 import { logout } from "../features/authSlice";
 import { showSuccess } from "../utils/toast";
 import { useNavigate } from "react-router-dom";
@@ -93,27 +94,90 @@ function Dashboard() {
     };
 
     // Navigate to the right page based on program type
-    const handleOpenProgram = (program) => {
-        const type = (program.type || program.category || '').toLowerCase();
-        // Slug rule: replace ALL spaces with '-' and keep existing hyphens
-        const slugifySpaces = (s) => String(s || '').trim().replace(/\s/g, '-');
-        const sessionSlug = slugifySpaces(program.title);
-        const programSlug = slugifySpaces(program.title);
+    const [navLoadingId, setNavLoadingId] = useState(null);
 
-        if (type === 'live' || type === 'guide') {
-            navigate(`/session/${sessionSlug}/slots`, { state: { program } });
-            return;
+    const enrichMonthlyGuideProgram = async (program, uid) => {
+        try {
+            // If already has data, skip
+            if ((Array.isArray(program.selectedSlots) && program.selectedSlots.length > 0) || program.organizer) {
+                return program;
+            }
+
+            // Try users/{uid}/programs
+            const coll1 = collection(db, "users", uid, "programs");
+            let q = fsQuery(
+                coll1,
+                where("title", "==", program.title || ""),
+                where("subscriptionType", "==", "monthly"),
+                where("type", "==", "guide"),
+                limit(1)
+            );
+            let snap = await getDocs(q);
+            if (snap.empty) {
+                // Try users/{uid}/bookings as fallback
+                const coll2 = collection(db, "users", uid, "bookings");
+                q = fsQuery(
+                    coll2,
+                    where("title", "==", program.title || ""),
+                    where("subscriptionType", "==", "monthly"),
+                    where("type", "==", "guide"),
+                    limit(1)
+                );
+                snap = await getDocs(q);
+            }
+            if (snap.empty) return program;
+            const docData = snap.docs[0].data() || {};
+
+            // Merge relevant fields
+            const merged = {
+                ...program,
+                selectedSlots: docData.selectedSlots || program.selectedSlots,
+                slot: docData.slot || program.slot,
+                organizer: docData.organizer || program.organizer,
+                timeZone: docData.timeZone || program.timeZone,
+                calendarId: docData.calendarId || program.calendarId,
+                summary: docData.summary || program.summary,
+                startDate: docData.startDate || program.startDate,
+                endDate: docData.endDate || program.endDate,
+            };
+            return merged;
+        } catch (e) {
+            console.error("Failed to enrich monthly guide program:", e);
+            return program;
         }
-        if (type === 'recorded' || type === 'recordedsession' || type === 'recorded_session') {
-            navigate(`/program/${programSlug}/slots`, { state: { program } });
-            return;
+    };
+
+    const handleOpenProgram = async (program) => {
+        if (navLoadingId) return; // prevent double clicks
+        const type = (program.type || program.category || '').toLowerCase();
+        const uid = currentUser?.uid;
+        try {
+            setNavLoadingId(program.id || program.title);
+            let enriched = program;
+            if (type === 'guide' && (program.subscriptionType || '').toLowerCase() === 'monthly' && uid) {
+                enriched = await enrichMonthlyGuideProgram(program, uid);
+            }
+
+            // Slug rule: replace ALL spaces with '-'
+            const slugifySpaces = (s) => String(s || '').trim().replace(/\s/g, '-');
+            const sessionSlug = slugifySpaces(enriched.title);
+            const programSlug = sessionSlug;
+
+            if (type === 'live' || type === 'guide') {
+                navigate(`/session/${sessionSlug}/slots`, { state: { program: enriched } });
+                return;
+            }
+            if (type === 'recorded' || type === 'recordedsession' || type === 'recorded_session') {
+                navigate(`/program/${programSlug}/slots`, { state: { program: enriched } });
+                return;
+            }
+            if (type === 'retreat' || type === 'retreats') {
+                return;
+            }
+            navigate(`/program/${programSlug}/slots`, { state: { program: enriched } });
+        } finally {
+            setNavLoadingId(null);
         }
-        if (type === 'retreat' || type === 'retreats') {
-            // No redirect for retreats as per requirement
-            return;
-        }
-        // Default fallback
-        navigate(`/program/${programSlug}/slots`, { state: { program } });
     };
 
     return (
