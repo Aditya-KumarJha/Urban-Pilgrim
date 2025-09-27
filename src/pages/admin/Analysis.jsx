@@ -3,7 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { fetchAllEvents } from '../../utils/fetchEvents';
 
 const Analysis = () => {
-    const [selectedPeriod, setSelectedPeriod] = useState('Last Year');
+    const [selectedPeriod, setSelectedPeriod] = useState('Current Year');
     const [allEvents, setAllEvents] = useState({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -43,126 +43,255 @@ const Analysis = () => {
             }
         });
 
+        // Helper: determine number of sessions/programs purchased for an event
+        const getSessionCount = (event) => {
+            // For session counting: each event typically represents 1 session
+            // But we need to check if there are multiple sessions in one event
+            const od = event?.originalData || {};
+            
+            // Check if there's a session count or quantity
+            if (typeof od?.sessionCount === 'number') return od.sessionCount;
+            if (typeof od?.quantity === 'number') return od.quantity;
+            if (typeof event?.sessionCount === 'number') return event.sessionCount;
+            if (typeof event?.quantity === 'number') return event.quantity;
+            
+            // If no specific session count, assume 1 session per event (if it has purchases)
+            return getPurchaseCount(event) > 0 ? 1 : 0;
+        };
+
+        // Helper: determine number of users who purchased an event
+        const getPurchaseCount = (event) => {
+            // Try several shapes where the purchase/user count might live
+            const od = event?.originalData || {};
+            const pu = od?.purchasedUsers || event?.purchasedUsers || {};
+            
+            console.log(`Analyzing event ${event.id || 'unknown'}:`, {
+                originalData: od,
+                purchasedUsers: pu,
+                eventPurchasedUsers: event?.purchasedUsers,
+                buyers: event?.buyers
+            });
+            
+            // Handle different data structures
+            if (Array.isArray(pu)) {
+                console.log(`Found array with ${pu.length} users`);
+                return pu.length; // If it's an array, return the length
+            } else if (typeof pu === 'object' && pu !== null) {
+                // If it's an object, try different properties
+                if (typeof pu.count === 'number') {
+                    console.log(`Found count: ${pu.count}`);
+                    return pu.count;
+                }
+                if (typeof pu.totalUsers === 'number') {
+                    console.log(`Found totalUsers: ${pu.totalUsers}`);
+                    return pu.totalUsers;
+                }
+                if (Array.isArray(pu.users)) {
+                    console.log(`Found users array with ${pu.users.length} users`);
+                    return pu.users.length;
+                }
+            } else if (typeof pu === 'number') {
+                console.log(`Found direct number: ${pu}`);
+                return pu; // If it's already a number
+            }
+            
+            // Fallback: check if there are any buyers/purchasers arrays
+            if (Array.isArray(event?.buyers)) {
+                console.log(`Found buyers array with ${event.buyers.length} buyers`);
+                return event.buyers.length;
+            }
+            if (Array.isArray(event?.purchasedUsers)) {
+                console.log(`Found direct purchasedUsers array with ${event.purchasedUsers.length} users`);
+                return event.purchasedUsers.length;
+            }
+            
+            console.log(`No purchases found for event ${event.id || 'unknown'}`);
+            return 0; // No purchases found
+        };
+
         // Generate monthly data for each type
-        const generateMonthlyData = (events, type) => {
+        const generateMonthlyData = (events, type, selectedYear) => {
             const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            const currentYear = new Date().getFullYear();
+            const targetYear = selectedYear || new Date().getFullYear();
 
             return months.map(month => {
                 const monthIndex = months.indexOf(month);
                 const monthEvents = events.filter(event => {
                     const eventDate = new Date(event.createdAt);
-                    return eventDate.getMonth() === monthIndex && eventDate.getFullYear() === currentYear;
-                });
-
-                const revenue = monthEvents.reduce((sum, event) => {
-                    // Try to get actual revenue from multiple possible sources
-                    let price = 0;
-                    console.log(event);
-                    // Check for actual purchase/transaction data first
-                    if (event.originalData?.purchasedUsers?.totalAmount) {
-                        price = parseFloat(event.originalData.purchasedUsers.totalAmount);
-                    } else if (event.originalData?.revenue) {
-                        price = parseFloat(event.originalData.revenue);
-                    } else if (event.originalData?.actualPrice) {
-                        price = parseFloat(event.originalData.actualPrice);
-                    } else if (event.upcomingSessionCard?.actualPrice) {
-                        price = parseFloat(event.upcomingSessionCard.actualPrice);
-                    } else if (event.upcomingSessionCard?.price) {
-                        // Fallback to listed price, but multiply by estimated conversion rate
-                        const listedPrice = parseFloat(event.upcomingSessionCard.price);
-                        price = listedPrice * 0.7; // Assume 70% of listed price as actual revenue
+                    const eventMonth = eventDate.getMonth();
+                    const eventYear = eventDate.getFullYear();
+                    
+                    // Debug date parsing
+                    if (event.type === 'retreat') {
+                        console.log(`Retreat event date check:`, {
+                            eventId: event.id,
+                            createdAt: event.createdAt,
+                            parsedDate: eventDate.toLocaleDateString(),
+                            eventMonth: eventMonth,
+                            targetMonth: monthIndex,
+                            monthName: month,
+                            targetYear: targetYear,
+                            eventYear: eventYear,
+                            matches: eventMonth === monthIndex && eventYear === targetYear
+                        });
                     }
                     
-                    return sum + (isNaN(price) ? 0 : price);
-                }, 0);
+                    return eventMonth === monthIndex && eventYear === targetYear;
+                });
+
+                console.log(`${type} events for ${month}:`, monthEvents);
+
+                // Count TOTAL sessions purchased for this event type
+                let totalSessions = 0;
+                const uniqueUserIds = new Set();
+                
+                monthEvents.forEach(e => {
+                    const od = e?.originalData || {};
+                    const pu = od?.purchasedUsers || e?.purchasedUsers || {};
+                    
+                    console.log(`Event ${e.id || 'unknown'} in ${month}: created ${e.createdAt}, eventDate: ${new Date(e.createdAt).toLocaleDateString()}`);
+                    console.log(`Event data structure:`, { pu, buyers: e?.buyers, purchasedUsers: e?.purchasedUsers });
+                    
+                    // Count sessions from this event
+                    const sessionCount = getPurchaseCount(e); // Number of sessions booked in this event
+                    totalSessions += sessionCount;
+                    console.log(`Event ${e.id || 'unknown'}: ${sessionCount} sessions booked`);
+                    
+                    // Extract unique user IDs for this event type only
+                    if (Array.isArray(pu)) {
+                        pu.forEach(user => {
+                            const userId = user?.id || user?.userId || user?.uid || user?.email || user;
+                            if (userId) {
+                                console.log(`Adding user ID: ${userId}`);
+                                uniqueUserIds.add(userId);
+                            }
+                        });
+                    } else if (typeof pu === 'object' && pu !== null && Array.isArray(pu.users)) {
+                        pu.users.forEach(user => {
+                            const userId = user?.id || user?.userId || user?.uid || user?.email || user;
+                            if (userId) {
+                                console.log(`Adding user ID from users array: ${userId}`);
+                                uniqueUserIds.add(userId);
+                            }
+                        });
+                    } else if (Array.isArray(e?.buyers)) {
+                        e.buyers.forEach(user => {
+                            const userId = user?.id || user?.userId || user?.uid || user?.email || user;
+                            if (userId) {
+                                console.log(`Adding buyer ID: ${userId}`);
+                                uniqueUserIds.add(userId);
+                            }
+                        });
+                    } else if (Array.isArray(e?.purchasedUsers)) {
+                        e.purchasedUsers.forEach(user => {
+                            const userId = user?.id || user?.userId || user?.uid || user?.email || user;
+                            if (userId) {
+                                console.log(`Adding purchased user ID: ${userId}`);
+                                uniqueUserIds.add(userId);
+                            }
+                        });
+                    }
+                });
+                
+                const programsPurchased = totalSessions;
+                const usersPurchased = uniqueUserIds.size;
+                console.log(`${type} ${month} summary: ${programsPurchased} programs, ${usersPurchased} unique users, userIds:`, Array.from(uniqueUserIds));
 
                 return {
                     month,
-                    revenue: Math.round(revenue),
-                    users: monthEvents.length
+                    // programs represents how many programs/sessions were purchased
+                    programs: programsPurchased,
+                    // users represents total users who purchased
+                    users: usersPurchased
                 };
             });
         };
 
+        // Determine which year to show based on selectedPeriod
+        const getYearFromPeriod = (period) => {
+            const currentYear = new Date().getFullYear();
+            if (period === 'Last Year') {
+                return currentYear - 1;
+            }
+            return currentYear; // Current Year
+        };
+
+        const targetYear = getYearFromPeriod(selectedPeriod);
+
         return {
-            retreat: generateMonthlyData(eventsByType.retreat, 'retreat'),
-            liveSession: generateMonthlyData(eventsByType['live-session'], 'live-session'),
-            recordedSession: generateMonthlyData(eventsByType['recorded-session'], 'recorded-session'),
-            guide: generateMonthlyData(eventsByType.guide, 'guide')
+            retreat: generateMonthlyData(eventsByType.retreat, 'retreat', targetYear),
+            liveSession: generateMonthlyData(eventsByType['live-session'], 'live-session', targetYear),
+            recordedSession: generateMonthlyData(eventsByType['recorded-session'], 'recorded-session', targetYear),
+            guide: generateMonthlyData(eventsByType.guide, 'guide', targetYear)
         };
     };
 
     // Get processed data or fallback to sample data
     const processedData = Object.keys(allEvents).length > 0 ? processEventsData() : {
         retreat: [
-            { month: 'Jan', revenue: 1200, users: 120 },
-            { month: 'Feb', revenue: 1800, users: 180 },
-            { month: 'Mar', revenue: 2200, users: 220 },
-            { month: 'Apr', revenue: 1900, users: 190 },
-            { month: 'May', revenue: 2800, users: 280 },
-            { month: 'Jun', revenue: 3800, users: 380 },
-            { month: 'Jul', revenue: 2400, users: 240 },
-            { month: 'Aug', revenue: 2100, users: 210 },
-            { month: 'Sep', revenue: 1800, users: 180 },
-            { month: 'Oct', revenue: 2200, users: 220 },
-            { month: 'Nov', revenue: 2600, users: 260 },
-            { month: 'Dec', revenue: 3200, users: 320 }
+            { month: 'Jan', programs: 12, users: 120 },
+            { month: 'Feb', programs: 18, users: 180 },
+            { month: 'Mar', programs: 22, users: 220 },
+            { month: 'Apr', programs: 19, users: 190 },
+            { month: 'May', programs: 28, users: 280 },
+            { month: 'Jun', programs: 38, users: 380 },
+            { month: 'Jul', programs: 24, users: 240 },
+            { month: 'Aug', programs: 21, users: 210 },
+            { month: 'Sep', programs: 18, users: 180 },
+            { month: 'Oct', programs: 22, users: 220 },
+            { month: 'Nov', programs: 26, users: 260 },
+            { month: 'Dec', programs: 32, users: 320 }
         ],
         liveSession: [
-            { month: 'Jan', revenue: 2400, users: 240 },
-            { month: 'Feb', revenue: 2800, users: 280 },
-            { month: 'Mar', revenue: 3200, users: 320 },
-            { month: 'Apr', revenue: 2900, users: 290 },
-            { month: 'May', revenue: 3800, users: 380 },
-            { month: 'Jun', revenue: 4200, users: 420 },
-            { month: 'Jul', revenue: 3600, users: 360 },
-            { month: 'Aug', revenue: 3100, users: 310 },
-            { month: 'Sep', revenue: 2800, users: 280 },
-            { month: 'Oct', revenue: 3200, users: 320 },
-            { month: 'Nov', revenue: 3600, users: 360 },
-            { month: 'Dec', revenue: 4000, users: 400 }
+            { month: 'Jan', programs: 24, users: 240 },
+            { month: 'Feb', programs: 28, users: 280 },
+            { month: 'Mar', programs: 32, users: 320 },
+            { month: 'Apr', programs: 29, users: 290 },
+            { month: 'May', programs: 38, users: 380 },
+            { month: 'Jun', programs: 42, users: 420 },
+            { month: 'Jul', programs: 36, users: 360 },
+            { month: 'Aug', programs: 31, users: 310 },
+            { month: 'Sep', programs: 28, users: 280 },
+            { month: 'Oct', programs: 32, users: 320 },
+            { month: 'Nov', programs: 36, users: 360 },
+            { month: 'Dec', programs: 40, users: 400 }
         ],
         recordedSession: [
-            { month: 'Jan', revenue: 1800, users: 180 },
-            { month: 'Feb', revenue: 2200, users: 220 },
-            { month: 'Mar', revenue: 2600, users: 260 },
-            { month: 'Apr', revenue: 2300, users: 230 },
-            { month: 'May', revenue: 3200, users: 320 },
-            { month: 'Jun', revenue: 3600, users: 360 },
-            { month: 'Jul', revenue: 2800, users: 280 },
-            { month: 'Aug', revenue: 2500, users: 250 },
-            { month: 'Sep', revenue: 2200, users: 220 },
-            { month: 'Oct', revenue: 2600, users: 260 },
-            { month: 'Nov', revenue: 3000, users: 300 },
-            { month: 'Dec', revenue: 3400, users: 340 }
+            { month: 'Jan', programs: 18, users: 180 },
+            { month: 'Feb', programs: 22, users: 220 },
+            { month: 'Mar', programs: 26, users: 260 },
+            { month: 'Apr', programs: 23, users: 230 },
+            { month: 'May', programs: 32, users: 320 },
+            { month: 'Jun', programs: 36, users: 360 },
+            { month: 'Jul', programs: 28, users: 280 },
+            { month: 'Aug', programs: 25, users: 250 },
+            { month: 'Sep', programs: 22, users: 220 },
+            { month: 'Oct', programs: 26, users: 260 },
+            { month: 'Nov', programs: 30, users: 300 },
+            { month: 'Dec', programs: 34, users: 340 }
         ],
         guide: [
-            { month: 'Jan', revenue: 800, users: 80 },
-            { month: 'Feb', revenue: 1200, users: 120 },
-            { month: 'Mar', revenue: 1600, users: 160 },
-            { month: 'Apr', revenue: 1300, users: 130 },
-            { month: 'May', revenue: 2000, users: 200 },
-            { month: 'Jun', revenue: 2400, users: 240 },
-            { month: 'Jul', revenue: 1800, users: 180 },
-            { month: 'Aug', revenue: 1500, users: 150 },
-            { month: 'Sep', revenue: 1200, users: 120 },
-            { month: 'Oct', revenue: 1600, users: 160 },
-            { month: 'Nov', revenue: 2000, users: 200 },
-            { month: 'Dec', revenue: 2200, users: 220 }
+            { month: 'Jan', programs: 8, users: 80 },
+            { month: 'Feb', programs: 12, users: 120 },
+            { month: 'Mar', programs: 16, users: 160 },
+            { month: 'Apr', programs: 13, users: 130 },
+            { month: 'May', programs: 20, users: 200 },
+            { month: 'Jun', programs: 24, users: 240 },
+            { month: 'Jul', programs: 18, users: 180 },
+            { month: 'Aug', programs: 15, users: 150 },
+            { month: 'Sep', programs: 12, users: 120 },
+            { month: 'Oct', programs: 16, users: 160 },
+            { month: 'Nov', programs: 20, users: 200 },
+            { month: 'Dec', programs: 22, users: 220 }
         ]
     };
 
-    const revenueData = processedData.retreat;
-    const usersData = processedData.retreat;
+    const retreatData = processedData.retreat;
 
     // Extract data for each section
-    const liveSessionsRevenueData = processedData.liveSession;
-    const liveSessionsUsersData = processedData.liveSession;
-    const recordedSessionsRevenueData = processedData.recordedSession;
-    const recordedSessionsUsersData = processedData.recordedSession;
-    const guideRevenueData = processedData.guide;
-    const guideUsersData = processedData.guide;
+    const liveSessionData = processedData.liveSession;
+    const recordedSessionData = processedData.recordedSession;
+    const guideData = processedData.guide;
 
     // Calculate totals and growth
     const calculateGrowth = (data) => {
@@ -181,28 +310,38 @@ const Analysis = () => {
         return Math.round(((lastMonth.users - prevMonth.users) / prevMonth.users) * 100);
     };
 
-    const totalRevenue = revenueData.reduce((sum, item) => sum + item.revenue, 0);
-    const totalUsers = usersData.reduce((sum, item) => sum + item.users, 0);
-    const revenueGrowth = calculateGrowth(revenueData);
-    const userGrowth = calculateUserGrowth(usersData);
+    // Generic growth calculator for any numeric key
+    const calculateGrowthForKey = (data, key) => {
+        if (!Array.isArray(data) || data.length < 2) return 0;
+        const last = Number(data[data.length - 1]?.[key] || 0);
+        const prev = Number(data[data.length - 2]?.[key] || 0);
+        if (prev === 0) return 0;
+        return Math.round(((last - prev) / prev) * 100);
+    };
+
+    // Retreat totals
+    const totalRetreatPrograms = retreatData.reduce((sum, item) => sum + (item.programs || 0), 0);
+    const totalRetreatUsers = retreatData.reduce((sum, item) => sum + (item.users || 0), 0);
+    const retreatProgramsGrowth = calculateGrowthForKey(retreatData, 'programs');
+    const retreatUsersGrowth = calculateGrowthForKey(retreatData, 'users');
 
     // Live Sessions totals
-    const totalLiveSessionsRevenue = liveSessionsRevenueData.reduce((sum, item) => sum + item.revenue, 0);
-    const totalLiveSessionsUsers = liveSessionsUsersData.reduce((sum, item) => sum + item.users, 0);
-    const liveSessionsRevenueGrowth = calculateGrowth(liveSessionsRevenueData);
-    const liveSessionsUserGrowth = calculateUserGrowth(liveSessionsUsersData);
+    const totalLivePrograms = liveSessionData.reduce((sum, item) => sum + (item.programs || 0), 0);
+    const totalLiveUsers = liveSessionData.reduce((sum, item) => sum + (item.users || 0), 0);
+    const liveProgramsGrowth = calculateGrowthForKey(liveSessionData, 'programs');
+    const liveUsersGrowth = calculateGrowthForKey(liveSessionData, 'users');
 
     // Recorded Sessions totals
-    const totalRecordedSessionsRevenue = recordedSessionsRevenueData.reduce((sum, item) => sum + item.revenue, 0);
-    const totalRecordedSessionsUsers = recordedSessionsUsersData.reduce((sum, item) => sum + item.users, 0);
-    const recordedSessionsRevenueGrowth = calculateGrowth(recordedSessionsRevenueData);
-    const recordedSessionsUserGrowth = calculateUserGrowth(recordedSessionsUsersData);
+    const totalRecordedPrograms = recordedSessionData.reduce((sum, item) => sum + (item.programs || 0), 0);
+    const totalRecordedUsers = recordedSessionData.reduce((sum, item) => sum + (item.users || 0), 0);
+    const recordedProgramsGrowth = calculateGrowthForKey(recordedSessionData, 'programs');
+    const recordedUsersGrowth = calculateGrowthForKey(recordedSessionData, 'users');
 
     // Guide totals
-    const totalGuideRevenue = guideRevenueData.reduce((sum, item) => sum + item.revenue, 0);
-    const totalGuideUsers = guideUsersData.reduce((sum, item) => sum + item.users, 0);
-    const guideRevenueGrowth = calculateGrowth(guideRevenueData);
-    const guideUserGrowth = calculateUserGrowth(guideUsersData);
+    const totalGuidePrograms = guideData.reduce((sum, item) => sum + (item.programs || 0), 0);
+    const totalGuideUsers = guideData.reduce((sum, item) => sum + (item.users || 0), 0);
+    const guideProgramsGrowth = calculateGrowthForKey(guideData, 'programs');
+    const guideUsersGrowth = calculateGrowthForKey(guideData, 'users');
 
     const CustomTooltip = ({ active, payload, label }) => {
         if (active && payload && payload.length) {
@@ -210,7 +349,7 @@ const Analysis = () => {
                 <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-lg">
                     <p className="text-sm text-gray-600 mb-1">{`${label}`}</p>
                     <p className="text-base font-semibold text-gray-900 m-0">
-                        {payload[0].dataKey === 'revenue' ? `$${payload[0].value}` : payload[0].value}
+                        {payload[0].value}
                     </p>
                 </div>
             );
@@ -261,26 +400,25 @@ const Analysis = () => {
                 <h2 className="text-2xl font-semibold text-gray-700 mb-6 pb-2 border-b-2 border-gray-200">Pilgrim Retreats</h2>
 
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
-                    {/* Total Revenue Chart */}
+                    {/* Sessions Booked Chart */}
                     <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                         <div className="flex flex-col xl:flex-row justify-between items-start xl:items-start mb-6 gap-4">
                             <div className="flex items-center gap-4">
-                                <h3 className="text-lg font-semibold text-gray-700 m-0">Total Revenue</h3>
+                                <h3 className="text-lg font-semibold text-gray-700 m-0">Sessions Booked</h3>
                                 <select
                                     className="px-3 py-1.5 border border-gray-300 rounded-md bg-white text-sm text-gray-600 cursor-pointer focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                                     value={selectedPeriod}
                                     onChange={(e) => setSelectedPeriod(e.target.value)}
                                 >
+                                    <option value="Current Year">Current Year</option>
                                     <option value="Last Year">Last Year</option>
-                                    <option value="Last 6 Months">Last 6 Months</option>
-                                    <option value="Last 3 Months">Last 3 Months</option>
                                 </select>
                             </div>
                             <div className="text-right xl:text-right flex flex-col items-end gap-2">
-                                <div className="text-3xl font-bold text-gray-900 leading-none">${totalRevenue.toLocaleString()}</div>
+                                <div className="text-3xl font-bold text-gray-900 leading-none">{totalRetreatPrograms.toLocaleString()}</div>
                                 <div className="flex items-center gap-2 text-sm">
-                                    <span className="font-semibold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded">+{revenueGrowth}%</span>
-                                    <span className="text-gray-500">vs previous 28 days</span>
+                                    <span className="font-semibold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded">+{retreatProgramsGrowth}%</span>
+                                    <span className="text-gray-500">retreats purchased</span>
                                 </div>
                                 <div className="mt-1">
                                     <svg width="60" height="20" viewBox="0 0 60 20">
@@ -291,7 +429,7 @@ const Analysis = () => {
                         </div>
                         <div className="mt-4">
                             <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={revenueData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                <BarChart data={retreatData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                                     <XAxis
                                         dataKey="month"
@@ -303,45 +441,43 @@ const Analysis = () => {
                                         axisLine={false}
                                         tickLine={false}
                                         tick={{ fontSize: 12, fill: '#666' }}
-                                        tickFormatter={(value) => `$${value}`}
                                     />
                                     <Tooltip content={<CustomTooltip />} />
                                     <Bar
-                                        dataKey="revenue"
+                                        dataKey="programs"
                                         fill="#E5E7EB"
                                         radius={[4, 4, 0, 0]}
                                     />
                                     <Bar
-                                        dataKey="revenue"
+                                        dataKey="programs"
                                         fill="#374151"
                                         radius={[4, 4, 0, 0]}
-                                        data={[revenueData[5]]} // Highlight June
+                                        data={[retreatData[5]]} // Highlight June
                                     />
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
                     </div>
 
-                    {/* Total Users Chart */}
+                    {/* Users Who Purchased Chart */}
                     <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                         <div className="flex flex-col xl:flex-row justify-between items-start xl:items-start mb-6 gap-4">
                             <div className="flex items-center gap-4">
-                                <h3 className="text-lg font-semibold text-gray-700 m-0">Total Users</h3>
+                                <h3 className="text-lg font-semibold text-gray-700 m-0">Users Who Purchased Retreats</h3>
                                 <select
                                     className="px-3 py-1.5 border border-gray-300 rounded-md bg-white text-sm text-gray-600 cursor-pointer focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                                     value={selectedPeriod}
                                     onChange={(e) => setSelectedPeriod(e.target.value)}
                                 >
+                                    <option value="Current Year">Current Year</option>
                                     <option value="Last Year">Last Year</option>
-                                    <option value="Last 6 Months">Last 6 Months</option>
-                                    <option value="Last 3 Months">Last 3 Months</option>
                                 </select>
                             </div>
                             <div className="text-right xl:text-right flex flex-col items-end gap-2">
-                                <div className="text-3xl font-bold text-gray-900 leading-none">{totalUsers.toLocaleString()}</div>
+                                <div className="text-3xl font-bold text-gray-900 leading-none">{totalRetreatUsers.toLocaleString()}</div>
                                 <div className="flex items-center gap-2 text-sm">
-                                    <span className="font-semibold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded">+{userGrowth}%</span>
-                                    <span className="text-gray-500">vs previous 28 days</span>
+                                    <span className="font-semibold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded">+{retreatUsersGrowth}%</span>
+                                    <span className="text-gray-500">users purchased</span>
                                 </div>
                                 <div className="mt-1">
                                     <svg width="60" height="20" viewBox="0 0 60 20">
@@ -352,7 +488,7 @@ const Analysis = () => {
                         </div>
                         <div className="mt-4">
                             <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={usersData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                <BarChart data={retreatData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                                     <XAxis
                                         dataKey="month"
@@ -375,7 +511,7 @@ const Analysis = () => {
                                         dataKey="users"
                                         fill="#374151"
                                         radius={[4, 4, 0, 0]}
-                                        data={[usersData[5]]} // Highlight June
+                                        data={[retreatData[5]]} // Highlight June
                                     />
                                 </BarChart>
                             </ResponsiveContainer>
@@ -389,26 +525,25 @@ const Analysis = () => {
                 <h2 className="text-2xl font-semibold text-gray-700 mb-6 pb-2 border-b-2 border-gray-200">Live Sessions</h2>
 
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
-                    {/* Total Revenue Chart */}
+                    {/* Live Sessions Purchased Chart */}
                     <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                         <div className="flex flex-col xl:flex-row justify-between items-start xl:items-start mb-6 gap-4">
                             <div className="flex items-center gap-4">
-                                <h3 className="text-lg font-semibold text-gray-700 m-0">Total Revenue</h3>
+                                <h3 className="text-lg font-semibold text-gray-700 m-0">Live Sessions Purchased</h3>
                                 <select
                                     className="px-3 py-1.5 border border-gray-300 rounded-md bg-white text-sm text-gray-600 cursor-pointer focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                                     value={selectedPeriod}
                                     onChange={(e) => setSelectedPeriod(e.target.value)}
                                 >
+                                    <option value="Current Year">Current Year</option>
                                     <option value="Last Year">Last Year</option>
-                                    <option value="Last 6 Months">Last 6 Months</option>
-                                    <option value="Last 3 Months">Last 3 Months</option>
                                 </select>
                             </div>
                             <div className="text-right xl:text-right flex flex-col items-end gap-2">
-                                <div className="text-3xl font-bold text-gray-900 leading-none">${totalLiveSessionsRevenue.toLocaleString()}</div>
+                                <div className="text-3xl font-bold text-gray-900 leading-none">{totalLivePrograms?.toLocaleString()}</div>
                                 <div className="flex items-center gap-2 text-sm">
-                                    <span className="font-semibold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded">+{liveSessionsRevenueGrowth}%</span>
-                                    <span className="text-gray-500">vs previous 28 days</span>
+                                    <span className="font-semibold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded">+{liveProgramsGrowth}%</span>
+                                    <span className="text-gray-500">sessions purchased</span>
                                 </div>
                                 <div className="mt-1">
                                     <svg width="60" height="20" viewBox="0 0 60 20">
@@ -419,7 +554,7 @@ const Analysis = () => {
                         </div>
                         <div className="mt-4">
                             <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={liveSessionsRevenueData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                <BarChart data={liveSessionData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                                     <XAxis
                                         dataKey="month"
@@ -431,45 +566,43 @@ const Analysis = () => {
                                         axisLine={false}
                                         tickLine={false}
                                         tick={{ fontSize: 12, fill: '#666' }}
-                                        tickFormatter={(value) => `$${value}`}
                                     />
                                     <Tooltip content={<CustomTooltip />} />
                                     <Bar
-                                        dataKey="revenue"
+                                        dataKey="programs"
                                         fill="#E5E7EB"
                                         radius={[4, 4, 0, 0]}
                                     />
                                     <Bar
-                                        dataKey="revenue"
+                                        dataKey="programs"
                                         fill="#3B82F6"
                                         radius={[4, 4, 0, 0]}
-                                        data={[liveSessionsRevenueData[5]]} // Highlight June
+                                        data={[liveSessionData[5]]} // Highlight June
                                     />
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
                     </div>
 
-                    {/* Total Users Chart */}
+                    {/* Users Who Purchased Chart */}
                     <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                         <div className="flex flex-col xl:flex-row justify-between items-start xl:items-start mb-6 gap-4">
                             <div className="flex items-center gap-4">
-                                <h3 className="text-lg font-semibold text-gray-700 m-0">Total Users</h3>
+                                <h3 className="text-lg font-semibold text-gray-700 m-0">Users Who Purchased Sessions</h3>
                                 <select
                                     className="px-3 py-1.5 border border-gray-300 rounded-md bg-white text-sm text-gray-600 cursor-pointer focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                                     value={selectedPeriod}
                                     onChange={(e) => setSelectedPeriod(e.target.value)}
                                 >
+                                    <option value="Current Year">Current Year</option>
                                     <option value="Last Year">Last Year</option>
-                                    <option value="Last 6 Months">Last 6 Months</option>
-                                    <option value="Last 3 Months">Last 3 Months</option>
                                 </select>
                             </div>
                             <div className="text-right xl:text-right flex flex-col items-end gap-2">
-                                <div className="text-3xl font-bold text-gray-900 leading-none">{totalLiveSessionsUsers.toLocaleString()}</div>
+                                <div className="text-3xl font-bold text-gray-900 leading-none">{totalLiveUsers.toLocaleString()}</div>
                                 <div className="flex items-center gap-2 text-sm">
-                                    <span className="font-semibold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded">+{liveSessionsUserGrowth}%</span>
-                                    <span className="text-gray-500">vs previous 28 days</span>
+                                    <span className="font-semibold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded">+{liveUsersGrowth}%</span>
+                                    <span className="text-gray-500">users purchased</span>
                                 </div>
                                 <div className="mt-1">
                                     <svg width="60" height="20" viewBox="0 0 60 20">
@@ -480,7 +613,7 @@ const Analysis = () => {
                         </div>
                         <div className="mt-4">
                             <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={liveSessionsUsersData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                <BarChart data={liveSessionData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                                     <XAxis
                                         dataKey="month"
@@ -503,7 +636,7 @@ const Analysis = () => {
                                         dataKey="users"
                                         fill="#3B82F6"
                                         radius={[4, 4, 0, 0]}
-                                        data={[liveSessionsUsersData[5]]} // Highlight June
+                                        data={[liveSessionData[5]]} // Highlight June
                                     />
                                 </BarChart>
                             </ResponsiveContainer>
@@ -517,26 +650,25 @@ const Analysis = () => {
                 <h2 className="text-2xl font-semibold text-gray-700 mb-6 pb-2 border-b-2 border-gray-200">Recorded Sessions</h2>
 
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
-                    {/* Total Revenue Chart */}
+                    {/* Sessions Booked Chart */}
                     <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                         <div className="flex flex-col xl:flex-row justify-between items-start xl:items-start mb-6 gap-4">
                             <div className="flex items-center gap-4">
-                                <h3 className="text-lg font-semibold text-gray-700 m-0">Total Revenue</h3>
+                                <h3 className="text-lg font-semibold text-gray-700 m-0">Sessions Booked</h3>
                                 <select
                                     className="px-3 py-1.5 border border-gray-300 rounded-md bg-white text-sm text-gray-600 cursor-pointer focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                                     value={selectedPeriod}
                                     onChange={(e) => setSelectedPeriod(e.target.value)}
                                 >
+                                    <option value="Current Year">Current Year</option>
                                     <option value="Last Year">Last Year</option>
-                                    <option value="Last 6 Months">Last 6 Months</option>
-                                    <option value="Last 3 Months">Last 3 Months</option>
                                 </select>
                             </div>
                             <div className="text-right xl:text-right flex flex-col items-end gap-2">
-                                <div className="text-3xl font-bold text-gray-900 leading-none">${totalRecordedSessionsRevenue.toLocaleString()}</div>
+                                <div className="text-3xl font-bold text-gray-900 leading-none">{totalRecordedPrograms.toLocaleString()}</div>
                                 <div className="flex items-center gap-2 text-sm">
-                                    <span className="font-semibold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded">+{recordedSessionsRevenueGrowth}%</span>
-                                    <span className="text-gray-500">vs previous 28 days</span>
+                                    <span className="font-semibold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded">+{recordedProgramsGrowth}%</span>
+                                    <span className="text-gray-500">sessions purchased</span>
                                 </div>
                                 <div className="mt-1">
                                     <svg width="60" height="20" viewBox="0 0 60 20">
@@ -547,7 +679,7 @@ const Analysis = () => {
                         </div>
                         <div className="mt-4">
                             <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={recordedSessionsRevenueData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                <BarChart data={recordedSessionData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                                     <XAxis
                                         dataKey="month"
@@ -559,19 +691,18 @@ const Analysis = () => {
                                         axisLine={false}
                                         tickLine={false}
                                         tick={{ fontSize: 12, fill: '#666' }}
-                                        tickFormatter={(value) => `$${value}`}
                                     />
                                     <Tooltip content={<CustomTooltip />} />
                                     <Bar
-                                        dataKey="revenue"
+                                        dataKey="programs"
                                         fill="#E5E7EB"
                                         radius={[4, 4, 0, 0]}
                                     />
                                     <Bar
-                                        dataKey="revenue"
+                                        dataKey="programs"
                                         fill="#8B5CF6"
                                         radius={[4, 4, 0, 0]}
-                                        data={[recordedSessionsRevenueData[5]]} // Highlight June
+                                        data={[recordedSessionData[5]]} // Highlight June
                                     />
                                 </BarChart>
                             </ResponsiveContainer>
@@ -588,16 +719,15 @@ const Analysis = () => {
                                     value={selectedPeriod}
                                     onChange={(e) => setSelectedPeriod(e.target.value)}
                                 >
+                                    <option value="Current Year">Current Year</option>
                                     <option value="Last Year">Last Year</option>
-                                    <option value="Last 6 Months">Last 6 Months</option>
-                                    <option value="Last 3 Months">Last 3 Months</option>
                                 </select>
                             </div>
                             <div className="text-right xl:text-right flex flex-col items-end gap-2">
-                                <div className="text-3xl font-bold text-gray-900 leading-none">{totalRecordedSessionsUsers.toLocaleString()}</div>
+                                <div className="text-3xl font-bold text-gray-900 leading-none">{totalRecordedUsers.toLocaleString()}</div>
                                 <div className="flex items-center gap-2 text-sm">
-                                    <span className="font-semibold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded">+{recordedSessionsUserGrowth}%</span>
-                                    <span className="text-gray-500">vs previous 28 days</span>
+                                    <span className="font-semibold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded">+{recordedUsersGrowth}%</span>
+                                    <span className="text-gray-500">users purchased</span>
                                 </div>
                                 <div className="mt-1">
                                     <svg width="60" height="20" viewBox="0 0 60 20">
@@ -608,7 +738,7 @@ const Analysis = () => {
                         </div>
                         <div className="mt-4">
                             <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={recordedSessionsUsersData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                <BarChart data={recordedSessionData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                                     <XAxis
                                         dataKey="month"
@@ -631,7 +761,7 @@ const Analysis = () => {
                                         dataKey="users"
                                         fill="#8B5CF6"
                                         radius={[4, 4, 0, 0]}
-                                        data={[recordedSessionsUsersData[5]]} // Highlight June
+                                        data={[recordedSessionData[5]]} // Highlight June
                                     />
                                 </BarChart>
                             </ResponsiveContainer>
@@ -645,26 +775,25 @@ const Analysis = () => {
                 <h2 className="text-2xl font-semibold text-gray-700 mb-6 pb-2 border-b-2 border-gray-200">Guide</h2>
 
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
-                    {/* Total Revenue Chart */}
+                    {/* Sessions Booked Chart */}
                     <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                         <div className="flex flex-col xl:flex-row justify-between items-start xl:items-start mb-6 gap-4">
                             <div className="flex items-center gap-4">
-                                <h3 className="text-lg font-semibold text-gray-700 m-0">Total Revenue</h3>
+                                <h3 className="text-lg font-semibold text-gray-700 m-0">Sessions Booked</h3>
                                 <select
                                     className="px-3 py-1.5 border border-gray-300 rounded-md bg-white text-sm text-gray-600 cursor-pointer focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                                     value={selectedPeriod}
                                     onChange={(e) => setSelectedPeriod(e.target.value)}
                                 >
+                                    <option value="Current Year">Current Year</option>
                                     <option value="Last Year">Last Year</option>
-                                    <option value="Last 6 Months">Last 6 Months</option>
-                                    <option value="Last 3 Months">Last 3 Months</option>
                                 </select>
                             </div>
                             <div className="text-right xl:text-right flex flex-col items-end gap-2">
-                                <div className="text-3xl font-bold text-gray-900 leading-none">${totalGuideRevenue.toLocaleString()}</div>
+                                <div className="text-3xl font-bold text-gray-900 leading-none">{totalGuidePrograms.toLocaleString()}</div>
                                 <div className="flex items-center gap-2 text-sm">
-                                    <span className="font-semibold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded">+{guideRevenueGrowth}%</span>
-                                    <span className="text-gray-500">vs previous 28 days</span>
+                                    <span className="font-semibold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded">+{guideProgramsGrowth}%</span>
+                                    <span className="text-gray-500">sessions purchased</span>
                                 </div>
                                 <div className="mt-1">
                                     <svg width="60" height="20" viewBox="0 0 60 20">
@@ -673,9 +802,10 @@ const Analysis = () => {
                                 </div>
                             </div>
                         </div>
+
                         <div className="mt-4">
                             <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={guideRevenueData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                <BarChart data={guideData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                                     <XAxis
                                         dataKey="month"
@@ -687,45 +817,43 @@ const Analysis = () => {
                                         axisLine={false}
                                         tickLine={false}
                                         tick={{ fontSize: 12, fill: '#666' }}
-                                        tickFormatter={(value) => `$${value}`}
                                     />
                                     <Tooltip content={<CustomTooltip />} />
                                     <Bar
-                                        dataKey="revenue"
+                                        dataKey="programs"
                                         fill="#E5E7EB"
                                         radius={[4, 4, 0, 0]}
                                     />
                                     <Bar
-                                        dataKey="revenue"
+                                        dataKey="programs"
                                         fill="#F59E0B"
                                         radius={[4, 4, 0, 0]}
-                                        data={[guideRevenueData[5]]} // Highlight June
+                                        data={[guideData[5]]} // Highlight June
                                     />
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
                     </div>
 
-                    {/* Total Users Chart */}
+                    {/* Total Purchasers Chart */}
                     <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
                         <div className="flex flex-col xl:flex-row justify-between items-start xl:items-start mb-6 gap-4">
                             <div className="flex items-center gap-4">
-                                <h3 className="text-lg font-semibold text-gray-700 m-0">Total Users</h3>
+                                <h3 className="text-lg font-semibold text-gray-700 m-0">Users Purchased Guide</h3>
                                 <select
                                     className="px-3 py-1.5 border border-gray-300 rounded-md bg-white text-sm text-gray-600 cursor-pointer focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                                     value={selectedPeriod}
                                     onChange={(e) => setSelectedPeriod(e.target.value)}
                                 >
+                                    <option value="Current Year">Current Year</option>
                                     <option value="Last Year">Last Year</option>
-                                    <option value="Last 6 Months">Last 6 Months</option>
-                                    <option value="Last 3 Months">Last 3 Months</option>
                                 </select>
                             </div>
                             <div className="text-right xl:text-right flex flex-col items-end gap-2">
                                 <div className="text-3xl font-bold text-gray-900 leading-none">{totalGuideUsers.toLocaleString()}</div>
                                 <div className="flex items-center gap-2 text-sm">
-                                    <span className="font-semibold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded">+{guideUserGrowth}%</span>
-                                    <span className="text-gray-500">vs previous 28 days</span>
+                                    <span className="font-semibold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded">+{guideUsersGrowth}%</span>
+                                    <span className="text-gray-500">users purchased</span>
                                 </div>
                                 <div className="mt-1">
                                     <svg width="60" height="20" viewBox="0 0 60 20">
@@ -736,7 +864,7 @@ const Analysis = () => {
                         </div>
                         <div className="mt-4">
                             <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={guideUsersData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                <BarChart data={guideData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                                     <XAxis
                                         dataKey="month"
@@ -759,7 +887,7 @@ const Analysis = () => {
                                         dataKey="users"
                                         fill="#F59E0B"
                                         radius={[4, 4, 0, 0]}
-                                        data={[guideUsersData[5]]} // Highlight June
+                                        data={[guideData[5]]} // Highlight June
                                     />
                                 </BarChart>
                             </ResponsiveContainer>

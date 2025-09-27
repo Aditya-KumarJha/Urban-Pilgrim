@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-export default function CheckoutOverlay({ cartData, total, onClose, onConfirm, isLoggedIn = false, sendOtp, verifyOtp }) {
+export default function CheckoutOverlay({ cartData, total, onClose, onConfirm, isLoggedIn = false, user = null, sendOtp, verifyOtp }) {
     const [formData, setFormData] = useState({
         firstName: "",
         lastName: "",
@@ -18,6 +18,17 @@ export default function CheckoutOverlay({ cartData, total, onClose, onConfirm, i
     const [sending, setSending] = useState(false);
     const [verifying, setVerifying] = useState(false);
     const [errors, setErrors] = useState({});
+
+    // Auto-populate email when user is logged in
+    useEffect(() => {
+        if (isLoggedIn && user?.email) {
+            setFormData(prev => ({
+                ...prev,
+                email: user.email
+            }));
+            setEmailVerified(true); // Skip email verification for logged-in users
+        }
+    }, [isLoggedIn, user]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -102,17 +113,19 @@ export default function CheckoutOverlay({ cartData, total, onClose, onConfirm, i
                 <h2 className="text-2xl font-bold mb-4">Billing address</h2>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    {!isLoggedIn && (
-                        <div className="space-y-2">
-                            <input 
-                                name="email" 
-                                type="email" 
-                                placeholder="Email address" 
-                                value={formData.email} 
-                                onChange={handleChange} 
-                                className="w-full border p-2 rounded"
-                                required
-                            />
+                    {/* Email field - always show, but read-only for logged-in users */}
+                    <div className="space-y-2">
+                        <input 
+                            name="email" 
+                            type="email" 
+                            placeholder="Email address" 
+                            value={formData.email} 
+                            onChange={handleChange} 
+                            className={`w-full border p-2 rounded ${isLoggedIn ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                            readOnly={isLoggedIn}
+                            required
+                        />
+                        {!isLoggedIn && (
                             <div className="flex items-center gap-2">
                                 {!otpSent ? (
                                     <button
@@ -144,8 +157,9 @@ export default function CheckoutOverlay({ cartData, total, onClose, onConfirm, i
                                     </>
                                 )}
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
+                    
                     <div className="flex gap-2">
                         <div className="flex-1">
                             <input name="firstName" placeholder="First name" value={formData.firstName} onChange={handleChange} className={`w-full border p-2 rounded ${errors.firstName ? 'border-red-500' : ''}`} />

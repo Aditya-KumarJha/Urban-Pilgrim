@@ -5,11 +5,11 @@ import { useDispatch } from "react-redux";
 import { addToCart } from "../../features/cartSlice.js";
 import { showSuccess, showError } from "../../utils/toast.js";
 
-export default function MonthlyCalendarModal({ 
-    isOpen, 
-    onClose, 
-    sessionData, 
-    selectedPlan, 
+export default function MonthlyCalendarModal({
+    isOpen,
+    onClose,
+    sessionData,
+    selectedPlan,
     mode,
     availableSlots = [],
     occupancyType = '',
@@ -18,13 +18,6 @@ export default function MonthlyCalendarModal({
     onAddToCart,
     cartItems = []
 }) {
-    console.log("Monthly Modal - sessionData", sessionData);
-    console.log("Monthly Modal - selectedPlan", selectedPlan);
-    console.log("Monthly Modal - availableSlots", availableSlots);
-    console.log("Monthly Modal - occupancyType", occupancyType);
-    console.log("Monthly Modal - userMonthlySlots", userMonthlySlots);
-    console.log("Monthly Modal - slotBookings", slotBookings);
-    
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(null);
     const [selectedSlot, setSelectedSlot] = useState(null);
@@ -32,41 +25,54 @@ export default function MonthlyCalendarModal({
     const [localSlots, setLocalSlots] = useState([]);
     const [view, setView] = useState('monthly');
     const [loading, setLoading] = useState(false);
-    
+
     const dispatch = useDispatch();
     const user = useSelector((state) => state.auth?.user || state.user?.currentUser || null);
 
     if (!isOpen) return null;
 
+    useEffect(() => {
+        if (isOpen) {
+            document.body.style.overflow = "hidden";
+        } else {
+            document.body.style.overflow = "";
+        }
+
+        // cleanup
+        return () => {
+            document.body.style.overflow = "";
+        };
+    }, []);
+
     const plan = sessionData?.[mode?.toLowerCase()]?.[selectedPlan] || {};
     const sessionsPerMonth = Number(plan.sessionsCount || 0);
     const remainingSessions = sessionsPerMonth - userMonthlySlots.length;
-    
+
     // Get slots already in cart for this program
     const slotsInCart = cartItems
-        .filter(item => 
-            item.title === sessionData?.guideCard?.title && 
-            item.subscriptionType === 'monthly' && 
+        .filter(item =>
+            item.title === sessionData?.guideCard?.title &&
+            item.subscriptionType === 'monthly' &&
             item.mode === mode
         )
         .flatMap(item => item.selectedSlots || [])
         .map(slot => `${slot.date}-${slot.startTime}-${slot.endTime}`);
-    
+
     // Count how many sessions user has already added to cart
     const sessionsInCart = slotsInCart.length;
     const remainingSessionsAfterCart = Math.max(0, sessionsPerMonth - userMonthlySlots.length - sessionsInCart);
-    
+
     // Helpers to normalize time and keys across various formats
     const normalizeTime = (t) => {
         if (!t) return '';
         // RFC3339: 2025-09-26T10:00:00+05:30 -> 10:00
         if (typeof t === 'string' && t.includes('T')) {
             const timePart = t.split('T')[1] || '';
-            const hhmm = timePart.split(/[+Z]/)[0]?.slice(0,5) || '';
+            const hhmm = timePart.split(/[+Z]/)[0]?.slice(0, 5) || '';
             return hhmm;
         }
         // HH:MM:SS -> HH:MM
-        if (/^\d{2}:\d{2}:\d{2}$/.test(t)) return t.slice(0,5);
+        if (/^\d{2}:\d{2}:\d{2}$/.test(t)) return t.slice(0, 5);
         // Already HH:MM
         return t;
     };
@@ -100,9 +106,9 @@ export default function MonthlyCalendarModal({
 
     // Build a normalized set of cart slot keys for reliable matching
     const slotsInCartNormalized = cartItems
-        .filter(item => 
-            item.title === sessionData?.guideCard?.title && 
-            item.subscriptionType === 'monthly' && 
+        .filter(item =>
+            item.title === sessionData?.guideCard?.title &&
+            item.subscriptionType === 'monthly' &&
             item.mode === mode
         )
         .flatMap(item => item.selectedSlots || [])
@@ -125,16 +131,16 @@ export default function MonthlyCalendarModal({
     // Get slot capacity information based on occupancy type
     const getSlotCapacityInfo = (slot) => {
         const slotKey = makeSlotKey(slot);
-        
+
         // Count actual bookings from slotBookings prop (try multiple key shapes) and Firestore purchases index
         const bookingsKey1 = `${slot.date}|${slot.startTime || slot.time}|${slot.endTime}`;
         const bookingsKey2 = `${slot.date}|${normalizeTime(slot.startTime || slot.time)}|${normalizeTime(slot.endTime)}`;
         const actualBookingsArray = slotBookings[bookingsKey1] || slotBookings[bookingsKey2] || [];
         const purchasedCount = purchasedIndex[bookingsKey2] || purchasedIndex[bookingsKey1] || 0;
-        
+
         // Count items in current user's cart for this slot (normalized)
         const cartCount = slotsInCartNormalized.filter(cartSlot => cartSlot === slotKey).length;
-        
+
         // For individual bookings, check if slot is reserved by anyone
         let individualBookingCount = 0;
         if (occupancyType.toLowerCase() === 'individual') {
@@ -142,17 +148,17 @@ export default function MonthlyCalendarModal({
             // 1. actualBookings from slotBookings prop (from database)
             // 2. userMonthlySlots (current user's existing bookings)
             // 3. Check if slot appears in any individual booking in slotBookings
-            
+
             const isSlotBookedByCurrentUser = userMonthlySlots.some(userSlot => {
                 const userKey = makeSlotKey(userSlot);
                 return userKey === slotKey;
             });
-            
+
             const isSlotBookedByOthers = (Array.isArray(actualBookingsArray) ? actualBookingsArray.length : Number(actualBookingsArray || 0)) > 0 || purchasedCount > 0;
-            
+
             // For individual slots, if it's booked by anyone (including current user), count as 1
             individualBookingCount = (isSlotBookedByCurrentUser || isSlotBookedByOthers) ? 1 : 0;
-            
+
             console.log(`Slot ${slotKey} - Individual booking check:`, {
                 isSlotBookedByCurrentUser,
                 isSlotBookedByOthers,
@@ -162,10 +168,10 @@ export default function MonthlyCalendarModal({
                 individualBookingCount
             });
         }
-        
+
         const occupancy = occupancyType.toLowerCase();
         let maxCapacity, displayText, isFull, currentBookings;
-        
+
         if (occupancy === 'group') {
             // For group: get max from admin settings or default to 10
             const occFromGuide = sessionData?.guideCard?.occupancies?.find(occ => (occ.type || '').toLowerCase() === 'group');
@@ -186,7 +192,7 @@ export default function MonthlyCalendarModal({
             displayText = currentBookings >= 1 ? 'Reserved' : 'Available';
             isFull = currentBookings >= 1;
         }
-        
+
         return { currentBookings, maxCapacity, displayText, isFull };
     };
 
@@ -195,7 +201,7 @@ export default function MonthlyCalendarModal({
             fetchAvailableSlots();
         }
     }, [isOpen, availableSlots, mode, selectedPlan]);
-    
+
     // Auto-select all slots for group occupancy
     useEffect(() => {
         if (occupancyType.toLowerCase() === 'group' && localSlots.length > 0) {
@@ -209,7 +215,7 @@ export default function MonthlyCalendarModal({
         if (availableSlots.length > 0) {
             console.log("Using monthly slots from parent:", availableSlots);
             console.log("Current occupancyType:", occupancyType);
-            
+
             const processedSlots = availableSlots.map((slot, index) => ({
                 id: slot.id || `monthly-${slot.date}-${slot.startTime}-${index}`,
                 date: slot.date,
@@ -222,13 +228,13 @@ export default function MonthlyCalendarModal({
                 tIdx: slot.tIdx,
                 duration: 60
             }));
-            
+
             console.log("Processed slots:", processedSlots);
             console.log("Slots by type:", processedSlots.reduce((acc, slot) => {
                 acc[slot.type] = (acc[slot.type] || 0) + 1;
                 return acc;
             }, {}));
-            
+
             setLocalSlots(processedSlots);
         }
     };
@@ -249,37 +255,37 @@ export default function MonthlyCalendarModal({
     const canSelectMoreSlots = () => {
         return selectedSlotsMulti.length < remainingSessionsAfterCart;
     };
-    
+
     // Check if a slot should be visible based on occupancy type and bookings
     const isSlotVisible = (slot) => {
         const slotKey = `${slot.date}-${slot.startTime}-${slot.endTime}`;
         const capacityInfo = getSlotCapacityInfo(slot);
-        
+
         // For group: show slots unless full capacity reached
         if (occupancyType.toLowerCase() === 'group') {
             return !capacityInfo.isFull;
         }
-        
+
         // For couple: show slots unless 2/2 (full)
         if (occupancyType.toLowerCase() === 'couple') {
             return !capacityInfo.isFull;
         }
-        
+
         // For individual: hide if slot is reserved by anyone (including the current user)
         if (occupancyType.toLowerCase() === 'individual') {
             // If reserved, do not show at all
             if (capacityInfo.isFull) return false;
             return true; // Show if available
         }
-        
+
         return true;
     };
-    
+
     // Check if group plan already added to cart
     const isGroupPlanInCart = () => {
-        return occupancyType.toLowerCase() === 'group' && cartItems.some(item => 
-            item.title === sessionData?.guideCard?.title && 
-            item.subscriptionType === 'monthly' && 
+        return occupancyType.toLowerCase() === 'group' && cartItems.some(item =>
+            item.title === sessionData?.guideCard?.title &&
+            item.subscriptionType === 'monthly' &&
             item.mode === mode &&
             item.occupancyType?.toLowerCase() === 'group'
         );
@@ -297,13 +303,13 @@ export default function MonthlyCalendarModal({
                 showError('Missing session data');
                 return;
             }
-            
+
             // Check if group plan already in cart
             if (isGroupPlanInCart()) {
                 showError('Group monthly plan already added to cart');
                 return;
             }
-            
+
             // Check if user has reached session limit (not applicable for group)
             if (remainingSessionsAfterCart <= 0 && occupancyType.toLowerCase() !== 'group') {
                 showError('You have reached your monthly session limit');
@@ -315,25 +321,25 @@ export default function MonthlyCalendarModal({
             const modeKey = mode?.toLowerCase();
             const subscriptionKey = selectedPlan;
             const planData = sessionData?.[modeKey]?.[subscriptionKey] || {};
-            
+
             // Get price based on occupancy type from plan data structure
             let pricePerSession = 0;
             const occupancy = occupancyType.toLowerCase();
-            
+
             // Debug: Check plan data structure
             console.log('=== PRICING DEBUG ===');
             console.log('Plan data:', JSON.stringify(planData, null, 2));
             console.log('Occupancy type:', occupancy);
             console.log('Mode:', mode, 'Selected plan:', selectedPlan);
-              
+
             // Get price from guideCard occupancies array
             console.log('Looking for occupancy-specific pricing in guideCard...');
-            
+
             if (sessionData?.guideCard?.occupancies && Array.isArray(sessionData.guideCard.occupancies)) {
-                const matchingOccupancy = sessionData.guideCard.occupancies.find(occ => 
+                const matchingOccupancy = sessionData.guideCard.occupancies.find(occ =>
                     occ.type && occ.type.toLowerCase() === occupancy
                 );
-                
+
                 if (matchingOccupancy && matchingOccupancy.price) {
                     pricePerSession = Number(matchingOccupancy.price) || 0;
                     console.log(`Found ${occupancy} price in guideCard:`, pricePerSession);
@@ -347,7 +353,7 @@ export default function MonthlyCalendarModal({
                 pricePerSession = Number(planData.price) || 0;
                 console.log(`Using plan price for ${occupancy}:`, pricePerSession);
             }
-            
+
             console.log('Final price per session:', pricePerSession);
             console.log('=== END PRICING DEBUG ===');
 
@@ -361,17 +367,17 @@ export default function MonthlyCalendarModal({
             const discountFromPlan = planData?.discount ?? null;
             const monthlyDiscountPercent = discountFromSlides ?? discountFromPlan;
             const monthlyDiscountPercentNum = monthlyDiscountPercent != null ? Number(monthlyDiscountPercent) : null;
-            
+
             let finalSlots = [];
             let cartItemId = '';
-            
+
             // Individual/Couple/Group: Use selected slots
             if (selectedSlotsMulti.length === 0) {
                 showError('Please select at least one slot');
                 setLoading(false);
                 return;
             }
-            
+
             // Helper function to convert to RFC3339 format with timezone
             const formatToRFC3339 = (date, time) => {
                 if (!date || !time) return null;
@@ -379,7 +385,7 @@ export default function MonthlyCalendarModal({
                 const dateTimeStr = `${date}T${time}:00+05:30`;
                 return dateTimeStr;
             };
-            
+
             finalSlots = selectedSlotsMulti.map(s => ({
                 id: s.id || `slot-${Date.now()}-${Math.random()}`,
                 date: s.date || '',
@@ -391,22 +397,22 @@ export default function MonthlyCalendarModal({
                 rowIdx: s.rowIdx,
                 tIdx: s.tIdx,
             })).filter(slot => slot.date && slot.startTime && slot.endTime); // Remove invalid slots
-            
+
             // Validate we have valid slots after filtering
             if (finalSlots.length === 0) {
                 showError('Invalid slot data. Please try selecting slots again.');
                 setLoading(false);
                 return;
             }
-            
+
             cartItemId = `${sessionData?.guideCard?.title || 'guide'}-monthly-${occupancyType}-${Date.now()}`;
 
             // Calculate booking lifecycle dates
             const bookingDate = new Date();
             const bookingDateStr = bookingDate.toISOString().slice(0, 10);
-            
+
             let startDate, endDate, waitingPeriodEnd;
-            
+
             if (occupancy === 'group') {
                 // Group: 7-day waiting period, then 1 month from start
                 waitingPeriodEnd = new Date(bookingDate.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -477,7 +483,7 @@ export default function MonthlyCalendarModal({
             console.log('Organizer data:', JSON.stringify(sessionData?.organizer, null, 2));
             console.log('Session title:', sessionData?.guideCard?.title);
             console.log('=== END DEBUG ===');
-            
+
             // Prefer parent handler if provided; otherwise fallback to Redux dispatch
             try {
                 if (typeof onAddToCart === 'function') {
@@ -492,7 +498,7 @@ export default function MonthlyCalendarModal({
 
                 const slotCount = finalSlots.length;
                 const message = `${slotCount} session(s) added to cart! Remaining: ${remainingSessionsAfterCart - slotCount}`;
-                
+
                 showSuccess(message);
                 handleCloseModal();
             } catch (addToCartError) {
@@ -513,13 +519,13 @@ export default function MonthlyCalendarModal({
     const getNext30Days = () => {
         const days = [];
         const today = new Date();
-        
+
         for (let i = 0; i < 30; i++) {
             const date = new Date(today);
             date.setDate(today.getDate() + i);
             days.push(date);
         }
-        
+
         return days;
     };
 
@@ -532,23 +538,23 @@ export default function MonthlyCalendarModal({
         const startingDayOfWeek = firstDay.getDay();
 
         const days = [];
-        
+
         // Add empty cells for days before the first day of the month
         for (let i = 0; i < startingDayOfWeek; i++) {
             days.push(null);
         }
-        
+
         // Add days of the month
         for (let day = 1; day <= daysInMonth; day++) {
             days.push(day);
         }
-        
+
         return days;
     };
 
     const hasAvailableSlots = (day) => {
         if (!day) return false;
-        
+
         // Handle both Date objects and day numbers
         let dateStr;
         if (day instanceof Date) {
@@ -556,15 +562,15 @@ export default function MonthlyCalendarModal({
         } else {
             dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         }
-        
+
         return localSlots.some(slot => {
             // Check date and availability
             if (slot.date !== dateStr || !slot.available) return false;
-            
+
             // Check occupancy type match
             const slotType = (slot.type || 'individual').toLowerCase();
             const selectedOccupancy = (occupancyType || 'individual').toLowerCase();
-            
+
             return slotType === selectedOccupancy;
         });
     };
@@ -572,25 +578,25 @@ export default function MonthlyCalendarModal({
     const getSlotsForDate = (dateStr) => {
         const slotsForDate = localSlots.filter(slot => slot.date === dateStr && slot.available);
         const selectedOccupancy = (occupancyType || 'individual').toLowerCase();
-        
+
         const filteredSlots = slotsForDate.filter(slot => {
             const slotType = (slot.type || 'individual').toLowerCase();
             return slotType === selectedOccupancy;
         });
-        
+
         console.log(`Slots for ${dateStr}:`, {
             totalSlots: slotsForDate.length,
             selectedOccupancy,
             filteredSlots: filteredSlots.length,
             slotTypes: slotsForDate.map(s => s.type)
         });
-        
+
         return filteredSlots;
     };
 
     const handleDateClick = (day) => {
         if (!day || !hasAvailableSlots(day)) return;
-        
+
         // Handle both Date objects and day numbers
         let dateStr;
         if (day instanceof Date) {
@@ -598,13 +604,13 @@ export default function MonthlyCalendarModal({
         } else {
             dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         }
-        
+
         setSelectedDate(dateStr);
     };
 
     const handleSlotSelect = (slot) => {
         const isSelected = selectedSlotsMulti.some(s => s.id === slot.id);
-        
+
         if (isSelected) {
             // Remove the slot if already selected
             setSelectedSlotsMulti(prev => prev.filter(s => s.id !== slot.id));
@@ -634,6 +640,10 @@ export default function MonthlyCalendarModal({
         setSelectedSlotsMulti(prev => [...prev, slot]);
     };
 
+    const handleSlotRemove = (slotToRemove) => {
+        setSelectedSlotsMulti(prev => prev.filter(slot => slot.id !== slotToRemove.id));
+    };
+
     const navigateMonth = (direction) => {
         setCurrentDate(prev => {
             const newDate = new Date(prev);
@@ -645,8 +655,10 @@ export default function MonthlyCalendarModal({
     const monthName = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
     return (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+            {/* White modal - only this scrolls if content is big */}
+            <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto my-8">
+
                 {/* Header */}
                 <div className="flex justify-between items-center p-6 border-b">
                     <div>
@@ -728,21 +740,20 @@ export default function MonthlyCalendarModal({
                                             const hasSlots = hasAvailableSlots(day);
                                             const dateStr = day ? `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}` : '';
                                             const hasUserSlot = day ? hasSlotOnDate(dateStr) : false;
-                                            
+
                                             return (
                                                 <button
                                                     key={index}
                                                     onClick={() => handleDateClick(day)}
                                                     disabled={!day || !hasSlots || hasUserSlot}
-                                                    className={`p-2 text-center text-sm rounded transition-colors ${
-                                                        !day 
-                                                            ? 'invisible' 
+                                                    className={`p-2 text-center text-sm rounded transition-colors ${!day
+                                                            ? 'invisible'
                                                             : hasUserSlot
                                                                 ? 'bg-green-100 text-green-800 cursor-not-allowed'
                                                                 : hasSlots
                                                                     ? 'bg-blue-100 text-blue-800 hover:bg-blue-200 cursor-pointer'
                                                                     : 'text-gray-300 cursor-not-allowed'
-                                                    }`}
+                                                        }`}
                                                 >
                                                     {day}
                                                     {hasUserSlot && <div className="text-xs">Booked</div>}
@@ -758,8 +769,8 @@ export default function MonthlyCalendarModal({
                                         <div className="space-y-2">
                                             <h4 className="font-medium text-gray-800">Available Slots</h4>
                                             <p className="text-sm text-gray-600">
-                                                Select a date on the calendar to view and pick slots. 
-                                                {occupancyType.toLowerCase() === 'group' 
+                                                Select a date on the calendar to view and pick slots.
+                                                {occupancyType.toLowerCase() === 'group'
                                                     ? 'Group slots become unavailable after 2 bookings.'
                                                     : `You can select up to ${remainingSessionsAfterCart} more session(s).`
                                                 }
@@ -774,7 +785,7 @@ export default function MonthlyCalendarModal({
                                         <>
                                             <div className="flex items-center justify-between">
                                                 <h4 className="font-medium text-gray-800">
-                                                    Slots on {new Date(selectedDate).toLocaleDateString('en-US',{weekday:'long', month:'short', day:'numeric'})}
+                                                    Slots on {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
                                                 </h4>
                                                 <button
                                                     onClick={() => setSelectedDate(null)}
@@ -791,22 +802,21 @@ export default function MonthlyCalendarModal({
                                                     const isGroupMode = occupancyType.toLowerCase() === 'group';
                                                     const isCoupleMode = occupancyType.toLowerCase() === 'couple';
                                                     const isIndividualMode = occupancyType.toLowerCase() === 'individual';
-                                                    
+
                                                     return (
                                                         <button
                                                             key={slot.id}
                                                             onClick={() => !isGroupMode && !disabled && !capacityInfo.isFull && handleSlotSelect(slot)}
-                                                            className={`p-4 rounded-lg border-2 transition-all text-left ${
-                                                                isGroupMode
+                                                            className={`p-4 rounded-lg border-2 transition-all text-left ${isGroupMode
                                                                     ? 'border-blue-300 bg-blue-50 cursor-default'
                                                                     : capacityInfo.isFull && !isSelected
                                                                         ? 'border-red-200 bg-red-50 cursor-not-allowed'
-                                                                    : isSelected 
-                                                                        ? 'border-[#2F6288] bg-blue-50' 
-                                                                        : disabled 
-                                                                            ? 'border-gray-200 bg-gray-100 cursor-not-allowed' 
-                                                                            : 'border-green-300 bg-green-50 hover:border-green-500 hover:bg-green-100'
-                                                            }`}
+                                                                        : isSelected
+                                                                            ? 'border-[#2F6288] bg-blue-50'
+                                                                            : disabled
+                                                                                ? 'border-gray-200 bg-gray-100 cursor-not-allowed'
+                                                                                : 'border-green-300 bg-green-50 hover:border-green-500 hover:bg-green-100'
+                                                                }`}
                                                             disabled={isGroupMode || disabled || (capacityInfo.isFull && !isSelected)}
                                                         >
                                                             <div>
@@ -819,19 +829,18 @@ export default function MonthlyCalendarModal({
                                                                 {slot.location && (
                                                                     <p className="text-xs text-gray-500">{slot.location}</p>
                                                                 )}
-                                                                <p className={`text-xs mt-1 ${
-                                                                    isGroupMode ? 'text-blue-700' : 
-                                                                    isCoupleMode ? (capacityInfo.isFull ? 'text-red-600' : 'text-green-600') :
-                                                                    isIndividualMode ? (capacityInfo.isFull ? 'text-orange-600' : 'text-green-600') :
-                                                                    isSelected ? 'text-blue-700' : disabled ? 'text-gray-400' : 'text-green-600'
-                                                                }`}>
-                                                                    {isGroupMode ? 
+                                                                <p className={`text-xs mt-1 ${isGroupMode ? 'text-blue-700' :
+                                                                        isCoupleMode ? (capacityInfo.isFull ? 'text-red-600' : 'text-green-600') :
+                                                                            isIndividualMode ? (capacityInfo.isFull ? 'text-orange-600' : 'text-green-600') :
+                                                                                isSelected ? 'text-blue-700' : disabled ? 'text-gray-400' : 'text-green-600'
+                                                                    }`}>
+                                                                    {isGroupMode ?
                                                                         `Auto-selected for group (${capacityInfo.displayText})` :
-                                                                    isCoupleMode ?
-                                                                        `Couple booking (${capacityInfo.displayText})${capacityInfo.isFull ? ' - Full' : ''}` :
-                                                                    isIndividualMode ?
-                                                                        `Individual booking (${capacityInfo.displayText})` :
-                                                                        isSelected ? 'Selected' : disabled ? 'Limit reached' : 'Available'
+                                                                        isCoupleMode ?
+                                                                            `Couple booking (${capacityInfo.displayText})${capacityInfo.isFull ? ' - Full' : ''}` :
+                                                                            isIndividualMode ?
+                                                                                `Individual booking (${capacityInfo.displayText})` :
+                                                                                isSelected ? 'Selected' : disabled ? 'Limit reached' : 'Available'
                                                                     }
                                                                 </p>
                                                             </div>
@@ -855,7 +864,7 @@ export default function MonthlyCalendarModal({
                                             <div key={slot.id} className="flex items-center justify-between bg-white p-3 rounded border">
                                                 <div>
                                                     <p className="font-medium text-gray-800">
-                                                        {new Date(slot.date).toLocaleDateString('en-US', {weekday: 'short', month: 'short', day: 'numeric'})}
+                                                        {new Date(slot.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
                                                     </p>
                                                     <p className="text-sm text-gray-600">{slot.time} - {slot.endTime}</p>
                                                     {occupancyType.toLowerCase() === 'group' && (
@@ -863,7 +872,7 @@ export default function MonthlyCalendarModal({
                                                     )}
                                                 </div>
                                                 {/* Only show remove button for non-group types */}
-                                                {occupancyType.toLowerCase() !== 'group' && (
+                                                {(occupancyType.toLowerCase() === 'individual' || occupancyType.toLowerCase() === 'couple') && (
                                                     <button
                                                         onClick={() => handleSlotRemove(slot)}
                                                         className="text-red-600 hover:text-red-800"
@@ -884,17 +893,17 @@ export default function MonthlyCalendarModal({
                                 const canShowIndCoupleCTA = !isGroup && selectedSlotsMulti.length > 0 && remainingSessionsAfterCart > 0;
                                 return (canShowGroupCTA || canShowIndCoupleCTA);
                             })() && (
-                                <div className="flex justify-end mt-6">
-                                    <button
-                                        onClick={handleAddMonthlyToCart}
-                                        disabled={loading}
-                                        className="px-6 py-3 bg-[#2F6288] text-white rounded-lg hover:bg-[#2F6288]/90 disabled:opacity-50 font-semibold"
-                                    >
-                                        {loading ? 'Adding...' : 'Add to Cart'}
-                                    </button>
-                                </div>
-                            )}
-                            
+                                    <div className="flex justify-end mt-6">
+                                        <button
+                                            onClick={handleAddMonthlyToCart}
+                                            disabled={loading}
+                                            className="px-6 py-3 bg-[#2F6288] text-white rounded-lg hover:bg-[#2F6288]/90 disabled:opacity-50 font-semibold"
+                                        >
+                                            {loading ? 'Adding...' : 'Add to Cart'}
+                                        </button>
+                                    </div>
+                                )}
+
                             {/* Group Plan Already Added Message */}
                             {occupancyType.toLowerCase() === 'group' && isGroupPlanInCart() && (
                                 <div className="flex justify-center mt-6">
@@ -927,6 +936,7 @@ export default function MonthlyCalendarModal({
                     )}
                 </div>
             </div>
-        </div>
+        </div >
     );
 }
+

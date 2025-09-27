@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { FaEye, FaEdit, FaTrash, FaSpinner } from "react-icons/fa";
+import { FaEye, FaSpinner } from "react-icons/fa";
 import { useSelector, useDispatch } from "react-redux";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../../../services/firebase";
@@ -22,8 +22,6 @@ export default function RetreatBookingTable() {
     const [loading, setLoading] = useState(true);
     const [selectedBooking, setSelectedBooking] = useState(null);
     const [showViewModal, setShowViewModal] = useState(false);
-    const [showEditModal, setShowEditModal] = useState(false);
-    const [editFormData, setEditFormData] = useState({});
 
     const dispatch = useDispatch();
     const retreats = useSelector(state => state.pilgrimRetreat?.retreats || EMPTY_RETREATS);
@@ -85,75 +83,6 @@ export default function RetreatBookingTable() {
     const handleView = (booking) => {
         setSelectedBooking(booking);
         setShowViewModal(true);
-    };
-
-    const handleEdit = (booking) => {
-        setSelectedBooking(booking);
-        setEditFormData({
-            email: booking.email || '',
-            retreat: booking.retreat || '',
-            occupancy: booking.occupancy || 'Single',
-            persons: booking.persons || 1,
-            retreatDate: booking.retreatDate ? booking.retreatDate.toISOString().split('T')[0] : '',
-            status: booking.status || 'confirmed'
-        });
-        setShowEditModal(true);
-    };
-
-    const handleUpdate = async () => {
-        try {
-            const { retreatIndex, userIndex } = selectedBooking;
-            const retreatDocRef = doc(db, `pilgrim_retreat/${uid}/retreats/data`);
-
-            // Get current retreat data
-            const retreatData = await fetchRetreatData(uid);
-            const updatedData = { ...retreatData };
-
-            // Update the specific user in purchasedUsers array
-            if (updatedData[retreatIndex + 1] && updatedData[retreatIndex + 1].purchasedUsers) {
-                updatedData[retreatIndex + 1].purchasedUsers[userIndex] = {
-                    ...updatedData[retreatIndex + 1].purchasedUsers[userIndex],
-                    ...editFormData,
-                    retreatDate: new Date(editFormData.retreatDate),
-                    updatedAt: new Date()
-                };
-
-                await updateDoc(retreatDocRef, updatedData);
-                showSuccess("Booking updated successfully");
-                setShowEditModal(false);
-                fetchBookingsFromRetreats(); // Refresh data
-            }
-        } catch (error) {
-            console.error("Error updating booking:", error);
-            showError("Failed to update booking");
-        }
-    };
-
-    const handleDelete = async (booking) => {
-        if (!window.confirm("Are you sure you want to delete this booking?")) {
-            return;
-        }
-
-        try {
-            const { retreatIndex, userIndex } = booking;
-            const retreatDocRef = doc(db, `pilgrim_retreat/${uid}/retreats/data`);
-
-            // Get current retreat data
-            const retreatData = await fetchRetreatData(uid);
-            const updatedData = { ...retreatData };
-
-            // Remove the specific user from purchasedUsers array
-            if (updatedData[retreatIndex + 1] && updatedData[retreatIndex + 1].purchasedUsers) {
-                updatedData[retreatIndex + 1].purchasedUsers.splice(userIndex, 1);
-
-                await updateDoc(retreatDocRef, updatedData);
-                showSuccess("Booking deleted successfully");
-                fetchBookingsFromRetreats(); // Refresh data
-            }
-        } catch (error) {
-            console.error("Error deleting booking:", error);
-            showError("Failed to delete booking");
-        }
     };
 
     const filtered = bookings.filter((b) => {
@@ -351,27 +280,13 @@ export default function RetreatBookingTable() {
                                             {booking.status}
                                         </span>
                                     </td>
-                                    <td className="p-2 flex items-center gap-2">
+                                    <td className="p-2 flex items-center justify-center gap-2">
                                         <button
                                             className="text-blue-600 hover:text-blue-800"
                                             onClick={() => handleView(booking)}
                                             title="View Details"
                                         >
                                             <FaEye />
-                                        </button>
-                                        <button
-                                            className="text-green-600 hover:text-green-800"
-                                            onClick={() => handleEdit(booking)}
-                                            title="Edit Booking"
-                                        >
-                                            <FaEdit />
-                                        </button>
-                                        <button
-                                            className="text-red-600 hover:text-red-800"
-                                            onClick={() => handleDelete(booking)}
-                                            title="Delete Booking"
-                                        >
-                                            <FaTrash />
                                         </button>
                                     </td>
                                 </motion.tr>
@@ -438,18 +353,6 @@ export default function RetreatBookingTable() {
                                 >
                                     <FaEye />
                                 </button>
-                                <button
-                                    className="text-green-600 hover:text-green-800"
-                                    onClick={() => handleEdit(booking)}
-                                >
-                                    <FaEdit />
-                                </button>
-                                <button
-                                    className="text-red-600 hover:text-red-800"
-                                    onClick={() => handleDelete(booking)}
-                                >
-                                    <FaTrash />
-                                </button>
                             </div>
                         </motion.div>
                     ))}
@@ -487,82 +390,6 @@ export default function RetreatBookingTable() {
                 </div>
             )}
 
-            {/* Edit Modal */}
-            {showEditModal && selectedBooking && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
-                        <h3 className="text-lg font-bold mb-4">Edit Booking</h3>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Email</label>
-                                <input
-                                    type="email"
-                                    value={editFormData.email}
-                                    onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
-                                    className="w-full border rounded px-3 py-2"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Occupancy</label>
-                                <select
-                                    value={editFormData.occupancy}
-                                    onChange={(e) => setEditFormData({ ...editFormData, occupancy: e.target.value })}
-                                    className="w-full border rounded px-3 py-2"
-                                >
-                                    <option value="Single">Single</option>
-                                    <option value="Twin">Twin</option>
-                                    <option value="Triple">Triple</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Persons</label>
-                                <input
-                                    type="number"
-                                    min="1"
-                                    value={editFormData.persons}
-                                    onChange={(e) => setEditFormData({ ...editFormData, persons: parseInt(e.target.value) })}
-                                    className="w-full border rounded px-3 py-2"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Retreat Date</label>
-                                <input
-                                    type="date"
-                                    value={editFormData.retreatDate}
-                                    onChange={(e) => setEditFormData({ ...editFormData, retreatDate: e.target.value })}
-                                    className="w-full border rounded px-3 py-2"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Status</label>
-                                <select
-                                    value={editFormData.status}
-                                    onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value })}
-                                    className="w-full border rounded px-3 py-2"
-                                >
-                                    <option value="confirmed">Confirmed</option>
-                                    <option value="pending">Pending</option>
-                                    <option value="cancelled">Cancelled</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div className="flex justify-end gap-2 mt-6">
-                            <button
-                                onClick={() => setShowEditModal(false)}
-                                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleUpdate}
-                                className="px-4 py-2 bg-[#2F6288] text-white rounded hover:bg-[#2F6288]/80"
-                            >
-                                Update
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

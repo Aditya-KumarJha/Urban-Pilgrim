@@ -494,6 +494,7 @@ export default function CartPage() {
 								onClose={() => setShowCheckout(false)}
 								onConfirm={handleConfirmCheckout}
 								isLoggedIn={!!user}
+								user={user}
 								sendOtp={sendOtp}
 								verifyOtp={verifyOtp}
 							/>

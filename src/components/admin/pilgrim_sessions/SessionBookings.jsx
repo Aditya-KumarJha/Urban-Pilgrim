@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { motion } from "framer-motion";
-import { FaEye, FaEdit, FaTrash, FaTimes } from "react-icons/fa";
+import { FaEye, FaTimes } from "react-icons/fa";
 import { fetchLiveSessionData, saveOrUpdateLiveSessionData } from "../../../services/pilgrim_session/liveSessionService";
 import { fetchRecordedSessionData, saveOrUpdateRecordedSessionData } from "../../../services/pilgrim_session/recordedSessionService";
 import { showSuccess, showError } from "../../../utils/toast";
@@ -19,9 +19,7 @@ export default function SessionBookingsTable() {
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showViewModal, setShowViewModal] = useState(false);
-    const [showEditModal, setShowEditModal] = useState(false);
     const [selectedBooking, setSelectedBooking] = useState(null);
-    const [editForm, setEditForm] = useState({});
 
     // Get session data from Redux
     const liveSessions = useSelector(state => state.pilgrimLiveSession?.LiveSession || EMPTY_LIVE_SESSIONS);
@@ -120,102 +118,15 @@ export default function SessionBookingsTable() {
             setLoading(false);
         }
     };
-
     const handleViewBooking = (booking) => {
         setSelectedBooking(booking);
         setShowViewModal(true);
     };
 
-    const handleEditBooking = (booking) => {
-        setSelectedBooking(booking);
-        setEditForm({
-            email: booking.email,
-            persons: booking.persons,
-            status: booking.status,
-            bookingDate: new Date(booking.bookingDate).toISOString().split('T')[0]
-        });
-        setShowEditModal(true);
-    };
-
-    const handleUpdateBooking = async () => {
-        try {
-            const { sessionIndex, userIndex, sessionType } = selectedBooking;
-
-            // Update the user data in the session's purchasedUsers array
-            const updatedUser = {
-                ...selectedBooking.originalSession.purchasedUsers[userIndex],
-                email: editForm.email,
-                persons: parseInt(editForm.persons),
-                status: editForm.status,
-                bookingDate: editForm.bookingDate
-            };
-
-            // Create updated session with modified purchasedUsers
-            const updatedSession = {
-                ...selectedBooking.originalSession,
-                purchasedUsers: selectedBooking.originalSession.purchasedUsers.map((user, idx) =>
-                    idx === userIndex ? updatedUser : user
-                )
-            };
-
-            // Update in Firestore based on session type
-            if (sessionType === 'live') {
-                const updatedSessions = liveSessions.map((session, idx) =>
-                    idx === sessionIndex ? updatedSession : session
-                );
-                await saveOrUpdateLiveSessionData(uid, 'slides', updatedSessions);
-            } else {
-                const updatedSessions = recordedSessions.map((session, idx) =>
-                    idx === sessionIndex ? updatedSession : session
-                );
-                await saveOrUpdateRecordedSessionData(uid, 'slides', updatedSessions);
-            }
-
-            showSuccess("Booking updated successfully");
-            setShowEditModal(false);
-            fetchBookingsFromSessions(); // Refresh data
-        } catch (error) {
-            console.error("Error updating booking:", error);
-            showError("Failed to update booking");
-        }
-    };
-
-    const handleDeleteBooking = async (booking) => {
-        if (!window.confirm('Are you sure you want to delete this booking?')) return;
-
-        try {
-            const { sessionIndex, userIndex, sessionType } = booking;
-
-            // Remove user from session's purchasedUsers array
-            const updatedSession = {
-                ...booking.originalSession,
-                purchasedUsers: booking.originalSession.purchasedUsers.filter((_, idx) => idx !== userIndex)
-            };
-
-            // Update in Firestore based on session type
-            if (sessionType === 'live') {
-                const updatedSessions = liveSessions.map((session, idx) =>
-                    idx === sessionIndex ? updatedSession : session
-                );
-                await saveOrUpdateLiveSessionData(uid, 'slides', updatedSessions);
-            } else {
-                const updatedSessions = recordedSessions.map((session, idx) =>
-                    idx === sessionIndex ? updatedSession : session
-                );
-                await saveOrUpdateRecordedSessionData(uid, 'slides', updatedSessions);
-            }
-
-            showSuccess("Booking deleted successfully");
-            fetchBookingsFromSessions(); // Refresh data
-        } catch (error) {
-            console.error("Error deleting booking:", error);
-            showError("Failed to delete booking");
-        }
-    };
-
     const filtered = bookings.filter((b) => {
         const matchesSearch = b.email.toLowerCase().includes(search.toLowerCase()) ||
-            b.programName.toLowerCase().includes(search.toLowerCase());
+            b.programName.toLowerCase().includes(search.toLowerCase()) ||
+            b.name.toLowerCase().includes(search.toLowerCase());
         const matchesProgramType = filter === "All" || b.programType === filter;
 
         const bookingTime = new Date(b.date).getTime();
@@ -380,27 +291,13 @@ export default function SessionBookingsTable() {
                                 <td className="p-2">{booking.persons}</td>
                                 <td className="p-2">{booking.date}</td>
                                 <td className="p-2">{booking.programName}</td>
-                                <td className="p-2 flex items-center gap-2">
+                                <td className="p-2 flex items-center justify-center gap-2">
                                     <button
                                         className="text-blue-600 hover:text-blue-800"
                                         onClick={() => handleViewBooking(booking)}
                                         title="View Details"
                                     >
                                         <FaEye />
-                                    </button>
-                                    <button
-                                        className="text-green-600 hover:text-green-800"
-                                        onClick={() => handleEditBooking(booking)}
-                                        title="Edit Booking"
-                                    >
-                                        <FaEdit />
-                                    </button>
-                                    <button
-                                        className="text-red-600 hover:text-red-800"
-                                        onClick={() => handleDeleteBooking(booking)}
-                                        title="Delete Booking"
-                                    >
-                                        <FaTrash />
                                     </button>
                                 </td>
                             </motion.tr>
@@ -443,27 +340,13 @@ export default function SessionBookingsTable() {
                         <p className="text-xs text-gray-500 mt-1">
                             {booking.persons} persons | {booking.date}
                         </p>
-                        <div className="flex gap-3 mt-3">
+                        <div className="flex justify-center mt-3">
                             <button
                                 className="text-blue-600 hover:text-blue-800"
                                 onClick={() => handleViewBooking(booking)}
                                 title="View Details"
                             >
                                 <FaEye />
-                            </button>
-                            <button
-                                className="text-green-600 hover:text-green-800"
-                                onClick={() => handleEditBooking(booking)}
-                                title="Edit Booking"
-                            >
-                                <FaEdit />
-                            </button>
-                            <button
-                                className="text-red-600 hover:text-red-800"
-                                onClick={() => handleDeleteBooking(booking)}
-                                title="Delete Booking"
-                            >
-                                <FaTrash />
                             </button>
                         </div>
                     </motion.div>
@@ -531,81 +414,13 @@ export default function SessionBookingsTable() {
                                     <p className="text-sm text-gray-900">${selectedBooking.price}</p>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                </div>
-            )}
 
-            {/* Edit Booking Modal */}
-            {showEditModal && selectedBooking && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
-                        <div className="p-6">
-                            <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-lg font-semibold text-[#2F6288]">Edit Booking</h3>
+                            <div className="flex justify-end mt-6">
                                 <button
-                                    onClick={() => setShowEditModal(false)}
-                                    className="text-gray-500 hover:text-gray-700"
+                                    onClick={() => setShowViewModal(false)}
+                                    className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
                                 >
-                                    <FaTimes />
-                                </button>
-                            </div>
-
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                                    <input
-                                        type="email"
-                                        value={editForm.email}
-                                        onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#2F6288]"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Persons</label>
-                                    <input
-                                        type="number"
-                                        min="1"
-                                        value={editForm.persons}
-                                        onChange={(e) => setEditForm({ ...editForm, persons: e.target.value })}
-                                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#2F6288]"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                                    <select
-                                        value={editForm.status}
-                                        onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
-                                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#2F6288]"
-                                    >
-                                        <option value="confirmed">Confirmed</option>
-                                        <option value="pending">Pending</option>
-                                        <option value="cancelled">Cancelled</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Booking Date</label>
-                                    <input
-                                        type="date"
-                                        value={editForm.bookingDate}
-                                        onChange={(e) => setEditForm({ ...editForm, bookingDate: e.target.value })}
-                                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#2F6288]"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="flex gap-3 mt-6">
-                                <button
-                                    onClick={() => setShowEditModal(false)}
-                                    className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleUpdateBooking}
-                                    className="flex-1 px-4 py-2 bg-[#2F6288] text-white rounded-md hover:bg-[#1e4a6b]"
-                                >
-                                    Update
+                                    Close
                                 </button>
                             </div>
                         </div>
