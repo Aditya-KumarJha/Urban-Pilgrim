@@ -19,7 +19,9 @@ import { fetchAllEvents } from "../../utils/fetchEvents";
 import EventCard from "../upcoming_events/EventCard";
 import { MdPeopleAlt  } from "react-icons/md";
 import WeatherSection from "./WeatherSection";
-import BundlesPopup from "./BundlesPopup";
+// Removed BundlesPopup in favor of direct add-to-cart
+import { addToCart } from "../../features/cartSlice";
+import { showSuccess } from "../../utils/toast";
 import { getProgramButtonConfig } from "../../utils/userProgramUtils";
 import { useNavigate } from "react-router-dom";
 import { Package } from "lucide-react";
@@ -31,7 +33,7 @@ export default function Retreatdescription() {
     console.log("title from params: ", formattedTitle);
     const [persons, setPersons] = useState(1);
     const [retreatData, setRetreatData] = useState(null);
-    const [showBundlesPopup, setShowBundlesPopup] = useState(false);
+    // Removed Bundles Popup state — direct add-to-cart flow
     const [selectedOccupancy, setSelectedOccupancy] = useState(null);
     const uid = "user-uid";
     const navigate = useNavigate();
@@ -242,23 +244,46 @@ export default function Retreatdescription() {
                                 if (buttonConfig.action === 'view') {
                                     // Navigate to user dashboard or program view
                                     navigate('/userdashboard');
-                                } else if (buttonConfig.action === 'renew') {
-                                    // Handle renewal
-                                    setShowBundlesPopup(true);
-                                } else {
-                                    // Default booking action
-                                    setShowBundlesPopup(true);
+                                    return;
                                 }
+
+                                // Directly add retreat to cart
+                                if (!retreatData) return;
+
+                                const rawPrice = (selectedOccupancy?.price ?? retreatData?.pilgrimRetreatCard?.price ?? 0);
+                                const numericPrice = Number(String(rawPrice).toString().replace(/,/g, "")) || 0;
+                                const derivedImage =
+                                    retreatData?.oneTimePurchase?.images?.[0] ||
+                                    retreatData?.oneTimeSubscription?.images?.[0] ||
+                                    retreatData?.pilgrimRetreatCard?.image ||
+                                    "/assets/retreats.svg";
+
+                                const cartItem = {
+                                    id: retreatData?.id || `${retreatData?.pilgrimRetreatCard?.title || 'retreat'}-${Date.now()}`,
+                                    title: retreatData?.pilgrimRetreatCard?.title || "Retreat",
+                                    price: numericPrice,
+                                    image: derivedImage,
+                                    type: "retreat",
+                                    persons: persons || 1,
+                                    duration: retreatData?.pilgrimRetreatCard?.duration ?? 1,
+                                    location: retreatData?.pilgrimRetreatCard?.location,
+                                };
+
+                                dispatch(addToCart(cartItem));
+                                showSuccess("Item added to cart");
                             }}
                             className={buttonConfig.className}
                         />
                     </div>
 
                     {/* Program Schedule */}
-                    <div className="flex flex-col" >
-                        <p className="text-lg font-semibold text-gray-800 mt-4">Program Schedule</p>
-                        <ProgramSchedule programSchedules={retreatData?.programSchedule} />
-                    </div>
+                    {
+                        retreatData?.programSchedule && retreatData?.programSchedule.length > 0 &&
+                            <div className="flex flex-col" >
+                                <p className="text-lg font-semibold text-gray-800 mt-4">Program Schedule</p>
+                                <ProgramSchedule programSchedules={retreatData?.programSchedule} />
+                            </div>
+                    }
 
                     <WeatherSection location={retreatData?.pilgrimRetreatCard?.location || "Delhi"} />
 
@@ -326,15 +351,9 @@ export default function Retreatdescription() {
                 </motion.div>
             </div>
 
-            {/* Bundles Popup */}
-            <BundlesPopup 
-                isOpen={showBundlesPopup}
-                onClose={() => setShowBundlesPopup(false)}
-                retreatData={retreatData}
-                selectedOccupancy={selectedOccupancy}
-                persons={persons}
-                duration={retreatData?.pilgrimRetreatCard?.duration ?? 1}
-            />
+            {/* Bundles Popup removed - direct add-to-cart flow */}
         </>
     );
 }
+
+
