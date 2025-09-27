@@ -164,7 +164,7 @@ function SectionThree() {
     const handleSave = async () => {
         dispatch(setSectionThree({ title, programs })); // update store
         await saveSectionThree(uid, { title, programs }); // update Firestore
-        console.log("Section 3 data saved successfully", { title, programs });
+        console.log("Section data saved successfully", { title, programs });
         showSuccess("Data saved successfully");
     };
 
@@ -178,7 +178,7 @@ function SectionThree() {
 
     return (
         <>
-            <h3 className="text-lg font-bold mb-2">Section 3</h3>
+            <h3 className="text-lg font-bold mb-2">Section 1</h3>
             <label className="block font-semibold mb-1">Title</label>
             <div className="relative mb-4">
                 <input

@@ -134,7 +134,7 @@ function SectionFour() {
         });
         dispatch(setSectionFour({ image, features })); // update store
         await saveSectionFour(uid, { image, features }); // update Firestore
-        showSuccess("Section 4 data saved successfully", { image, features });
+        showSuccess("Section data saved successfully", { image, features });
     };
 
     const handleDeleteFeature = async (index) => {
@@ -194,7 +194,7 @@ function SectionFour() {
 
     return (
         <>
-            <h3 className="text-lg font-bold mb-2">Section 4</h3>
+            <h3 className="text-lg font-bold mb-2">Section 2</h3>
             <label className="block font-semibold mb-1">Image</label>
 
             {isMainImageUploading ? (

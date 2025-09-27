@@ -14,7 +14,7 @@ import { useSelector } from "react-redux";
 import { useDispatch } from "react-redux";
 import { addToCart } from "../../features/cartSlice.js"
 import { showSuccess } from "../../utils/toast.js"
-import BundlesPopup from "../../components/pilgrim_retreats/BundlesPopup.jsx";
+ // import BundlesPopup from "../../components/pilgrim_retreats/BundlesPopup.jsx";
 import { fetchAllEvents } from "../../utils/fetchEvents";
 import { getProgramButtonConfig } from "../../utils/userProgramUtils";
 
@@ -23,7 +23,7 @@ export default function ProgramDetails() {
     const [programData, setProgramData] = useState(null);
     const programId = params.programId;
     const [persons, setPersons] = useState(1);
-    const [showBundlesPopup, setShowBundlesPopup] = useState(false);
+    // const [showBundlesPopup, setShowBundlesPopup] = useState(false);
     const dispatch = useDispatch();
     const navigate = useNavigate();
     
@@ -76,8 +76,8 @@ export default function ProgramDetails() {
     const decrement = () => setPersons((prev) => (prev > 1 ? prev - 1 : 1));
 
     const handleSubscriptionClick = () => {
-        // Show bundles popup instead of directly adding to cart
-        setShowBundlesPopup(true);
+        // Directly add to cart (bundle popup disabled)
+        handleDirectAddToCart();
     };
 
     const handleDirectAddToCart = () => {
@@ -86,7 +86,7 @@ export default function ProgramDetails() {
         const cartItem = {
             id: programData.recordedProgramCard?.title, // use unique id if available
             title: programData.recordedProgramCard?.title,
-            price: programData.oneTimeSubscription?.price,
+            price: getNumericPrice(),
             persons,
             image: programData.recordedProgramCard?.thumbnail,
             quantity: 1,
@@ -105,6 +105,17 @@ export default function ProgramDetails() {
     };
 
     console.log("allEvents: ", allEvents);
+
+    // Helper: get numeric base price from available fields
+    const getNumericPrice = () => {
+        const raw =
+            programData?.oneTimeSubscription?.price ??
+            programData?.recordedProgramCard?.price ??
+            null;
+        if (raw == null) return null;
+        const num = Number(String(raw).toString().replace(/,/g, ""));
+        return isNaN(num) ? null : num;
+    };
 
     return (
         <>
@@ -129,7 +140,7 @@ export default function ProgramDetails() {
                         offers: {
                             "@type": "Offer",
                             priceCurrency: "INR",
-                            price: programData?.recordedProgramCard?.price.replace(/,/g, ""),
+                            price: getNumericPrice() ?? undefined,
                             availability: "https://schema.org/InStock",
                         },
                         brand: {
@@ -160,13 +171,15 @@ export default function ProgramDetails() {
                         {/* Price */}
                         <div className="flex text-lg font-semibold text-black">
                             <span>
-                                From {programData?.recordedProgramCard?.price
-                                    ? new Intl.NumberFormat("en-IN", {
+                                {(() => {
+                                    const p = getNumericPrice();
+                                    if (p == null) return "Price not available";
+                                    return `From ${new Intl.NumberFormat("en-IN", {
                                         style: "currency",
                                         currency: "INR",
                                         maximumFractionDigits: 2,
-                                    }).format(programData?.recordedProgramCard?.price)
-                                    : "Price not available"}
+                                    }).format(p)}`;
+                                })()}
                             </span>
                         </div>
 
@@ -190,7 +203,7 @@ export default function ProgramDetails() {
                                 alt="package"
                                 className="h-4 w-4"
                             />
-                            <span className="mr-1">No. of persons/session:</span>
+                            <span className="mr-1">No. of persons:</span>
                             <span className="flex items-center gap-2 px-2 sm:px-4 py-1 sm:py-2 bg-white border-[#D69A75] border rounded-full">
                                 <button
                                     onClick={decrement}
@@ -244,7 +257,7 @@ export default function ProgramDetails() {
                         // User doesn't own the program - show subscription card
                         return (
                             <SubscriptionCard
-                                price={programData?.oneTimeSubscription?.price}
+                                price={getNumericPrice()}
                                 handleClick={handleSubscriptionClick}
                                 title={programData?.recordedProgramCard?.title}
                                 redirectToProgram={redirectToProgram}
@@ -324,6 +337,7 @@ export default function ProgramDetails() {
             </div>
 
             {/* Bundles Popup */}
+            {/** BundlesPopup disabled per request
             <BundlesPopup
                 isOpen={showBundlesPopup}
                 onClose={() => setShowBundlesPopup(false)}
@@ -340,6 +354,7 @@ export default function ProgramDetails() {
                     }
                 }}
             />
+            */}
         </>
     );
 }

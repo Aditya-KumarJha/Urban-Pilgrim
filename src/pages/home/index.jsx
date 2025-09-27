@@ -320,7 +320,7 @@ function Home() {
             <UpComing />
 
             {/* Explore our program */}
-            <div className="content2">
+            <div>
                 <div className="div">
                     <Program_Explorer />
                 </div>

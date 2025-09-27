@@ -263,7 +263,7 @@ export default function Highlights() {
         <div className="md:p-8 px-4 py-0 mx-auto">
             {/* Upload & Form */}
             <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl">
-                Highlights <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
+                Pilgrim Says <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
             </h2>
 
             <div className="mb-6">

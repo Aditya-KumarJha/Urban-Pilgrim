@@ -36,12 +36,12 @@ function SectionSix() {
     const handleSave = async () => {
         dispatch(setSectionSix({ title, description })); // update store
         await saveSectionSix(uid, { title, description }); // update Firestore
-        showSuccess("Section 6 data saved successfully", { title, description });
+        showSuccess("Section data saved successfully", { title, description });
     };
     
     return (
         <>
-            <h3 className="text-lg font-bold mb-2">Section 6</h3>
+            <h3 className="text-lg font-bold mb-2">Wellness Program</h3>
 
             <label className="block font-semibold mb-1">Title</label>
             <div className="relative mb-4">

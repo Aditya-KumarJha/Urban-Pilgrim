@@ -146,7 +146,7 @@ export default function LiveDetails() {
     };
 
     const handleViewPreviousBooking = () => {
-        navigate('/user-dashboard');
+        navigate('/userdashboard');
     };
 
 

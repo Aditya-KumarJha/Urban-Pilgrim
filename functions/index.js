@@ -8,8 +8,6 @@ const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onRequest } = require("firebase-functions/v2/https");
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 
-// Import subscription cleanup functions - moved inline to avoid import issues
-
 const { google } = require("googleapis");
 const { OAuth2Client } = require("google-auth-library");
 require("dotenv").config();
@@ -18,6 +16,12 @@ const cors = require("cors")({ origin: true });
 
 admin.initializeApp();
 const db = admin.firestore();
+// Prevent Firestore from rejecting undefined values in documents
+try {
+    admin.firestore().settings({ ignoreUndefinedProperties: true });
+} catch (e) {
+    // no-op if settings already applied
+}
 
 // Live Session Slot Booking (Transactional)
 // Params: { sessionTitle, date, startTime, endTime, occupancyType: 'individual'|'couple'|'group', userId }
@@ -377,16 +381,38 @@ function formatPhoneNumber(raw) {
     } catch { return null; }
 }
 
-async function sendWhatsApp(toE164, body) {
+async function sendWhatsApp(toE164, body, useTemplate = false) {
     if (!toE164) return { ok: false, error: 'No phone' };
     try {
         const client = getTwilioClient();
         if (!client) return { ok: false, error: 'Twilio client not configured' };
-        const res = await client.messages.create({
-            from: "whatsapp:+14155238886", // Twilio sandbox/approved number
-            to: `whatsapp:${toE164}`,
-            body,
-        });
+
+        const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID || "";
+        const envFrom = process.env.TWILIO_WHATSAPP_FROM || "";
+        const from = envFrom
+            ? (envFrom.startsWith("whatsapp:") ? envFrom : `whatsapp:${envFrom}`)
+            : "whatsapp:+15558599523";
+
+        let params = { to: `whatsapp:${toE164}` };
+
+        if (messagingServiceSid) {
+            params.messagingServiceSid = messagingServiceSid;
+        } else {
+            params.from = from;
+        }
+
+        if (useTemplate) {
+            // send template
+            params.contentSid = "HXa1977e3988f9ea9fdee5b0c64d379f95"; // your template SID
+            params.contentVariables = JSON.stringify({
+                1: body || "Urban Pilgrim booking confirmed ✅"
+            });
+        } else {
+            // fallback free-text
+            params.body = body;
+        }
+
+        const res = await client.messages.create(params);
         return { ok: true, sid: res.sid };
     } catch (err) {
         console.error('WhatsApp send error:', err);
@@ -394,14 +420,22 @@ async function sendWhatsApp(toE164, body) {
     }
 }
 
+
 async function createWhatsAppReminderDocs({ userId, name, phoneE164, program, slots }) {
     try {
-        if (!phoneE164 || !Array.isArray(slots) || slots.length === 0) return;
+        if (!phoneE164 || !Array.isArray(slots) || slots.length === 0) {
+            // Send immediate confirmation
+            await sendWhatsApp(phoneE164, `Hi ${name}, thanks for registering for ${program.title}. We’ll notify you about upcoming sessions.`);
+            return;
+        }
+
         const remindersCol = db.collection('whatsapp_reminders');
         const batch = db.batch();
         const now = new Date();
+        let createdCount = 0;
+
         for (const slot of slots) {
-            const startStr = slot?.startTime || slot?.start_time; // RFC3339
+            const startStr = slot?.startTime || slot?.start_time;
             const endStr = slot?.endTime || slot?.end_time;
             if (!startStr) continue;
             const startDate = new Date(startStr);
@@ -417,10 +451,8 @@ async function createWhatsAppReminderDocs({ userId, name, phoneE164, program, sl
             const remind60 = new Date(startDate.getTime() - 60 * 60 * 1000);
             const remind30 = new Date(startDate.getTime() - 30 * 60 * 1000);
 
-            // Create two reminders (60 and 30 minutes before)
             for (const m of [60, 30]) {
                 const sendAtDate = (m === 60 ? remind60 : remind30);
-                // Skip if reminder time already passed by more than 1 minute
                 if (sendAtDate.getTime() < now.getTime() - 60 * 1000) continue;
 
                 const docRef = remindersCol.doc();
@@ -432,7 +464,7 @@ async function createWhatsAppReminderDocs({ userId, name, phoneE164, program, sl
                     userId,
                     name,
                     programTitle: program.title,
-                    programMode: program.mode,
+                    programMode: program?.mode || null,
                     occupancyType: program.occupancyType || null,
                     minutesBefore: m,
                     slot: {
@@ -442,9 +474,19 @@ async function createWhatsAppReminderDocs({ userId, name, phoneE164, program, sl
                     },
                     message: template(m)
                 });
+                createdCount++;
             }
         }
+
         await batch.commit();
+        console.log(`WA: reminder docs created { count: ${createdCount}, title: '${program.title}' }`);
+
+        // 🔔 NEW: Send immediate confirmation
+        await sendWhatsApp(
+            phoneE164,
+            `✅ Your Urban Pilgrim booking for "${program.title}" is confirmed! We’ll remind you before it starts.`
+        );
+
     } catch (e) {
         console.error('Failed creating WhatsApp reminder docs:', e);
     }
@@ -944,6 +986,40 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
         }
 
         // ------------------------
+        // 1.6) Send immediate WhatsApp confirmation to user
+        // ------------------------
+        try {
+            const userPhone = formatPhoneNumber(
+                formData?.whatsapp || formData?.phone || formData?.contact || ''
+            );
+            if (userPhone) {
+                const titles = (cartData || []).map(i => i?.title).filter(Boolean).join(', ');
+                const amountINR = Number(total || 0);
+                const currency = 'INR';
+                const message = `Hi ${name || 'Pilgrim'}, your payment is successful. Booking confirmed for: ${titles}. Amount: ₹${amountINR.toLocaleString('en-IN')} ${currency}. Payment ID: ${paymentResponse?.razorpay_payment_id || ''}`;
+
+                // Try template first (for business-initiated), fallback to free text
+                let res = await sendWhatsApp(userPhone, message, true);
+                if (!res?.ok) {
+                    console.warn('WA template send failed, falling back to free text:', res?.error);
+                    await sendWhatsApp(userPhone, message, false);
+                }
+            } else {
+                console.warn('No user WhatsApp/phone found in formData; skipping WA confirmation');
+            }
+
+            // Optional admin notification
+            const adminWa = formatPhoneNumber(process.env.ADMIN_WHATSAPP || '');
+            if (adminWa) {
+                const titles = (cartData || []).map(i => i?.title).filter(Boolean).join(', ');
+                const msg = `New order paid by ${name || email}. Programs: ${titles}. Total: ₹${Number(total||0).toLocaleString('en-IN')}. PaymentID: ${paymentResponse?.razorpay_payment_id || ''}`;
+                await sendWhatsApp(adminWa, msg, false);
+            }
+        } catch (waErr) {
+            console.error('WA: failed to send immediate confirmation', waErr);
+        }
+
+        // ------------------------
         // 2) Update each program document
         // ------------------------
         for (const program of cartData) {
@@ -1367,7 +1443,7 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                     // Send immediate confirmation message (generic "session")
                     const confirmMsg = isMonthly
                         ? `Hi ${name || 'Pilgrim'}, ✅ Your monthly session for "${program.title}" has been booked successfully. We'll remind you 60 and 30 minutes before each session here on WhatsApp.\nMode: ${program.mode}${program.occupancyType ? ` • ${program.occupancyType}` : ''}`
-                        : `Hi ${name || 'Pilgrim'}, ✅ Your session "${program.title}" has been booked successfully. We'll remind you 60 and 30 minutes before the session here on WhatsApp.\nMode: ${program.mode}${program.occupancyType ? ` • ${program.occupancyType}` : ''}`;
+                        : `Hi ${name || 'Pilgrim'}, ✅ Your session "${program.title}" has been booked successfully. We'll remind you 60 and 30 minutes before the session here on WhatsApp.\nMode: ${program.mode ?? "Offline"}${program.occupancyType ? ` • ${program.occupancyType}` : ''}`;
 
                     const waRes = await sendWhatsApp(phoneE164, confirmMsg);
                     console.log('WA: confirmation send result', { ok: waRes?.ok, error: waRes?.error });
@@ -2262,7 +2338,6 @@ exports.confirmGiftCardPayment = functions.https.onCall(async (data, context) =>
         throw new functions.https.HttpsError('internal', err.message);
     }
 });
-
 
 // twilio for whatsapp
 exports.sendWhatsappReminder = functions.https.onCall(async (data, context) => {

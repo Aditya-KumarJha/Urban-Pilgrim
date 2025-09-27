@@ -171,7 +171,7 @@ export default function Sessions() {
             </div>
             <LiveSessions filters={filters} bestSellingActive={bestSellingActive} />
             <RecordedPrograms filters={filters} bestSellingActive={bestSellingActive} />
-            <SubscriptionPlans />
+            {/* <SubscriptionPlans /> */}
             <Testimonials />
         </div>
     );
