@@ -119,35 +119,42 @@ export const deleteSlideByIndex = async (uid, index) => {
 
         const data = docSnap.data();
 
-        // Handle different data structures
-        let updatedData = { ...data };
-
-        if (data.slides && Object.keys(data.slides).length > 0) {
-            // Remove the item at the specified index
-            const keyToDelete = Object.keys(data.slides)[index];
-            console.log("Key to delete:", keyToDelete);
-            if (keyToDelete) {
-                delete updatedData.slides[keyToDelete];
-                
-                // Reindex remaining items
-                const remainingItems = Object.keys(data.slides)
-                    .filter(key => key !== keyToDelete)
-                    .map(key => data.slides[key]);
-                
-                // Clear all numeric keys
-                Object.keys(data.slides).forEach(key => delete updatedData.slides[key]);
-                
-                // Re-add items with new indices starting from 1
-                remainingItems.forEach((item, i) => {
-                    updatedData.slides[i + 1] = item;
-                });
-            }
-        } else {
-            throw new Error("No valid data structure found for deletion");
+        // Ensure slides exist
+        const slides = data?.slides;
+        if (!slides || (Array.isArray(slides) && slides.length === 0) || (!Array.isArray(slides) && Object.keys(slides).length === 0)) {
+            throw new Error("No slides found to delete");
         }
 
-        // Update Firestore
-        await setDoc(guideRef, updatedData);
+        // Normalize deletion by handling both array and object structures
+        let newSlides;
+
+        if (Array.isArray(slides)) {
+            // Filter out the index, ensuring a dense array with no undefined holes
+            if (index < 0 || index >= slides.length) {
+                throw new Error(`Index out of bounds: ${index}`);
+            }
+            newSlides = slides.filter((_, i) => i !== index);
+        } else if (typeof slides === 'object') {
+            // Convert to ordered array, delete by index, then reindex into an object with 1-based keys
+            const orderedKeys = Object.keys(slides).sort((a, b) => Number(a) - Number(b));
+            if (index < 0 || index >= orderedKeys.length) {
+                throw new Error(`Index out of bounds: ${index}`);
+            }
+            const remaining = orderedKeys
+                .filter((_, i) => i !== index)
+                .map(key => slides[key])
+                .filter(item => item !== undefined);
+            const reindexed = {};
+            remaining.forEach((item, i) => {
+                reindexed[i + 1] = item;
+            });
+            newSlides = reindexed;
+        } else {
+            throw new Error("Unsupported slides data type");
+        }
+
+        // Update only the 'slides' field to avoid rewriting the whole document
+        await updateDoc(guideRef, { slides: newSlides });
 
         console.log(`Item at index ${index} deleted successfully`);
         return "deleted";

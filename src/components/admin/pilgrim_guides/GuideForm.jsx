@@ -9,6 +9,7 @@ import { deleteSlideByIndex, fetchGuideData, saveOrUpdateGuideData } from "../..
 import { useDispatch, useSelector } from "react-redux";
 import { setGuides } from "../../../features/pilgrim_guide/pilgrimGuideSlice";
 import { showSuccess, showError } from "../../../utils/toast"
+import toast from "react-hot-toast";
 
 const ItemType = "SLIDE";
 
@@ -385,20 +386,20 @@ export default function GuideForm() {
 
     const moveSlide = async (from, to) => {
         try {
+            // Reorder guides themselves (each guide has a single slide used as its card)
             const updatedGuides = [...guides];
-
-            let allSlides = updatedGuides.flatMap(g => g.slides);
-            if (from < 0 || from >= allSlides.length || to < 0 || to >= allSlides.length) {
+            if (from < 0 || from >= updatedGuides.length || to < 0 || to >= updatedGuides.length) {
                 console.warn("Invalid slide move indexes");
                 return;
             }
 
-            const [moved] = allSlides.splice(from, 1);
-            allSlides.splice(to, 0, moved);
+            const [movedGuide] = updatedGuides.splice(from, 1);
+            updatedGuides.splice(to, 0, movedGuide);
 
-            setSlideData(allSlides);
+            // Update local UI list of slides
+            setSlideData(updatedGuides.flatMap(g => g.slides || []));
 
-            updatedGuides[0].slides = allSlides;
+            // Update Redux and persist reordered guides list (stored in Firestore as 'slides')
             dispatch(setGuides(updatedGuides));
             await saveOrUpdateGuideData(uid, "slides", updatedGuides);
 
@@ -427,6 +428,7 @@ export default function GuideForm() {
             setSlideData((prev) => prev.filter((_, i) => i !== index));
 
             console.log("Slide removed locally and from Firestore");
+            toast.success("Guide removed successfully")
         } catch (err) {
             console.error("Error removing slide:", err);
         }
@@ -1129,6 +1131,8 @@ export default function GuideForm() {
                 }
                 
                 setAllData(slidesData);
+                // Keep Redux state in sync with fetched data
+                dispatch(setGuides(slidesData));
                 
                 if (slidesData.length > 0) {
                     let allSlides = [];
