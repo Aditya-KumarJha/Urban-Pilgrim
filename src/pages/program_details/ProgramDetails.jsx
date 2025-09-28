@@ -245,7 +245,15 @@ export default function ProgramDetails() {
                                         </p>
                                         <button
                                             className={`w-full py-3 px-4 rounded-lg transition-all duration-200 font-semibold shadow-md hover:shadow-lg ${buttonConfig.className}`}
-                                            onClick={() => navigate('/dashboard')}
+                                            onClick={() => {
+                                                if (programData?.recordedProgramCard?.title) {
+                                                    const normalizedTitle = programData.recordedProgramCard.title
+                                                        .toLowerCase()
+                                                        .trim()
+                                                        .replace(/\s+/g, '-');
+                                                    navigate(`/program/${normalizedTitle}/slots`);
+                                                }
+                                            }}
                                         >
                                             {buttonConfig.text}
                                         </button>
