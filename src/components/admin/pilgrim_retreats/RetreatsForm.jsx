@@ -38,13 +38,16 @@ function SlideItem({ slide, index, moveSlide, onEdit, onDelete, onToggle }) {
         >
             <div className="flex items-center gap-3">
                 <MdDragIndicator className="text-gray-400 cursor-move" />
-                {slide?.thumbnailType && slide?.thumbnailType.startsWith('video/') ? (
+                {(slide?.thumbnailType && slide?.thumbnailType.startsWith('video/')) || 
+                 (slide?.image && (slide.image.includes('.mp4') || slide.image.includes('video'))) ? (
                     <video
                         src={slide?.image}
                         className="w-16 h-16 object-cover rounded mt-1"
-                        autoPlay
                         muted
                         loop
+                        playsInline
+                        onMouseEnter={(e) => e.target.play()}
+                        onMouseLeave={(e) => e.target.pause()}
                     />
                 ) : (
                     <img src={slide?.image} alt="Slide Thumbnail" className="w-16 h-16 object-cover rounded mt-1" />

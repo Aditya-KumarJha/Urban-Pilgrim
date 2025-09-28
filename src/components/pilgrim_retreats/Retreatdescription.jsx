@@ -119,6 +119,10 @@ export default function Retreatdescription() {
         loadEvents();
     }, [dispatch, allEvents]);
 
+    console.log("data ....: ", retreatData)
+    console.log("pilgrimRetreatCard price:", retreatData?.pilgrimRetreatCard?.price)
+    console.log("selectedOccupancy:", selectedOccupancy)
+
     return (
         <>
             <div className="max-w-7xl mx-auto p-6 bg-gradient-to-b from-[#FAF4F0] to-white rounded-2xl shadow-lg grid gap-6 md:mt-[100px] mt-[80px] px-4">
@@ -250,8 +254,33 @@ export default function Retreatdescription() {
                                 // Directly add retreat to cart
                                 if (!retreatData) return;
 
-                                const rawPrice = (selectedOccupancy?.price ?? retreatData?.pilgrimRetreatCard?.price ?? 0);
-                                const numericPrice = Number(String(rawPrice).toString().replace(/,/g, "")) || 0;
+                                // Get price with better fallback logic
+                                let rawPrice = 0;
+                                if (selectedOccupancy?.price) {
+                                    rawPrice = selectedOccupancy.price;
+                                } else if (retreatData?.pilgrimRetreatCard?.price) {
+                                    rawPrice = retreatData.pilgrimRetreatCard.price;
+                                } else {
+                                    rawPrice = 0;
+                                }
+                                
+                                console.log('Price debugging:', {
+                                    selectedOccupancy: selectedOccupancy,
+                                    selectedOccupancyPrice: selectedOccupancy?.price,
+                                    retreatCardPrice: retreatData?.pilgrimRetreatCard?.price,
+                                    rawPrice: rawPrice,
+                                    rawPriceType: typeof rawPrice
+                                });
+                                
+                                // Convert to number more carefully
+                                let numericPrice = 0;
+                                if (rawPrice) {
+                                    // Handle both string and number types
+                                    const priceString = String(rawPrice).replace(/,/g, "").replace(/[^0-9.]/g, "");
+                                    numericPrice = parseFloat(priceString) || 0;
+                                }
+                                
+                                console.log('Final numeric price:', numericPrice, typeof numericPrice);
                                 const derivedImage =
                                     retreatData?.oneTimePurchase?.images?.[0] ||
                                     retreatData?.oneTimeSubscription?.images?.[0] ||

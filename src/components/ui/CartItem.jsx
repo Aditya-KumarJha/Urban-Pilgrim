@@ -41,12 +41,22 @@ export default function CartItem({ item, onRemove, onQuantityChange, onPersonsCh
 
     return (
         <div className="flex items-start gap-4 p-4 border-b last:border-none w-full">
-            {/* Product Image */}
-            <img
-                src={item.image}
-                alt={item.title}
-                className="w-20 h-20 rounded-md object-cover flex-shrink-0"
-            />
+            {/* Product Image/Video */}
+            {item.image && item.image.includes('.mp4') || item.image && item.image.includes('video') ? (
+                <video
+                    src={item.image}
+                    className="w-20 h-20 rounded-md object-cover flex-shrink-0"
+                    muted
+                    loop
+                    playsInline
+                />
+            ) : (
+                <img
+                    src={item.image}
+                    alt={item.title}
+                    className="w-20 h-20 rounded-md object-cover flex-shrink-0"
+                />
+            )}
 
             {/* Product Details */}
             <div className="flex-1 min-w-0">
