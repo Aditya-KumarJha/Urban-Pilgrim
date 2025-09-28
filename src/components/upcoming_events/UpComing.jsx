@@ -26,6 +26,7 @@ export default function UpComing() {
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
     const scrollContainerRef = useRef(null);
+    const [scrollProgress, setScrollProgress] = useState(0);
     
     // Extract all dates from event slots
     const extractEventDates = (events) => {
@@ -136,20 +137,30 @@ export default function UpComing() {
         })
         : categoryFilteredEvents;
 
-    // Scroll functions for navigation arrows
-    const scrollLeft = () => {
+    // Handle scroll progress tracking
+    const handleScroll = () => {
         if (scrollContainerRef.current) {
-            scrollContainerRef.current.scrollBy({
-                left: -300,
-                behavior: 'smooth'
-            });
+            const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+            const maxScroll = scrollWidth - clientWidth;
+            const progress = maxScroll > 0 ? (scrollLeft / maxScroll) * 100 : 0;
+            setScrollProgress(progress);
         }
     };
 
-    const scrollRight = () => {
+    // Handle progress bar click to scroll to position
+    const handleProgressBarClick = (e) => {
         if (scrollContainerRef.current) {
-            scrollContainerRef.current.scrollBy({
-                left: 300,
+            const rect = e.currentTarget.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const progressBarWidth = rect.width;
+            const clickProgress = (clickX / progressBarWidth) * 100;
+            
+            const { scrollWidth, clientWidth } = scrollContainerRef.current;
+            const maxScroll = scrollWidth - clientWidth;
+            const targetScrollLeft = (clickProgress / 100) * maxScroll;
+            
+            scrollContainerRef.current.scrollTo({
+                left: targetScrollLeft,
                 behavior: 'smooth'
             });
         }
@@ -358,6 +369,7 @@ export default function UpComing() {
                                     <div 
                                         ref={scrollContainerRef}
                                         className="flex py-4 pb-12 overflow-x-scroll overflow-y-hidden no-scrollbar whitespace-nowrap"
+                                        onScroll={handleScroll}
                                     >
                                         {activeEvents.map((event, index) => (
                                             <div key={event.id || index} className="flex-shrink-0 lg:w-[400px] sm:w-[350px] w-[240px] xl:pl-10 pr-4">
@@ -366,20 +378,17 @@ export default function UpComing() {
                                         ))}
                                     </div>
                                     
-                                    {/* Arrow Navigation - Bottom Right */}
-                                    <div className="absolute bottom-0 right-2 sm:hidden flex mb-3 gap-1 z-10">
-                                        <button
-                                            onClick={scrollLeft}
-                                            className="p-1.5 text-xs rounded-full border border-[#C5703F] hover:bg-[#C5703F]/20 transition text-[#C5703F]"
+                                    {/* Horizontal Progress Bar - Bottom Center */}
+                                    <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 sm:hidden mb-3 z-10">
+                                        <div 
+                                            className="w-24 h-1.5 bg-gray-200 rounded-full cursor-pointer hover:bg-gray-300 transition-colors"
+                                            onClick={handleProgressBarClick}
                                         >
-                                            <FaChevronLeft />
-                                        </button>
-                                        <button
-                                            onClick={scrollRight}
-                                            className="p-1.5 text-xs rounded-full border border-[#C5703F] hover:bg-[#C5703F]/20 transition text-[#C5703F]"
-                                        >
-                                            <FaChevronRight />
-                                        </button>
+                                            <div 
+                                                className="h-full bg-[#C5703F] rounded-full transition-all duration-300 ease-out"
+                                                style={{ width: `${scrollProgress}%` }}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             ) : (

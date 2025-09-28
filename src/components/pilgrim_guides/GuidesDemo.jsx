@@ -108,7 +108,7 @@ export default function GuidesDemo({ filters = {}, bestSellingActive = false }) 
                 <div className="text-sm text-gray-600 sm:pt-5">
                     Showing {filteredGuides.length} of {(guides?.length || 0)} guides
                 </div>
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mt-3 place-items-center sm:place-items-stretch">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mt-3 place-items-center sm:place-items-stretch">
                     {filteredGuides && filteredGuides.map((guide, index) => (
                         <GuideCard key={index} {...guide} />
                     ))}

@@ -116,7 +116,7 @@ export default function RecordedPrograms({ filters = {}, bestSellingActive = fal
                     Showing {filteredPrograms.length} of {(programs?.length || 0)} programs
                 </div>
 
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mt-3 place-items-center sm:place-items-stretch sm:px-0 px-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mt-3 place-items-center sm:place-items-stretch sm:px-0 px-4">
                     {filteredPrograms && filteredPrograms.map((program, index) => (
                         <RecordedProgramCard key={index} {...program} />
                     ))}

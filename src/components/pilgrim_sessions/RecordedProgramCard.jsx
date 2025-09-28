@@ -9,7 +9,7 @@ export default function RecordedProgramCard({ image, category, title, days, vide
 
   return (
     <div
-      className="rounded-xl overflow-hidden shadow-md bg-white flex flex-col max-w-[260px] sm:max-w-xs"
+      className="rounded-xl overflow-hidden shadow-md bg-white flex flex-col max-w-[300px] sm:max-w-xs"
       onClick={handleCardClick}
     >
       <img

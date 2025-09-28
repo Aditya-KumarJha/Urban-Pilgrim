@@ -8,7 +8,7 @@ export default function GuideCard({ image, thumbnailType, category, title, price
         navigate(`/guide/${title.replace(/\s+/g, '-').toLowerCase()}`);
     };
     return (
-        <div className="rounded-xl overflow-hidden shadow-md bg-white flex flex-col max-w-[260px] sm:max-w-xs" onClick={() => handleCardClick(title)}>
+        <div className="rounded-xl overflow-hidden shadow-md bg-white flex flex-col max-w-[300px] sm:max-w-xs" onClick={() => handleCardClick(title)}>
             {thumbnailType && thumbnailType.startsWith('video/') ? (
                 <video 
                     src={image} 
@@ -27,7 +27,7 @@ export default function GuideCard({ image, thumbnailType, category, title, price
                     {category}
                 </span>
 
-                <h3 className="font-semibold line-clamp-3 text-sm sm:text-md text-gray-800 mb-2 leading-snug">
+                <h3 className="font-semibold line-clamp-2 text-sm sm:text-md text-gray-800 mb-2 leading-snug">
                     {title}
                 </h3>
 

@@ -114,7 +114,7 @@ export default function LiveSessions({ filters = {}, bestSellingActive = false }
                     Showing {filteredSessions.length} of {(sessions?.length || 0)} sessions
                 </div>
 
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mt-3 place-items-center sm:place-items-stretch sm:px-0 px-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mt-3 place-items-center sm:place-items-stretch sm:px-0 px-4">
                     {filteredSessions && filteredSessions.map((session, index) => (
                         <LiveSessionCard key={index} {...session} />
                     ))}

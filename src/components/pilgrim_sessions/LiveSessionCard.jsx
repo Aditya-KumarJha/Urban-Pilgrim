@@ -8,7 +8,7 @@ export default function LiveSessionCard({ image, category, title, price }) {
     navigate(`/session/${title.replace(/\s+/g, '-').toLowerCase()}/details`);
   };
   return (
-    <div className="rounded-xl overflow-hidden shadow-md bg-white flex flex-col max-w-[260px] sm:max-w-xs" onClick={handleCardClick}>
+    <div className="rounded-xl overflow-hidden shadow-md bg-white flex flex-col max-w-[300px] sm:max-w-xs" onClick={handleCardClick}>
       <img src={image} alt={title} className="w-full aspect-[5/4] object-cover object-top" />
 
       <div className="p-3 sm:p-4 flex flex-col justify-between flex-1">

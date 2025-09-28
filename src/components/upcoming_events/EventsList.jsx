@@ -136,10 +136,10 @@ export default function EventsList({ filters = {} }) {
                 </div>
             ) : (
                 <>
-                    <div className="text-sm text-gray-600 xl:px-20 lg:px-10 px-6 sm:pt-5">
+                    <div className="text-sm text-gray-600 xl:px-20 lg:px-10 px-6 sm:py-5">
                         Showing {filteredEvents.length} of {Object.keys(allEvents || {}).length} events
                     </div>
-                    <div className="xl:px-20 pt-5 lg:px-10 px-6 grid grid-cols-2 lg:grid-cols-3 xl:gap-20 md:gap-10 gap-6">
+                    <div className="xl:px-20 lg:px-10 px-6 grid grid-col-1 sm:grid-cols-2 lg:grid-cols-3 xl:gap-20 md:gap-10 gap-6">
                         {filteredEvents.map((event) => (
                             <EventCard key={event.id} data={event} />
                         ))}

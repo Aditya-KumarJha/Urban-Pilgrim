@@ -23,7 +23,7 @@ export default function EventCard({ data }) {
             {isVideo(data.image) ? (
                 <video
                     src={data.image}
-                    className="w-full sm:h-60 h-32 aspect-square object-cover rounded-t-xl"
+                    className="w-full sm:h-60 h-48 aspect-square object-cover rounded-t-xl"
                     autoPlay
                     muted
                     preload="metadata"
@@ -34,7 +34,7 @@ export default function EventCard({ data }) {
                 <img
                     src={data.image}
                     alt={data.title}
-                    className="w-full sm:h-60 h-32 aspect-square object-cover rounded-t-xl"
+                    className="w-full sm:h-60 h-48 aspect-square object-cover rounded-t-xl"
                 />
             )}
 

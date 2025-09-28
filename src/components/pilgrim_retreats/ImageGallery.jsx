@@ -34,33 +34,37 @@ export default function ImageGallery({ images = [], videos = [] }) {
     return (
         <>
             <div className="flex flex-col md:flex-row gap-4 max-w-7xl mx-auto">
-                {/* Main Media */}
-                {isVideo(mainMedia) ? (
-                    <motion.video
-                        src={mainMedia}
-                        controls
-                        className="w-full md:w-5/6 xl:h-[60vh] lg:h-[60vh] md:h-[60vh] h-auto object-cover rounded-xl"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 0.5 }}
-                        key={mainMedia}
-                    />
-                ) : (
-                    <motion.img
-                        src={mainMedia}
-                        alt="Main"
-                        className="w-full md:w-5/6 xl:h-[60vh] lg:h-[60vh] md:h-[60vh] h-auto object-cover rounded-xl"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 0.5 }}
-                        key={mainMedia}
-                    />
+                {/* Main Media - only show if more than 3 items */}
+                {allMedia.length > 3 && (
+                    <>
+                        {isVideo(mainMedia) ? (
+                            <motion.video
+                                src={mainMedia}
+                                controls
+                                className="w-full md:w-5/6 xl:h-[60vh] lg:h-[60vh] md:h-[60vh] h-auto object-cover rounded-xl"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ duration: 0.5 }}
+                                key={mainMedia}
+                            />
+                        ) : (
+                            <motion.img
+                                src={mainMedia}
+                                alt="Main"
+                                className="w-full md:w-5/6 xl:h-[60vh] lg:h-[60vh] md:h-[60vh] h-auto object-cover rounded-xl"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ duration: 0.5 }}
+                                key={mainMedia}
+                            />
+                        )}
+                    </>
                 )}
 
                 {/* Thumbnail Column */}
-                <div className="flex md:flex-col flex-row md:w-1/6 gap-3 md:h-[60vh]">
-                    {allMedia.slice(1, 3).map((media, idx) => (
-                        <div key={idx} className="relative w-1/3 md:w-full flex-1 md:h-[18vh] h-auto rounded-xl overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                <div className={`flex md:flex-col flex-row gap-3 md:h-[60vh] ${allMedia.length <= 3 ? 'w-full' : 'md:w-1/6'}`}>
+                    {(allMedia.length <= 3 ? allMedia : allMedia.slice(1, 3)).map((media, idx) => (
+                        <div key={idx} className={`relative ${allMedia.length <= 3 ? 'w-1/3 md:w-full' : 'w-1/3 md:w-full'} flex-1 md:h-[18vh] h-auto rounded-xl overflow-hidden cursor-pointer hover:opacity-80 transition-opacity`}
                              onClick={() => handleMediaClick(media)}>
                             {isVideo(media) ? (
                                 <>
@@ -88,7 +92,7 @@ export default function ImageGallery({ images = [], videos = [] }) {
                         </div>
                     ))}
 
-                    {/* Overlay Media */}
+                    {/* Overlay Media - only show if more than 3 items */}
                     {allMedia.length > 3 && (
                         <div 
                             className="relative w-1/3 md:w-full flex-1 md:h-[18vh] h-auto rounded-xl overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
