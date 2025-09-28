@@ -115,7 +115,7 @@ export default function ProgramExplorer() {
             </div>
 
             {/* Right Slider */}
-            <div className="gap-3 bg-[#f9f3ef] items-center justify-center px-6 py-8 overflow-hidden w-full h-full">
+            <div className="gap-3 bg-[#f9f3ef] items-center justify-center px-6 py-8 overflow-hidden xl:w-[90%] w-full h-full">
                 <div
                     ref={sliderRef}
                     className="flex gap-6 bg-none rounded-xl p-2 overflow-x-auto no-scrollbar scroll-smooth items-center"

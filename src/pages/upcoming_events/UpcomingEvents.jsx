@@ -36,7 +36,7 @@ export default function UpcomingEvents() {
                     alt="Events Header"
                     className="absolute inset-0 w-full h-full object-cover z-0"
                 />
-                <div className="relative z-10 px-6 py-10 text-center">
+                <div className="relative z-10 lg:p-10 p-6 text-center">
                     <h1 className="text-4xl font-bold mb-4">Upcoming Events</h1>
                     <div className="flex justify-between items-center flex-wrap gap-4 my-8">
                         <FilterBar onFiltersChange={handleFiltersChange} />
@@ -44,7 +44,7 @@ export default function UpcomingEvents() {
                         </div>
                     </div>
                 </div>
-                <div className="absolute w-full -translate-y-1/3 px-4">
+                <div className="absolute w-full -translate-y-1/3 lg:px-10 px-6">
                     <CategorySelector 
                         onCategoryChange={handleCategoryChange} 
                     />

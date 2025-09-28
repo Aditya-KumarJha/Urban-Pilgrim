@@ -9,6 +9,7 @@ import { setUserPrograms } from "../features/userProgramsSlice";
 import { showError, showSuccess } from "../utils/toast";
 import store from "../redux/store";
 import Loader2 from "../components/Loader2"
+import { useNavigate } from "react-router-dom";
 
 export default function SignIn({ onClose }) {
     const [email, setEmail] = useState("");
@@ -16,6 +17,7 @@ export default function SignIn({ onClose }) {
     const [step, setStep] = useState(1); // 1: enter email, 2: enter OTP
     const [loading, setLoading] = useState(false);
     const dispatch = useDispatch();
+    const navigate = useNavigate();
 
     // b123076@iiit-bh.ac.in
 
@@ -101,10 +103,10 @@ export default function SignIn({ onClose }) {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen fixed inset-0 z-50">
+        <div className="flex items-center justify-center min-h-screen fixed inset-0 z-50 px-10">
             <div className="absolute inset-0 bg-black/20 backdrop-blur-sm"></div>
 
-            <div className="relative z-10 rounded-2xl bg-white/50 shadow-lg w-full max-w-xl px-8 py-12 text-center">
+            <div className="relative z-10 rounded-2xl bg-white/50 shadow-lg w-full max-w-xl md:px-8 px-4 md:py-12 py-8 text-center">
                 {loading && (
                     <div className="absolute inset-0 bg-white/70 rounded-2xl flex items-center justify-center z-20">
                         <Loader2 />
@@ -127,7 +129,7 @@ export default function SignIn({ onClose }) {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         disabled={loading}
-                        className="w-full border border-gray-300 rounded-lg px-4 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50"
+                        className="w-full md:text-base text-sm border border-gray-300 rounded-lg px-4 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50"
                     />
                 ) : (
                     <input
@@ -143,12 +145,18 @@ export default function SignIn({ onClose }) {
                 <button
                     onClick={step === 1 ? sendOtp : verifyOtp}
                     disabled={loading}
-                    className="w-full bg-gradient-to-r from-[#C5703F] to-[#C16A00] text-white font-semibold py-2 rounded-lg hover:from-[#C5703F]/90 hover:to-[#C16A00]/90 transition disabled:opacity-60"
+                    className="w-full md:text-base text-sm bg-gradient-to-r from-[#C5703F] to-[#C16A00] text-white font-semibold py-2 rounded-lg hover:from-[#C5703F]/90 hover:to-[#C16A00]/90 transition disabled:opacity-60"
                 >
                     {loading ? (step === 1 ? "Sending..." : "Verifying...") : (step === 1 ? "Continue →" : "Verify OTP →")}
                 </button>
 
-                <p className="text-xs text-left text-gray-500 mt-4 cursor-pointer hover:underline">
+                <p 
+                    onClick={() => {
+                        navigate("/privacy-policy")
+                        onClose();
+                    }} 
+                    className="text-xs text-left text-gray-500 mt-4 cursor-pointer hover:underline"
+                >
                     Privacy Policy
                 </p>
             </div>

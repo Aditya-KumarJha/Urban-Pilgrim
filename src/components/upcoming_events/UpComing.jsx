@@ -287,7 +287,7 @@ export default function UpComing() {
                 {/* Calendar - shows/hides based on toggle for all screen sizes */}
                 {!isFetching && showCalendar && (
                     <motion.div 
-                        className="mb-6"
+                        className="my-4"
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
@@ -360,14 +360,14 @@ export default function UpComing() {
                                         className="flex py-4 pb-12 overflow-x-scroll overflow-y-hidden no-scrollbar whitespace-nowrap"
                                     >
                                         {activeEvents.map((event, index) => (
-                                            <div key={event.id || index} className="lg:min-w-[400px] sm:min-w-[350px] min-w-[160px] xl:pl-10 pr-4">
+                                            <div key={event.id || index} className="flex-shrink-0 lg:w-[400px] sm:w-[350px] w-[240px] xl:pl-10 pr-4">
                                                 <EventCard data={event} />
                                             </div>
                                         ))}
                                     </div>
                                     
                                     {/* Arrow Navigation - Bottom Right */}
-                                    <div className="absolute bottom-0 right-2 sm:hidden flex gap-1 z-10">
+                                    <div className="absolute bottom-0 right-2 sm:hidden flex mb-3 gap-1 z-10">
                                         <button
                                             onClick={scrollLeft}
                                             className="p-1.5 text-xs rounded-full border border-[#C5703F] hover:bg-[#C5703F]/20 transition text-[#C5703F]"

@@ -657,7 +657,7 @@ export default function MonthlyCalendarModal({
     return (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-xs z-50 flex items-center justify-center p-4">
             {/* White modal - only this scrolls if content is big */}
-            <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto my-8">
+            <div className="bg-white rounded-xl max-w-4xl w-full h-[90vh] overflow-y-auto">
 
                 {/* Header */}
                 <div className="flex justify-between items-center p-6 border-b">
