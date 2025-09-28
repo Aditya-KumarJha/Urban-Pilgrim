@@ -108,7 +108,7 @@ export default function CheckoutOverlay({ cartData, total, onClose, onConfirm, i
 
     return (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-xs flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl p-6 w-full max-w-lg shadow-lg relative">
+            <div className="bg-white rounded-xl w-[95vw] max-w-lg p-4 sm:p-6 shadow-lg relative">
                 <button className="absolute top-3 right-3 text-gray-500" onClick={onClose}>✖</button>
                 <h2 className="text-2xl font-bold mb-4">Billing address</h2>
 
@@ -126,12 +126,12 @@ export default function CheckoutOverlay({ cartData, total, onClose, onConfirm, i
                             required
                         />
                         {!isLoggedIn && (
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
                                 {!otpSent ? (
                                     <button
                                         type="button"
                                         onClick={handleSendOtp}
-                                        className="px-3 py-2 text-sm rounded bg-[#2F6288] text-white disabled:opacity-50"
+                                        className="px-3 py-2 text-sm rounded bg-[#2F6288] text-white disabled:opacity-50 w-full sm:w-auto"
                                         disabled={sending || !formData.email}
                                     >
                                         {sending ? "Sending..." : "Send OTP"}
@@ -144,12 +144,12 @@ export default function CheckoutOverlay({ cartData, total, onClose, onConfirm, i
                                             placeholder="Enter OTP"
                                             value={otp}
                                             onChange={(e) => setOtp(e.target.value)}
-                                            className="flex-1 border p-2 rounded"
+                                            className="w-full sm:flex-1 border p-2 rounded"
                                         />
                                         <button
                                             type="button"
                                             onClick={handleVerifyOtp}
-                                            className="px-3 py-2 text-sm rounded bg-[#2F6288] text-white disabled:opacity-50"
+                                            className="px-3 py-2 text-sm rounded bg-[#2F6288] text-white disabled:opacity-50 w-full sm:w-auto"
                                             disabled={verifying || !otp}
                                         >
                                             {verifying ? "Verifying..." : (emailVerified ? "Verified" : "Verify OTP")}
@@ -160,7 +160,7 @@ export default function CheckoutOverlay({ cartData, total, onClose, onConfirm, i
                         )}
                     </div>
                     
-                    <div className="flex gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <div className="flex-1">
                             <input name="firstName" placeholder="First name" value={formData.firstName} onChange={handleChange} className={`w-full border p-2 rounded ${errors.firstName ? 'border-red-500' : ''}`} />
                             {errors.firstName && <p className="text-xs text-red-600 mt-1">{errors.firstName}</p>}
@@ -186,16 +186,16 @@ export default function CheckoutOverlay({ cartData, total, onClose, onConfirm, i
                     />
                     {errors.whatsapp && <p className="text-xs text-red-600 mt-1">{errors.whatsapp}</p>}
 
-                    <div className="flex flex-wrap gap-2">
-                        <div className="flex-1 min-w-[120px]">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <div className="min-w-0">
                             <input name="city" placeholder="City" value={formData.city} onChange={handleChange} className={`w-full border p-2 rounded ${errors.city ? 'border-red-500' : ''}`} />
                             {errors.city && <p className="text-xs text-red-600 mt-1">{errors.city}</p>}
                         </div>
-                        <div className="flex-1 min-w-[120px]">
+                        <div className="min-w-0">
                             <input name="state" placeholder="State" value={formData.state} onChange={handleChange} className={`w-full border p-2 rounded ${errors.state ? 'border-red-500' : ''}`} />
                             {errors.state && <p className="text-xs text-red-600 mt-1">{errors.state}</p>}
                         </div>
-                        <div className="flex-1 min-w-[120px]">
+                        <div className="min-w-0">
                             <input name="pin" placeholder="PIN code" value={formData.pin} onChange={handleChange} className={`w-full border p-2 rounded ${errors.pin ? 'border-red-500' : ''}`} />
                             {errors.pin && <p className="text-xs text-red-600 mt-1">{errors.pin}</p>}
                         </div>
