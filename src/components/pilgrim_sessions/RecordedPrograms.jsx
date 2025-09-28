@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import RecordedProgramCard from "./RecordedProgramCard";
 import { useDispatch } from "react-redux";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { setRecordedSessions } from "../../features/pilgrim_session/recordedSessionSlice";
 
@@ -11,24 +11,18 @@ export default function RecordedPrograms({ filters = {}, bestSellingActive = fal
     const dispatch = useDispatch();
 
     useEffect(() => {
-        const fetchRecordedPrograms = async () => {
-            try {
-                const RecordedProgramsRef = doc(db, `pilgrim_sessions/pilgrim_sessions/sessions/recordedSession`);
-                const snapshot = await getDoc(RecordedProgramsRef);
+        const ref = doc(db, `pilgrim_sessions/pilgrim_sessions/sessions/recordedSession`);
+        const unsubscribe = onSnapshot(ref, (snapshot) => {
+            if (!snapshot.exists()) return;
+            const data = snapshot.data() || {};
+            const slides = Array.isArray(data.slides) ? data.slides : Object.values(data.slides || {});
+            setRecordedProgramData(slides || null);
+            dispatch(setRecordedSessions(slides || []));
+        }, (error) => {
+            console.error("Error subscribing to recorded programs:", error);
+        });
 
-                if (snapshot.exists()) {
-                    const data = snapshot.data();
-                    const actutalSlides = Object.values(data.slides);
-                    
-                    setRecordedProgramData(actutalSlides || null);
-                    dispatch(setRecordedSessions(actutalSlides || []));
-                }
-            } catch (error) {
-                console.error("Error fetching recorded programs:", error);
-            }
-        };
-
-        fetchRecordedPrograms();
+        return () => unsubscribe();
     }, [dispatch]);
 
     const programs = recordedProgramData && recordedProgramData.length > 0 && recordedProgramData?.map((program) => ({

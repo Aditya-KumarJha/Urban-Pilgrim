@@ -278,6 +278,12 @@ export default function LiveDetails() {
                                 </div>
                             );
                         })()}
+
+                        {programData?.liveSessionCard?.description && (
+                            <div className="text-sm text-gray-700 whitespace-pre-line">
+                                {programData.liveSessionCard.description}
+                            </div>
+                        )}
                     </div>
 
                     {/* time slots (grouped by date) */}
@@ -342,7 +348,7 @@ export default function LiveDetails() {
                     <button
                         type="button"
                         onClick={handleSubscriptionClick}
-                        className="w-full sm:w-[360px] px-5 py-3 rounded-md bg-[#2F6288] text-white font-semibold hover:bg-[#244c6a] self-start"
+                        className="w-full sm:w-[360px] px-5 py-3 mt-5 rounded-md bg-[#2F6288] text-white font-semibold hover:bg-[#244c6a] self-start"
                     >
                         Book Now
                     </button>
@@ -368,24 +374,24 @@ export default function LiveDetails() {
                         )}
                     </div>
 
-                    {   programData?.programSchedule.length > 0 && (
-                            <div className="flex flex-col mt-5">
-                                <p className="text-lg font-semibold text-gray-800 mt-4">
-                                    Program Schedule
-                                </p>
-                                <ProgramSchedule programSchedules={programData?.programSchedule} />
-                            </div>
-                        )
-                    }
+                    { programData?.programSchedule.length > 0 && (
+                        <div className="flex flex-col mt-5">
+                            <p className="text-lg font-semibold text-gray-800 mt-4">
+                                Program Schedule
+                            </p>
+                            <ProgramSchedule programSchedules={programData?.programSchedule} />
+                        </div>
+                    )}
 
                     <ProgramSection program={programData?.aboutProgram} journey={programData?.keyHighlights} />
-                    {
-                        programData?.features.length > 0 &&
+
+                    { programData?.features.length > 0 && (
                         <FeatureProgram features={programData?.features} />
-                    }
-                    { programData?.faqs[0].title !== "" && 
+                    )}
+
+                    { programData?.faqs[0].title !== "" && (
                         <Faqs faqs={programData?.faqs} />
-                    }
+                    )}
                 </div>
             </div>
 

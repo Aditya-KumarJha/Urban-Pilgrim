@@ -1,7 +1,7 @@
 import { useDispatch } from "react-redux";
 import LiveSessionCard from "./LiveSessionCard";
 import { useEffect, useState, useMemo } from "react";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { setLiveSessions } from "../../features/pilgrim_session/liveSessionsSlice";
 
@@ -11,23 +11,18 @@ export default function LiveSessions({ filters = {}, bestSellingActive = false }
     const dispatch = useDispatch();
 
     useEffect(() => {
-        const fetchLiveSession = async () => {
-            try {
-                const LiveSessionRef = doc(db, `pilgrim_sessions/pilgrim_sessions/sessions/liveSession`);
-                const snapshot = await getDoc(LiveSessionRef);
+        const ref = doc(db, `pilgrim_sessions/pilgrim_sessions/sessions/liveSession`);
+        const unsubscribe = onSnapshot(ref, (snapshot) => {
+            if (!snapshot.exists()) return;
+            const data = snapshot.data() || {};
+            const slides = Array.isArray(data.slides) ? data.slides : Object.values(data.slides || {});
+            setLiveSessionData(slides || null);
+            dispatch(setLiveSessions(slides || []));
+        }, (error) => {
+            console.error("Error subscribing to live sessions:", error);
+        });
 
-                if (snapshot.exists()) {
-                    const data = snapshot.data();
-
-                    setLiveSessionData(data.slides || null);
-                    dispatch(setLiveSessions(data?.slides || []));
-                }
-            } catch (error) {
-                console.error("Error fetching live session:", error);
-            }
-        };
-
-        fetchLiveSession();
+        return () => unsubscribe();
     }, [dispatch]);
 
     const sessions = liveSessionData?.map((program) => ({

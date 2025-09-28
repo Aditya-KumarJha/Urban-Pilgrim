@@ -52,13 +52,18 @@ export const deleteRecordedSessionByIndex = async (uid, index) => {
             throw new Error("Recorded session document not found");
         }
 
-        const data = docSnap.data();
-        if (!data.slides || !Array.isArray(data.slides)) {
-            throw new Error("recorded session slides array not found in document");
+        const data = docSnap.data() || {};
+        // Support both array and object storage for slides
+        const slidesArray = Array.isArray(data.slides)
+            ? data.slides
+            : Object.values(data.slides || {});
+
+        if (!slidesArray.length) {
+            throw new Error("No slides found in recorded session document");
         }
 
         // Filter out the slide at the given index
-        const updatedSession = data.slides.filter((_, i) => i !== index);
+        const updatedSession = slidesArray.filter((_, i) => i !== index);
 
         // Update Firestore
         await updateDoc(sessionRef, { slides: updatedSession });

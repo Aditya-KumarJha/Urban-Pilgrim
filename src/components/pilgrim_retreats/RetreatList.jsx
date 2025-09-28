@@ -1,6 +1,6 @@
 import RetreatCard from "./RetreatCard";
 import { useEffect, useState, useMemo } from "react";
-import { collection, getDocs } from "firebase/firestore";
+import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { useDispatch } from "react-redux";
 import { setRetreatData } from "../../features/pilgrim_retreat/pilgrimRetreatSlice"
@@ -11,42 +11,29 @@ export default function RetreatList({ filters = {}, bestSellingActive = false })
     const dispatch = useDispatch();
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const retreatsRef = collection(db, `pilgrim_retreat/${uid}/retreats`);
-                const snapshot = await getDocs(retreatsRef);
-
-                if (!snapshot.empty) {
-                    const retreatsData = [];
-                    
-                    snapshot.forEach((doc) => {
-                        if (doc.id === 'data') {
-                            // Handle the 'data' document which contains numbered retreat objects
-                            const data = doc.data();
-                            Object.keys(data)
-                                .sort((a, b) => Number(a) - Number(b))
-                                .forEach((key) => {
-                                    retreatsData.push({
-                                        id: key,
-                                        ...data[key],
-                                        purchaseCount: Array.isArray(data[key]?.purchasedUsers) ? data[key].purchasedUsers.length : 0,
-                                    });
-                                });
-                        }
-                    });
-                    console.log(retreatsData);
-
-                    setRetreats(retreatsData || []);
-                    dispatch(setRetreatData(retreatsData || []));
-                } else {
-                    console.log("No retreats found in Firestore");
-                }
-            } catch (error) {
-                console.error("Error fetching retreats from Firestore:", error);
+        if (!uid) return;
+        const ref = doc(db, `pilgrim_retreat/${uid}/retreats/data`);
+        const unsubscribe = onSnapshot(ref, (snapshot) => {
+            if (!snapshot.exists()) {
+                setRetreats([]);
+                dispatch(setRetreatData([]));
+                return;
             }
-        };
+            const data = snapshot.data() || {};
+            const retreatsData = Object.keys(data)
+                .sort((a, b) => Number(a) - Number(b))
+                .map((key) => ({
+                    id: key,
+                    ...data[key],
+                    purchaseCount: Array.isArray(data[key]?.purchasedUsers) ? data[key].purchasedUsers.length : 0,
+                }));
+            setRetreats(retreatsData || []);
+            dispatch(setRetreatData(retreatsData || []));
+        }, (error) => {
+            console.error("Error subscribing to retreats:", error);
+        });
 
-        if (uid) fetchData();
+        return () => unsubscribe();
     }, [uid, dispatch]);
 
     // Filter and sort retreats based on applied filters

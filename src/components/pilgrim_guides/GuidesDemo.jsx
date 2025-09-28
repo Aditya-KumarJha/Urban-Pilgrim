@@ -1,7 +1,7 @@
 import { useDispatch } from "react-redux";
 import GuideCard from "./GuideCard";
 import { useEffect, useState, useMemo } from "react";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { setGuides } from "../../features/pilgrim_guide/pilgrimGuideSlice"
 
@@ -11,23 +11,18 @@ export default function GuidesDemo({ filters = {}, bestSellingActive = false }) 
     const dispatch = useDispatch();
 
     useEffect(() => {
-        const fetchLiveSession = async () => {
-            try {
-                const LiveSessionRef = doc(db, `pilgrim_guides/pilgrim_guides/guides/data`);
-                const snapshot = await getDoc(LiveSessionRef);
+        const ref = doc(db, `pilgrim_guides/pilgrim_guides/guides/data`);
+        const unsubscribe = onSnapshot(ref, (snapshot) => {
+            if (!snapshot.exists()) return;
+            const data = snapshot.data() || {};
+            const slides = Array.isArray(data.slides) ? data.slides : Object.values(data.slides || {});
+            setGuideData(slides || null);
+            dispatch(setGuides(slides || []));
+        }, (error) => {
+            console.error("Error subscribing to guides:", error);
+        });
 
-                if (snapshot.exists()) {
-                    const data = snapshot.data();
-                    const slidesArray = Object.values(data.slides || {});
-                    setGuideData(slidesArray || null);
-                    dispatch(setGuides(slidesArray || []));
-                }
-            } catch (error) {
-                console.error("Error fetching live session:", error);
-            }
-        };
-
-        fetchLiveSession();
+        return () => unsubscribe();
     }, [dispatch]);
 
     const guides = guideData?.map((program) => ({

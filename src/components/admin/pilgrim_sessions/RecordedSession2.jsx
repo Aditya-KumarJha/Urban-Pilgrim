@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { X, Trash2, GripVertical, Edit2 } from "lucide-react";
@@ -121,6 +121,11 @@ export default function RecordedSession2() {
     const [guideImageUploadProgress, setGuideImageUploadProgress] = useState(0);
     const [isGuideImageUploading, setIsGuideImageUploading] = useState(false);
 
+    // Refs for hidden file inputs
+    const thumbnailInputRef = useRef(null);
+    const featureInputRefs = useRef({});
+    const guideInputRef = useRef(null);
+
     const handleFieldChange = (section, field, value) => {
         setFormData((prev) => ({
             ...prev,
@@ -219,13 +224,17 @@ export default function RecordedSession2() {
 
     const handleFeatureChange = (index, field, value) => {
         const updated = [...formData.features];
-        updated[index][field] = value;
+        updated[index] = { ...updated[index], [field]: value };
         setFormData((prev) => ({ ...prev, features: updated }));
     };
 
     const handleFeatureImageChange = async (index, file) => {
         if (!file) return;
         try {
+            if (!file.type.startsWith("image/")) {
+                alert("Please upload an image file");
+                return;
+            }
             const storageRef = ref(storage, `featureImages/${uuidv4()}_${file.name}`);
             const uploadTask = uploadBytesResumable(storageRef, file);
             uploadTask.on(
@@ -237,7 +246,7 @@ export default function RecordedSession2() {
                 async () => {
                     const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
                     const updated = [...formData.features];
-                    updated[index].image = downloadURL;
+                    updated[index] = { ...updated[index], image: downloadURL };
                     setFormData((prev) => ({ ...prev, features: updated }));
                 }
             );
@@ -255,7 +264,7 @@ export default function RecordedSession2() {
     // One Time Purchase Image Functions
     const handleImageUpload = (e) => {
         const files = Array.from(e.target.files);
-        const allowed = 5 - formData.oneTimePurchase.images.length;
+        const allowed = 5 - formData.oneTimeSubscription.images.length;
 
         files.slice(0, allowed).forEach((file, fileIndex) => {
             const uploadId = `img_${Date.now()}_${fileIndex}`;
@@ -263,7 +272,7 @@ export default function RecordedSession2() {
             setIsImageUploading(prev => ({ ...prev, [uploadId]: true }));
             setImageUploadProgress(prev => ({ ...prev, [uploadId]: 0 }));
             
-            const storageRef = ref(storage, `recorded_sessions/oneTimePurchase/${file.name}_${Date.now()}`);
+            const storageRef = ref(storage, `recorded_sessions/oneTimeSubscription/${file.name}_${Date.now()}`);
             const uploadTask = uploadBytesResumable(storageRef, file);
 
             uploadTask.on(
@@ -287,8 +296,8 @@ export default function RecordedSession2() {
                 },
                 async () => {
                     const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                    const updatedImages = [...formData.oneTimePurchase.images, downloadURL];
-                    handleFieldChange("oneTimePurchase", "images", updatedImages);
+                    const updatedImages = [...formData.oneTimeSubscription.images, downloadURL];
+                    handleFieldChange("oneTimeSubscription", "images", updatedImages);
                     
                     setIsImageUploading(prev => {
                         const newState = { ...prev };
@@ -307,7 +316,7 @@ export default function RecordedSession2() {
 
     const removeImage = async (index) => {
         try {
-            const updated = [...formData.oneTimePurchase.images];
+            const updated = [...formData.oneTimeSubscription.images];
             const urlToDelete = updated[index];
 
             // Delete from Firebase Storage
@@ -316,20 +325,20 @@ export default function RecordedSession2() {
 
             // Remove from state
             updated.splice(index, 1);
-            handleFieldChange("oneTimePurchase", "images", updated);
+            handleFieldChange("oneTimeSubscription", "images", updated);
         } catch (err) {
             console.error("Error removing image:", err);
             // Even if deletion fails, remove from UI
-            const updated = [...formData.oneTimePurchase.images];
+            const updated = [...formData.oneTimeSubscription.images];
             updated.splice(index, 1);
-            handleFieldChange("oneTimePurchase", "images", updated);
+            handleFieldChange("oneTimeSubscription", "images", updated);
         }
     };
 
     // One Time Purchase Video Functions
     const handleVideoUpload = (e) => {
         const files = Array.from(e.target.files);
-        const allowed = 6 - formData.oneTimePurchase.videos.length;
+        const allowed = 6 - formData.oneTimeSubscription.videos.length;
 
         files.slice(0, allowed).forEach((file, fileIndex) => {
             const uploadId = `vid_${Date.now()}_${fileIndex}`;
@@ -337,7 +346,7 @@ export default function RecordedSession2() {
             setIsVideoUploading(prev => ({ ...prev, [uploadId]: true }));
             setVideoUploadProgress(prev => ({ ...prev, [uploadId]: 0 }));
             
-            const storageRef = ref(storage, `recorded_sessions/oneTimePurchase/videos/${file.name}_${Date.now()}`);
+            const storageRef = ref(storage, `recorded_sessions/oneTimeSubscription/videos/${file.name}_${Date.now()}`);
             const uploadTask = uploadBytesResumable(storageRef, file);
 
             uploadTask.on(
@@ -361,8 +370,8 @@ export default function RecordedSession2() {
                 },
                 async () => {
                     const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                    const updatedVideos = [...formData.oneTimePurchase.videos, downloadURL];
-                    handleFieldChange("oneTimePurchase", "videos", updatedVideos);
+                    const updatedVideos = [...formData.oneTimeSubscription.videos, downloadURL];
+                    handleFieldChange("oneTimeSubscription", "videos", updatedVideos);
                     
                     setIsVideoUploading(prev => {
                         const newState = { ...prev };
@@ -381,7 +390,7 @@ export default function RecordedSession2() {
 
     const removeVideo = async (index) => {
         try {
-            const updated = [...formData.oneTimePurchase.videos];
+            const updated = [...formData.oneTimeSubscription.videos];
             const urlToDelete = updated[index];
 
             // Delete from Firebase Storage
@@ -390,13 +399,13 @@ export default function RecordedSession2() {
 
             // Remove from state
             updated.splice(index, 1);
-            handleFieldChange("oneTimePurchase", "videos", updated);
+            handleFieldChange("oneTimeSubscription", "videos", updated);
         } catch (err) {
             console.error("Error removing video:", err);
             // Even if deletion fails, remove from UI
-            const updated = [...formData.oneTimePurchase.videos];
+            const updated = [...formData.oneTimeSubscription.videos];
             updated.splice(index, 1);
-            handleFieldChange("oneTimePurchase", "videos", updated);
+            handleFieldChange("oneTimeSubscription", "videos", updated);
         }
     };
 
@@ -462,7 +471,8 @@ export default function RecordedSession2() {
     // Slides ordering & CRUD
     const moveSlide = async (from, to) => {
         try {
-            const updatedPrograms = [...sessions];
+            const basePrograms = Array.isArray(sessions) ? [...sessions] : Object.values(sessions || {});
+            const updatedPrograms = [...basePrograms];
             let allSlides = updatedPrograms.flatMap(g => g.slides);
             if (from < 0 || from >= allSlides.length || to < 0 || to >= allSlides.length) {
                 console.warn("Invalid slide move indexes");
@@ -483,7 +493,8 @@ export default function RecordedSession2() {
         try {
             if (!uid) throw new Error("User not logged in");
             await deleteRecordedSessionByIndex(uid, index);
-            const updatedRecordedSessions = sessions.filter((_, i) => i !== index);
+            const base = Array.isArray(sessions) ? sessions : Object.values(sessions || {});
+            const updatedRecordedSessions = base.filter((_, i) => i !== index);
             dispatch(setRecordedSessions(updatedRecordedSessions));
             setFormData((prev) => ({
                 ...prev,
@@ -609,16 +620,16 @@ export default function RecordedSession2() {
             try {
                 const session = await fetchRecordedSessionData(uid);
                 if (session && session.slides) {
-                    setAllData(session.slides || []);
-                    let allSlides = [];
-                    for (const ssn of Object.values(session.slides)) {
-                        if (ssn.slides) {
-                            allSlides = [...allSlides, ...ssn.slides];
-                        }
-                    }
+                    const slidesArray = Array.isArray(session.slides)
+                        ? session.slides
+                        : Object.values(session.slides || {});
+                    setAllData(slidesArray || []);
+                    const allSlides = slidesArray.flatMap((ssn) =>
+                        Array.isArray(ssn?.slides) ? ssn.slides : Object.values(ssn?.slides || {})
+                    );
                     setSlideData(allSlides);
                     // Keep Redux in sync with fetched data so editing indexes match
-                    dispatch(setRecordedSessions(session.slides || []));
+                    dispatch(setRecordedSessions(slidesArray || []));
                 } else {
                     setAllData([]);
                     setSlideData([]);
@@ -707,8 +718,10 @@ export default function RecordedSession2() {
     };
 
     const handleGuideChange = (field, value) => {
-        const updatedGuide = [...formData.guide];
-        updatedGuide[0][field] = value;
+        const updatedGuide = [...(formData.guide || [{}])];
+        const current = { ...(updatedGuide[0] || {}) };
+        current[field] = value;
+        updatedGuide[0] = current;
         setFormData(prev => ({
             ...prev,
             guide: updatedGuide
@@ -789,7 +802,9 @@ export default function RecordedSession2() {
 
     const handleRecordedVideoChange = (index, field, value) => {
         const updatedVideos = [...formData.recordedVideo];
-        updatedVideos[index][field] = value;
+        const current = { ...(updatedVideos[index] || {}) };
+        current[field] = value;
+        updatedVideos[index] = current;
         setFormData(prev => ({ ...prev, recordedVideo: updatedVideos }));
     };
 
@@ -895,7 +910,10 @@ export default function RecordedSession2() {
                             onDrop={handleDrop}
                             onDragOver={handleDragOver}
                             onDragLeave={handleDragLeave}
-                            onClick={() => document.getElementById('thumbnail-recorded2-upload').click()}
+                            onClick={() => {
+                                if (isUploading) return;
+                                thumbnailInputRef.current?.click();
+                            }}
                         >
                             {formData.recordedProgramCard.thumbnail ? (
                                 <div className="relative h-full flex items-center">
@@ -948,7 +966,7 @@ export default function RecordedSession2() {
                                 accept="image/*"
                                 onChange={(e) => handleFileUpload(e.target.files[0])}
                                 className="hidden"
-                                id="thumbnail-recorded2-upload"
+                                ref={thumbnailInputRef}
                                 disabled={isUploading}
                             />
                         </div>
@@ -1058,7 +1076,7 @@ export default function RecordedSession2() {
                             type="number"
                             value={formData.oneTimeSubscription.price}
                             placeholder="Enter price"
-                            onChange={(e) => setFormData(prev => ({ ...prev, oneTimeSubscription: { price: e.target.value } }))}
+                            onChange={(e) => setFormData(prev => ({ ...prev, oneTimeSubscription: { ...prev.oneTimeSubscription, price: e.target.value } }))}
                             className="text-sm w-full border border-gray-300 p-3 rounded-lg"
                         />
                     </div>
@@ -1069,18 +1087,19 @@ export default function RecordedSession2() {
                         <textarea
                             value={formData.oneTimeSubscription.description}
                             placeholder="Enter description"
-                            onChange={(e) => setFormData(prev => ({ ...prev, oneTimeSubscription: { description: e.target.value } }))}
+                            onChange={(e) => setFormData(prev => ({ ...prev, oneTimeSubscription: { ...prev.oneTimeSubscription, description: e.target.value } }))}
                             className="text-sm w-full border border-gray-300 p-3 rounded-lg"
                         />
                     </div>
                     
-                    {/* images */}
-                    <label className="block font-semibold my-5">Add Images ( Maximum 5 Images )</label>
-                    <div className="mb-6">
-                        {(!formData?.oneTimePurchase?.images || formData?.oneTimePurchase?.images.length < 5) && (
+                    {/* Images (match RetreatsForm style) */}
+                    <label className="block font-semibold mb-2">Images (Max 5)</label>
+                    <div className="mb-4">
+                        {formData?.oneTimeSubscription?.images && formData?.oneTimeSubscription?.images?.length < 5 && (
                             <label className={`w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50 ${Object.keys(isImageUploading || {}).length > 0 ? 'pointer-events-none opacity-75' : ''}`}>
                                 <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-10 h-10 mb-2" />
-                                <span>Click to upload image<br />Size: (1126×626)px</span>
+                                <span>Click to upload image(s)</span>
+                                <p>Size: (1126×626)px</p>
                                 <input
                                     type="file"
                                     accept="image/*"
@@ -1092,39 +1111,41 @@ export default function RecordedSession2() {
                             </label>
                         )}
 
-                        {/* Upload Progress Indicators */}
-                        {Object.entries(isImageUploading || {}).map(([uploadId, isUploading]) => {
-                            if (!isUploading) return null;
-                            const progress = imageUploadProgress[uploadId] || 0;
-                            return (
-                                <div key={uploadId} className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center mt-4">
-                                    <div className="text-center flex flex-col items-center">
-                                        <div className="relative w-12 h-12 mb-3">
-                                            <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
-                                            <div 
-                                                className="absolute inset-0 border-4 border-[#2F6288] rounded-full border-t-transparent animate-spin"
-                                                style={{
-                                                    background: `conic-gradient(from 0deg, #2F6288 ${progress * 3.6}deg, transparent ${progress * 3.6}deg)`
-                                                }}
-                                            ></div>
-                                            <div className="absolute inset-0 flex items-center justify-center">
-                                                <span className="text-xs font-semibold text-[#2F6288]">{progress}%</span>
+                        {/* Upload progress for images */}
+                        <div className="flex flex-wrap gap-4 mt-4">
+                            {Object.entries(isImageUploading || {}).map(([uploadId, uploading]) => {
+                                if (!uploading) return null;
+                                const progress = imageUploadProgress?.[uploadId] || 0;
+                                return (
+                                    <div key={uploadId} className="w-40 h-28 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center">
+                                        <div className="text-center flex flex-col items-center">
+                                            <div className="relative w-8 h-8 mb-2">
+                                                <div className="absolute inset-0 border-2 border-gray-200 rounded-full"></div>
+                                                <div 
+                                                    className="absolute inset-0 border-2 border-[#2F6288] rounded-full border-t-transparent animate-spin"
+                                                    style={{
+                                                        background: `conic-gradient(from 0deg, #2F6288 ${progress * 3.6}deg, transparent ${progress * 3.6}deg)`
+                                                    }}
+                                                ></div>
+                                                <div className="absolute inset-0 flex items-center justify-center">
+                                                    <span className="text-xs font-semibold text-[#2F6288]">{progress}%</span>
+                                                </div>
+                                            </div>
+                                            <p className="text-xs text-[#2F6288] font-medium">Uploading Image...</p>
+                                            <div className="w-20 bg-gray-200 rounded-full h-2 mt-2">
+                                                <div 
+                                                    className="bg-[#2F6288] h-2 rounded-full transition-all duration-300"
+                                                    style={{ width: `${progress}%` }}
+                                                ></div>
                                             </div>
                                         </div>
-                                        <p className="text-sm text-[#2F6288] font-medium">Uploading Image...</p>
-                                        <div className="w-24 bg-gray-200 rounded-full h-2 mt-2">
-                                            <div 
-                                                className="bg-[#2F6288] h-2 rounded-full transition-all duration-300"
-                                                style={{ width: `${progress}%` }}
-                                            ></div>
-                                        </div>
                                     </div>
-                                </div>
-                            );
-                        })}
+                                );
+                            })}
+                        </div>
 
                         <div className="flex flex-wrap gap-4 mt-4">
-                            {formData?.oneTimePurchase?.images && formData?.oneTimePurchase?.images.map((img, index) => (
+                            {formData?.oneTimeSubscription?.images && formData?.oneTimeSubscription?.images.map((img, index) => (
                                 <div key={index} className="relative w-40 h-28">
                                     <img src={img} alt={`img-${index}`} className="w-full h-full object-cover rounded shadow" />
                                     <button
@@ -1139,10 +1160,10 @@ export default function RecordedSession2() {
                         </div>
                     </div>
 
-                    {/* videos */}
-                    <label className="block font-semibold my-5">Add Videos ( Maximum 6 Videos )</label>
+                    {/* Videos (match RetreatsForm style) */}
+                    <label className="block font-semibold my-5">Videos (Max 6)</label>
                     <div className="mb-4">
-                        {(!formData?.oneTimePurchase?.videos || formData?.oneTimePurchase?.videos.length < 6) && (
+                        {(!formData?.oneTimeSubscription?.videos || formData?.oneTimeSubscription?.videos.length < 6) && (
                             <label className={`w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50 ${Object.keys(isVideoUploading || {}).length > 0 ? 'pointer-events-none opacity-75' : ''}`}>
                                 <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-10 h-10 mb-2" />
                                 <span>Click to upload Videos</span>
@@ -1157,39 +1178,41 @@ export default function RecordedSession2() {
                             </label>
                         )}
 
-                        {/* Upload Progress Indicators */}
-                        {Object.entries(isVideoUploading || {}).map(([uploadId, isUploading]) => {
-                            if (!isUploading) return null;
-                            const progress = videoUploadProgress[uploadId] || 0;
-                            return (
-                                <div key={uploadId} className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center mt-4">
-                                    <div className="text-center flex flex-col items-center">
-                                        <div className="relative w-12 h-12 mb-3">
-                                            <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
-                                            <div 
-                                                className="absolute inset-0 border-4 border-[#2F6288] rounded-full border-t-transparent animate-spin"
-                                                style={{
-                                                    background: `conic-gradient(from 0deg, #2F6288 ${progress * 3.6}deg, transparent ${progress * 3.6}deg)`
-                                                }}
-                                            ></div>
-                                            <div className="absolute inset-0 flex items-center justify-center">
-                                                <span className="text-xs font-semibold text-[#2F6288]">{progress}%</span>
+                        {/* Upload progress for videos */}
+                        <div className="flex flex-wrap gap-4 mt-4">
+                            {Object.entries(isVideoUploading || {}).map(([uploadId, uploading]) => {
+                                if (!uploading) return null;
+                                const progress = videoUploadProgress?.[uploadId] || 0;
+                                return (
+                                    <div key={uploadId} className="w-40 h-28 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center">
+                                        <div className="text-center flex flex-col items-center">
+                                            <div className="relative w-8 h-8 mb-2">
+                                                <div className="absolute inset-0 border-2 border-gray-200 rounded-full"></div>
+                                                <div 
+                                                    className="absolute inset-0 border-2 border-[#2F6288] rounded-full border-t-transparent animate-spin"
+                                                    style={{
+                                                        background: `conic-gradient(from 0deg, #2F6288 ${progress * 3.6}deg, transparent ${progress * 3.6}deg)`
+                                                    }}
+                                                ></div>
+                                                <div className="absolute inset-0 flex items-center justify-center">
+                                                    <span className="text-xs font-semibold text-[#2F6288]">{progress}%</span>
+                                                </div>
+                                            </div>
+                                            <p className="text-xs text-[#2F6288] font-medium">Uploading Video...</p>
+                                            <div className="w-20 bg-gray-200 rounded-full h-2 mt-2">
+                                                <div 
+                                                    className="bg-[#2F6288] h-2 rounded-full transition-all duration-300"
+                                                    style={{ width: `${progress}%` }}
+                                                ></div>
                                             </div>
                                         </div>
-                                        <p className="text-sm text-[#2F6288] font-medium">Uploading Video...</p>
-                                        <div className="w-24 bg-gray-200 rounded-full h-2 mt-2">
-                                            <div 
-                                                className="bg-[#2F6288] h-2 rounded-full transition-all duration-300"
-                                                style={{ width: `${progress}%` }}
-                                            ></div>
-                                        </div>
                                     </div>
-                                </div>
-                            );
-                        })}
+                                );
+                            })}
+                        </div>
 
                         <div className="flex flex-wrap gap-4 mt-4">
-                            {formData?.oneTimePurchase?.videos && formData?.oneTimePurchase?.videos.map((vid, index) => (
+                            {formData?.oneTimeSubscription?.videos && formData?.oneTimeSubscription?.videos.map((vid, index) => (
                                 <div key={index} className="relative w-40 h-28 bg-black">
                                     <video src={vid} controls className="w-full h-full rounded shadow object-cover" />
                                     <button
@@ -1598,9 +1621,9 @@ export default function RecordedSession2() {
                                         </div>
                                     ) : (
                                         <div className="mb-4">
-                                            <label
-                                                htmlFor={`feature-upload-${index}`}
+                                            <div
                                                 className="w-full h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50"
+                                                onClick={() => featureInputRefs.current[index]?.click()}
                                             >
                                                 <img
                                                     src="/assets/admin/upload.svg"
@@ -1609,13 +1632,18 @@ export default function RecordedSession2() {
                                                 />
                                                 <span>Click to upload feature icon</span>
                                                 <input
-                                                    id={`feature-upload-${index}`}
                                                     type="file"
                                                     accept="image/*"
-                                                    onChange={(e) => handleFeatureImageChange(index, e.target.files[0])}
                                                     className="hidden"
+                                                    ref={(el) => { featureInputRefs.current[index] = el; }}
+                                                    onChange={(e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) handleFeatureImageChange(index, file);
+                                                        // allow re-selecting the same file
+                                                        e.target.value = null;
+                                                    }}
                                                 />
-                                            </label>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
@@ -1755,9 +1783,9 @@ export default function RecordedSession2() {
                             </div>
                         ) : (
                             <div className="mb-4">
-                                <label
-                                    htmlFor="guide-upload"
+                                <div
                                     className="max-w-xs aspect-square border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50"
+                                    onClick={() => { if (!isGuideImageUploading) guideInputRef.current?.click(); }}
                                 >
                                     <img
                                         src="/assets/admin/upload.svg"
@@ -1767,14 +1795,18 @@ export default function RecordedSession2() {
                                     <span>Click to upload image</span>
                                     <span className="text-sm text-gray-400">Size: (402×453)px</span>
                                     <input
-                                        id="guide-upload"
                                         type="file"
                                         accept="image/*"
-                                        onChange={(e) => handleGuideImageChange(e.target.files[0])}
                                         className="hidden"
+                                        ref={guideInputRef}
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) handleGuideImageChange(file);
+                                            e.target.value = null;
+                                        }}
                                         disabled={isGuideImageUploading}
                                     />
-                                </label>
+                                </div>
                             </div>
                         )}
 
