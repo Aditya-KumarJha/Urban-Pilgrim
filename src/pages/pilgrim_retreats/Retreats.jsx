@@ -45,19 +45,7 @@ export default function Retreats() {
                     <h1 className="text-4xl font-bold mb-4">Pilgrim Retreats</h1>
                     <div className="flex justify-between items-center flex-wrap gap-4 my-8">
                         <FilterBar onFiltersChange={handleFiltersChange} />
-                        <div className="flex items-center gap-2">
-                            <span className="text-sm">Sort By:</span>
-                            <button 
-                                onClick={toggleBestSelling}
-                                className={`px-4 py-1 border-2 rounded-full text-sm flex items-center gap-2 transition-colors ${
-                                    bestSellingActive 
-                                        ? 'bg-[#D4A574] text-white border-[#D4A574]' 
-                                        : 'text-black border-[#00000033] hover:border-[#D4A574]'
-                                }`}
-                            >
-                                <img src="/assets/retreats/bookmark.svg" /> Best Selling <MdKeyboardArrowDown />
-                            </button>
-                        </div>
+                        
                     </div>
                 </div>
                 <div className="absolute w-full -translate-y-1/3 px-4">
@@ -66,6 +54,7 @@ export default function Retreats() {
                     />
                 </div>
             </div>
+
             <RetreatList filters={filters} bestSellingActive={bestSellingActive} />
             <Testimonials />
         </div>

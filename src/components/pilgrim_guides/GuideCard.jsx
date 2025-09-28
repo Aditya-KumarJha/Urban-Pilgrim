@@ -36,11 +36,11 @@ export default function GuideCard({ image, thumbnailType, category, title, price
                 <div className="flex gap-2 mt-auto">
                     <button className="flex-1 bg-[#2F6288] text-white text-sm py-2 px-3 rounded-lg flex items-center justify-center gap-1 hover:bg-[#2F6288]/80">
                         <BsFillCameraVideoFill className="text-sm" />
-                        Online
+                        Book Now
                     </button>
                     <button className="flex-1 border border-[#2F6288] text-[#2F6288] text-sm py-2 px-3 rounded-lg flex items-center justify-center gap-1 hover:bg-blue-50">
                         <FaMapMarkerAlt className="text-sm" />
-                        Offline
+                        Learn more
                     </button>
                 </div>
             </div>

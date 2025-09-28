@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { FaSearch, FaChevronDown } from "react-icons/fa";
 import { IoIosArrowForward, IoIosArrowDown } from "react-icons/io";
 import { TbUserSquareRounded } from "react-icons/tb";
@@ -25,9 +25,7 @@ const StatusBadge = ({ status }) => {
             : "bg-[#FFC5C580] text-[#DF0404] border border-[#DF0404]";
 
     return (
-        <span
-            className={`inline-flex items-center justify-center w-28 h-8 rounded text-sm font-medium ${colors}`}
-        >
+        <span className={`inline-flex items-center justify-center w-28 h-8 rounded text-sm font-medium ${colors}`}>
             {status}
         </span>
     );
@@ -38,7 +36,12 @@ function Dashboard() {
     const [filteredPrograms, setFilteredPrograms] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [loading, setLoading] = useState(true);
-    
+     
+    // Sort state
+    const [sortOpen, setSortOpen] = useState(false);
+    const [sortBy, setSortBy] = useState('newest'); // 'newest' | 'oldest'
+    const sortRef = useRef(null);
+     
     const dispatch = useDispatch();
     const navigate = useNavigate();
     
@@ -46,6 +49,7 @@ function Dashboard() {
     const userPrograms = useSelector((state) => state.userProgram);
     const currentUser = useSelector((state) => state.auth.user);
 
+    // Sort filtered programs based on sortBy
     // Set loading to false once user is available (programs already loaded on login)
     useEffect(() => {
         if (currentUser?.uid) {
@@ -53,7 +57,19 @@ function Dashboard() {
         }
     }, [currentUser?.uid]);
 
-    // Filter programs based on search term
+    // Close sort dropdown on outside click
+    useEffect(() => {
+        const onClick = (e) => {
+            if (!sortOpen) return;
+            if (sortRef.current && !sortRef.current.contains(e.target)) {
+                setSortOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', onClick);
+        return () => document.removeEventListener('mousedown', onClick);
+    }, [sortOpen]);
+
+    // Filter + Sort programs based on search term and selected order
     useEffect(() => {
         if (!userPrograms) {
             setFilteredPrograms([]);
@@ -65,8 +81,33 @@ function Dashboard() {
             program.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             program.type?.toLowerCase().includes(searchTerm.toLowerCase())
         );
-        setFilteredPrograms(filtered);
-    }, [userPrograms, searchTerm]);
+
+        // Convert various timestamp formats to ms
+        const toMs = (v) => {
+            if (!v) return 0;
+            if (typeof v === 'number') return v;
+            if (typeof v === 'string') return new Date(v).getTime() || 0;
+            if (typeof v === 'object') {
+                if (typeof v.toDate === 'function') {
+                    try { return v.toDate().getTime(); } catch { /* noop */ }
+                }
+                if (typeof v.seconds === 'number') {
+                    return v.seconds * 1000 + Math.floor((v.nanoseconds || 0) / 1e6);
+                }
+            }
+            return 0;
+        };
+
+        const purchasedTime = (p) => toMs(p?.purchasedAt) || toMs(p?.createdAt) || 0;
+
+        const sorted = [...filtered].sort((a, b) => {
+            const aT = purchasedTime(a);
+            const bT = purchasedTime(b);
+            return sortBy === 'newest' ? bT - aT : aT - bT;
+        });
+
+        setFilteredPrograms(sorted);
+    }, [userPrograms, searchTerm, sortBy]);
 
     const handleLogout = async () => {
         try {
@@ -181,7 +222,7 @@ function Dashboard() {
     };
 
     return (
-        <div className="flex h-screen overflow-hidden bg-[#f8f9fd]">
+        <div className="flex bg-[#f8f9fd]">
             {/* Sidebar */}
             <aside
                 className={`
@@ -189,7 +230,7 @@ function Dashboard() {
                     transform transition-transform duration-300 ease-in-out z-40
                     ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
                     w-full sm:w-[300px] lg:w-[256px]
-                    lg:translate-x-0 lg:static
+                    lg:translate-x-0
                 `}
             >
                 {/* Mobile header with close button */}
@@ -259,7 +300,7 @@ function Dashboard() {
             )}
 
             {/* Main Content */}
-            <main className="flex-1 p-4 sm:p-8 overflow-y-auto">
+            <main className="flex-1 p-4 sm:p-8 lg:ml-64">
                 {/* Heading + Search Bar */}
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 gap-4">
                     {/* Mobile: hamburger + heading */}
@@ -316,12 +357,36 @@ function Dashboard() {
                                 />
                             </div>
 
-                            <div className="flex items-center justify-center bg-[#f8f9fd] rounded-lg px-4 py-2 cursor-pointer shadow-sm border border-gray-200 w-full lg:w-auto">
+                            <div className="relative w-full lg:w-auto" ref={sortRef}>
+                            <button
+                                type="button"
+                                onClick={() => setSortOpen((o) => !o)}
+                                className="flex items-center justify-center w-full lg:w-auto bg-[#f8f9fd] rounded-lg px-4 py-2 cursor-pointer shadow-sm border border-gray-200"
+                            >
                                 <span className="text-sm">
-                                    Sort by: <b>Newest</b>
+                                    Sort by: <b>{sortBy === 'newest' ? 'Newest' : 'Oldest'}</b>
                                 </span>
-                                <FaChevronDown className="ml-2 text-gray-500" />
-                            </div>
+                                <FaChevronDown className={`ml-2 text-gray-500 transition-transform ${sortOpen ? 'rotate-180' : ''}`} />
+                            </button>
+                            {sortOpen && (
+                                <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+                                    <button
+                                        type="button"
+                                        onClick={() => { setSortBy('newest'); setSortOpen(false); }}
+                                        className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${sortBy === 'newest' ? 'text-[#C16A00] font-semibold' : 'text-gray-700'}`}
+                                    >
+                                        Newest
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => { setSortBy('oldest'); setSortOpen(false); }}
+                                        className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${sortBy === 'oldest' ? 'text-[#C16A00] font-semibold' : 'text-gray-700'}`}
+                                    >
+                                        Oldest
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                         </div>
                     </div>
 

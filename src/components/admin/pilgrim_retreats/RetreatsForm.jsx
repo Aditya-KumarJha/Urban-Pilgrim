@@ -875,7 +875,7 @@ export default function RetreatsForm() {
                             <div className="text-center text-gray-500 flex flex-col items-center">
                                 <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-12 h-12 mb-2" />
                                 <p>{isCardDragActive ? "Drop here..." : "Click to upload or drag and drop"}</p>
-                                <p>Size: (1126×826)px</p>
+                                <p>Size: (1126×626)px</p>
                                 <p className="text-xs mt-1">Supported: JPG, PNG, GIF, WebP, SVG, MP4, WebM, OGG, AVI, MOV</p>
                             </div>
                         )}
@@ -1093,6 +1093,156 @@ export default function RetreatsForm() {
                     <label htmlFor="showOccupancy" className="text-sm text-gray-600">
                         *Tick it to Show Occupancy in Pilgrim Retreat
                     </label>
+                </div>
+            </div>
+
+            {/* One-Time Purchase */}
+            <div className="md:p-8 px-4 py-0 mx-auto">
+                <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+                    One-Time Purchase <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
+                </h2>
+
+                {/* Price */}
+                <h3 className="block text-md font-semibold text-gray-700 mb-2">Price</h3>
+                <input
+                    type="number"
+                    placeholder="Enter Price"
+                    value={formData?.oneTimePurchase?.price}
+                    onChange={(e) => handleFieldChange("oneTimePurchase", "price", e.target.value)}
+                    className="text-sm w-full border p-3 rounded-lg mb-4"
+                />
+
+                {/* Description */}
+                <label className="block text-md font-semibold text-gray-700 mb-2">Description</label>
+                <textarea
+                    placeholder="Enter Description"
+                    rows={4}
+                    value={formData?.oneTimePurchase?.description}
+                    onChange={(e) => handleFieldChange("oneTimePurchase", "description", e.target.value)}
+                    className="text-sm w-full border p-3 rounded-lg mb-6"
+                />
+
+                {/* Images */}
+                <label className="block font-semibold mb-2">Images (Max 5)</label>
+                <div className="mb-4">
+                    {formData?.oneTimePurchase?.images && formData?.oneTimePurchase?.images?.length < 5 && (
+                        <label className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50">
+                            <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-10 h-10 mb-2" />
+                            <span>Click to upload image(s)</span>
+                            <p>Size: (1126×626)px</p>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                onChange={handleImageUpload}
+                                className="hidden"
+                                disabled={Object.keys(formData?.isImageUploading || {}).some(key => (formData?.isImageUploading || {})[key])}
+                            />
+                        </label>
+                    )}
+
+                    {/* Upload progress for images */}
+                    <div className="flex flex-wrap gap-4 mt-4">
+                        {Object.keys(formData?.isImageUploading || {}).filter(key => (formData?.isImageUploading || {})[key]).map(uploadId => (
+                            <div key={uploadId} className="w-40 h-28 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center">
+                                <div className="text-center flex flex-col items-center">
+                                    <div className="relative w-8 h-8 mb-2">
+                                        <div className="absolute inset-0 border-2 border-gray-200 rounded-full"></div>
+                                        <div 
+                                            className="absolute inset-0 border-2 border-[#2F6288] rounded-full border-t-transparent animate-spin"
+                                            style={{
+                                                background: `conic-gradient(from 0deg, #2F6288 ${((formData?.imageUploadProgress || {})[uploadId] || 0) * 3.6}deg, transparent ${((formData?.imageUploadProgress || {})[uploadId] || 0) * 3.6}deg)`
+                                            }}
+                                        ></div>
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <span className="text-xs font-semibold text-[#2F6288]">{(formData?.imageUploadProgress || {})[uploadId] || 0}%</span>
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-[#2F6288] font-medium">Uploading...</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Render uploaded images */}
+                    {formData?.oneTimePurchase?.images?.length > 0 && (
+                        <div className="flex flex-wrap gap-4 mt-4">
+                            {formData.oneTimePurchase.images.map((img, idx) => (
+                                <div key={idx} className="relative w-40 h-28">
+                                    <img src={img} alt={`otp-img-${idx}`} className="w-full h-full object-cover rounded" />
+                                    <button
+                                        type="button"
+                                        onClick={() => removeImage(idx)}
+                                        className="absolute top-1 right-1 bg-white border border-gray-300 rounded-full p-1 hover:bg-gray-200"
+                                        title="Remove"
+                                    >
+                                        <FaTimes size={12} />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* Videos */}
+                <label className="block font-semibold mb-2 mt-6">Videos (Max 6)</label>
+                <div className="mb-4">
+                    {formData?.oneTimePurchase?.videos && formData?.oneTimePurchase?.videos?.length < 6 && (
+                        <label className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50">
+                            <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-10 h-10 mb-2" />
+                            <span>Click to upload video(s)</span>
+                            <input
+                                type="file"
+                                accept="video/*"
+                                multiple
+                                onChange={handleVideoUpload}
+                                className="hidden"
+                                disabled={Object.keys(formData?.isVideoUploading || {}).some(key => (formData?.isVideoUploading || {})[key])}
+                            />
+                        </label>
+                    )}
+
+                    {/* Upload progress for videos */}
+                    <div className="flex flex-wrap gap-4 mt-4">
+                        {Object.keys(formData?.isVideoUploading || {}).filter(key => (formData?.isVideoUploading || {})[key]).map(uploadId => (
+                            <div key={uploadId} className="w-40 h-28 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center">
+                                <div className="text-center flex flex-col items-center">
+                                    <div className="relative w-8 h-8 mb-2">
+                                        <div className="absolute inset-0 border-2 border-gray-200 rounded-full"></div>
+                                        <div 
+                                            className="absolute inset-0 border-2 border-[#2F6288] rounded-full border-t-transparent animate-spin"
+                                            style={{
+                                                background: `conic-gradient(from 0deg, #2F6288 ${((formData?.videoUploadProgress || {})[uploadId] || 0) * 3.6}deg, transparent ${((formData?.videoUploadProgress || {})[uploadId] || 0) * 3.6}deg)`
+                                            }}
+                                        ></div>
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <span className="text-xs font-semibold text-[#2F6288]">{(formData?.videoUploadProgress || {})[uploadId] || 0}%</span>
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-[#2F6288] font-medium">Uploading...</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Render uploaded videos */}
+                    {formData?.oneTimePurchase?.videos?.length > 0 && (
+                        <div className="flex flex-wrap gap-4 mt-4">
+                            {formData.oneTimePurchase.videos.map((vid, idx) => (
+                                <div key={idx} className="relative w-56 h-32">
+                                    <video src={vid} className="w-full h-full object-cover rounded" controls />
+                                    <button
+                                        type="button"
+                                        onClick={() => removeVideo(idx)}
+                                        className="absolute top-1 right-1 bg-white border border-gray-300 rounded-full p-1 hover:bg-gray-200"
+                                        title="Remove"
+                                    >
+                                        <FaTimes size={12} />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
 

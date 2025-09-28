@@ -3,7 +3,7 @@ import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { X, Plus, Trash2, GripVertical, Edit2 } from "lucide-react";
 import { storage } from "../../../services/firebase";
-import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { deleteObject, getDownloadURL, ref, uploadBytes, uploadBytesResumable } from "firebase/storage";
 import { v4 as uuidv4 } from "uuid";
 import { deleteSlideByIndex, fetchGuideData, saveOrUpdateGuideData } from "../../../services/pilgrim_guide/guideService";
 import { useDispatch, useSelector } from "react-redux";
@@ -845,7 +845,6 @@ export default function GuideForm() {
         });
     };
 
-
     // ========== New Day-Based Weekly Pattern Functions ==========
     const initializeDayBasedWeeklyPattern = (modeKey) => {
         setFormData(prev => {
@@ -1615,7 +1614,7 @@ export default function GuideForm() {
                                 <div className="text-center text-sm text-gray-500 flex flex-col items-center">
                                     <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-12 h-12 mb-2" />
                                     <p>{dragActive ? "Drop here..." : "Click to upload or drag and drop"}</p>
-                                    <p className="text-gray-400">Size: (400×700)px</p>
+                                    <p className="text-gray-400">Size: (487×387)px</p>
                                 </div>
                             )}
                             <input
@@ -2625,6 +2624,7 @@ export default function GuideForm() {
                             <label className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50">
                                 <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-10 h-10 mb-2" />
                                 <span>Click to upload image</span>
+                                <p className="text-gray-400">Size: (700×400)px</p>
                                 <input
                                     type="file"
                                     accept="image/*"

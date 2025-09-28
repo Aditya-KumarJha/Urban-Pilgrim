@@ -149,7 +149,6 @@ export default function LiveDetails() {
         navigate('/userdashboard');
     };
 
-
     const redirectToSession = () => {
         if (!programData) return;
         // Redirect to the program details page

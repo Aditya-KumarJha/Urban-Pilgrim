@@ -97,72 +97,7 @@ export default function Sessions() {
                     <h1 className="text-4xl font-bold mb-4">Pilgrim Sessions</h1>
                     <div className="flex justify-between items-center flex-wrap gap-4 my-8">
                         <FilterBar onFiltersChange={handleFiltersChange} />
-                        <div className="flex items-center gap-2 relative" ref={dropdownRef}>
-                            <span className="text-sm">Sort By:</span>
-                            <button 
-                                onClick={toggleBestSelling}
-                                className={`px-4 py-1 border-2 rounded-full text-sm flex items-center gap-2 transition-colors ${
-                                    bestSellingActive 
-                                        ? 'bg-[#D4A574] text-white border-[#D4A574]' 
-                                        : 'text-black border-[#00000033] hover:border-[#D4A574]'
-                                }`}
-                            >
-                                <img src="/assets/retreats/bookmark.svg" alt="bookmark" /> 
-                                Best Selling ({bestSellingPrograms.length})
-                                <MdKeyboardArrowDown className={`transition-transform duration-200 ${showDropdown ? 'rotate-180' : ''}`} />
-                            </button>
-                            
-                            {/* Dropdown */}
-                            {showDropdown && (
-                                <div className="absolute top-full right-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-                                    <div className="p-3 border-b border-gray-100">
-                                        <h3 className="font-semibold text-gray-800">Top Best Selling Programs</h3>
-                                    </div>
-                                    <div className="max-h-64 overflow-y-auto">
-                                        {bestSellingPrograms.length > 0 ? (
-                                            bestSellingPrograms.map((program, index) => (
-                                                <div key={index} className="p-3 hover:bg-gray-50 border-b border-gray-50 last:border-b-0">
-                                                    <div className="flex items-center justify-between">
-                                                        <div className="flex-1">
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="bg-[#D4A574] text-white text-xs px-2 py-1 rounded-full font-medium">
-                                                                    #{index + 1}
-                                                                </span>
-                                                                <span className={`text-xs px-2 py-1 rounded-full ${
-                                                                    program.type === 'Live' 
-                                                                        ? 'bg-green-100 text-green-700' 
-                                                                        : 'bg-blue-100 text-blue-700'
-                                                                }`}>
-                                                                    {program.type}
-                                                                </span>
-                                                            </div>
-                                                            <h4 className="font-medium text-gray-800 mt-1 text-sm leading-tight">
-                                                                {program.title}
-                                                            </h4>
-                                                            <p className="text-xs text-gray-500 mt-1">
-                                                                {program.category}
-                                                            </p>
-                                                        </div>
-                                                        <div className="text-right ml-3">
-                                                            <div className="text-sm font-semibold text-[#D4A574]">
-                                                                {program.purchaseCount}
-                                                            </div>
-                                                            <div className="text-xs text-gray-500">
-                                                                purchases
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))
-                                        ) : (
-                                            <div className="p-4 text-center text-gray-500 text-sm">
-                                                No best selling programs found
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
+                        
                     </div>
                 </div>
                 <div className="absolute w-full -translate-y-1/3 px-4">
