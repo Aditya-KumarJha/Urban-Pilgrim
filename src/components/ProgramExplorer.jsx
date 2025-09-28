@@ -12,6 +12,7 @@ export default function ProgramExplorer() {
     const sliderRef = useRef(null);
     const dotRefs = useRef([]);
     const [programItems, setProgramItems] = useState([]);
+    const [scrollProgress, setScrollProgress] = useState(0);
     const totalSteps = programItems?.programs?.length || 0;
 
     const uid = "your-unique-id";
@@ -54,6 +55,42 @@ export default function ProgramExplorer() {
     const prevSlide = () => {
         const newIndex = (activeIndex - 1 + totalSteps) % totalSteps;
         scrollToCard(newIndex);
+    };
+
+    // Handle scroll progress tracking
+    const handleScroll = () => {
+        if (sliderRef.current) {
+            const { scrollLeft, scrollWidth, clientWidth } = sliderRef.current;
+            const maxScroll = scrollWidth - clientWidth;
+            const progress = maxScroll > 0 ? (scrollLeft / maxScroll) * 100 : 0;
+            setScrollProgress(progress);
+            
+            // Update active index based on scroll position
+            const cardWidth = 296;
+            const newIndex = Math.round(scrollLeft / cardWidth);
+            if (newIndex !== activeIndex && newIndex >= 0 && newIndex < totalSteps) {
+                setActiveIndex(newIndex);
+            }
+        }
+    };
+
+    // Handle progress bar click to scroll to position
+    const handleProgressBarClick = (e) => {
+        if (sliderRef.current) {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const progressBarWidth = rect.width;
+            const clickProgress = (clickX / progressBarWidth) * 100;
+            
+            const { scrollWidth, clientWidth } = sliderRef.current;
+            const maxScroll = scrollWidth - clientWidth;
+            const targetScrollLeft = (clickProgress / 100) * maxScroll;
+            
+            sliderRef.current.scrollTo({
+                left: targetScrollLeft,
+                behavior: 'smooth'
+            });
+        }
     };
 
     // console.log("programItems: ", programItems);
@@ -115,11 +152,12 @@ export default function ProgramExplorer() {
             </div>
 
             {/* Right Slider */}
-            <div className="gap-3 bg-[#f9f3ef] items-center justify-center px-6 py-8 overflow-hidden xl:w-[90%] w-full h-full">
+            <div className="relative gap-3 bg-[#f9f3ef] items-center justify-center px-6 py-8 overflow-hidden xl:w-[90%] w-full h-full">
                 <div
                     ref={sliderRef}
                     className="flex gap-6 bg-none rounded-xl p-2 overflow-x-auto no-scrollbar scroll-smooth items-center"
                     style={{ scrollBehavior: "smooth" }}
+                    onScroll={handleScroll}
                 >
                     {programItems?.programs && programItems?.programs.map((item, i) => (
                         <ProgramCard
@@ -130,19 +168,17 @@ export default function ProgramExplorer() {
                     ))}
                 </div>
 
-                {/* Arrows + Progress */}
-                <div className="flex gap-3 items-center justify-end w-full ">
-                    <ArrowButton onClick={prevSlide} icon={FaChevronLeft} dir={1} />
-                    <div className="relative h-1 md:w-80 w-full bg-[#744C44]/30 rounded overflow-hidden">
-                        <div
-                            className="absolute top-0 h-1 bg-[#744C44] transition-all duration-300"
-                            style={{
-                                width: `${100 / totalSteps}%`,
-                                left: `${(activeIndex / totalSteps) * 100}%`,
-                            }}
+                {/* Horizontal Progress Bar - Bottom Center */}
+                <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 sm:hidden mb-3 z-10">
+                    <div 
+                        className="w-24 h-1.5 bg-gray-200 rounded-full cursor-pointer hover:bg-gray-300 transition-colors"
+                        onClick={handleProgressBarClick}
+                    >
+                        <div 
+                            className="h-full bg-[#744C44] rounded-full transition-all duration-300 ease-out"
+                            style={{ width: `${scrollProgress}%` }}
                         />
                     </div>
-                    <ArrowButton onClick={nextSlide} icon={FaChevronRight} dir={-1} />
                 </div>
 
             </div>

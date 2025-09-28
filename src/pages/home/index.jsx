@@ -28,6 +28,16 @@ function Home() {
     const [sessions, setSessions] = useState(null);
     const [guides, setGuides] = useState(null);
     const [selectedGuideCategory, setSelectedGuideCategory] = useState('all');
+    
+    // Scroll progress states
+    const [guidesScrollProgress, setGuidesScrollProgress] = useState(0);
+    const [retreatsScrollProgress, setRetreatsScrollProgress] = useState(0);
+    const [sessionsScrollProgress, setSessionsScrollProgress] = useState(0);
+    
+    // Refs for scroll containers
+    const guidesScrollRef = useRef(null);
+    const retreatsScrollRef = useRef(null);
+    const sessionsScrollRef = useRef(null);
     const [showGuideCategoryDropdown, setShowGuideCategoryDropdown] = useState(false);
     const [guideCategories, setGuideCategories] = useState(['all']);
     const [selectedRetreatCategory, setSelectedRetreatCategory] = useState('all');
@@ -257,6 +267,89 @@ function Home() {
         return session?.recordedProgramCard?.category === selectedSessionCategory;
     }) : [];
 
+    // Scroll handling functions
+    const handleGuidesScroll = () => {
+        if (guidesScrollRef.current) {
+            const { scrollLeft, scrollWidth, clientWidth } = guidesScrollRef.current;
+            const maxScroll = scrollWidth - clientWidth;
+            const progress = maxScroll > 0 ? (scrollLeft / maxScroll) * 100 : 0;
+            setGuidesScrollProgress(progress);
+        }
+    };
+
+    const handleRetreatsScroll = () => {
+        if (retreatsScrollRef.current) {
+            const { scrollLeft, scrollWidth, clientWidth } = retreatsScrollRef.current;
+            const maxScroll = scrollWidth - clientWidth;
+            const progress = maxScroll > 0 ? (scrollLeft / maxScroll) * 100 : 0;
+            setRetreatsScrollProgress(progress);
+        }
+    };
+
+    const handleSessionsScroll = () => {
+        if (sessionsScrollRef.current) {
+            const { scrollLeft, scrollWidth, clientWidth } = sessionsScrollRef.current;
+            const maxScroll = scrollWidth - clientWidth;
+            const progress = maxScroll > 0 ? (scrollLeft / maxScroll) * 100 : 0;
+            setSessionsScrollProgress(progress);
+        }
+    };
+
+    // Progress bar click handlers
+    const handleGuidesProgressClick = (e) => {
+        if (guidesScrollRef.current) {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const progressBarWidth = rect.width;
+            const clickProgress = (clickX / progressBarWidth) * 100;
+            
+            const { scrollWidth, clientWidth } = guidesScrollRef.current;
+            const maxScroll = scrollWidth - clientWidth;
+            const targetScrollLeft = (clickProgress / 100) * maxScroll;
+            
+            guidesScrollRef.current.scrollTo({
+                left: targetScrollLeft,
+                behavior: 'smooth'
+            });
+        }
+    };
+
+    const handleRetreatsProgressClick = (e) => {
+        if (retreatsScrollRef.current) {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const progressBarWidth = rect.width;
+            const clickProgress = (clickX / progressBarWidth) * 100;
+            
+            const { scrollWidth, clientWidth } = retreatsScrollRef.current;
+            const maxScroll = scrollWidth - clientWidth;
+            const targetScrollLeft = (clickProgress / 100) * maxScroll;
+            
+            retreatsScrollRef.current.scrollTo({
+                left: targetScrollLeft,
+                behavior: 'smooth'
+            });
+        }
+    };
+
+    const handleSessionsProgressClick = (e) => {
+        if (sessionsScrollRef.current) {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const progressBarWidth = rect.width;
+            const clickProgress = (clickX / progressBarWidth) * 100;
+            
+            const { scrollWidth, clientWidth } = sessionsScrollRef.current;
+            const maxScroll = scrollWidth - clientWidth;
+            const targetScrollLeft = (clickProgress / 100) * maxScroll;
+            
+            sessionsScrollRef.current.scrollTo({
+                left: targetScrollLeft,
+                behavior: 'smooth'
+            });
+        }
+    };
+
     const sessionArray = [...filteredLiveSessions, ...filteredRecordedSessions];
 
     // const handleCardScroll = (dir) => {
@@ -412,16 +505,35 @@ function Home() {
                             </div>
                         </div>
 
-                        <div className="c6bottom lg:!gap-10 lg:!overflow-visible overflow-hidden">
-                            {
-                                
-                                guideArray &&
-                                guideArray.map((guide, index) => (
-                                    <motion.div key={index} initial={{ y: 100, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} viewport={{ once: true, amount: 0.1 }}>
-                                        <PersondetailsCard type="guide" image={guide?.guideCard?.thumbnail} title={guide?.guideCard?.title} price={guide?.guideCard?.price} />
-                                    </motion.div>
-                                ))
-                            }
+                        <div className="relative">
+                            <div 
+                                ref={guidesScrollRef}
+                                className="c6bottom lg:!gap-10 lg:!overflow-visible overflow-hidden overflow-x-auto no-scrollbar"
+                                onScroll={handleGuidesScroll}
+                            >
+                                {
+                                    
+                                    guideArray &&
+                                    guideArray.map((guide, index) => (
+                                        <motion.div key={index} initial={{ y: 100, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} viewport={{ once: true, amount: 0.1 }}>
+                                            <PersondetailsCard type="guide" image={guide?.guideCard?.thumbnail} title={guide?.guideCard?.title} price={guide?.guideCard?.price} />
+                                        </motion.div>
+                                    ))
+                                }
+                            </div>
+
+                            {/* Horizontal Progress Bar - Bottom Center */}
+                            <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 sm:hidden mb-7 z-10">
+                                <div 
+                                    className="w-24 h-1.5 bg-gray-200 rounded-full cursor-pointer hover:bg-gray-300 transition-colors"
+                                    onClick={handleGuidesProgressClick}
+                                >
+                                    <div 
+                                        className="h-full bg-[#C5703F] rounded-full transition-all duration-300 ease-out"
+                                        style={{ width: `${guidesScrollProgress}%` }}
+                                    />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -491,13 +603,36 @@ function Home() {
                     </div>
 
                     {/* Card */}
-                    <motion.div className="c5bottom lg:!overflow-visible" initial={{ y: 100, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} viewport={{ once: true, amount: 0.1 }}>
-                        {experienceData &&
-                            experienceData.map((experience, index) => (
-                                <PersondetailsCard type="retreat" key={index} image={experience?.pilgrimRetreatCard?.image} title={experience?.pilgrimRetreatCard?.title} price={experience?.pilgrimRetreatCard?.price} />
-                            ))
-                        }
-                    </motion.div>
+                    <div className="relative">
+                        <motion.div 
+                            ref={retreatsScrollRef}
+                            className="c5bottom lg:!overflow-visible overflow-x-auto no-scrollbar" 
+                            initial={{ y: 100, opacity: 0 }} 
+                            whileInView={{ y: 0, opacity: 1 }} 
+                            transition={{ duration: 0.5, ease: "easeOut" }} 
+                            viewport={{ once: true, amount: 0.1 }}
+                            onScroll={handleRetreatsScroll}
+                        >
+                            {experienceData &&
+                                experienceData.map((experience, index) => (
+                                    <PersondetailsCard type="retreat" key={index} image={experience?.pilgrimRetreatCard?.image} title={experience?.pilgrimRetreatCard?.title} price={experience?.pilgrimRetreatCard?.price} />
+                                ))
+                            }
+                        </motion.div>
+
+                        {/* Horizontal Progress Bar - Bottom Center */}
+                        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 sm:hidden mb-3 z-10">
+                            <div 
+                                className="w-24 h-1.5 bg-gray-200 rounded-full cursor-pointer hover:bg-gray-300 transition-colors"
+                                onClick={handleRetreatsProgressClick}
+                            >
+                                <div 
+                                    className="h-full bg-[#C5703F] rounded-full transition-all duration-300 ease-out"
+                                    style={{ width: `${retreatsScrollProgress}%` }}
+                                />
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -561,20 +696,43 @@ function Home() {
                     </div>
 
                     {/* Card */}
-                    <motion.div className="c5bottom lg:!overflow-visible" initial={{ y: 100, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} viewport={{ once: true, amount: 0.1 }}>
-                        {
-                            filteredLiveSessions && filteredLiveSessions.length > 0 &&
-                            filteredLiveSessions.map((session, index) => (
-                                <PersondetailsCard type="live-session" key={`live-${index}`} image={session?.liveSessionCard?.thumbnail} title={session?.liveSessionCard?.title} price={session?.liveSessionCard?.price} />
-                            ))
-                        }
-                        {
-                            filteredRecordedSessions && filteredRecordedSessions.length > 0 &&
-                            filteredRecordedSessions.map((session, index) => (
-                                <PersondetailsCard type="recorded-session" key={`recorded-${index}`} image={session?.recordedProgramCard?.thumbnail} title={session?.recordedProgramCard?.title} price={session?.recordedProgramCard?.price} />
-                            ))
-                        }
-                    </motion.div>
+                    <div className="relative">
+                        <motion.div 
+                            ref={sessionsScrollRef}
+                            className="c5bottom lg:!overflow-visible overflow-x-auto no-scrollbar" 
+                            initial={{ y: 100, opacity: 0 }} 
+                            whileInView={{ y: 0, opacity: 1 }} 
+                            transition={{ duration: 0.5, ease: "easeOut" }} 
+                            viewport={{ once: true, amount: 0.1 }}
+                            onScroll={handleSessionsScroll}
+                        >
+                            {
+                                filteredLiveSessions && filteredLiveSessions.length > 0 &&
+                                filteredLiveSessions.map((session, index) => (
+                                    <PersondetailsCard type="live-session" key={`live-${index}`} image={session?.liveSessionCard?.thumbnail} title={session?.liveSessionCard?.title} price={session?.liveSessionCard?.price} />
+                                ))
+                            }
+                            {
+                                filteredRecordedSessions && filteredRecordedSessions.length > 0 &&
+                                filteredRecordedSessions.map((session, index) => (
+                                    <PersondetailsCard type="recorded-session" key={`recorded-${index}`} image={session?.recordedProgramCard?.thumbnail} title={session?.recordedProgramCard?.title} price={session?.recordedProgramCard?.price} />
+                                ))
+                            }
+                        </motion.div>
+                        
+                        {/* Horizontal Progress Bar - Bottom Center */}
+                        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 sm:hidden mb-3 z-10">
+                            <div 
+                                className="w-24 h-1.5 bg-gray-200 rounded-full cursor-pointer hover:bg-gray-300 transition-colors"
+                                onClick={handleSessionsProgressClick}
+                            >
+                                <div 
+                                    className="h-full bg-[#C5703F] rounded-full transition-all duration-300 ease-out"
+                                    style={{ width: `${sessionsScrollProgress}%` }}
+                                />
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
