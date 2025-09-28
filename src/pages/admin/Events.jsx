@@ -6,7 +6,6 @@ const Events = () => {
     return (
         <>
             <UpcomingEvents />
-            {/* <EventTable /> */}
         </>
     )
 }

@@ -8,6 +8,7 @@ import Events from "./Events";
 import Bundles from "./Bundles";
 import Coupons from "./Coupons";
 import Analysis from "./Analysis";
+import UpcomingEvents from "../../components/admin/upcoming_events/UpcomingEvents";
 import AdminProtectedRoute from "../../components/admin/AdminProtectedRoute";
 
 export default function Admin() {

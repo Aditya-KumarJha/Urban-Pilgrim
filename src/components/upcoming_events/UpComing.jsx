@@ -27,6 +27,7 @@ export default function UpComing() {
     const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
     const scrollContainerRef = useRef(null);
     const [scrollProgress, setScrollProgress] = useState(0);
+    const [adminSelectedEvents, setAdminSelectedEvents] = useState([]);
     
     // Extract all dates from event slots
     const extractEventDates = (events) => {
@@ -77,23 +78,66 @@ export default function UpComing() {
         return Array.from(dates).sort();
     };
 
+    // Load admin-selected events order
+    useEffect(() => {
+        const loadAdminSelectedEvents = async () => {
+            try {
+                const docRef = doc(db, 'admin_settings', 'upcoming_events_order');
+                const docSnap = await getDoc(docRef);
+                
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    const selectedPrograms = data.selectedPrograms || [];
+                    // Only include visible programs
+                    const visiblePrograms = selectedPrograms.filter(program => program.isVisible !== false);
+                    setAdminSelectedEvents(visiblePrograms);
+                }
+            } catch (error) {
+                console.error('Error loading admin selected events:', error);
+            }
+        };
+
+        loadAdminSelectedEvents();
+    }, []);
+
     // Convert events object to array and filter active events
-    const allActiveEvents = allEvents && Object.keys(allEvents).length > 0 
-        ? Object.entries(allEvents)
-            .map(([id, eventData]) => ({
-                id,
-                title: eventData?.upcomingSessionCard?.title || 'Event',
-                image: eventData?.upcomingSessionCard?.image || '',
-                tags: eventData?.upcomingSessionCard?.category ? [eventData.upcomingSessionCard.category] : [],
-                price: eventData?.upcomingSessionCard?.price || '0',
-                location: eventData?.upcomingSessionCard?.location || '',
-                link: eventData?.upcomingSessionCard?.title ? 
-                    eventData.upcomingSessionCard.title.replace(/\s+/g, '-') : '',
-                data: eventData,
-                category: eventData?.upcomingSessionCard?.category || 'Other'
-            }))
-            .filter(event => event?.image) // Filter out incomplete events
-        : [];
+    // If admin has selected events, use those in order, otherwise show all events
+    const allActiveEvents = adminSelectedEvents.length > 0 
+        ? adminSelectedEvents.map(selectedEvent => {
+            // Find the full event data from allEvents
+            const fullEventData = allEvents[selectedEvent.id];
+            if (fullEventData) {
+                return {
+                    id: selectedEvent.id,
+                    title: fullEventData?.upcomingSessionCard?.title || selectedEvent.title,
+                    image: fullEventData?.upcomingSessionCard?.image || selectedEvent.image,
+                    tags: fullEventData?.upcomingSessionCard?.category ? [fullEventData.upcomingSessionCard.category] : [],
+                    price: fullEventData?.upcomingSessionCard?.price || selectedEvent.price,
+                    location: fullEventData?.upcomingSessionCard?.location || selectedEvent.location,
+                    link: fullEventData?.upcomingSessionCard?.title ? 
+                        fullEventData.upcomingSessionCard.title.replace(/\s+/g, '-') : '',
+                    data: fullEventData,
+                    category: fullEventData?.upcomingSessionCard?.category || selectedEvent.category
+                };
+            }
+            return null;
+        }).filter(Boolean)
+        : allEvents && Object.keys(allEvents).length > 0 
+            ? Object.entries(allEvents)
+                .map(([id, eventData]) => ({
+                    id,
+                    title: eventData?.upcomingSessionCard?.title || 'Event',
+                    image: eventData?.upcomingSessionCard?.image || '',
+                    tags: eventData?.upcomingSessionCard?.category ? [eventData.upcomingSessionCard.category] : [],
+                    price: eventData?.upcomingSessionCard?.price || '0',
+                    location: eventData?.upcomingSessionCard?.location || '',
+                    link: eventData?.upcomingSessionCard?.title ? 
+                        eventData.upcomingSessionCard.title.replace(/\s+/g, '-') : '',
+                    data: eventData,
+                    category: eventData?.upcomingSessionCard?.category || 'Other'
+                }))
+                .filter(event => event?.image) // Filter out incomplete events
+            : [];
 
     // Extract unique categories from events
     const categories = ['all', ...new Set(allActiveEvents.map(event => event.category).filter(Boolean))];
