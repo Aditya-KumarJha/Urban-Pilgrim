@@ -74,7 +74,7 @@ export default function FilterBar({ onFiltersChange, initialFilters = {} }) {
             <div className="relative" ref={el => dropdownRefs.current[filterType] = el}>
                 <button
                     onClick={() => toggleDropdown(filterType)}
-                    className={`px-4 py-1 border-2 rounded-full text-sm flex items-center gap-2 transition-colors ${selectedValue
+                    className={`sm:px-4 px-3 py-1 border-2 rounded-full text-sm flex items-center sm:gap-2 transition-colors ${selectedValue
                             ? 'border-blue-500 bg-blue-50 text-blue-700'
                             : 'border-[#00000033] hover:border-gray-400'
                         }`}
@@ -106,7 +106,7 @@ export default function FilterBar({ onFiltersChange, initialFilters = {} }) {
 
     return (
         <div className="space-y-4">
-            <div className="flex flex-wrap gap-4 items-center">
+            <div className="flex flex-wrap sm:gap-4 gap-2 items-center">
                 <span className="text-lg font-semibold">Filter:</span>
 
                 {renderDropdown('features', filterOptions.features)}

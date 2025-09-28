@@ -22,7 +22,7 @@ export default function UpcomingEvents() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-[#FAF4F0] to-white mt-[100px]">
+        <div className="min-h-screen bg-gradient-to-b from-[#FAF4F0] to-white lg:mt-[100px] mt-[70px]">
             <SEO
                 title="Upcoming Events | Urban Pilgrim"
                 description="Discover upcoming wellness events, workshops, and sessions with Urban Pilgrim. Find yoga, meditation, retreats, and live sessions happening near you."
@@ -36,15 +36,15 @@ export default function UpcomingEvents() {
                     alt="Events Header"
                     className="absolute inset-0 w-full h-full object-cover z-0"
                 />
-                <div className="relative z-10 lg:p-10 p-6 text-center">
-                    <h1 className="text-4xl font-bold mb-4">Upcoming Events</h1>
-                    <div className="flex justify-between items-center flex-wrap gap-4 my-8">
+                <div className="relative z-10 px-4 sm:px-6 py-6 sm:py-10 text-center">
+                    <h1 className="text-3xl md:text-4xl font-bold mb-3 sm:mb-4">Upcoming Events</h1>
+                    <div className="flex justify-between items-center flex-wrap gap-3 sm:gap-4 my-6 sm:my-8">
                         <FilterBar onFiltersChange={handleFiltersChange} />
                         <div className="flex items-center gap-2">
                         </div>
                     </div>
                 </div>
-                <div className="absolute w-full -translate-y-1/3 lg:px-10 px-6">
+                <div className="absolute w-full -translate-y-1/3 px-4 scale-100 origin-top">
                     <CategorySelector 
                         onCategoryChange={handleCategoryChange} 
                     />

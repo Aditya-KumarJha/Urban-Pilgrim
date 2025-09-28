@@ -77,7 +77,7 @@ export default function Guides() {
                 canonicalUrl="/pilgrim_guides"
                 ogImage="/retreats.svg"
             />
-            <div className="min-h-screen bg-gradient-to-b from-[#FAF4F0] to-white mt-[100px]">
+            <div className="min-h-screen bg-gradient-to-b from-[#FAF4F0] to-white lg:mt-[100px] mt-[70px]">
                 
                 <div className="relative w-full mb-10">
                     <img
@@ -85,17 +85,16 @@ export default function Guides() {
                         alt="Guides Header"
                         className="absolute inset-0 w-full h-full object-cover z-0"
                     />
-                    <div className="relative z-10 px-6 py-10 text-center">
-                        <h1 className="text-4xl font-bold mb-4">Pilgrim Guides</h1>
-                        <p>Find the teacher who resonates with your path</p>
+                    <div className="relative z-10 px-4 sm:px-6 py-6 sm:py-10 text-center">
+                        <h1 className="text-3xl sm:text-4xl font-bold mb-3 sm:mb-4">Pilgrim Guides</h1>
                         
-                        <div className="flex justify-between items-center flex-wrap gap-4 my-8">
+                        <div className="flex justify-between items-center flex-wrap gap-3 sm:gap-4 my-6 sm:my-8">
                             <FilterBar onFiltersChange={handleFiltersChange} />
                         </div>
                     </div>
 
-                    <div className="absolute w-full -translate-y-1/3 px-4">
-                        <CategorySelector onCategoryChange={handleCategoryChange} />
+                    <div className="absolute w-full -translate-y-1/3 px-2 md:px-4 scale-100 origin-top">
+                        <CategorySelector onCategoryChange={handleCategoryChange} />  
                     </div>
                 </div>
                 <GuidesDemo filters={filters} bestSellingActive={bestSellingActive} />

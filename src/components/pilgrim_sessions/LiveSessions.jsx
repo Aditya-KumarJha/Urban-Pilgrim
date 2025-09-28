@@ -104,14 +104,17 @@ export default function LiveSessions({ filters = {}, bestSellingActive = false }
         
     }, [sessions, filters, bestSellingActive]);
 
-    return (
-        <section className="px-6 py-12 text-gray-900">
+    return(
+        <section className="px-6 py-6 text-gray-900">
             <div className="max-w-7xl mx-auto">
-                <h2 className="text-3xl text-[#2F6288] font-bold mb-6">
+                <h2 className=" text-2xl sm:text-3xl text-[#2F6288] font-bold mb-6">
                     Live Sessions <span className="bg-[#2F6288] mt-2 w-20 h-1 block"></span>
                 </h2>
+                <div className="text-sm text-gray-600 sm:pb-5">
+                    Showing {filteredSessions.length} of {(sessions?.length || 0)} sessions
+                </div>
 
-                <div className="grid grid-cols-1 mt-10 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mt-3 place-items-center sm:place-items-stretch sm:px-0 px-4">
                     {filteredSessions && filteredSessions.map((session, index) => (
                         <LiveSessionCard key={index} {...session} />
                     ))}

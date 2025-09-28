@@ -9,7 +9,7 @@ export default function RecordedProgramCard({ image, category, title, days, vide
 
   return (
     <div
-      className="rounded-xl overflow-hidden shadow-md bg-white flex flex-col max-w-xs"
+      className="rounded-xl overflow-hidden shadow-md bg-white flex flex-col max-w-[260px] sm:max-w-xs"
       onClick={handleCardClick}
     >
       <img
@@ -18,16 +18,16 @@ export default function RecordedProgramCard({ image, category, title, days, vide
         className="w-full aspect-[5/4] object-cover object-top"
       />
 
-      <div className="p-4 flex flex-col justify-between flex-1">
-        <span className="inline-block bg-[#EAEFF3] text-[#3A6288] text-xs font-semibold px-3 py-1 rounded-full mb-2 w-fit">
+      <div className="p-3 sm:p-4 flex flex-col justify-between flex-1">
+        <span className="inline-block bg-[#EAEFF3] text-[#3A6288] text-[10px] sm:text-xs font-semibold px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full mb-2 w-fit">
           {category}
         </span>
 
-        <h3 className="font-semibold line-clamp-1 text-md text-gray-800 mb-3 leading-snug">
+        <h3 className="font-semibold line-clamp-1 text-sm sm:text-md text-gray-800 mb-2 sm:mb-3 leading-snug">
           {title}
         </h3>
 
-        <div className="flex flex-col items-start text-sm text-gray-600 gap-1 mb-3">
+        <div className="flex flex-col items-start text-xs sm:text-sm text-gray-600 gap-1 mb-3">
           <div className="flex items-center gap-1">
             <img src="/assets/sessions/calendar.svg" className="text-gray-500 w-4 h-4" />
             <span>{days} days</span>
@@ -38,7 +38,7 @@ export default function RecordedProgramCard({ image, category, title, days, vide
           </div>
         </div>
 
-        <p className="text-[#2F6288] font-semibold mb-4">
+        <p className="text-[#2F6288] font-semibold mb-4 text-sm sm:text-base">
           {price
             ? new Intl.NumberFormat("en-IN", {
                 style: "currency",
@@ -49,12 +49,12 @@ export default function RecordedProgramCard({ image, category, title, days, vide
         </p>
 
         <div className="flex gap-2 mt-auto">
-          <button className="flex-1 bg-[#2F6288] text-white text-sm py-2 px-3 rounded-lg flex items-center justify-center gap-1 hover:bg-[#2F6288]/80">
-            <img src="/assets/sessions/cart.svg" className="text-sm h-4 w-4" />
+          <button className="flex-1 bg-[#2F6288] text-white text-xs sm:text-sm py-1.5 sm:py-2 px-3 rounded-lg flex items-center justify-center gap-1 hover:bg-[#2F6288]/80">
+            <img src="/assets/sessions/cart.svg" className="text-sm h-3.5 w-3.5 sm:h-4 sm:w-4" />
             Purchase
           </button>
-          <button className="flex-1 border border-[#2F6288] text-[#2F6288] text-sm py-2 px-3 rounded-lg flex items-center justify-center gap-1 hover:bg-blue-50">
-            <FaInfoCircle className="text-sm" />
+          <button className="flex-1 border border-[#2F6288] text-[#2F6288] text-xs sm:text-sm py-1.5 sm:py-2 px-3 rounded-lg flex items-center justify-center gap-1 hover:bg-blue-50">
+            <FaInfoCircle className="text-xs sm:text-sm" />
             Learn More
           </button>
         </div>

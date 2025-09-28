@@ -31,40 +31,6 @@ export default function Sessions() {
     const handleCategoryChange = useCallback((category) => {
         setFilters(prev => ({ ...prev, category }));
     }, []);
-
-    const toggleBestSelling = () => {
-        setBestSellingActive(!bestSellingActive);
-        setShowDropdown(!showDropdown);
-    };
-    
-    // Calculate best selling programs
-    const bestSellingPrograms = useMemo(() => {
-        const allPrograms = [];
-        
-        // Process live sessions
-        if (liveSessionsData?.length) {
-            const livePrograms = liveSessionsData.map(program => ({
-                title: program?.liveSessionCard?.title || 'Untitled',
-                type: 'Live',
-                purchaseCount: Array.isArray(program?.purchasedUsers) ? program.purchasedUsers.length : 0,
-                category: program?.liveSessionCard?.category || 'General'
-            }));
-            allPrograms.push(...calculateBestSellingPrograms(livePrograms, 1));
-        }
-        
-        // Process recorded sessions
-        if (recordedSessionsData?.length) {
-            const recordedPrograms = recordedSessionsData.map(program => ({
-                title: program?.recordedProgramCard?.title || 'Untitled',
-                type: 'Recorded',
-                purchaseCount: Array.isArray(program?.purchasedUsers) ? program.purchasedUsers.length : 0,
-                category: program?.recordedProgramCard?.category || 'General'
-            }));
-            allPrograms.push(...calculateBestSellingPrograms(recordedPrograms, 1));
-        }
-        
-        return getTopBestSellingPrograms(allPrograms, 5);
-    }, [liveSessionsData, recordedSessionsData]);
     
     // Click outside handler
     useEffect(() => {
@@ -79,7 +45,7 @@ export default function Sessions() {
     }, []);
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-[#FAF4F0] to-white mt-[100px]">
+        <div className="min-h-screen bg-gradient-to-b from-[#FAF4F0] to-white lg:mt-[100px] mt-[70px]">
             <SEO
                 title="Pilgrim Sessions | Online Wellness Classes | Urban Pilgrim"
                 description="Join live and recorded wellness sessions with expert guides. Explore yoga, meditation, and mindfulness classes for all levels."
@@ -93,14 +59,13 @@ export default function Sessions() {
                     alt="Sessions Header"
                     className="absolute inset-0 w-full h-full object-cover z-0"
                 />
-                <div className="relative z-10 px-6 py-10 text-center">
-                    <h1 className="text-4xl font-bold mb-4">Pilgrim Sessions</h1>
-                    <div className="flex justify-between items-center flex-wrap gap-4 my-8">
+                <div className="relative z-10 px-4 sm:px-6 py-6 sm:py-10 text-center">
+                    <h1 className="text-3xl md:text-4xl font-bold mb-3 sm:mb-4">Pilgrim Sessions</h1>
+                    <div className="flex justify-between items-center flex-wrap gap-3 sm:gap-4 my-6 sm:my-8">
                         <FilterBar onFiltersChange={handleFiltersChange} />
-                        
                     </div>
                 </div>
-                <div className="absolute w-full -translate-y-1/3 px-4">
+                <div className="absolute w-full -translate-y-1/3 sm:px-4 scale-90 sm:scale-100 origin-top">
                     <CategorySelector onCategoryChange={handleCategoryChange} />
                 </div>
             </div>

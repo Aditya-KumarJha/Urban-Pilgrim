@@ -124,7 +124,7 @@ export default function RetreatList({ filters = {}, bestSellingActive = false })
                 </div>
             ) : (
                 <>
-                    <div className="text-sm text-gray-600 p-6">
+                    <div className="text-sm text-gray-600 px-6 sm:pt-5">
                         Showing {filteredRetreats.length} of {retreats.length} retreats
                     </div>
                     <div className="md:px-10 px-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

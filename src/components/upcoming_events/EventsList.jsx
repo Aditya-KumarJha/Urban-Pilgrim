@@ -128,7 +128,7 @@ export default function EventsList({ filters = {} }) {
     }
 
     return (
-        <div className="space-y-4 md:mt-0 mt-16">
+        <div className="space-y-4 md:mt-0 mt-16 pb-5">
             {filteredEvents.length === 0 ? (
                 <div className="text-center py-12">
                     <p className="text-gray-500 text-lg">No events found matching your filters.</p>
@@ -136,10 +136,10 @@ export default function EventsList({ filters = {} }) {
                 </div>
             ) : (
                 <>
-                    <div className="text-sm text-gray-600 lg:px-10 px-6 py-6">
-                        Showing {filteredEvents.length} of {allEvents.length} events
+                    <div className="text-sm text-gray-600 xl:px-20 lg:px-10 px-6 sm:pt-5">
+                        Showing {filteredEvents.length} of {Object.keys(allEvents || {}).length} events
                     </div>
-                    <div className="xl:px-20 lg:px-10 px-6 grid grid-cols-2 lg:grid-cols-3 xl:gap-20 md:gap-10 gap-6">
+                    <div className="xl:px-20 pt-5 lg:px-10 px-6 grid grid-cols-2 lg:grid-cols-3 xl:gap-20 md:gap-10 gap-6">
                         {filteredEvents.map((event) => (
                             <EventCard key={event.id} data={event} />
                         ))}

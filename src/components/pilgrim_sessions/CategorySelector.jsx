@@ -22,13 +22,13 @@ export default function CategorySelector({ onCategoryChange }) {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow px-6 py-4 mb-2">
+    <div className="bg-white rounded-xl shadow sm:px-6 px-3 sm:py-4 py-2.5 mb-2">
       <div className="flex flex-col md:flex-row md:items-center items-start mb-2">
-        <span className="font-semibold text-gray-700 mb-4 md:mb-0 sm:mr-2 mr-0">Category:</span>
+        <span className="font-semibold text-gray-700 sm:mb-4 mb-2 md:mb-0 sm:mr-2 mr-0">Select Category:</span>
 
         {/* Mobile Dropdown */}
         <select 
-          className="block sm:hidden border border-gray-300 rounded px-3 py-1 text-sm w-full"
+          className="block sm:hidden border border-gray-300 rounded px-2 py-1 text-sm w-full"
           value={selectedCategory}
           onChange={handleMobileSelect}
         >

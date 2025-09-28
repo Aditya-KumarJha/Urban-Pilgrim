@@ -106,13 +106,17 @@ export default function RecordedPrograms({ filters = {}, bestSellingActive = fal
     }, [programs, filters, bestSellingActive]);
 
     return (
-        <section className="px-6 py-12 text-gray-900">
+        <section className="px-6 py-6 text-gray-900">
             <div className="max-w-7xl mx-auto">
-                <h2 className="text-3xl text-[#2F6288] font-bold mb-6">
-                    Recorded Programs <span className="bg-[#2F6288] mt-4 max-w-xs h-1 block"></span>
+                <h2 className="text-2xl sm:text-3xl text-[#2F6288] font-bold mb-6">
+                    Recorded Programs <span className="bg-[#2F6288] mt-4 max-w-[200px] h-1 block"></span>
                 </h2>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="text-sm text-gray-600 sm:pb-5">
+                    Showing {filteredPrograms.length} of {(programs?.length || 0)} programs
+                </div>
+
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mt-3 place-items-center sm:place-items-stretch sm:px-0 px-4">
                     {filteredPrograms && filteredPrograms.map((program, index) => (
                         <RecordedProgramCard key={index} {...program} />
                     ))}

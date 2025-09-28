@@ -103,9 +103,12 @@ export default function GuidesDemo({ filters = {}, bestSellingActive = false }) 
     }, []);
 
     return (
-        <section className="px-6 py-12 text-gray-900">
+        <section className="px-4 sm:px-6 pt-8 sm:py-8 text-gray-900">
             <div className="max-w-7xl mx-auto">
-                <div className="sm:grid flex flex-col justify-center items-center sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="text-sm text-gray-600 sm:pt-5">
+                    Showing {filteredGuides.length} of {(guides?.length || 0)} guides
+                </div>
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mt-3 place-items-center sm:place-items-stretch">
                     {filteredGuides && filteredGuides.map((guide, index) => (
                         <GuideCard key={index} {...guide} />
                     ))}
