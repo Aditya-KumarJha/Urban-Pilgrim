@@ -235,28 +235,35 @@ export default function ProgramDetails() {
                         if (buttonConfig.action === 'view') {
                             // User already owns this program - show view button
                             return (
-                                <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-200">
-                                    <div className="text-center">
-                                        <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                                            You own this program
-                                        </h3>
-                                        <p className="text-sm text-gray-600 mb-4">
-                                            Access your purchased content anytime
-                                        </p>
-                                        <button
-                                            className={`w-full py-3 px-4 rounded-lg transition-all duration-200 font-semibold shadow-md hover:shadow-lg ${buttonConfig.className}`}
-                                            onClick={() => {
-                                                if (programData?.recordedProgramCard?.title) {
-                                                    const normalizedTitle = programData.recordedProgramCard.title
-                                                        .toLowerCase()
-                                                        .trim()
-                                                        .replace(/\s+/g, '-');
-                                                    navigate(`/program/${normalizedTitle}/slots`);
-                                                }
-                                            }}
-                                        >
-                                            {buttonConfig.text}
-                                        </button>
+                                <div className="space-y-4 mt-5">
+                                    
+                                    {/* Program Owned Card */}
+                                    <div className="w-full md:inline-block md:max-w-[280px] border border-gray-300 rounded-lg p-4 bg-white">
+                                        <div className="flex items-center justify-center gap-3 mb-2">
+                                            <h4 className="text-lg font-medium text-gray-900">Program Owned</h4>
+                                        </div>
+                                        <div className="text-2xl font-bold text-[#2F6288] mb-1 text-center">
+                                            ₹{getNumericPrice()?.toLocaleString() || '0'}
+                                        </div>
+                                        <p className="text-gray-500 text-sm mb-4 text-center">Purchased</p>
+                                        
+                                        {/* View Program Button */}
+                                        <div className="flex justify-center">
+                                            <button
+                                                className="px-6 py-2 bg-[#2F6288] text-white rounded-lg font-medium transition-all duration-200 hover:bg-[#1F4A68] hover:shadow-lg"
+                                                onClick={() => {
+                                                    if (programData?.recordedProgramCard?.title) {
+                                                        const normalizedTitle = programData.recordedProgramCard.title
+                                                            .toLowerCase()
+                                                            .trim()
+                                                            .replace(/\s+/g, '-');
+                                                        navigate(`/program/${normalizedTitle}/slots`);
+                                                    }
+                                                }}
+                                            >
+                                                {buttonConfig.text}
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             );
@@ -274,12 +281,14 @@ export default function ProgramDetails() {
                         );
                     })()}
 
-                    <div className="flex flex-col">
-                        <p className="text-lg font-semibold text-gray-800 mt-4">
-                            Program Schedule
-                        </p>
-                        <ProgramSchedule programSchedules={programData?.programSchedule} />
-                    </div>
+                    {programData?.programSchedule && programData.programSchedule.length > 0 && (
+                        <div className="flex flex-col">
+                            <p className="text-lg font-semibold text-gray-800 mt-4">
+                                Program Schedule
+                            </p>
+                            <ProgramSchedule programSchedules={programData?.programSchedule} />
+                        </div>
+                    )}
 
                     <ProgramSection program={programData?.aboutProgram} journey={programData?.keyHighlights} />
                     <FeatureProgram features={programData?.features} />
