@@ -56,28 +56,6 @@ export default function GuideClassDetails() {
         window.scrollTo(0, 0);
     }, []);
 
-    const sessions = [
-        {
-            image: "/assets/Anisha.png",
-            category: "Yoga",
-            title: "Let's Meditate For An Hour - With Anisha",
-            price: "199.00",
-        },
-        {
-            image: "/assets/arati_prasad.png",
-            category: "Meditation",
-            title: "Menopausal Fitness – A 4 Day Regime Curated By Aarti Prasad",
-            price: "4,000.00",
-        },
-        {
-            image: "/assets/Anisha.png",
-            category: "Yoga",
-            title:
-                "Discover Your True Self – A 28 Day Soul Search Journey With Rohini Singh Sisodia",
-            price: "14,999.00",
-        },
-    ];
-
     // Get events from Redux store
     const { allEvents } = useSelector((state) => state.allEvents);
 
@@ -1299,6 +1277,11 @@ export default function GuideClassDetails() {
                                         <button
                                             onClick={async (e) => {
                                                 e.preventDefault();
+                                                // Require occupancy/group type before proceeding
+                                                if (!selectedOccupancy || !selectedOccupancy.type) {
+                                                    showError("Please choose an occupancy type first");
+                                                    return;
+                                                }
                                                 console.log("=== BOOK NOW CLICKED ===");
                                                 console.log("Current state:", {
                                                     subscriptionType,

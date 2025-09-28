@@ -795,7 +795,16 @@ export default function MonthlyCalendarModal({
                                                 </button>
                                             </div>
                                             <div className="grid grid-cols-1 gap-4">
-                                                {getSlotsForDate(selectedDate).filter(slot => isSlotVisible(slot)).map(slot => {
+                                                {(() => {
+                                                    const visibleSlots = getSlotsForDate(selectedDate).filter(slot => isSlotVisible(slot));
+                                                    if (visibleSlots.length === 0) {
+                                                        return (
+                                                            <div className="text-sm text-gray-600">
+                                                                All slots are booked for this date
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return visibleSlots.map(slot => {
                                                     const isSelected = selectedSlotsMulti.some(s => s.id === slot.id);
                                                     const disabled = occupancyType.toLowerCase() !== 'group' && !canSelectMoreSlots() && !isSelected;
                                                     const capacityInfo = getSlotCapacityInfo(slot);
@@ -846,7 +855,8 @@ export default function MonthlyCalendarModal({
                                                             </div>
                                                         </button>
                                                     );
-                                                })}
+                                                    });
+                                                })()}
                                             </div>
                                         </>
                                     )}
