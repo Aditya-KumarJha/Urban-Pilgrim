@@ -59,20 +59,20 @@ export default function GuideClassDetails() {
     // Get events from Redux store
     const { allEvents } = useSelector((state) => state.allEvents);
 
-    // Fetch all events if not already loaded
+    // Fetch all events (refresh on mount to ensure latest mapping/filters)
     useEffect(() => {
         const loadEvents = async () => {
-            if (!allEvents || Object.keys(allEvents).length === 0) {
-                try {
-                    await fetchAllEvents(dispatch);
-                } catch (error) {
-                    console.error("Error fetching events:", error);
-                }
+            try {
+                await fetchAllEvents(dispatch);
+            } catch (error) {
+                console.error("Error fetching events:", error);
             }
         };
 
         loadEvents();
-    }, [dispatch, allEvents]);
+        // Only on mount
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [dispatch]);
 
     // ========== Monthly Booking Utility Functions ==========
     
@@ -606,6 +606,21 @@ export default function GuideClassDetails() {
             else if (sub === "both") setMode("Offline"); // default
         }
     }, [sessionData]);
+
+    // Default occupancy selection: always ensure a default when none chosen
+    // Priority: match 'Individual'/'Single' from admin list, else first item, else synthetic { type: 'Individual' }
+    useEffect(() => {
+        if (selectedOccupancy) return;
+        const occupancies = sessionData?.guideCard?.occupancies;
+        let defaultOcc = null;
+        if (Array.isArray(occupancies) && occupancies.length > 0) {
+            defaultOcc = occupancies.find(o => /individual|single/i.test(o?.type || '')) || occupancies[0];
+        } else {
+            // Admin didn't configure occupancies; assume Individual
+            defaultOcc = { type: 'Individual' };
+        }
+        if (defaultOcc) setSelectedOccupancy(defaultOcc);
+    }, [sessionData, selectedOccupancy]);
 
     // Get slots by subscription type and mode
     const getAvailableSlots = () => {
@@ -1277,11 +1292,6 @@ export default function GuideClassDetails() {
                                         <button
                                             onClick={async (e) => {
                                                 e.preventDefault();
-                                                // Require occupancy/group type before proceeding
-                                                if (!selectedOccupancy || !selectedOccupancy.type) {
-                                                    showError("Please choose an occupancy type first");
-                                                    return;
-                                                }
                                                 console.log("=== BOOK NOW CLICKED ===");
                                                 console.log("Current state:", {
                                                     subscriptionType,
@@ -1368,18 +1378,18 @@ export default function GuideClassDetails() {
                     {allEvents && Object.keys(allEvents).length > 0 ? (
                         Object.entries(allEvents)
                             .filter(([id, data]) => {
-                                // Only show guide cards
-                                return !!data?.guideCard?.image;
+                                // Only show events that have an image (mapped under upcomingSessionCard)
+                                return !!data?.upcomingSessionCard?.image;
                             })
                             .sort(() => Math.random() - 0.5)
                             .slice(0, 3)
                             .map(([id, data]) => (
                                 <PersondetailsCard
                                     key={id}
-                                    image={data?.guideCard?.image || '/assets/default-event.png'}
-                                    title={data?.guideCard?.title || 'Guide'}
-                                    price={`${data?.guideCard?.price || '0'}`}
-                                    type={'guide'}
+                                    image={data?.upcomingSessionCard?.image || '/assets/default-event.png'}
+                                    title={data?.upcomingSessionCard?.title || 'Program'}
+                                    price={`${data?.upcomingSessionCard?.price || '0'}`}
+                                    type={data?.type || 'program'}
                                 />
                             ))
                     ) : (

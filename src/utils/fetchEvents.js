@@ -137,12 +137,9 @@ export const fetchAllEvents = async (dispatch) => {
         // console.log("allEvents: ", allEvents)
         
         /** ---------------- FILTER & SORT ---------------- **/
-        const oneMonthAgo = new Date();
-        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-
+        // Relaxed filters: allow events without image (UI has fallback) and without recency limit
         const sortedEvents = allEvents
-            .filter(event => event.title && event.image) // filter incomplete
-            .filter(event => new Date(event.createdAt) >= oneMonthAgo) // last 1 month
+            .filter(event => event.title)
             .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
         /** ---------------- FORMAT FOR REDUX ---------------- **/
