@@ -181,6 +181,13 @@ export default function GuideForm() {
     const [isSessionVideoUploading, setIsSessionVideoUploading] = useState({});
     const [freeTrialVideoUploadProgress, setFreeTrialVideoUploadProgress] = useState(0);
     const [isFreeTrialVideoUploading, setIsFreeTrialVideoUploading] = useState(false);
+    // One-Time multi-date selection (Online/Offline)
+    const [otOnlineSelectedDates, setOtOnlineSelectedDates] = useState([]);
+    const [otOnlineMulti, setOtOnlineMulti] = useState(false);
+    const [otOnlinePending, setOtOnlinePending] = useState({ open: false, startTime: "", endTime: "", type: "individual" });
+    const [otOfflineSelectedDates, setOtOfflineSelectedDates] = useState([]);
+    const [otOfflineMulti, setOtOfflineMulti] = useState(false);
+    const [otOfflinePending, setOtOfflinePending] = useState({ open: false, startTime: "", endTime: "", type: "individual" });
 
     const [categories, setCategories] = useState([
         "Yoga Guides",
@@ -1033,6 +1040,46 @@ export default function GuideForm() {
         setter(target);
     };
 
+    // Apply pending multi slot to all selected online dates
+    const applyOtOnlinePending = () => {
+        const { startTime, endTime, type } = otOnlinePending;
+        if (!startTime || !endTime) return;
+        if (endTime <= startTime) return;
+        const todayYmd = fmtYMD(new Date());
+        const valid = (otOnlineSelectedDates || []).filter(d => d && d >= todayYmd);
+        if (valid.length === 0) return;
+        setFormData(prev => {
+            const next = { ...prev };
+            const slots = next.online.oneTime.slots || [];
+            next.online.oneTime.slots = [
+                ...slots,
+                ...valid.map(date => ({ id: uuidv4(), date, startTime, endTime, type: type || 'individual' }))
+            ];
+            return next;
+        });
+        setOtOnlinePending({ open: false, startTime: "", endTime: "", type: "individual" });
+    };
+
+    // Apply pending multi slot to all selected offline dates
+    const applyOtOfflinePending = () => {
+        const { startTime, endTime, type } = otOfflinePending;
+        if (!startTime || !endTime) return;
+        if (endTime <= startTime) return;
+        const todayYmd = fmtYMD(new Date());
+        const valid = (otOfflineSelectedDates || []).filter(d => d && d >= todayYmd);
+        if (valid.length === 0) return;
+        setFormData(prev => {
+            const next = { ...prev };
+            const slots = next.offline.oneTime.slots || [];
+            next.offline.oneTime.slots = [
+                ...slots,
+                ...valid.map(date => ({ id: uuidv4(), date, startTime, endTime, type: type || 'individual' }))
+            ];
+            return next;
+        });
+        setOtOfflinePending({ open: false, startTime: "", endTime: "", type: "individual" });
+    };
+
     // One-time slot CRUD using existing add/remove handlers
     const addOneTimeSlotFor = (modeKey, dateYmd) => {
         if (!dateYmd) return;
@@ -1845,34 +1892,18 @@ export default function GuideForm() {
                                 {/* Monthly Online Weekly Pattern */}
                                 <div className="mt-6">
                                     <h3 className="text-lg font-semibold text-gray-700 mb-4">Monthly Online – Weekly Hours</h3>
-                                    <div className="flex flex-wrap items-center gap-3 mb-3">
-                                        <button
-                                            type="button"
-                                            onClick={() => initWeekdayRows('online')}
-                                            className="px-3 py-1.5 rounded border border-[#2F6288] text-[#2F6288] hover:bg-blue-50 text-sm"
-                                        >
-                                            Quick setup: Create Sun–Sat rows
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => replicateWeekToMonth('online')}
-                                            className="px-3 py-1 rounded border text-sm bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
-                                        >
-                                            Apply Week to All Month
-                                        </button>
-                                        <span className="text-xs text-gray-500">Tip: Add multiple times inside each weekday row. These slots repeat every week. Users will only see dates within the current month.</span>
-                                    </div>
+                                    
                                     <div className="flex items-center gap-2 mb-3">
                                         <span className="text-sm text-gray-600">Setup Mode:</span>
                                         <button 
                                             onClick={() => initializeDayBasedWeeklyPattern('online')} 
-                                            className="px-3 py-1 rounded border text-sm bg-green-600 text-white border-green-600 hover:bg-green-700"
+                                            className="px-3 py-1.5 rounded border text-sm bg-[#2F6288] text-white border-[#2F6288] hover:bg-[#224b66]"
                                         >
                                             Initialize Day-Based Setup
                                         </button>
                                         <button 
                                             onClick={() => replicateWeekToMonth('online')} 
-                                            className="px-3 py-1 rounded border text-sm bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
+                                            className="px-3 py-1.5 rounded border text-sm bg-[#2F6288] text-white border-[#2F6288] hover:bg-[#224b66]"
                                         >
                                             Apply Week to All Month
                                         </button>
@@ -2115,28 +2146,17 @@ export default function GuideForm() {
                                 {/* Monthly Offline Weekly Pattern */}
                                 <div className="mt-6">
                                     <h3 className="text-lg font-semibold text-gray-700 mb-4">Monthly Offline – Weekly Hours</h3>
-                                    <div className="flex flex-wrap items-center gap-3 mb-3">
-                                        <button
-                                            type="button"
-                                            onClick={() => initWeekdayRows('offline')}
-                                            className="px-3 py-1.5 rounded border border-[#2F6288] text-[#2F6288] hover:bg-blue-50 text-sm"
-                                        >
-                                            Quick setup: Create Sun–Sat rows
-                                        </button>
-                                        <span className="text-xs text-gray-500">Tip: Add multiple times inside each weekday row. These slots repeat every week. Users will only see dates within the current month.</span>
-                                    </div>
-
                                     <div className="flex items-center gap-2 mb-3">
                                         <span className="text-sm text-gray-600">Setup Mode:</span>
                                         <button 
                                             onClick={() => initializeDayBasedWeeklyPattern('offline')} 
-                                            className="px-3 py-1 rounded border text-sm bg-green-600 text-white border-green-600 hover:bg-green-700"
+                                            className="px-3 py-1.5 rounded border text-sm bg-[#2F6288] text-white border-[#2F6288] hover:bg-[#224b66]"
                                         >
                                             Initialize Day-Based Setup
                                         </button>
                                         <button 
                                             onClick={() => replicateWeekToMonth('offline')} 
-                                            className="px-3 py-1 rounded border text-sm bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
+                                            className="px-3 py-1.5 rounded border text-sm bg-[#2F6288] text-white border-[#2F6288] hover:bg-[#224b66]"
                                         >
                                             Apply Week to All Month
                                         </button>
@@ -2146,7 +2166,7 @@ export default function GuideForm() {
                                     {formData?.offline?.monthly?.dayBasedPattern && (
                                         <div className="space-y-6">
                                             {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(dayName => (
-                                                <div key={dayName} className="border border-gray-200 rounded-lg p-4 bg-green-50">
+                                                <div key={dayName} className="border border-gray-200 rounded-lg p-4 bg-blue-50">
                                                     <div className="flex items-center justify-between mb-3">
                                                         <h3 className="font-semibold text-gray-800 text-lg">{dayName}</h3>
                                                         <button
@@ -2303,7 +2323,6 @@ export default function GuideForm() {
                                                 </div>
                                             </div>
                                         ))}
-                                        <button onClick={()=>addMonthlyPatternRow('offline')} className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-[#2F6288] hover:text-[#2F6288] transition-colors">Add Weekly Row</button>
                                     </div>
                                     )}
                                 </div>
@@ -2347,13 +2366,99 @@ export default function GuideForm() {
                                             {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=> <div key={d}>{d}</div>)}
                                         </div>
                                         <div className="grid grid-cols-7 gap-1">
-                                            {calGrid(otOnlineMonth).map((d,i)=> (
-                                                <button key={i} disabled={!d || isPast(d)} onClick={()=> setOtOnlineDate(fmtYMD(d))} className={`h-10 rounded border text-sm ${(!d || isPast(d))? 'text-gray-300 border-gray-200 cursor-not-allowed' : (fmtYMD(d)===otOnlineDate? 'bg-[#2F6288] text-white border-[#2F6288]':'bg-white text-gray-700 border-gray-200 hover:border-[#2F6288]')}`}>{d? d.getDate(): ''}</button>
-                                            ))}
+                                            {calGrid(otOnlineMonth).map((d,i)=> {
+                                                const y = d ? fmtYMD(d) : '';
+                                                const selected = y && otOnlineSelectedDates.includes(y);
+                                                return (
+                                                    <button
+                                                        key={i}
+                                                        disabled={!d || isPast(d)}
+                                                        onClick={()=> {
+                                                            if (!d || isPast(d)) return;
+                                                            const ymd = fmtYMD(d);
+                                                            if (otOnlineMulti) {
+                                                                setOtOnlineSelectedDates(prev => prev.includes(ymd) ? prev.filter(x => x !== ymd) : [...prev, ymd]);
+                                                            } else {
+                                                                setOtOnlineSelectedDates([ymd]);
+                                                                setOtOnlineDate(ymd);
+                                                            }
+                                                        }}
+                                                        className={`h-10 rounded border text-sm ${(!d || isPast(d))
+                                                            ? 'text-gray-300 border-gray-200 cursor-not-allowed'
+                                                            : (selected || (y===otOnlineDate && !otOnlineMulti))
+                                                                ? 'bg-[#2F6288] text-white border-[#2F6288]'
+                                                                : 'bg-white text-gray-700 border-gray-200 hover:border-[#2F6288]'
+                                                        }`}
+                                                    >
+                                                        {d? d.getDate(): ''}
+                                                    </button>
+                                                );
+                                            })}
                                         </div>
+
+                                        {/* Multi-select controls */}
+                                        <div className="mt-2 flex items-center justify-between">
+                                            <label className="flex items-center gap-2 text-sm">
+                                                <input type="checkbox" className="h-4 w-4 text-[#2F6288]" checked={otOnlineMulti} onChange={(e)=> setOtOnlineMulti(e.target.checked)} />
+                                                <span>Multi-select dates</span>
+                                            </label>
+                                            {otOnlineSelectedDates.length > 1 && (
+                                                <button type="button" onClick={()=> setOtOnlineSelectedDates([])} className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700">Clear All</button>
+                                            )}
+                                        </div>
+                                        {otOnlineSelectedDates.length > 0 && (
+                                            <div className="mt-2 flex flex-wrap gap-1">
+                                                {otOnlineSelectedDates.map(d => (
+                                                    <span key={d} className="text-xs bg-[#2F6288] text-white px-2 py-0.5 rounded">{d}</span>
+                                                ))}
+                                            </div>
+                                        )}
+
                                         <div className="mt-3">
-                                            <button type="button" onClick={()=>addOneTimeSlotFor('online', otOnlineDate)} className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-[#2F6288]">Add Slot for {otOnlineDate}</button>
+                                            <button
+                                                type="button"
+                                                onClick={()=>{
+                                                    if (otOnlineSelectedDates.length > 1) {
+                                                        setOtOnlinePending(p => ({ ...p, open: true }));
+                                                    } else {
+                                                        const target = otOnlineSelectedDates[0] || otOnlineDate;
+                                                        if (target) addOneTimeSlotFor('online', target);
+                                                    }
+                                                }}
+                                                className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-[#2F6288]"
+                                            >
+                                                {otOnlineSelectedDates.length > 1 ? `Add Time Range to ${otOnlineSelectedDates.length} dates` : `Add Slot for ${otOnlineDate}`}
+                                            </button>
                                         </div>
+
+                                        {otOnlinePending.open && otOnlineSelectedDates.length > 1 && (
+                                            <div className="mt-3 border border-dashed border-gray-300 rounded-lg p-3 bg-gray-50">
+                                                <p className="text-sm font-medium text-gray-700 mb-2">Add a time range that will apply to all selected dates</p>
+                                                <div className="grid sm:grid-cols-[auto_1fr_auto_1fr_auto] grid-cols-1 gap-2 items-center">
+                                                    <div className="flex items-center gap-3">
+                                                        <label className="inline-flex items-center text-xs">
+                                                            <input type="radio" name="ot-online-type" checked={(otOnlinePending.type||'individual')==='individual'} onChange={()=>setOtOnlinePending(p=>({...p,type:'individual'}))} className="h-4 w-4 text-[#2F6288]" />
+                                                            <span className="ml-1">Individual</span>
+                                                        </label>
+                                                        <label className="inline-flex items-center text-xs">
+                                                            <input type="radio" name="ot-online-type" checked={otOnlinePending.type==='couple'} onChange={()=>setOtOnlinePending(p=>({...p,type:'couple'}))} className="h-4 w-4 text-[#2F6288]" />
+                                                            <span className="ml-1">Couple</span>
+                                                        </label>
+                                                        <label className="inline-flex items-center text-xs">
+                                                            <input type="radio" name="ot-online-type" checked={otOnlinePending.type==='group'} onChange={()=>setOtOnlinePending(p=>({...p,type:'group'}))} className="h-4 w-4 text-[#2F6288]" />
+                                                            <span className="ml-1">Group</span>
+                                                        </label>
+                                                    </div>
+                                                    <input type="time" value={otOnlinePending.startTime} onChange={(e)=> setOtOnlinePending(p=>({...p,startTime:e.target.value}))} className="text-sm w-full border border-gray-300 p-2 rounded-lg" />
+                                                    <span className="hidden sm:flex justify-center text-gray-500">-</span>
+                                                    <input type="time" value={otOnlinePending.endTime} onChange={(e)=> setOtOnlinePending(p=>({...p,endTime:e.target.value}))} className="text-sm w-full border border-gray-300 p-2 rounded-lg" />
+                                                    <div className="flex items-center gap-2">
+                                                        <button type="button" onClick={applyOtOnlinePending} className="text-xs px-3 py-1.5 bg-[#2F6288] text-white rounded-md">Apply to {otOnlineSelectedDates.length} dates</button>
+                                                        <button type="button" onClick={()=> setOtOnlinePending({ open:false, startTime:"", endTime:"", type:"individual" })} className="text-xs px-3 py-1.5 bg-gray-200 text-gray-700 rounded-md">Cancel</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                     {/* Slots for selected date */}
                                     <div className="border rounded-lg p-3">
@@ -2460,13 +2565,99 @@ export default function GuideForm() {
                                             {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=> <div key={d}>{d}</div>)}
                                         </div>
                                         <div className="grid grid-cols-7 gap-1">
-                                            {calGrid(otOfflineMonth).map((d,i)=> (
-                                                <button key={i} disabled={!d || isPast(d)} onClick={()=> setOtOfflineDate(fmtYMD(d))} className={`h-10 rounded border text-sm ${(!d || isPast(d))? 'text-gray-300 border-gray-200 cursor-not-allowed' : (fmtYMD(d)===otOfflineDate? 'bg-[#2F6288] text-white border-[#2F6288]':'bg-white text-gray-700 border-gray-200 hover:border-[#2F6288]')}`}>{d? d.getDate(): ''}</button>
-                                            ))}
+                                            {calGrid(otOfflineMonth).map((d,i)=> {
+                                                const y = d ? fmtYMD(d) : '';
+                                                const selected = y && otOfflineSelectedDates.includes(y);
+                                                return (
+                                                    <button
+                                                        key={i}
+                                                        disabled={!d || isPast(d)}
+                                                        onClick={()=> {
+                                                            if (!d || isPast(d)) return;
+                                                            const ymd = fmtYMD(d);
+                                                            if (otOfflineMulti) {
+                                                                setOtOfflineSelectedDates(prev => prev.includes(ymd) ? prev.filter(x => x !== ymd) : [...prev, ymd]);
+                                                            } else {
+                                                                setOtOfflineSelectedDates([ymd]);
+                                                                setOtOfflineDate(ymd);
+                                                            }
+                                                        }}
+                                                        className={`h-10 rounded border text-sm ${(!d || isPast(d))
+                                                            ? 'text-gray-300 border-gray-200 cursor-not-allowed'
+                                                            : (selected || (y===otOfflineDate && !otOfflineMulti))
+                                                                ? 'bg-[#2F6288] text-white border-[#2F6288]'
+                                                                : 'bg-white text-gray-700 border-gray-200 hover:border-[#2F6288]'
+                                                        }`}
+                                                    >
+                                                        {d? d.getDate(): ''}
+                                                    </button>
+                                                );
+                                            })}
                                         </div>
+
+                                        {/* Multi-select controls */}
+                                        <div className="mt-2 flex items-center justify-between">
+                                            <label className="flex items-center gap-2 text-sm">
+                                                <input type="checkbox" className="h-4 w-4 text-[#2F6288]" checked={otOfflineMulti} onChange={(e)=> setOtOfflineMulti(e.target.checked)} />
+                                                <span>Multi-select dates</span>
+                                            </label>
+                                            {otOfflineSelectedDates.length > 1 && (
+                                                <button type="button" onClick={()=> setOtOfflineSelectedDates([])} className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700">Clear All</button>
+                                            )}
+                                        </div>
+                                        {otOfflineSelectedDates.length > 0 && (
+                                            <div className="mt-2 flex flex-wrap gap-1">
+                                                {otOfflineSelectedDates.map(d => (
+                                                    <span key={d} className="text-xs bg-[#2F6288] text-white px-2 py-0.5 rounded">{d}</span>
+                                                ))}
+                                            </div>
+                                        )}
+
                                         <div className="mt-3">
-                                            <button type="button" onClick={()=>addOneTimeSlotFor('offline', otOfflineDate)} className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-[#2F6288]">Add Slot for {otOfflineDate}</button>
+                                            <button
+                                                type="button"
+                                                onClick={()=>{
+                                                    if (otOfflineSelectedDates.length > 1) {
+                                                        setOtOfflinePending(p => ({ ...p, open: true }));
+                                                    } else {
+                                                        const target = otOfflineSelectedDates[0] || otOfflineDate;
+                                                        if (target) addOneTimeSlotFor('offline', target);
+                                                    }
+                                                }}
+                                                className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-[#2F6288]"
+                                            >
+                                                {otOfflineSelectedDates.length > 1 ? `Add Time Range to ${otOfflineSelectedDates.length} dates` : `Add Slot for ${otOfflineDate}`}
+                                            </button>
                                         </div>
+
+                                        {otOfflinePending.open && otOfflineSelectedDates.length > 1 && (
+                                            <div className="mt-3 border border-dashed border-gray-300 rounded-lg p-3 bg-gray-50">
+                                                <p className="text-sm font-medium text-gray-700 mb-2">Add a time range that will apply to all selected dates</p>
+                                                <div className="grid sm:grid-cols-[auto_1fr_auto_1fr_auto] grid-cols-1 gap-2 items-center">
+                                                    <div className="flex items-center gap-3">
+                                                        <label className="inline-flex items-center text-xs">
+                                                            <input type="radio" name="ot-offline-type" checked={(otOfflinePending.type||'individual')==='individual'} onChange={()=>setOtOfflinePending(p=>({...p,type:'individual'}))} className="h-4 w-4 text-[#2F6288]" />
+                                                            <span className="ml-1">Individual</span>
+                                                        </label>
+                                                        <label className="inline-flex items-center text-xs">
+                                                            <input type="radio" name="ot-offline-type" checked={otOfflinePending.type==='couple'} onChange={()=>setOtOfflinePending(p=>({...p,type:'couple'}))} className="h-4 w-4 text-[#2F6288]" />
+                                                            <span className="ml-1">Couple</span>
+                                                        </label>
+                                                        <label className="inline-flex items-center text-xs">
+                                                            <input type="radio" name="ot-offline-type" checked={otOfflinePending.type==='group'} onChange={()=>setOtOfflinePending(p=>({...p,type:'group'}))} className="h-4 w-4 text-[#2F6288]" />
+                                                            <span className="ml-1">Group</span>
+                                                        </label>
+                                                    </div>
+                                                    <input type="time" value={otOfflinePending.startTime} onChange={(e)=> setOtOfflinePending(p=>({...p,startTime:e.target.value}))} className="text-sm w-full border border-gray-300 p-2 rounded-lg" />
+                                                    <span className="hidden sm:flex justify-center text-gray-500">-</span>
+                                                    <input type="time" value={otOfflinePending.endTime} onChange={(e)=> setOtOfflinePending(p=>({...p,endTime:e.target.value}))} className="text-sm w-full border border-gray-300 p-2 rounded-lg" />
+                                                    <div className="flex items-center gap-2">
+                                                        <button type="button" onClick={applyOtOfflinePending} className="text-xs px-3 py-1.5 bg-[#2F6288] text-white rounded-md">Apply to {otOfflineSelectedDates.length} dates</button>
+                                                        <button type="button" onClick={()=> setOtOfflinePending({ open:false, startTime:"", endTime:"", type:"individual" })} className="text-xs px-3 py-1.5 bg-gray-200 text-gray-700 rounded-md">Cancel</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                     {/* Slots for selected date */}
                                     <div className="border rounded-lg p-3">

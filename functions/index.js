@@ -2073,7 +2073,13 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                     if (meetGuide && (meetGuide.email || meetGuide.number)) {
                         const guideEmail = meetGuide.email;
                         const guidePhone = meetGuide.number;
-                        const guideName = meetGuide.title || 'Retreat Guide';
+                        const guideName = meetGuide?.email
+                            ? meetGuide.email
+                                .split("@")[0]                // take part before "@"
+                                .replace(/[\d\W_]+/g, "")     // remove digits & special chars
+                                .replace(/^./, c => c.toUpperCase()) // capitalize first letter
+                            : "Guide";
+
                         
                         // Prepare notification content
                         const customerInfo = `${name} (${email})`;

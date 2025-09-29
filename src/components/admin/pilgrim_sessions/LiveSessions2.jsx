@@ -121,7 +121,9 @@ export default function LiveSession2() {
 
     // Calendar state for custom date scheduling
     const [calendarMonth, setCalendarMonth] = useState(new Date());
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 10));
+    const [selectedDates, setSelectedDates] = useState([new Date().toISOString().slice(0, 10)]);
+    const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
+    const [pendingMultiSlot, setPendingMultiSlot] = useState({ open: false, startTime: "", endTime: "", type: "individual" });
 
     const formatYMD = (date) => {
         if (!(date instanceof Date)) return '';
@@ -161,38 +163,72 @@ export default function LiveSession2() {
     const getSlotsForDate = (dateYMD) => (formData.liveSlots || []).filter(s => s.date === dateYMD);
     const getOneTimeSlotsForDate = (dateYMD) => (formData.oneTimeSubscription?.slots || []).filter(s => s.date === dateYMD);
 
-    const addSlotForSelectedDate = () => {
-        if (!selectedDate) return;
+    const addSlotForSelectedDates = () => {
+        if (!selectedDates || selectedDates.length === 0) return;
         // Prevent adding slots to past dates
         const today = new Date();
         const ymdToday = formatYMD(today);
-        if (selectedDate < ymdToday) return;
+        const validDates = selectedDates.filter(date => date >= ymdToday);
+        if (validDates.length === 0) return;
+        
+        setFormData(prev => {
+            const newSlots = validDates.map(date => ({
+                date,
+                startTime: "",
+                endTime: "",
+                type: 'individual'
+            }));
+            return {
+                ...prev,
+                liveSlots: [...(prev.liveSlots || []), ...newSlots]
+            };
+        });
+    };
+
+    // Apply the single filled slot to all selected (valid) dates
+    const applyPendingMultiSlot = () => {
+        const { startTime, endTime, type } = pendingMultiSlot;
+        if (!startTime || !endTime) return;
+        // simple validation
+        if (endTime <= startTime) return;
+        if (!selectedDates || selectedDates.length === 0) return;
+        const today = new Date();
+        const ymdToday = formatYMD(today);
+        const validDates = selectedDates.filter(d => d >= ymdToday);
+        if (validDates.length === 0) return;
+
         setFormData(prev => ({
             ...prev,
-            liveSlots: [...(prev.liveSlots || []), { date: selectedDate, startTime: "", endTime: "", type: 'individual' }]
+            liveSlots: [
+                ...(prev.liveSlots || []),
+                ...validDates.map(date => ({ date, startTime, endTime, type: type || 'individual' }))
+            ]
         }));
+        setPendingMultiSlot({ open: false, startTime: "", endTime: "", type: "individual" });
     };
 
     // One-time slots (like GuideForm oneTime online)
     const addOneTimeSlotForSelectedDate = () => {
-        if (!selectedDate) return;
+        const currentDate = selectedDates[0];
+        if (!currentDate) return;
         const today = new Date();
         const ymdToday = formatYMD(today);
-        if (selectedDate < ymdToday) return;
+        if (currentDate < ymdToday) return;
         setFormData(prev => ({
             ...prev,
             oneTimeSubscription: {
                 ...prev.oneTimeSubscription,
-                slots: [...(prev.oneTimeSubscription?.slots || []), { id: uuidv4(), date: selectedDate, startTime: "", endTime: "", type: 'individual' }]
+                slots: [...(prev.oneTimeSubscription?.slots || []), { id: uuidv4(), date: currentDate, startTime: "", endTime: "", type: 'individual' }]
             }
         }));
     };
 
     const updateOneTimeSlotForSelectedDate = (localIndex, field, value) => {
+        const currentDate = selectedDates[0];
         setFormData(prev => {
             let idx = -1;
             const updated = (prev.oneTimeSubscription?.slots || []).map(s => {
-                if (s.date === selectedDate) {
+                if (s.date === currentDate) {
                     idx++;
                     if (idx === localIndex) {
                         return { ...s, [field]: value };
@@ -205,11 +241,12 @@ export default function LiveSession2() {
     };
 
     const removeOneTimeSlotForSelectedDate = (localIndex) => {
+        const currentDate = selectedDates[0];
         setFormData(prev => {
             let idx = -1;
             const updated = [];
             for (const s of (prev.oneTimeSubscription?.slots || [])) {
-                if (s.date === selectedDate) {
+                if (s.date === currentDate) {
                     idx++;
                     if (idx === localIndex) continue;
                 }
@@ -220,10 +257,11 @@ export default function LiveSession2() {
     };
 
     const updateSlotForSelectedDate = (localIndex, field, value) => {
+        const currentDate = selectedDates[0]; // Use first selected date for editing
         setFormData(prev => {
             let idx = -1;
             const updated = (prev.liveSlots || []).map(s => {
-                if (s.date === selectedDate) {
+                if (s.date === currentDate) {
                     idx++;
                     if (idx === localIndex) {
                         return { ...s, [field]: value };
@@ -236,11 +274,12 @@ export default function LiveSession2() {
     };
 
     const removeSlotForSelectedDate = (localIndex) => {
+        const currentDate = selectedDates[0]; // Use first selected date for editing
         setFormData(prev => {
             let idx = -1;
             const updated = [];
             for (const s of (prev.liveSlots || [])) {
-                if (s.date === selectedDate) {
+                if (s.date === currentDate) {
                     idx++;
                     if (idx === localIndex) continue; // skip remove
                 }
@@ -1144,7 +1183,8 @@ export default function LiveSession2() {
                     <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
                         {isEditing ? "Edit Organizer Information" : "Organizer Information"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
                     </h2>
-
+                    
+                    {/* Details */}
                     <div className="grid sm:grid-cols-2 gap-4">
                         {/* Organizer Name */}
                         <div className="mb-4">
@@ -1329,7 +1369,7 @@ export default function LiveSession2() {
                                     {getCalendarGrid(calendarMonth).map((dateObj, idx) => {
                                         const isCurrentMonth = dateObj && dateObj.getMonth() === calendarMonth.getMonth();
                                         const ymd = dateObj ? formatYMD(dateObj) : '';
-                                        const isSelected = dateObj && ymd === selectedDate;
+                                        const isSelected = dateObj && selectedDates.includes(ymd);
                                         const has = dayHasSlots(dateObj);
                                         const isPast = isPastDate(dateObj);
                                         return (
@@ -1337,7 +1377,19 @@ export default function LiveSession2() {
                                                 key={idx}
                                                 type="button"
                                                 disabled={!dateObj || isPast}
-                                                onClick={() => dateObj && !isPast && setSelectedDate(formatYMD(dateObj))}
+                                                onClick={() => {
+                                                    if (!dateObj || isPast) return;
+                                                    const ymd = formatYMD(dateObj);
+                                                    if (isMultiSelectMode) {
+                                                        setSelectedDates(prev => 
+                                                            prev.includes(ymd) 
+                                                                ? prev.filter(d => d !== ymd)
+                                                                : [...prev, ymd]
+                                                        );
+                                                    } else {
+                                                        setSelectedDates([ymd]);
+                                                    }
+                                                }}
                                                 className={`h-10 rounded-md text-sm border ${!isCurrentMonth ? 'bg-gray-50 text-gray-300' : 'bg-white'} ${isSelected ? 'border-[#2F6288]' : 'border-gray-200'} ${has ? 'ring-2 ring-green-200' : ''} ${isPast ? 'opacity-50 cursor-not-allowed' : ''}`}
                                             >
                                                 {dateObj instanceof Date ? dateObj.getDate() : ''}
@@ -1346,74 +1398,177 @@ export default function LiveSession2() {
                                     })}
                                 </div>
 
-                                <div className="border border-gray-200 rounded-lg p-4 space-y-3">
-                                    <div className="flex items-center justify-between">
-                                        <p className="font-semibold text-gray-800">Selected Date: {selectedDate}</p>
+                                {/* Multi-select toggle */}
+                                <div className="mb-4 flex items-center gap-4">
+                                    <label className="flex items-center gap-2">
+                                        <input
+                                            type="checkbox"
+                                            checked={isMultiSelectMode}
+                                            onChange={(e) => {
+                                                setIsMultiSelectMode(e.target.checked);
+                                                if (!e.target.checked && selectedDates.length > 1) {
+                                                    setSelectedDates([selectedDates[0]]);
+                                                }
+                                            }}
+                                            className="h-4 w-4 text-[#2F6288]"
+                                        />
+                                        <span className="text-sm font-medium text-gray-700">Multi-select dates</span>
+                                    </label>
+                                    {selectedDates.length > 1 && (
                                         <button
                                             type="button"
-                                            onClick={addSlotForSelectedDate}
-                                            className="text-xs px-3 py-1.5 bg-[#2F6288] text-white rounded-md"
+                                            onClick={() => setSelectedDates([])}
+                                            className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-md hover:bg-gray-200"
                                         >
-                                            Add Time Range
+                                            Clear All
+                                        </button>
+                                    )}
+                                </div>
+
+                                <div className="border border-gray-200 rounded-lg p-4 space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="font-semibold text-gray-800">
+                                                Selected Date{selectedDates.length > 1 ? 's' : ''}: 
+                                            </p>
+                                            <div className="flex flex-wrap gap-1 mt-1">
+                                                {selectedDates.map(date => (
+                                                    <span key={date} className="text-xs bg-[#2F6288] text-white px-2 py-1 rounded">
+                                                        {date}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (selectedDates.length > 1) {
+                                                    setPendingMultiSlot(prev => ({ ...prev, open: true }));
+                                                } else {
+                                                    addSlotForSelectedDates();
+                                                }
+                                            }}
+                                            disabled={selectedDates.length === 0}
+                                            className="text-xs px-3 py-1.5 bg-[#2F6288] text-white rounded-md disabled:bg-gray-300 disabled:cursor-not-allowed"
+                                        >
+                                            Add Time Range to {selectedDates.length > 1 ? 'All Dates' : 'Date'}
                                         </button>
                                     </div>
 
-                                    {getSlotsForDate(selectedDate).length === 0 && (
-                                        <p className="text-xs text-gray-500">No time ranges added for this date.</p>
+                                    {pendingMultiSlot.open && selectedDates.length > 1 && (
+                                        <div className="mt-3 border border-dashed border-gray-300 rounded-lg p-3 bg-gray-50">
+                                            <p className="text-sm font-medium text-gray-700 mb-2">Add a time range that will apply to all selected dates</p>
+                                            <div className="grid sm:grid-cols-[auto_1fr_auto_1fr_auto] grid-cols-1 gap-2 items-center">
+                                                <div className="flex items-center gap-3">
+                                                    <label className="inline-flex items-center text-xs">
+                                                        <input type="radio" name="multi-type" checked={(pendingMultiSlot.type||'individual')==='individual'} onChange={()=>setPendingMultiSlot(p=>({...p,type:'individual'}))} className="h-4 w-4 text-[#2F6288]" />
+                                                        <span className="ml-1">Individual</span>
+                                                    </label>
+                                                    <label className="inline-flex items-center text-xs">
+                                                        <input type="radio" name="multi-type" checked={pendingMultiSlot.type==='couple'} onChange={()=>setPendingMultiSlot(p=>({...p,type:'couple'}))} className="h-4 w-4 text-[#2F6288]" />
+                                                        <span className="ml-1">Couple</span>
+                                                    </label>
+                                                    <label className="inline-flex items-center text-xs">
+                                                        <input type="radio" name="multi-type" checked={pendingMultiSlot.type==='group'} onChange={()=>setPendingMultiSlot(p=>({...p,type:'group'}))} className="h-4 w-4 text-[#2F6288]" />
+                                                        <span className="ml-1">Group</span>
+                                                    </label>
+                                                </div>
+                                                <input
+                                                    type="time"
+                                                    value={pendingMultiSlot.startTime}
+                                                    onChange={(e) => setPendingMultiSlot(p=>({...p,startTime:e.target.value}))}
+                                                    className="text-sm w-full border border-gray-300 p-2 rounded-lg"
+                                                />
+                                                <span className="hidden sm:flex justify-center text-gray-500">-</span>
+                                                <input
+                                                    type="time"
+                                                    value={pendingMultiSlot.endTime}
+                                                    onChange={(e) => setPendingMultiSlot(p=>({...p,endTime:e.target.value}))}
+                                                    className="text-sm w-full border border-gray-300 p-2 rounded-lg"
+                                                />
+                                                <div className="flex items-center gap-2">
+                                                    <button type="button" onClick={applyPendingMultiSlot} className="text-xs px-3 py-1.5 bg-[#2F6288] text-white rounded-md">Apply to {selectedDates.length} dates</button>
+                                                    <button type="button" onClick={()=>setPendingMultiSlot({ open:false, startTime:"", endTime:"", type:"individual" })} className="text-xs px-3 py-1.5 bg-gray-200 text-gray-700 rounded-md">Cancel</button>
+                                                </div>
+                                            </div>
+                                        </div>
                                     )}
 
-                                    {getSlotsForDate(selectedDate).map((s, localIdx) => (
-                                        <div key={localIdx} className="grid sm:grid-cols-[auto_1fr_auto_1fr_auto_auto] grid-cols-1 gap-2 items-center">
-                                            <div className="flex items-center gap-3">
-                                                <label className="inline-flex items-center text-xs">
-                                                    <input type="radio" name={`live-${selectedDate}-${localIdx}`} checked={(s.type||'individual')==='individual'} onChange={()=>updateSlotForSelectedDate(localIdx,'type','individual')} className="h-4 w-4 text-[#2F6288]" />
-                                                    <span className="ml-1">Individual</span>
-                                                </label>
-                                                <label className="inline-flex items-center text-xs">
-                                                    <input type="radio" name={`live-${selectedDate}-${localIdx}`} checked={s.type==='couple'} onChange={()=>updateSlotForSelectedDate(localIdx,'type','couple')} className="h-4 w-4 text-[#2F6288]" />
-                                                    <span className="ml-1">Couple</span>
-                                                </label>
-                                                <label className="inline-flex items-center text-xs">
-                                                    <input type="radio" name={`live-${selectedDate}-${localIdx}`} checked={s.type==='group'} onChange={()=>updateSlotForSelectedDate(localIdx,'type','group')} className="h-4 w-4 text-[#2F6288]" />
-                                                    <span className="ml-1">Group</span>
-                                                </label>
-                                            </div>
-                                            <input
-                                                type="time"
-                                                value={s.startTime}
-                                                onChange={(e) => updateSlotForSelectedDate(localIdx, 'startTime', e.target.value)}
-                                                className="text-sm w-full border border-gray-300 p-2 rounded-lg"
-                                            />
-                                            <span className="hidden sm:flex justify-center text-gray-500">-</span>
-                                            <input
-                                                type="time"
-                                                value={s.endTime}
-                                                onChange={(e) => updateSlotForSelectedDate(localIdx, 'endTime', e.target.value)}
-                                                className="text-sm w-full border border-gray-300 p-2 rounded-lg"
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => removeSlotForSelectedDate(localIdx)}
-                                                className="text-red-500 hover:text-red-600 text-xs"
-                                            >
-                                                Delete
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    const current = getSlotsForDate(selectedDate)[localIdx];
-                                                    if (!current) return;
-                                                    setFormData(prev => ({
-                                                        ...prev,
-                                                        liveSlots: [...prev.liveSlots, { date: selectedDate, startTime: current.startTime, endTime: current.endTime }]
-                                                    }));
-                                                }}
-                                                className="text-[#2F6288] hover:text-blue-700 text-xs"
-                                            >
-                                                Copy
-                                            </button>
+                                    {/* Show slots for the first selected date or all dates */}
+                                    {selectedDates.length === 1 ? (
+                                        <>
+                                            {getSlotsForDate(selectedDates[0]).length === 0 && (
+                                                <p className="text-xs text-gray-500">No time ranges added for this date.</p>
+                                            )}
+                                            {getSlotsForDate(selectedDates[0]).map((s, localIdx) => (
+                                                <div key={localIdx} className="grid sm:grid-cols-[auto_1fr_auto_1fr_auto_auto] grid-cols-1 gap-2 items-center">
+                                                    <div className="flex items-center gap-3">
+                                                        <label className="inline-flex items-center text-xs">
+                                                            <input type="radio" name={`live-${selectedDates[0]}-${localIdx}`} checked={(s.type||'individual')==='individual'} onChange={()=>updateSlotForSelectedDate(localIdx,'type','individual')} className="h-4 w-4 text-[#2F6288]" />
+                                                            <span className="ml-1">Individual</span>
+                                                        </label>
+                                                        <label className="inline-flex items-center text-xs">
+                                                            <input type="radio" name={`live-${selectedDates[0]}-${localIdx}`} checked={s.type==='couple'} onChange={()=>updateSlotForSelectedDate(localIdx,'type','couple')} className="h-4 w-4 text-[#2F6288]" />
+                                                            <span className="ml-1">Couple</span>
+                                                        </label>
+                                                        <label className="inline-flex items-center text-xs">
+                                                            <input type="radio" name={`live-${selectedDates[0]}-${localIdx}`} checked={s.type==='group'} onChange={()=>updateSlotForSelectedDate(localIdx,'type','group')} className="h-4 w-4 text-[#2F6288]" />
+                                                            <span className="ml-1">Group</span>
+                                                        </label>
+                                                    </div>
+                                                    <input
+                                                        type="time"
+                                                        value={s.startTime}
+                                                        onChange={(e) => updateSlotForSelectedDate(localIdx, 'startTime', e.target.value)}
+                                                        className="text-sm w-full border border-gray-300 p-2 rounded-lg"
+                                                    />
+                                                    <span className="hidden sm:flex justify-center text-gray-500">-</span>
+                                                    <input
+                                                        type="time"
+                                                        value={s.endTime}
+                                                        onChange={(e) => updateSlotForSelectedDate(localIdx, 'endTime', e.target.value)}
+                                                        className="text-sm w-full border border-gray-300 p-2 rounded-lg"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeSlotForSelectedDate(localIdx)}
+                                                        className="text-red-500 hover:text-red-600 text-xs"
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const current = getSlotsForDate(selectedDates[0])[localIdx];
+                                                            if (!current) return;
+                                                            setFormData(prev => ({
+                                                                ...prev,
+                                                                liveSlots: [...prev.liveSlots, { date: selectedDates[0], startTime: current.startTime, endTime: current.endTime }]
+                                                            }));
+                                                        }}
+                                                        className="text-[#2F6288] hover:text-blue-700 text-xs"
+                                                    >
+                                                        Copy
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            <p className="text-sm text-gray-600">Showing slots summary for multiple dates:</p>
+                                            {selectedDates.map(date => {
+                                                const slotsForDate = getSlotsForDate(date);
+                                                return (
+                                                    <div key={date} className="bg-gray-50 p-2 rounded">
+                                                        <p className="text-xs font-medium text-gray-700">{date}</p>
+                                                        <p className="text-xs text-gray-500">
+                                                            {slotsForDate.length === 0 ? 'No slots' : `${slotsForDate.length} slot(s)`}
+                                                        </p>
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
-                                    ))}
+                                    )}
                                 </div>
                             </div>
 
