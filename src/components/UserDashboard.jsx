@@ -25,7 +25,7 @@ const StatusBadge = ({ status }) => {
             : "bg-[#FFC5C580] text-[#DF0404] border border-[#DF0404]";
 
     return (
-        <span className={`inline-flex items-center justify-center w-28 h-8 rounded text-sm font-medium ${colors}`}>
+        <span className={`inline-flex items-center justify-center w-20 sm:w-28 h-6 sm:h-8 rounded text-xs sm:text-sm font-medium ${colors}`}>
             {status}
         </span>
     );
@@ -36,15 +36,15 @@ function Dashboard() {
     const [filteredPrograms, setFilteredPrograms] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [loading, setLoading] = useState(true);
-     
+
     // Sort state
     const [sortOpen, setSortOpen] = useState(false);
     const [sortBy, setSortBy] = useState('newest'); // 'newest' | 'oldest'
     const sortRef = useRef(null);
-     
+
     const dispatch = useDispatch();
     const navigate = useNavigate();
-    
+
     // Get data from Redux store
     const userPrograms = useSelector((state) => state.userProgram);
     const currentUser = useSelector((state) => state.auth.user);
@@ -76,7 +76,7 @@ function Dashboard() {
             return;
         }
 
-        const filtered = userPrograms.filter(program => 
+        const filtered = userPrograms.filter(program =>
             program.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             program.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             program.type?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -229,13 +229,13 @@ function Dashboard() {
                     fixed inset-y-0 left-0 bg-white shadow-lg flex flex-col justify-between
                     transform transition-transform duration-300 ease-in-out z-40
                     ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-                    w-full sm:w-[300px] lg:w-[256px]
+                    w-[250px] sm:w-[300px] lg:w-[256px]
                     lg:translate-x-0
                 `}
             >
                 {/* Mobile header with close button */}
-                <div className="flex justify-between items-center p-4 border-b lg:hidden">
-                    <img src="/urban_pilgrim_logo.png" alt="Logo" className="h-10 w-10 rounded" />
+                <div className="flex justify-between items-center px-4 pt-2 border-b lg:hidden">
+                    <img src="/urban_pilgrim_logo.png" alt="Logo" className="h-14 w-14 rounded" />
                     <button
                         onClick={() => setSidebarOpen(false)}
                         className="p-2 rounded-md hover:bg-gray-100"
@@ -269,15 +269,15 @@ function Dashboard() {
                 <div className="flex justify-between items-center p-4 sm:p-6 mt-auto">
                     <div>
                         <p className="text-gray-800 font-medium text-xs sm:text-sm">
-                        {(() => {
-                            let username = currentUser?.email?.split("@")[0] || "";
-                            
-                            // Remove all trailing digits or special chars (like ., _, - etc.)
-                            username = username.replace(/[\d\W]+$/g, "");
-                            
-                            // Capitalize first letter
-                            return username.charAt(0).toUpperCase() + username.slice(1);
-                        })()}
+                            {(() => {
+                                let username = currentUser?.email?.split("@")[0] || "";
+
+                                // Remove all trailing digits or special chars (like ., _, - etc.)
+                                username = username.replace(/[\d\W]+$/g, "");
+
+                                // Capitalize first letter
+                                return username.charAt(0).toUpperCase() + username.slice(1);
+                            })()}
                         </p>
                         <button
                             onClick={handleLogout}
@@ -300,7 +300,17 @@ function Dashboard() {
             )}
 
             {/* Main Content */}
-            <main className="flex-1 p-4 sm:p-8 lg:ml-64">
+            <main className="
+                flex-1 p-4 sm:p-8 lg:ml-64 
+                lg:max-w-[2000px] 
+                md:max-w-[750px] 
+                sm:max-w-[600px] 
+                max-w-sm mx-auto
+
+                max-[480px]:max-w-[370px]
+                max-[350px]:max-w-[300px]"
+            >
+
                 {/* Heading + Search Bar */}
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 gap-4">
                     {/* Mobile: hamburger + heading */}
@@ -311,14 +321,14 @@ function Dashboard() {
                         >
                             <HiMenu className="w-6 h-6" />
                         </button>
-                        <h1 className="text-xl font-semibold flex-1 text-center lg:text-left lg:text-2xl">
+                        <h1 className="text-xl font-semibold flex-1 mt-4     text-center lg:text-left lg:text-2xl">
                             Hello {" "}
                             {(() => {
                                 let username = currentUser?.email?.split("@")[0] || "";
-                                
+
                                 // Remove all trailing digits or special chars (like ., _, - etc.)
                                 username = username.replace(/[\d\W]+$/g, "");
-                                
+
                                 // Capitalize first letter
                                 return username.charAt(0).toUpperCase() + username.slice(1);
                             })()} 👋🏻
@@ -339,14 +349,16 @@ function Dashboard() {
                 </div>
 
                 <div className="bg-white rounded-2xl shadow-md p-6">
+                    {/* Your Purchases */}
                     <div className="flex flex-col md:flex-col lg:flex-row justify-between gap-4">
                         <div className="text-xl font-semibold text-nowrap text-center mt-2">
                             Your Purchases
                         </div>
 
                         {/* Search + Sort */}
-                        <div className="flex flex-col md:flex-col lg:flex-row items-stretch lg:items-center gap-4 w-full lg:w-auto">
-                            <div className="flex items-center bg-[#f8f9fd] rounded-lg px-4 py-2 w-full lg:w-64 shadow-sm border border-gray-200">
+                        <div className="flex max-w-[300px] md:max-w-[1000px] flex-col md:flex-row items-stretch md:items-center gap-4 w-full md:w-auto">
+                            {/* search */}
+                            {/* <div className="flex items-center bg-[#f8f9fd] rounded-lg px-4 py-2 w-full lg:w-64 shadow-sm border border-gray-200">
                                 <FaSearch className="text-gray-400" />
                                 <input
                                     type="text"
@@ -355,43 +367,45 @@ function Dashboard() {
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     className="ml-2 flex-1 bg-transparent focus:outline-none focus:ring-0 text-sm placeholder-gray-400"
                                 />
-                            </div>
+                            </div> */}
 
+                            {/* sort */}
                             <div className="relative w-full lg:w-auto" ref={sortRef}>
-                            <button
-                                type="button"
-                                onClick={() => setSortOpen((o) => !o)}
-                                className="flex items-center justify-center w-full lg:w-auto bg-[#f8f9fd] rounded-lg px-4 py-2 cursor-pointer shadow-sm border border-gray-200"
-                            >
-                                <span className="text-sm">
-                                    Sort by: <b>{sortBy === 'newest' ? 'Newest' : 'Oldest'}</b>
-                                </span>
-                                <FaChevronDown className={`ml-2 text-gray-500 transition-transform ${sortOpen ? 'rotate-180' : ''}`} />
-                            </button>
-                            {sortOpen && (
-                                <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-md shadow-lg z-50">
-                                    <button
-                                        type="button"
-                                        onClick={() => { setSortBy('newest'); setSortOpen(false); }}
-                                        className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${sortBy === 'newest' ? 'text-[#C16A00] font-semibold' : 'text-gray-700'}`}
-                                    >
-                                        Newest
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => { setSortBy('oldest'); setSortOpen(false); }}
-                                        className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${sortBy === 'oldest' ? 'text-[#C16A00] font-semibold' : 'text-gray-700'}`}
-                                    >
-                                        Oldest
-                                    </button>
-                                </div>
-                            )}
-                        </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setSortOpen((o) => !o)}
+                                    className="flex items-center justify-center w-full lg:w-auto bg-[#f8f9fd] rounded-lg px-4 py-2 cursor-pointer shadow-sm border border-gray-200"
+                                >
+                                    <span className="text-sm">
+                                        Sort by: <b>{sortBy === 'newest' ? 'Newest' : 'Oldest'}</b>
+                                    </span>
+                                    <FaChevronDown className={`ml-2 text-gray-500 transition-transform ${sortOpen ? 'rotate-180' : ''}`} />
+                                </button>
+
+                                {sortOpen && (
+                                    <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+                                        <button
+                                            type="button"
+                                            onClick={() => { setSortBy('newest'); setSortOpen(false); }}
+                                            className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${sortBy === 'newest' ? 'text-[#C16A00] font-semibold' : 'text-gray-700'}`}
+                                        >
+                                            Newest
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => { setSortBy('oldest'); setSortOpen(false); }}
+                                            className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${sortBy === 'oldest' ? 'text-[#C16A00] font-semibold' : 'text-gray-700'}`}
+                                        >
+                                            Oldest
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
 
                     {/* Table */}
-                    <div className="overflow-x-auto text-nowrap mt-12">
+                    <div className="overflow-x-auto lg:text-nowrap mt-12">
                         {loading ? (
                             <div className="flex justify-center items-center py-12">
                                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C16A00]"></div>
@@ -406,15 +420,15 @@ function Dashboard() {
                                 </p>
                             </div>
                         ) : (
-                            <table className="w-full text-left text-sm min-w-[600px]">
+                            <table className="w-full text-left text-xs sm:text-sm min-w-[600px]">
                                 <thead className="bg-white border-b">
                                     <tr className="text-[#B5B7C0]">
-                                        <th className="px-6 py-3 font-medium">Session Name</th>
-                                        <th className="px-6 py-3 font-medium">Date</th>
-                                        <th className="px-6 py-3 font-medium">Category</th>
-                                        <th className="px-6 py-3 font-medium">Price</th>
-                                        <th className="px-6 py-3 font-medium">Payment Status</th>
-                                        <th className="px-6 py-3 font-medium text-right">Action</th>
+                                        <th className="px-3 sm:px-6 py-2 sm:py-3 font-medium text-xs sm:text-sm">Session Name</th>
+                                        <th className="px-3 sm:px-6 py-2 sm:py-3 font-medium text-xs sm:text-sm">Date</th>
+                                        <th className="px-3 sm:px-6 py-2 sm:py-3 font-medium text-xs sm:text-sm">Category</th>
+                                        <th className="px-3 sm:px-6 py-2 sm:py-3 font-medium text-xs sm:text-sm">Price</th>
+                                        <th className="px-3 sm:px-6 py-2 sm:py-3 font-medium text-xs sm:text-sm">Payment Status</th>
+                                        <th className="px-3 sm:px-6 py-2 sm:py-3 font-medium text-xs sm:text-sm text-right">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -426,42 +440,43 @@ function Dashboard() {
                                         const isRetreat = type === 'retreat' || type === 'retreats';
                                         return (
                                             <tr key={i} className="border-b hover:bg-gray-50">
-                                                <td className="px-6 py-4" title={formattedProgram.session}>
-                                                    {formattedProgram.session.length > 30 
-                                                        ? `${formattedProgram.session.substring(0, 30)}...` 
+                                                <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm" title={formattedProgram.session}>
+                                                    {formattedProgram.session.length > 25
+                                                        ? `${formattedProgram.session.substring(0, 25)}...`
                                                         : formattedProgram.session}
                                                 </td>
-                                                <td className="px-6 py-4">{formattedProgram.date}</td>
-                                                <td className="px-6 py-4">{formattedProgram.category}</td>
-                                                <td className="px-6 py-4 font-semibold">
-                                                    ₹{" "}
+                                                <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm">{formattedProgram.date}</td>
+                                                <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm">{formattedProgram.category}</td>
+                                                <td className="px-3 sm:px-6 py-3 sm:py-4 font-semibold text-xs sm:text-sm">
+                                                    ₹
                                                     {Number(formattedProgram.price).toLocaleString("en-IN", {
                                                         minimumFractionDigits: 2,
                                                     })}
                                                 </td>
-                                                <td className="px-6 py-4">
+                                                <td className="px-3 sm:px-6 py-3 sm:py-4">
                                                     <StatusBadge status={formattedProgram.status} />
                                                 </td>
-                                                <td className="px-6 py-4">
+                                                {/* action button */}
+                                                <td className="px-3 sm:px-6 py-3 sm:py-4">
                                                     <div className="flex justify-end">
                                                         {isLiveOrGuide && (
                                                             <button
                                                                 onClick={() => handleOpenProgram(program)}
-                                                                className="px-3 py-2 rounded-md bg-[#2F6288] text-white text-sm hover:bg-[#224b66]"
+                                                                className="px-2 sm:px-3 py-1 sm:py-2 rounded-md bg-[#2F6288] text-white text-xs sm:text-sm hover:bg-[#224b66]"
                                                             >
-                                                                View & Join
+                                                                <span className="hidden sm:inline">View & </span>Join
                                                             </button>
                                                         )}
                                                         {isRecorded && (
                                                             <button
                                                                 onClick={() => handleOpenProgram(program)}
-                                                                className="px-3 py-2 rounded-md bg-[#C16A00] text-white text-sm hover:bg-[#a85b00]"
+                                                                className="px-2 sm:px-3 py-1 sm:py-2 rounded-md bg-[#C16A00] text-white text-xs sm:text-sm hover:bg-[#a85b00]"
                                                             >
-                                                                Watch Now
+                                                                Watch<span className="hidden sm:inline"> Now</span>
                                                             </button>
                                                         )}
                                                         {isRetreat && (
-                                                            <span className="text-xs text-gray-500">Details will be shared</span>
+                                                            <span className="text-xs text-gray-500">Details shared</span>
                                                         )}
                                                     </div>
                                                 </td>
