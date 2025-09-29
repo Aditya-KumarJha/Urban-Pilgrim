@@ -420,7 +420,6 @@ async function sendWhatsApp(toE164, body, useTemplate = false) {
     }
 }
 
-
 async function createWhatsAppReminderDocs({ userId, name, phoneE164, program, slots }) {
     try {
         if (!phoneE164 || !Array.isArray(slots) || slots.length === 0) {
@@ -2056,6 +2055,141 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
 
                 console.log("Guide session emails sent successfully");
             }
+        }
+
+        // ------------------------
+        // 6) Send notifications to retreat guides/organizers
+        // ------------------------
+        try {
+            for (const program of cartData) {
+                // Check if this is a retreat program
+                if (program.type === 'retreat' || program.category === 'retreat' || 
+                    (program.title && program.title.toLowerCase().includes('retreat'))) {
+                    
+                    console.log(`Processing retreat notification for: ${program.title}`);
+                    
+                    // Get retreat guide contact information from meetGuide field
+                    const meetGuide = program.meetGuide;
+                    if (meetGuide && (meetGuide.email || meetGuide.number)) {
+                        const guideEmail = meetGuide.email;
+                        const guidePhone = meetGuide.number;
+                        const guideName = meetGuide.title || 'Retreat Guide';
+                        
+                        // Prepare notification content
+                        const customerInfo = `${name} (${email})`;
+                        const retreatTitle = program.title;
+                        const bookingDate = new Date().toLocaleDateString('en-US', { 
+                            weekday: 'long', 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric' 
+                        });
+                        const paymentId = paymentResponse.razorpay_payment_id;
+                        
+                        // Send email notification to retreat guide
+                        if (guideEmail) {
+                            try {
+                                const guideEmailHtml = `
+                                    <!DOCTYPE html>
+                                    <html>
+                                    <head>
+                                        <meta charset="utf-8">
+                                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                                        <title>New Retreat Booking</title>
+                                    </head>
+                                    <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f7fa;">
+                                        <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                                            <div style="background: linear-gradient(135deg, #2F6288 0%, #1e4a66 100%); color: white; padding: 30px 20px; text-align: center;">
+                                                <h1 style="margin: 0; font-size: 24px; font-weight: 600;">🧘‍♀️ New Retreat Booking</h1>
+                                                <p style="margin: 10px 0 0 0; opacity: 0.9; font-size: 16px;">Urban Pilgrim</p>
+                                            </div>
+                                            
+                                            <div style="padding: 30px 20px;">
+                                                <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                                                    Dear ${guideName},
+                                                </p>
+                                                <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                                                    You have received a new booking for your retreat program!
+                                                </p>
+                                                
+                                                <div style="background: #f8fafc; border: 1px solid #eef2f7; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+                                                    <h3 style="color: #2F6288; margin: 0 0 15px 0; font-size: 18px;">📋 Booking Details</h3>
+                                                    <p style="margin: 8px 0; color: #333;"><strong>Retreat Program:</strong> ${retreatTitle}</p>
+                                                    <p style="margin: 8px 0; color: #333;"><strong>Customer:</strong> ${customerInfo}</p>
+                                                    <p style="margin: 8px 0; color: #333;"><strong>Booking Date:</strong> ${bookingDate}</p>
+                                                    <p style="margin: 8px 0; color: #333;"><strong>Payment ID:</strong> ${paymentId}</p>
+                                                </div>
+                                                
+                                                <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 15px; margin-top: 20px;">
+                                                    <p style="margin: 0; color: #856404; font-size: 14px;">
+                                                        <strong>📝 Next Steps:</strong> Please reach out to the customer to coordinate retreat details, 
+                                                        including location, schedule, and any specific requirements.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            
+                                            <div style="background: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #eee;">
+                                                <p style="color: #999; margin: 0; font-size: 12px;">Urban Pilgrim Retreat Bookings • Guide Notification</p>
+                                            </div>
+                                        </div>
+                                    </body>
+                                    </html>
+                                `;
+
+                                await transporter.sendMail({
+                                    from: `Urban Pilgrim <${gmailEmail}>`,
+                                    to: guideEmail,
+                                    subject: `🧘‍♀️ New Retreat Booking - ${retreatTitle}`,
+                                    html: guideEmailHtml,
+                                });
+
+                                console.log(`Retreat booking email sent to guide: ${guideEmail}`);
+                            } catch (emailError) {
+                                console.error('Failed to send retreat booking email to guide:', emailError);
+                            }
+                        }
+                        
+                        // Send WhatsApp notification to retreat guide
+                        if (guidePhone) {
+                            try {
+                                // Format phone number for WhatsApp (ensure it starts with country code)
+                                let formattedPhone = guidePhone.toString().replace(/\D/g, ''); // Remove non-digits
+                                if (!formattedPhone.startsWith('91') && formattedPhone.length === 10) {
+                                    formattedPhone = '91' + formattedPhone; // Add India country code
+                                }
+                                if (!formattedPhone.startsWith('+')) {
+                                    formattedPhone = '+' + formattedPhone;
+                                }
+                                
+                                const whatsappMessage = `🧘‍♀️ *New Retreat Booking*\n\n` +
+                                    `*Retreat:* ${retreatTitle}\n` +
+                                    `*Customer:* ${customerInfo}\n` +
+                                    `*Booking Date:* ${bookingDate}\n` +
+                                    `*Payment ID:* ${paymentId}\n\n` +
+                                    `Please coordinate with the customer for retreat details.\n\n` +
+                                    `_Urban Pilgrim Team_`;
+
+                                const waRes = await sendWhatsApp(formattedPhone, whatsappMessage, false);
+                                
+                                if (waRes?.ok) {
+                                    console.log(`Retreat booking WhatsApp sent to guide: ${formattedPhone}`);
+                                } else {
+                                    console.error('Failed to send retreat booking WhatsApp to guide:', waRes?.error);
+                                }
+                            } catch (whatsappError) {
+                                console.error('Failed to send retreat booking WhatsApp to guide:', whatsappError);
+                            }
+                        }
+                        
+                        console.log(`Retreat notifications processed for ${retreatTitle}`);
+                    } else {
+                        console.log(`No guide contact information found for retreat: ${program.title}`);
+                    }
+                }
+            }
+        } catch (retreatNotificationError) {
+            console.error('Error sending retreat notifications:', retreatNotificationError);
+            // Don't fail the entire payment for notification errors
         }
 
         return { 

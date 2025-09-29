@@ -114,6 +114,8 @@ export default function RetreatsForm() {
         meetGuide: {
             title: "",
             description: "",
+            email: "",
+            number: "",
             image: null
         }
     });
@@ -766,6 +768,8 @@ export default function RetreatsForm() {
             meetGuide: {
                 title: "",
                 description: "",
+                email: "",
+                number: "",
                 image: null
             }
         });
@@ -1696,6 +1700,24 @@ export default function RetreatsForm() {
                         value={formData?.meetGuide?.description}
                         placeholder="Enter description"
                         onChange={(e) => handleFieldChange("meetGuide", "description", e.target.value)}
+                        className="w-full border rounded p-2 mb-4"
+                    />
+
+                    <label className="block font-semibold mb-1">Email</label>
+                    <input
+                        type="email"
+                        value={formData?.meetGuide?.email}
+                        placeholder="Enter email address"
+                        onChange={(e) => handleFieldChange("meetGuide", "email", e.target.value)}
+                        className="w-full border rounded p-2 mb-4"
+                    />
+
+                    <label className="block font-semibold mb-1">Phone Number</label>
+                    <input
+                        type="tel"
+                        value={formData?.meetGuide?.number}
+                        placeholder="Enter phone number"
+                        onChange={(e) => handleFieldChange("meetGuide", "number", e.target.value)}
                         className="w-full border rounded p-2 mb-4"
                     />
                 </div>

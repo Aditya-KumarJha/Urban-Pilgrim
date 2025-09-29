@@ -296,6 +296,7 @@ export default function Retreatdescription() {
                                     persons: persons || 1,
                                     duration: retreatData?.pilgrimRetreatCard?.duration ?? 1,
                                     location: retreatData?.pilgrimRetreatCard?.location,
+                                    meetGuide: retreatData?.meetGuide || null,
                                 };
 
                                 dispatch(addToCart(cartItem));
