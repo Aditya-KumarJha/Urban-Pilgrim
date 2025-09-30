@@ -59,8 +59,7 @@ export default function RetreatBookingTable() {
                             retreat: retreat.pilgrimRetreatCard?.title || 'Unknown Retreat',
                             occupancy: user.occupancy || user.roomType || 'Single',
                             persons: user.persons || user.numberOfPersons || 1,
-                            retreatDate: user.retreatDate || user.bookingDate || new Date(),
-                            bookingDate: user.bookingDate || user.createdAt || new Date(),
+                            bookingDate: user.purchasedAt || user.bookingDate || user.createdAt ,
                             status: user.status || 'confirmed',
                             price: user.price || retreat.pilgrimRetreatCard?.price || 0,
                             retreatIndex,
@@ -207,6 +206,7 @@ export default function RetreatBookingTable() {
                         </div>
                     </label>
                 </div>
+
                 <div className="flex-1">
                     <input
                         type="text"
@@ -235,6 +235,7 @@ export default function RetreatBookingTable() {
                                 <th className="p-2">Booking ID</th>
                                 <th className="p-2">User Email</th>
                                 <th className="p-2">Retreat</th>
+                                <th className="p-2">Price</th>
                                 <th className="p-2">WhatsApp</th>
                                 <th className="p-2">Occupancy</th>
                                 <th className="p-2">Persons</th>
@@ -254,7 +255,8 @@ export default function RetreatBookingTable() {
                                 >
                                     <td className="p-2 font-mono text-xs">{booking.bookingId}</td>
                                     <td className="p-2">{booking.email}</td>
-                                    <td className="p-2 max-w-xs truncate" title={booking.retreat}>{booking.retreat}</td>
+                                    <td className="p-2 max-w-[200px] truncate" title={booking.retreat}>{booking.retreat}</td>
+                                    <td className="p-2">{booking.price}</td>
                                     <td className="p-2">{booking.whatsapp || '-'}</td>
                                     <td className="p-2">
                                         <span
@@ -267,7 +269,7 @@ export default function RetreatBookingTable() {
                                         </span>
                                     </td>
                                     <td className="p-2">{booking.persons}</td>
-                                    <td className="p-2">{new Date(booking.retreatDate).toLocaleDateString()}</td>
+                                    <td className="p-2">{new Date(booking.bookingDate).toLocaleDateString()}</td>
                                     <td className="p-2">
                                         <span
                                             className={`text-xs font-medium px-2 py-1 rounded ${booking.status === "confirmed"
@@ -364,7 +366,7 @@ export default function RetreatBookingTable() {
 
             {/* View Modal */}
             {showViewModal && selectedBooking && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="fixed inset-0 bg-black/30 backdrop-blur-xs flex items-center justify-center z-50">
                     <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
                         <h3 className="text-lg font-bold mb-4">Booking Details</h3>
                         <div className="space-y-2">
@@ -374,7 +376,7 @@ export default function RetreatBookingTable() {
                             <p><strong>Retreat:</strong> {selectedBooking.retreat}</p>
                             <p><strong>Occupancy:</strong> {selectedBooking.occupancy}</p>
                             <p><strong>Persons:</strong> {selectedBooking.persons}</p>
-                            <p><strong>Retreat Date:</strong> {new Date(selectedBooking.retreatDate).toLocaleDateString()}</p>
+                            <p><strong>Retreat Date:</strong> {new Date(selectedBooking.bookingDate).toLocaleDateString()}</p>
                             <p><strong>Status:</strong> {selectedBooking.status}</p>
                             <p><strong>Price:</strong> ₹{selectedBooking.price}</p>
                         </div>

@@ -62,19 +62,20 @@ export default function SessionBookingsTable() {
             liveSessionData.forEach((session, sessionIndex) => {
                 if (session.purchasedUsers && Array.isArray(session.purchasedUsers)) {
                     session.purchasedUsers.forEach((user, userIndex) => {
+                        const bd = user.purchasedAt || user.bookingDate || user.createdAt || new Date();
                         bookingsData.push({
                             id: `#PS-L${String(sessionIndex + 1).padStart(3, '0')}-${String(userIndex + 1).padStart(3, '0')}`,
                             bookingId: `#PS-L${String(sessionIndex + 1).padStart(3, '0')}-${String(userIndex + 1).padStart(3, '0')}`,
                             email: user.email || user.userEmail || '',
                             name: user.name || user.fullName || user.userName || '',
                             whatsapp: user.whatsapp || user.whatsApp || user.phone || user.contact || '',
-                            programName: session.title || 'Unknown Live Session',
+                            programName: session.liveProgramCard?.title || session.pilgrimLiveSessionCard?.title || 'Unknown Live Session',
                             programType: 'Live',
                             persons: user.persons || user.numberOfPersons || 1,
-                            date: (user.bookingDate || user.createdAt || new Date()).toLocaleDateString(),
-                            bookingDate: user.bookingDate || user.createdAt || new Date(),
+                            bookingDate: bd,
+                            date: new Date(bd).toLocaleDateString(),
                             status: user.status || 'confirmed',
-                            price: user.price || session.price || 0,
+                            price: user.price || session.liveSessionCard?.price || session.liveProgramCard?.price || session.pilgrimLiveSessionCard?.price || session.price || 0,
                             sessionIndex,
                             userIndex,
                             sessionType: 'live',
@@ -88,19 +89,20 @@ export default function SessionBookingsTable() {
             recordedSessionData.forEach((session, sessionIndex) => {
                 if (session.purchasedUsers && Array.isArray(session.purchasedUsers)) {
                     session.purchasedUsers.forEach((user, userIndex) => {
+                        const bd = user.purchasedAt || user.bookingDate || user.createdAt || new Date();
                         bookingsData.push({
                             id: `#PS-R${String(sessionIndex + 1).padStart(3, '0')}-${String(userIndex + 1).padStart(3, '0')}`,
                             bookingId: `#PS-R${String(sessionIndex + 1).padStart(3, '0')}-${String(userIndex + 1).padStart(3, '0')}`,
                             email: user.email || user.userEmail || '',
                             name: user.name || user.fullName || user.userName || '',
                             whatsapp: user.whatsapp || user.whatsApp || user.phone || user.contact || '',
-                            programName: session.title || 'Unknown Recorded Session',
+                            programName: session.recordedProgramCard?.title || session.programCard?.title || session.title || session.aboutProgram?.title || 'Unknown Recorded Session',
                             programType: 'Recorded',
                             persons: user.persons || user.numberOfPersons || 1,
-                            date: (user.bookingDate || user.createdAt || new Date()).toLocaleDateString(),
-                            bookingDate: user.bookingDate || user.createdAt || new Date(),
+                            date: new Date(bd).toLocaleDateString(),
+                            bookingDate: bd,
                             status: user.status || 'confirmed',
-                            price: user.price || session.price || 0,
+                            price: user.price || session.recordedProgramCard?.price || session.price || 0,
                             sessionIndex,
                             userIndex,
                             sessionType: 'recorded',
@@ -118,6 +120,7 @@ export default function SessionBookingsTable() {
             setLoading(false);
         }
     };
+
     const handleViewBooking = (booking) => {
         setSelectedBooking(booking);
         setShowViewModal(true);
@@ -260,7 +263,7 @@ export default function SessionBookingsTable() {
                             <th className="p-2">User Email</th>
                             <th className="p-2">WhatsApp</th>
                             <th className="p-2">Program Type</th>
-                            <th className="p-2">Persons per Session</th>
+                            <th className="p-2">Price</th>
                             <th className="p-2">Booking Date</th>
                             <th className="p-2">Program Name</th>
                             <th className="p-2">Actions</th>
@@ -288,9 +291,9 @@ export default function SessionBookingsTable() {
                                         {booking.programType}
                                     </span>
                                 </td>
-                                <td className="p-2">{booking.persons}</td>
+                                <td className="p-2">₹{booking.price}</td>
                                 <td className="p-2">{booking.date}</td>
-                                <td className="p-2">{booking.programName}</td>
+                                <td className="p-2 max-w-[200px] truncate">{booking.programName}</td>
                                 <td className="p-2 flex items-center justify-center gap-2">
                                     <button
                                         className="text-blue-600 hover:text-blue-800"
@@ -338,7 +341,7 @@ export default function SessionBookingsTable() {
                         {booking.whatsapp && <p className="text-sm text-gray-600">WhatsApp: {booking.whatsapp}</p>}
                         <p className="mt-1 text-sm">{booking.programName}</p>
                         <p className="text-xs text-gray-500 mt-1">
-                            {booking.persons} persons | {booking.date}
+                            ₹{booking.price} | {booking.date}
                         </p>
                         <div className="flex justify-center mt-3">
                             <button
@@ -358,7 +361,7 @@ export default function SessionBookingsTable() {
 
             {/* View Booking Modal */}
             {showViewModal && selectedBooking && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                <div className="fixed inset-0 bg-black/30 backdrop-blur-xs flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
                         <div className="p-6">
                             <div className="flex justify-between items-center mb-4">

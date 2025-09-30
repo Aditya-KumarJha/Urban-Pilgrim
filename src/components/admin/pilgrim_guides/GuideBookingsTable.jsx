@@ -49,20 +49,26 @@ export default function GuideBookingsTable() {
             guideData.forEach((guide, guideIndex) => {
                 if (guide.purchasedUsers && Array.isArray(guide.purchasedUsers)) {
                     guide.purchasedUsers.forEach((user, userIndex) => {
+                        const rawTitle = (guide.guideCard?.title || guide.title || guide.session?.title || '').toString();
+                        let guidename = '';
+                        if (rawTitle) {
+                            const m = rawTitle.match(/(?:with|by)\s*[:\-]?\s*(.+)$/i);
+                            guidename = m ? m[1].trim() : '';
+                        }
                         bookingsData.push({
                             id: `#PG-${String(guideIndex + 1).padStart(3, '0')}-${String(userIndex + 1).padStart(3, '0')}`,
                             bookingId: `#PG-${String(guideIndex + 1).padStart(3, '0')}-${String(userIndex + 1).padStart(3, '0')}`,
                             email: user.email || user.userEmail || '',
                             name: user.name || user.fullName || user.userName || '',
                             whatsapp: user.whatsapp || user.whatsApp || user.phone || user.contact || '',
-                            guideName: guide.title || 'Unknown Guide',
                             mode: user.mode || guide.mode || 'Online',
-                            persons: user.persons || user.numberOfPersons || 1,
-                            date: user.bookingDate || user.createdAt || new Date(),
-                            bookingDate: user.bookingDate || user.createdAt || new Date(),
+                            programTitle: guide.guideCard?.title || guide.title || guide.session?.title || '-',
+                            guidename,
+                            persons: ((user.subscriptionType ? String(user.subscriptionType).toLowerCase() : ((user.slot || user.date) ? 'one-time' : 'monthly')) === 'monthly' ? 'Monthly' : 'One-time'),
+                            bookingDate: user.purchasedAt || user.createdAt || new Date(),
                             location: user.mode === 'Offline' ? (user.location || guide.location || 'Location TBD') : '-',
                             status: user.status || 'confirmed',
-                            price: user.price || guide.price || 0,
+                            price: user.price || guide.guideCard?.price || guide.online?.monthly?.price || guide.online?.oneTime?.price || guide.offline?.monthly?.price || guide.offline?.oneTime?.price || guide.price || 0,
                             guideIndex,
                             userIndex,
                             originalGuide: guide
@@ -84,6 +90,8 @@ export default function GuideBookingsTable() {
         setSelectedBooking(booking);
         setShowViewModal(true);
     };
+
+    console.log(bookings)
 
     const filtered = bookings.filter((b) => {
         const matchesSearch = b.email.toLowerCase().includes(search.toLowerCase()) ||
@@ -215,11 +223,12 @@ export default function GuideBookingsTable() {
                         <tr>
                             <th className="p-2">Booking ID</th>
                             <th className="p-2">User Email</th>
+                            <th className="p-2">Program Title</th>
                             <th className="p-2">WhatsApp</th>
                             <th className="p-2">Mode</th>
-                            <th className="p-2">Persons per Session</th>
+                            <th className="p-2">Session type</th>
                             <th className="p-2">Booking Date</th>
-                            <th className="p-2">Location Details</th>
+                            <th className="p-2">Price</th>
                             <th className="p-2">Actions</th>
                         </tr>
                     </thead>
@@ -234,7 +243,8 @@ export default function GuideBookingsTable() {
                                 className="bg-gray-50 border-b"
                             >
                                 <td className="p-2">{booking.id}</td>
-                                <td className="p-2">{booking.email}</td>
+                                <td className="p-2 max-w-[200px] truncate">{booking.email}</td>
+                                <td className="p-2 max-w-[220px] truncate">{booking.programTitle}</td>
                                 <td className="p-2">{booking.whatsapp || '-'}</td>
                                 <td className="p-2">
                                     <span
@@ -247,8 +257,8 @@ export default function GuideBookingsTable() {
                                     </span>
                                 </td>
                                 <td className="p-2">{booking.persons}</td>
-                                <td className="p-2">{new Date(booking.date).toLocaleDateString()}</td>
-                                <td className="p-2">{booking.location}</td>
+                                <td className="p-2">{new Date(booking.bookingDate).toLocaleDateString()}</td>
+                                <td className="p-2">₹{booking.price}</td>
                                 <td className="p-2 flex items-center justify-center gap-2">
                                     <button
                                         className="text-blue-600 hover:text-blue-800"
@@ -316,7 +326,7 @@ export default function GuideBookingsTable() {
 
             {/* View Booking Modal */}
             {showViewModal && selectedBooking && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                <div className="fixed inset-0 bg-black/30 backdrop-blur-xs flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
                         <div className="p-6">
                             <div className="flex justify-between items-center mb-4">
@@ -344,7 +354,7 @@ export default function GuideBookingsTable() {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Guide Name</label>
-                                    <p className="text-sm text-gray-900">{selectedBooking.guideName}</p>
+                                    <p className="text-sm text-gray-900">{selectedBooking.guidename}</p>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Mode</label>
@@ -362,10 +372,6 @@ export default function GuideBookingsTable() {
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Booking Date</label>
                                     <p className="text-sm text-gray-900">{new Date(selectedBooking.bookingDate).toLocaleDateString()}</p>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Location</label>
-                                    <p className="text-sm text-gray-900">{selectedBooking.location}</p>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Status</label>
