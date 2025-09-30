@@ -1,23 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSelector } from "react-redux";
-import { FiChevronLeft, FiChevronRight, FiX, FiArrowLeft } from "react-icons/fi";
+import { FiChevronLeft, FiChevronRight, FiX } from "react-icons/fi";
 import { useDispatch } from "react-redux";
 import { addToCart } from "../../features/cartSlice.js";
 import { showSuccess, showError } from "../../utils/toast.js";
 
-export default function MonthlyCalendarModal({
-    isOpen,
-    onClose,
-    sessionData,
-    selectedPlan,
-    mode,
-    availableSlots = [],
-    occupancyType = '',
-    userMonthlySlots = [],
-    slotBookings = {},
-    onAddToCart,
-    cartItems = []
-}) {
+export default function MonthlyCalendarModal({ isOpen, onClose, sessionData, selectedPlan, mode, availableSlots = [], occupancyType = '', userMonthlySlots = [], slotBookings = {}, onAddToCart, cartItems = [] }) {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(null);
     const [selectedSlot, setSelectedSlot] = useState(null);
@@ -75,6 +63,80 @@ export default function MonthlyCalendarModal({
         if (/^\d{2}:\d{2}:\d{2}$/.test(t)) return t.slice(0, 5);
         // Already HH:MM
         return t;
+    };
+
+    // Group progress helpers (distinct purchasers, min/max, first purchase)
+    const getGroupConfig = () => {
+        const occ = (occupancyType || '').toLowerCase();
+        if (occ !== 'group') return null;
+        const occFromGuide = sessionData?.guideCard?.occupancies?.find(oc => (oc.type || '').toLowerCase() === 'group') || {};
+        const minPersons = Number(occFromGuide.min || sessionData?.guideCard?.groupMinPersons || 2) || 2;
+        const maxPersons = Number(occFromGuide.max || sessionData?.guideCard?.groupMaxPersons || 10) || 10;
+
+        // Prefer backend aggregated purchaser records if available
+        const modeKey = (mode || '').toLowerCase();
+        const monthlyCfg = sessionData?.[modeKey]?.monthly || null;
+        if (monthlyCfg && Array.isArray(monthlyCfg.groupPurchaserRecords)) {
+            const purchasedCount = monthlyCfg.groupPurchaserRecords.length;
+            const firstPurchaseDate = monthlyCfg.groupFirstPurchaseAt ? new Date(monthlyCfg.groupFirstPurchaseAt) : null;
+            let daysLeft = null;
+            if (firstPurchaseDate) {
+                const now = new Date();
+                const elapsedMs = now.getTime() - firstPurchaseDate.getTime();
+                const left = 7 - Math.floor(elapsedMs / (24 * 60 * 60 * 1000));
+                daysLeft = Math.max(0, left);
+            }
+            return { minPersons, maxPersons, purchasedCount, firstPurchaseDate, daysLeft };
+        }
+
+        // Distinct purchasers for this guide/mode/monthly group (dedupe by uid/email)
+        const purchasers = (sessionData?.purchasedUsers || []).filter(u =>
+            (u?.subscriptionType || '').toLowerCase() === 'monthly' &&
+            (u?.mode || '').toLowerCase() === (mode || '').toLowerCase() &&
+            ((u?.slot?.type || u?.occupancyType || '').toLowerCase() === 'group')
+        );
+        const seen = new Set();
+        let purchasedCount = 0;
+        purchasers.forEach(p => {
+            // Build a robust purchaser key to avoid counting multiple slots from same purchase
+            const uid = (p?.uid || p?.userId || p?.id || '').toString();
+            const email = (p?.email || p?.customerEmail || '').toLowerCase();
+            const phone = (p?.phone || p?.whatsapp || p?.contact || '').toString();
+            // If purchaser identity missing, fallback to payment/order identifiers from the same purchase
+            const pay = (p?.paymentId || p?.razorpay_payment_id || '').toString();
+            const order = (p?.orderId || p?.razorpay_order_id || '').toString();
+            let key = [uid, email, phone].filter(Boolean).join('|') || [pay, order].filter(Boolean).join('|');
+
+            // FINAL fallback: collapse entries purchased within the same short time window (assume same purchaser)
+            // This handles data models where only per-slot records exist without purchaser IDs
+            if (!key) {
+                const ts = p?.purchasedAt || p?.createdAt || p?.bookingDate || null;
+                if (ts) {
+                    const t = new Date(ts).getTime();
+                    // 60-minute bucket window to group multi-slot purchases as one purchaser
+                    const bucket = Math.floor(t / (60 * 60 * 1000));
+                    // Also include guide title/mode to avoid cross-program collisions
+                    const guideTitle = (sessionData?.guideCard?.title || '').toLowerCase();
+                    const modeKey = (mode || '').toLowerCase();
+                    key = `bucket:${bucket}|${guideTitle}|${modeKey}`;
+                }
+            }
+            if (key && !seen.has(key)) { seen.add(key); purchasedCount++; }
+        });
+        const firstPurchaseDate = purchasers.length > 0
+            ? new Date(Math.min(...purchasers.map(p => new Date(p.purchasedAt || p.bookingDate || p.createdAt || Date.now()).getTime())))
+            : null;
+
+        // Countdown days left (7-day window from first purchase)
+        let daysLeft = null;
+        if (firstPurchaseDate) {
+            const now = new Date();
+            const elapsedMs = now.getTime() - firstPurchaseDate.getTime();
+            const left = 7 - Math.floor(elapsedMs / (24 * 60 * 60 * 1000));
+            daysLeft = Math.max(0, left);
+        }
+
+        return { minPersons, maxPersons, purchasedCount, firstPurchaseDate, daysLeft };
     };
 
     const makeSlotKey = (s) => {
@@ -173,10 +235,24 @@ export default function MonthlyCalendarModal({
         let maxCapacity, displayText, isFull, currentBookings;
 
         if (occupancy === 'group') {
-            // For group: get max from admin settings or default to 10
-            const occFromGuide = sessionData?.guideCard?.occupancies?.find(occ => (occ.type || '').toLowerCase() === 'group');
-            maxCapacity = slot?.maxPersons || occFromGuide?.max || sessionData?.guideCard?.groupMaxPersons || 10;
-            currentBookings = (Array.isArray(actualBookingsArray) ? actualBookingsArray.length : Number(actualBookingsArray || 0)) + purchasedCount + cartCount;
+            // Capacity is based on distinct purchasers, not per-slot bookings
+            const cfg = getGroupConfig();
+            maxCapacity = cfg?.maxPersons || 10;
+            const distinctPurchasers = cfg?.purchasedCount || 0;
+            // Count current user's pending cart only once if group plan is already in cart
+            const cartAdds = isGroupPlanInCart() ? 1 : 0;
+
+            // Reopen logic: if 7 days passed since first purchase and min not met, ignore past purchases
+            let ignorePurchased = false;
+            if (cfg?.firstPurchaseDate) {
+                const now = new Date();
+                const elapsed = now.getTime() - cfg.firstPurchaseDate.getTime();
+                const expired = elapsed >= 7 * 24 * 60 * 60 * 1000;
+                if (expired && distinctPurchasers < (cfg?.minPersons || 0)) {
+                    ignorePurchased = true;
+                }
+            }
+            currentBookings = (ignorePurchased ? 0 : distinctPurchasers) + cartAdds;
             displayText = `${currentBookings}/${maxCapacity}`;
             isFull = currentBookings >= maxCapacity;
         } else if (occupancy === 'couple') {
@@ -261,7 +337,7 @@ export default function MonthlyCalendarModal({
         const slotKey = `${slot.date}-${slot.startTime}-${slot.endTime}`;
         const capacityInfo = getSlotCapacityInfo(slot);
 
-        // For group: show slots unless full capacity reached
+        // For group: show slots unless full capacity reached based on distinct purchasers
         if (occupancyType.toLowerCase() === 'group') {
             return !capacityInfo.isFull;
         }
@@ -404,6 +480,31 @@ export default function MonthlyCalendarModal({
             }
 
             setLoading(true);
+
+            // Group gating rules: 7-day window and capacity
+            if ((occupancyType || '').toLowerCase() === 'group') {
+                const cfg = getGroupConfig();
+                if (cfg) {
+                    const distinctPurchasers = cfg.purchasedCount || 0;
+                    const now = new Date();
+                    if (cfg.firstPurchaseDate) {
+                        const expired = (now.getTime() - cfg.firstPurchaseDate.getTime()) >= 7 * 24 * 60 * 60 * 1000;
+                        if (expired) {
+                            if (distinctPurchasers >= (cfg.minPersons || 0)) {
+                                showError('Enrollment closed for this group');
+                                setLoading(false);
+                                return;
+                            }
+                            // else reopened; proceed
+                        }
+                    }
+                    if (distinctPurchasers >= (cfg.maxPersons || 10)) {
+                        showError('Group is full');
+                        setLoading(false);
+                        return;
+                    }
+                }
+            }
 
             // Helper function to convert to RFC3339 format with timezone
             const formatToRFC3339 = (date, time) => {
@@ -684,15 +785,8 @@ export default function MonthlyCalendarModal({
     // Memoized group progress for header info box
     const groupProgress = useMemo(() => {
         if ((occupancyType || '').toLowerCase() !== 'group') return null;
-        const occ = sessionData?.guideCard?.occupancies?.find(o => (o.type || '').toLowerCase() === 'group') || {};
-        const maxPersons = Number(occ.max || sessionData?.guideCard?.groupMaxPersons || 10) || 10;
-        const minPersons = Number(occ.min || sessionData?.guideCard?.groupMinPersons || 2) || 2;
-        const purchasedCount = (sessionData?.purchasedUsers || []).filter(u =>
-            (u?.subscriptionType || '').toLowerCase() === 'monthly' &&
-            (u?.mode || '').toLowerCase() === (mode || '').toLowerCase() &&
-            ((u?.slot?.type || u?.occupancyType || '').toLowerCase() === 'group')
-        ).length;
-        return { purchasedCount, maxPersons, minPersons };
+        const cfg = getGroupConfig();
+        return cfg ? { purchasedCount: cfg.purchasedCount, maxPersons: cfg.maxPersons, minPersons: cfg.minPersons, daysLeft: cfg.daysLeft, firstPurchaseDate: cfg.firstPurchaseDate } : null;
     }, [sessionData?.guideCard?.occupancies, sessionData?.guideCard?.groupMaxPersons, sessionData?.guideCard?.groupMinPersons, sessionData?.purchasedUsers, occupancyType, mode]);
 
     return (
@@ -742,6 +836,17 @@ export default function MonthlyCalendarModal({
                                             <p className="text-sm text-blue-800 font-medium">
                                                 Group Purchased: {groupProgress?.purchasedCount || 0} / {groupProgress?.maxPersons || 0}
                                             </p>
+                                            {(() => {
+                                                const cfg = getGroupConfig();
+                                                if (cfg?.firstPurchaseDate) {
+                                                    return (
+                                                        <p className="text-xs text-blue-700 mt-1">Days left: {cfg?.daysLeft ?? 0}</p>
+                                                    );
+                                                }
+                                                return (
+                                                    <p className="text-xs text-blue-700 mt-1">A 7-day window starts when the first person purchases.</p>
+                                                );
+                                            })()}
                                         </div>
                                     </div>
                                 ) : (

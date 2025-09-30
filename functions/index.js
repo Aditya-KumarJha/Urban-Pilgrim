@@ -2,7 +2,9 @@
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
+const easyinvoice = require("easyinvoice");
 const Razorpay = require("razorpay");
+const fs = require('fs');
 const twilio = require("twilio");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onRequest } = require("firebase-functions/v2/https");
@@ -13,6 +15,94 @@ const { OAuth2Client } = require("google-auth-library");
 require("dotenv").config();
 
 const cors = require("cors")({ origin: true });
+
+// save as encode.js and run: node encode.js
+const main_logo = fs.readFileSync('urban_pilgrim_logo.png').toString('base64');
+// console.log(main_logo);
+
+// ============= Invoice Utilities ============= //
+async function generateInvoicePdfBase64({
+    invoiceNumber,
+    issueDateISO,
+    buyer,
+    items,
+    totalAmount,
+    currency = 'INR',
+    company,
+    logoBase64,
+    signatureBase64
+}) {
+    const defaultGst = Number(process.env.DEFAULT_GST_PERCENT || 18);
+    const products = (items || []).map((it) => {
+        const gst = Number(it.taxRate || it.gstRate || defaultGst || 0);
+        const sac = it.sac || it.hsn || '';
+        const descParts = [it.title];
+        if (it.mode) descParts.push(it.mode);
+        if (it.subscriptionType) descParts.push(it.subscriptionType);
+        if (it.occupancyType) descParts.push(it.occupancyType);
+        if (sac) descParts.push(`SAC/HSN: ${sac}`);
+        return {
+            quantity: it.quantity || 1,
+            description: descParts.filter(Boolean).join(' • '),
+            taxRate: isNaN(gst) ? 0 : gst,
+            price: Number(it.price || 0),
+        };
+    });
+
+    const images = {};
+    if (logoBase64) images.logo = `data:image/png;base64,${logoBase64}`;
+    if (signatureBase64) images.background = `data:image/png;base64,${signatureBase64}`; // optional watermark/signature
+
+    const data = {
+        images,
+        sender: {
+            company: company?.name || 'Urban Pilgrim',
+            address: company?.address || 'India',
+            zip: company?.zip || '',
+            city: company?.city || '',
+            country: company?.country || 'India',
+            custom1: company?.gstin ? `GSTIN: ${company.gstin}` : undefined,
+            custom2: company?.stateCode ? `State Code: ${company.stateCode}` : undefined,
+        },
+        client: {
+            company: buyer?.name || buyer?.email || 'Customer',
+            address: buyer?.address || '',
+            zip: buyer?.zip || '',
+            city: buyer?.city || '',
+            country: buyer?.country || 'India',
+            custom1: buyer?.email ? `Email: ${buyer.email}` : undefined,
+            custom2: buyer?.gstin ? `GSTIN: ${buyer.gstin}` : undefined,
+            custom3: buyer?.stateCode ? `State Code: ${buyer.stateCode}` : undefined,
+        },
+        information: {
+            number: invoiceNumber,
+            date: (issueDateISO ? new Date(issueDateISO) : new Date()).toLocaleDateString('en-IN'),
+        },
+        products,
+        bottomNotice: 'Thank you for choosing Urban Pilgrim.',
+        settings: {
+            currency,
+            locale: 'en-IN',
+            taxNotation: 'gst',
+        },
+        // translate labels closer to Indian tax invoice
+        translate: {
+            invoice: 'TAX INVOICE',
+            number: 'Invoice No.',
+            date: 'Invoice Date',
+            products: 'Items',
+            quantity: 'Qty',
+            price: 'Taxable Value',
+            productTotal: 'Taxable Value',
+            subtotal: 'Taxable Value',
+            vat: 'GST',
+            total: 'Total Amount'
+        },
+    };
+
+    const result = await easyinvoice.createInvoice(data);
+    return result?.pdf; // base64 string
+}
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -1499,6 +1589,45 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
         // ------------------------
         // 3) Send Emails
         // ------------------------
+        // Build invoice for attachment (easyinvoice) to include with user email
+        let invoiceAttachments = [];
+        try {
+            const invoiceNumber = `UP-${(paymentResponse?.razorpay_order_id || 'ORDER').toString().slice(-8)}-${(paymentResponse?.razorpay_payment_id || 'PAY').toString().slice(-6)}`;
+            const logoB64 = main_logo || null;
+            const pdfBase64 = await generateInvoicePdfBase64({
+                invoiceNumber,
+                issueDateISO: new Date().toISOString(),
+                buyer: {
+                    name: name || formData?.fullName || '',
+                    email: email || formData?.email || '',
+                    address: formData?.address || '',
+                    city: formData?.city || '',
+                    zip: formData?.zip || '',
+                    country: formData?.country || 'India',
+                },
+                items: cartData,
+                totalAmount: Number(total || 0),
+                currency: 'INR',
+                company: {
+                    name: process.env.COMPANY_NAME || 'Urban Pilgrim',
+                    address: process.env.COMPANY_ADDRESS || 'India',
+                    city: process.env.COMPANY_CITY || '',
+                    zip: process.env.COMPANY_ZIP || '',
+                    country: process.env.COMPANY_COUNTRY || 'India',
+                    gstin: process.env.COMPANY_GSTIN || '',
+                },
+                logoBase64: logoB64,
+            });
+            if (pdfBase64) {
+                invoiceAttachments.push({
+                    filename: `${invoiceNumber}.pdf`,
+                    content: Buffer.from(pdfBase64, 'base64'),
+                    contentType: 'application/pdf'
+                });
+            }
+        } catch (e) {
+            console.error('Invoice generation failed (non-blocking):', e);
+        }
         // Enhanced program list with monthly slot details
         const programList = cartData
             .map((p) => {
@@ -1638,6 +1767,7 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                 </body>
                 </html>
             `,
+            attachments: invoiceAttachments,
         });
 
         // Email to admin
