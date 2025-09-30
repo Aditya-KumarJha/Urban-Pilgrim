@@ -316,8 +316,6 @@ export default function MonthlyCalendarModal({
                 return;
             }
 
-            setLoading(true);
-
             const modeKey = mode?.toLowerCase();
             const subscriptionKey = selectedPlan;
             const planData = sessionData?.[modeKey]?.[subscriptionKey] || {};
@@ -378,6 +376,35 @@ export default function MonthlyCalendarModal({
                 return;
             }
 
+            // Additional validations for Individual/Couple occupancy: enforce exact required count if available
+            {
+                const occLower = (occupancyType || '').toLowerCase();
+                if (occLower === 'individual' || occLower === 'couple') {
+                    // Required sessions left to pick in this add-to-cart action
+                    const requiredCount = Math.max(0, sessionsPerMonth - userMonthlySlots.length - sessionsInCart);
+
+                    // Count available selectable slots right now for this occupancy
+                    const availableSelectable = localSlots.filter(s => {
+                        const typeOk = (s.type || 'individual').toLowerCase() === occLower;
+                        return typeOk && isSlotVisible(s);
+                    }).length;
+
+                    if (availableSelectable < requiredCount) {
+                        showError('There are not enough slots to book');
+                        setLoading(false);
+                        return;
+                    }
+
+                    if (requiredCount > 0 && selectedSlotsMulti.length !== requiredCount) {
+                        showError(`Please add ${sessionsPerMonth} sessions per month`);
+                        setLoading(false);
+                        return;
+                    }
+                }
+            }
+
+            setLoading(true);
+
             // Helper function to convert to RFC3339 format with timezone
             const formatToRFC3339 = (date, time) => {
                 if (!date || !time) return null;
@@ -428,7 +455,7 @@ export default function MonthlyCalendarModal({
             const cartItem = {
                 id: cartItemId,
                 title: sessionData?.guideCard?.title || 'Monthly Session',
-                price: Number(pricePerSession), // Fixed monthly price regardless of slot count for all occupancy types
+                price: Number(pricePerSession) * (occupancy === 'couple' ? 2 : 1), // Couple is priced as 1x2
                 persons: 1,
                 image: sessionData?.guideCard?.thumbnail || '',
                 quantity: 1,
@@ -654,6 +681,20 @@ export default function MonthlyCalendarModal({
 
     const monthName = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
+    // Memoized group progress for header info box
+    const groupProgress = useMemo(() => {
+        if ((occupancyType || '').toLowerCase() !== 'group') return null;
+        const occ = sessionData?.guideCard?.occupancies?.find(o => (o.type || '').toLowerCase() === 'group') || {};
+        const maxPersons = Number(occ.max || sessionData?.guideCard?.groupMaxPersons || 10) || 10;
+        const minPersons = Number(occ.min || sessionData?.guideCard?.groupMinPersons || 2) || 2;
+        const purchasedCount = (sessionData?.purchasedUsers || []).filter(u =>
+            (u?.subscriptionType || '').toLowerCase() === 'monthly' &&
+            (u?.mode || '').toLowerCase() === (mode || '').toLowerCase() &&
+            ((u?.slot?.type || u?.occupancyType || '').toLowerCase() === 'group')
+        ).length;
+        return { purchasedCount, maxPersons, minPersons };
+    }, [sessionData?.guideCard?.occupancies, sessionData?.guideCard?.groupMaxPersons, sessionData?.guideCard?.groupMinPersons, sessionData?.purchasedUsers, occupancyType, mode]);
+
     return (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-xs z-50 flex items-center justify-center p-4">
             {/* White modal - only this scrolls if content is big */}
@@ -666,7 +707,15 @@ export default function MonthlyCalendarModal({
                             Monthly Booking Calendar
                         </h2>
                         <p className="text-sm text-gray-600 mt-1">
-                            {mode} - Monthly Plan ({sessionsPerMonth} sessions per month)
+                            {(occupancyType || '').toLowerCase() === 'group'
+                                ? (
+                                    <>A group can be made if minimum {groupProgress?.minPersons || 0} persons are enrolled</>
+                                  )
+                                : (
+                                    <>
+                                        {mode} - Monthly Plan ({sessionsPerMonth} sessions per month)
+                                    </>
+                                  )}
                         </p>
                     </div>
                     <button
@@ -687,24 +736,26 @@ export default function MonthlyCalendarModal({
                         <>
                             {/* Session Counter */}
                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-sm text-blue-800 font-medium">
-                                            Sessions Selected: {selectedSlotsMulti.length} / {sessionsPerMonth}
-                                        </p>
-                                        <p className="text-xs text-blue-600">
-                                            Already Booked: {userMonthlySlots.length} sessions this month
-                                        </p>
+                                {(occupancyType || '').toLowerCase() === 'group' ? (
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-sm text-blue-800 font-medium">
+                                                Group Purchased: {groupProgress?.purchasedCount || 0} / {groupProgress?.maxPersons || 0}
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div className="text-right">
-                                        <p className="text-sm text-blue-800 font-medium">
-                                            Remaining: {sessionsPerMonth - userMonthlySlots.length - selectedSlotsMulti.length}
-                                        </p>
-                                        <p className="text-xs text-blue-600">
-                                            Price: ₹{plan.price || 0} per session
-                                        </p>
+                                ) : (
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-sm text-blue-800 font-medium">
+                                                Sessions Selected: {selectedSlotsMulti.length} / {sessionsPerMonth}
+                                            </p>
+                                            <p className="text-xs text-blue-600">
+                                                Already Booked: {userMonthlySlots.length} sessions this month
+                                            </p>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                             </div>
 
                             {/* Monthly View with right-side slot panel */}
@@ -895,6 +946,7 @@ export default function MonthlyCalendarModal({
                                     </div>
                                 </div>
                             )}
+
                             {/* Add to Cart Button */}
                             {(() => {
                                 const isGroup = occupancyType.toLowerCase() === 'group';
@@ -922,6 +974,8 @@ export default function MonthlyCalendarModal({
                                     </div>
                                 </div>
                             )}
+
+                            {/* Session Limit Reached Message */}
                             {occupancyType.toLowerCase() !== 'group' && remainingSessionsAfterCart <= 0 && (
                                 <div className="flex justify-center mt-6">
                                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
