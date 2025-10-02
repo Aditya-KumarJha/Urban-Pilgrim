@@ -7,6 +7,7 @@ import Home from "./pages/home";
 import Retreats from "./pages/pilgrim_retreats/Retreats";
 import Sessions from "./pages/pilgrim_sessions/Sessions";
 import Guides from "./pages/pilgrim_guides/Guides";
+import GiftCards from "./pages/gift_cards/GiftCards";
 import UpcomingEvents from "./pages/upcoming_events/UpcomingEvents";
 import JoinGuides from "./pages/join_us_as_guides/JoinGuides";
 import JoinAdvisors from "./pages/join_us_as_trip_advisors/JoinAdvisors";
@@ -19,6 +20,7 @@ import SessionSlots from "./pages/session_slots/SessionSlots";
 import SessionDescription from "./pages/session_slots/SessionDescription";
 import GuideClassDetails from "./components/pilgrim_guides/GuideClassDetails";
 import Retreatdescription from "./components/pilgrim_retreats/Retreatdescription";
+import GiftCardDetails from "./components/gift_card/GiftCardDetails";
 import Admin from "./pages/admin/Admin";
 import ProgramDetails from "./pages/program_details/ProgramDetails";
 import UserDashboard from "./components/UserDashboard";
@@ -92,6 +94,7 @@ function App() {
                             <Route path="/pilgrim_retreats" element={<Retreats />} />
                             <Route path="/pilgrim_sessions" element={<Sessions />} />
                             <Route path="/pilgrim_guides" element={<Guides />} />
+                            <Route path="/gift-cards" element={<GiftCards />} />
                             <Route path="/upcoming_events" element={<UpcomingEvents />} />
                             <Route path="/contact" element={<ContactForm />} />
                             <Route path="/joinusguides" element={<JoinGuides />} />
@@ -111,6 +114,8 @@ function App() {
                             <Route path="/guide/:guideClassName" element={<GuideClassDetails />} />
                             {/* retreat */}
                             <Route path="/pilgrim_retreats/:retreatName" element={<Retreatdescription />} />
+                            {/* gift card */}
+                            <Route path="/gift-card/:id" element={<GiftCardDetails />} />
                             {/* event */}
                             <Route path="/event/:eventName" element={<EventDetails />} />
                             <Route path="/admin" element={<Admin />} />

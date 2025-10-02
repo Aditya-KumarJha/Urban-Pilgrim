@@ -2877,6 +2877,166 @@ exports.confirmGiftCardPayment = functions.https.onCall(async (data, context) =>
     }
 });
 
+// New function for gift card program purchases (from gift card details page)
+exports.createGiftCardProgramOrder = functions.https.onCall(async (data, context) => {
+    console.log("data from createGiftCardProgramOrder", data.data);
+    const { amount, giftCardType, quantity = 1 } = data.data || {};
+    if (!amount || amount <= 0 || !giftCardType) {
+        throw new functions.https.HttpsError("invalid-argument", "Valid amount and gift card type required");
+    }
+    
+    const totalAmount = amount * quantity;
+    const options = {
+        amount: totalAmount * 100, // Razorpay expects amount in paise
+        currency: "INR",
+        receipt: `gift_program_${Date.now()}`,
+        notes: { 
+            type: "gift_card_program",
+            giftCardType: giftCardType,
+            quantity: quantity.toString()
+        }
+    };
+    
+    try {
+        const order = await razorpay.orders.create(options);
+        return order;
+    } catch (err) {
+        throw new functions.https.HttpsError("internal", err.message);
+    }
+});
+
+// Function to map gift card types to program types for coupon restrictions
+function getGiftCardProgramType(giftCardType) {
+    const typeMapping = {
+        'wellness-retreat': 'retreat',
+        'wellness-program': 'live',
+        'pilgrim-guide': 'guide',
+        // Updated mappings for your actual categories
+        'pilgrim retreat': 'retreat',
+        'pilgrim wellness program': 'live',
+        'pilgrim guide': 'guide'
+    };
+    return typeMapping[giftCardType] || 'any';
+}
+
+// Function to get program type description for email
+function getGiftCardDescription(giftCardType) {
+    const descriptions = {
+        'wellness-retreat': 'Wellness Retreats',
+        'wellness-program': 'Wellness Programs & Live Sessions', 
+        'pilgrim-guide': 'Pilgrim Guide Services',
+        // Updated descriptions for your actual categories
+        'pilgrim retreat': 'Pilgrim Retreats',
+        'pilgrim wellness program': 'Pilgrim Wellness Programs & Live Sessions',
+        'pilgrim guide': 'Pilgrim Guide Services'
+    };
+    return descriptions[giftCardType] || 'Urban Pilgrim Services';
+}
+
+exports.confirmGiftCardProgramPayment = functions.https.onCall(async (data, context) => {
+    try {
+        const { 
+            purchaserEmail, 
+            purchaserName, 
+            giftCardType, 
+            giftCardTitle,
+            amount, 
+            quantity = 1,
+            paymentResponse 
+        } = data.data || {};
+        
+        if (!purchaserEmail || !amount || !giftCardType || !paymentResponse) {
+            throw new functions.https.HttpsError("invalid-argument", "Missing required fields");
+        }
+
+        const totalAmount = amount * quantity;
+        const programType = getGiftCardProgramType(giftCardType);
+        const programDescription = getGiftCardDescription(giftCardType);
+
+        // Generate unique code (retry small number of times if collision)
+        const couponsRef = db.collection('coupons');
+        let code = generateCouponCode(10);
+        for (let i = 0; i < 3; i++) {
+            const exists = await couponsRef.where('code', '==', code).limit(1).get();
+            if (exists.empty) break;
+            code = generateCouponCode(10);
+        }
+
+        const couponDoc = {
+            code,
+            discountType: 'fixed',
+            discountValue: totalAmount,
+            programType: programType, // 'retreat', 'live', 'guide', or 'any'
+            minOrderAmount: 0,
+            maxDiscount: totalAmount,
+            usageLimit: 1,
+            usedCount: 0,
+            isActive: true,
+            isGiftCard: true,
+            giftCardType: giftCardType,
+            description: `Gift card for ${programDescription}`,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            lastUsedAt: null,
+            lastUsedBy: null,
+        };
+
+        await couponsRef.add(couponDoc);
+
+        // Enhanced email with program type information
+        const html = `
+            <div style="font-family: Arial, sans-serif; line-height:1.6; max-width: 600px; margin: 0 auto;">
+                <div style="background: linear-gradient(135deg, #2F6288 0%, #C5703F 100%); padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+                    <h1 style="color: white; margin: 0; font-size: 24px;">🎁 Your Urban Pilgrim Gift Card</h1>
+                </div>
+                <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px;">
+                    <p style="font-size: 16px; color: #333;">Hi ${purchaserName || 'Pilgrim'},</p>
+                    <p style="color: #666;">Thank you for your purchase! Here is your gift card coupon code:</p>
+                    
+                    <div style="background: white; border: 2px dashed #C5703F; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
+                        <div style="font-weight: bold; font-size: 24px; letter-spacing: 3px; color: #2F6288; margin-bottom: 10px;">${code}</div>
+                        <div style="font-size: 18px; color: #C5703F; font-weight: bold;">₹${totalAmount.toLocaleString('en-IN')}</div>
+                    </div>
+                    
+                    <div style="background: white; padding: 20px; border-radius: 8px; border-left: 4px solid #C5703F;">
+                        <h3 style="color: #2F6288; margin-top: 0;">Gift Card Details:</h3>
+                        <p><strong>Type:</strong> ${giftCardTitle || programDescription}</p>
+                        <p><strong>Value:</strong> ₹${totalAmount.toLocaleString('en-IN')}</p>
+                        ${quantity > 1 ? `<p><strong>Quantity:</strong> ${quantity}</p>` : ''}
+                        <p><strong>Valid for:</strong> ${programDescription}</p>
+                        <p><strong>Usage:</strong> One-time use only</p>
+                    </div>
+                    
+                    <div style="margin-top: 20px; padding: 15px; background: #e8f4f8; border-radius: 8px;">
+                        <h4 style="color: #2F6288; margin-top: 0;">How to Use:</h4>
+                        <ol style="color: #666; padding-left: 20px;">
+                            <li>Add ${programDescription.toLowerCase()} to your cart</li>
+                            <li>Enter the coupon code: <strong>${code}</strong></li>
+                            <li>Enjoy your discount!</li>
+                        </ol>
+                    </div>
+                    
+                    <p style="text-align: center; margin-top: 30px; color: #999; font-size: 14px;">
+                        Thank you for choosing Urban Pilgrim! 🙏
+                    </p>
+                </div>
+            </div>
+        `;
+        
+        await transporter.sendMail({
+            from: gmailEmail,
+            to: purchaserEmail,
+            subject: `🎁 Your ${giftCardTitle || programDescription} Gift Card - ₹${totalAmount.toLocaleString('en-IN')}`,
+            html
+        });
+
+        return { success: true, code, programType, totalAmount };
+    } catch (err) {
+        console.error('confirmGiftCardProgramPayment error:', err);
+        throw new functions.https.HttpsError('internal', err.message);
+    }
+});
+
 exports.sendWhatsappReminder = functions.https.onCall(async (data, context) => {
     try {
         const { phoneNumber, message } = data.data;

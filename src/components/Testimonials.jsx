@@ -34,7 +34,7 @@ export default function Testimonials() {
     }, []);
 
     return (
-        <div className="mx-auto px-4 sm:px-6 bg-[#F0F5FA] py-8 sm:py-10 overflow-hidden">
+        <div className="mx-auto px-4 sm:px-6 bg-[#F0F5FA] pb-8 sm:pb-10 overflow-hidden">
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold py-6 sm:py-10">Testimonials</h2>
 
             <div className="flex gap-4 sm:gap-6 w-max animate-infinite-scroll">

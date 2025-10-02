@@ -24,6 +24,7 @@ export default function RetreatCard({ retreat }) {
             ) : (
                 <img src={pilgrimRetreatCard?.image} alt={pilgrimRetreatCard?.title} className="h-44 sm:h-52 w-full object-cover p-3 sm:p-4" />
             )}
+            
             <div className="p-3 sm:p-4">
                 <h3 className="font-semibold text-lg sm:text-xl leading-tight">{pilgrimRetreatCard?.title}</h3>
                 <div className="text-xs sm:text-sm text-gray-600 flex flex-col items-start mt-1.5 sm:mt-2 space-y-1.5 sm:space-y-2">
