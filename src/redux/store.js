@@ -1,6 +1,7 @@
 import { combineReducers, configureStore } from "@reduxjs/toolkit";
 import authReducer from "../features/authSlice";
 import adminAuthReducer from "../features/adminAuthSlice";
+import organizerAuthReducer from "../features/organizerAuthSlice";
 // import sessionReducer from "../features/sessionSlice";
 // import bookingReducer from "../features/bookingSlice";
 import slidesReducer from "../features/home_slices/slidesSlice";
@@ -33,7 +34,6 @@ import {
 } from 'redux-persist'
 import storage from 'redux-persist/lib/storage'
 
-
 const persistConfig = {
     key: 'root',
     version: 1,
@@ -43,6 +43,7 @@ const persistConfig = {
 const rootReducer = combineReducers({
         auth: authReducer,
         adminAuth: adminAuthReducer,
+        organizerAuth: organizerAuthReducer,
         // sessions: sessionReducer,
         sectionOne: sectionOneReducer,
         sectionTwo: sectionTwoReducer,

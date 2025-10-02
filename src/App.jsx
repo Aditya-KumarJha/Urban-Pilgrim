@@ -28,11 +28,12 @@ import EventDetails from "./components/upcoming_events/EventDetails";
 import LiveDetails from "./pages/program_details/LiveDeatils";
 import Lenis from "@studio-freight/lenis";
 import WhatsAppFloatingButton from "./components/WhatsAppFloatingButton.jsx";
+import Organizer from "./pages/organizer/Organizer.jsx";
 
 function App() {
     const [loading, setLoading] = useState(true);
     const location = useLocation();
-    const isAdminRoute = location.pathname === "/admin" || location.pathname === "/userdashboard";
+    const isAdminRoute = location.pathname === "/admin" || location.pathname === "/userdashboard" || location.pathname === "/organizer";
 
     // Decide whether to show loader only on the very first visit
     useEffect(() => {
@@ -114,6 +115,7 @@ function App() {
                             <Route path="/event/:eventName" element={<EventDetails />} />
                             <Route path="/admin" element={<Admin />} />
                             <Route path="/userdashboard" element={<UserDashboard />} />
+                            <Route path="/organizer" element={<Organizer />} />
                             <Route path="*" element={<Home replace={'/'} />} />
                         </Routes>
                         {!isAdminRoute && <Footer className="mt-10" />}

@@ -1,4 +1,3 @@
-// functions/index.js
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
@@ -16,11 +15,8 @@ require("dotenv").config();
 
 const cors = require("cors")({ origin: true });
 
-// save as encode.js and run: node encode.js
 const main_logo = fs.readFileSync('urban_pilgrim_logo.png').toString('base64');
-// console.log(main_logo);
 
-// ============= Invoice Utilities ============= //
 async function generateInvoicePdfBase64({
     invoiceNumber,
     issueDateISO,
@@ -106,15 +102,182 @@ async function generateInvoicePdfBase64({
 
 admin.initializeApp();
 const db = admin.firestore();
-// Prevent Firestore from rejecting undefined values in documents
 try {
     admin.firestore().settings({ ignoreUndefinedProperties: true });
 } catch (e) {
-    // no-op if settings already applied
+    console.log(e)
 }
 
-// Live Session Slot Booking (Transactional)
-// Params: { sessionTitle, date, startTime, endTime, occupancyType: 'individual'|'couple'|'group', userId }
+async function addUserToProgram(db, organiserMeta, categoryKey, programTitle, programInfo, userInfo) {
+    try {
+        const email = organiserMeta?.email;
+        if (!email || !categoryKey || !programTitle || !userInfo?.userId) return;
+
+        // Category mapping
+        const catMap = { live: 'liveSessions', retreat: 'retreats', guide: 'guides' };
+        const cat = catMap[categoryKey] || categoryKey;
+
+        // 1) Upsert organiser root doc (keyed by email)
+        const organisersRef = db.collection('organisers');
+        const snapshot = await organisersRef.where('email', '==', email).limit(1).get();
+        let organiserDocRef;
+        if (snapshot.empty) {
+            organiserDocRef = organisersRef.doc(); // new UID
+            await organiserDocRef.set({
+                email,
+                number: organiserMeta?.number || null,
+                title: organiserMeta?.title || null,
+                name: organiserMeta?.name || null,
+                password: organiserMeta?.password || null,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            });
+        } else {
+            organiserDocRef = snapshot.docs[0].ref;
+            await organiserDocRef.set({
+                email,
+                number: organiserMeta?.number || null,
+                title: organiserMeta?.title || null,
+                name: organiserMeta?.name || null,
+                password: organiserMeta?.password || null,
+                updatedAt: new Date(),
+            }, { merge: true });
+        }
+
+        // 2) Find or create program doc under category subcollection
+        const catCol = organiserDocRef.collection(cat);
+        const progSnap = await catCol.where('title', '==', programTitle).limit(1).get();
+
+        let programDocRef;
+        if (progSnap.empty) {
+            // Create new program - use map for users to avoid nested arrays
+            programDocRef = catCol.doc();
+            const usersMap = {};
+            if (userInfo?.userId) {
+                usersMap[userInfo.userId] = {
+                    userId: userInfo.userId,
+                    name: userInfo.name || '',
+                    email: userInfo.email || ''
+                };
+            }
+            await programDocRef.set({
+                title: programTitle,
+                meetLink: programInfo?.meetLink || null,
+                subscriptionType: programInfo?.subscriptionType || null,
+                slots: programInfo?.slots || [],
+                scheduleDates: programInfo?.scheduleDates || [],
+                users: usersMap, // Use map instead of array
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            });
+        } else {
+            // Update existing program
+            programDocRef = progSnap.docs[0].ref;
+            const progData = progSnap.docs[0].data() || {};
+
+            // Merge slots uniquely
+            const prevSlots = Array.isArray(progData.slots) ? progData.slots : [];
+            const newSlots = Array.isArray(programInfo?.slots) ? programInfo.slots : [];
+            const mergedSlots = Array.from(new Map([...prevSlots, ...newSlots].map(s => [JSON.stringify(s), s]))).map(([, v]) => v);
+
+            // Merge dates uniquely
+            const prevDates = new Set(Array.isArray(progData.scheduleDates) ? progData.scheduleDates : []);
+            (Array.isArray(programInfo?.scheduleDates) ? programInfo.scheduleDates : []).forEach(d => { if (d) prevDates.add(d); });
+
+            // Merge users as map, not array
+            const prevUsers = progData.users || {};
+            const mergedUsers = { ...prevUsers };
+            if (userInfo?.userId) {
+                mergedUsers[userInfo.userId] = {
+                    userId: userInfo.userId,
+                    name: userInfo.name || '',
+                    email: userInfo.email || ''
+                };
+            }
+
+            await programDocRef.set({
+                title: programTitle,
+                meetLink: programInfo?.meetLink || progData.meetLink || null,
+                subscriptionType: programInfo?.subscriptionType || progData.subscriptionType || null,
+                slots: mergedSlots,
+                scheduleDates: Array.from(prevDates),
+                users: mergedUsers, // Use map instead of array
+                updatedAt: new Date(),
+            }, { merge: true });
+        }
+
+        // 3) Mirror at organiser ROOT level with numbered programs and users array
+        const rootKeyMap = { liveSessions: 'live', retreats: 'retreat', guides: 'guide' };
+        const rootKey = rootKeyMap[cat] || cat;
+
+        // Read existing to find/create program
+        const organiserSnap = await organiserDocRef.get();
+        const organiserData = organiserSnap.data() || {};
+        const categoryData = organiserData[rootKey] || {};
+
+        // Find existing program by title or create new one
+        let programKey = null;
+        let existingProg = null;
+        
+        for (const [key, prog] of Object.entries(categoryData)) {
+            if (prog?.title === programTitle) {
+                programKey = key;
+                existingProg = prog;
+                break;
+            }
+        }
+
+        // If no existing program, create new numbered program
+        if (!programKey) {
+            const existingKeys = Object.keys(categoryData).filter(k => k.startsWith('program'));
+            const maxNum = existingKeys.length > 0 ? Math.max(...existingKeys.map(k => parseInt(k.replace('program', '')) || 0)) : 0;
+            programKey = `program${maxNum + 1}`;
+            existingProg = {};
+        }
+
+        // Build scheduleddate array from slots
+        const scheduleddate = [];
+        const slotsArr = Array.isArray(programInfo?.slots) ? programInfo.slots : [];
+        for (const slot of slotsArr) {
+            scheduleddate.push({
+                time: `${slot?.startTime || ''} - ${slot?.endTime || ''}`,
+                status: slot?.status || 'pending',
+                date: slot?.date || null
+            });
+        }
+
+        // Get existing users map and add/update current user
+        const existingUsers = existingProg.users || {};
+        const uid = userInfo?.userId || '';
+        
+        // Get existing user's scheduled dates or create empty array
+        const existingScheduled = Array.isArray(existingUsers[uid]?.scheduleddate) ? existingUsers[uid].scheduleddate : [];
+        const mergedScheduled = [...existingScheduled, ...scheduleddate];
+        
+        const newUser = {
+            name: userInfo?.name || '',
+            email: userInfo?.email || '',
+            uid,
+            scheduleddate: mergedScheduled
+        };
+
+        // Create users map (not array) to avoid nested arrays
+        const updatedUsers = { ...existingUsers };
+        updatedUsers[uid] = newUser;
+
+        const rootUpdates = {};
+        rootUpdates[`${rootKey}.${programKey}.title`] = programTitle;
+        rootUpdates[`${rootKey}.${programKey}.subscriptionType`] = programInfo?.subscriptionType || existingProg.subscriptionType || null;
+        rootUpdates[`${rootKey}.${programKey}.meetingLink`] = programInfo?.googleMeetLink || existingProg.googleMeetLink || null;
+        rootUpdates[`${rootKey}.${programKey}.users`] = updatedUsers;
+
+        await organiserDocRef.set(rootUpdates, { merge: true });
+
+    } catch (err) {
+        console.error('addUserToProgram failed:', { organiserMeta, categoryKey, programTitle, err: err?.message });
+    }
+}
+
 exports.bookLiveSessionSlot = functions.https.onCall(async (data, context) => {
     const { sessionTitle, date, startTime, endTime, occupancyType, userId } = data.data || {};
 
@@ -210,7 +373,6 @@ exports.bookLiveSessionSlot = functions.https.onCall(async (data, context) => {
     });
 });
 
-// Cancel Live Session Slot Booking
 exports.cancelLiveSessionSlot = functions.https.onCall(async (data, context) => {
     const { sessionTitle, date, startTime, endTime, occupancyType, userId } = data.data || {};
     
@@ -268,8 +430,6 @@ exports.cancelLiveSessionSlot = functions.https.onCall(async (data, context) => 
     });
 });
 
-// Guide Monthly Weekly Slot Booking (Transactional)
-// Params: { guideTitle, mode: 'online'|'offline', rowIdx, tIdx, type: 'individual'|'couple'|'group', userId }
 exports.bookGuideMonthlyWeeklySlot = functions.https.onCall(async (data, context) => {
     const { guideTitle, mode, rowIdx, tIdx, type, userId } = data.data || {};
 
@@ -377,7 +537,6 @@ exports.bookGuideMonthlyWeeklySlot = functions.https.onCall(async (data, context
     });
 });
 
-// Optional: Cancel booking (decrement), with floor at 0
 exports.cancelGuideMonthlyWeeklySlot = functions.https.onCall(async (data, context) => {
     const { guideTitle, mode, rowIdx, tIdx, type, userId } = data.data || {};
     const modeKey = (mode || '').toLowerCase();
@@ -438,10 +597,6 @@ const gmailEmail = process.env.APP_GMAIL;
 const gmailPassword = process.env.APP_GMAIL_PASSWORD;
 const contactEmail = process.env.CONTACT_EMAIL
 
-// Twilio credentials are read from environment variables
-// Set: TWILIO_SID and TWILIO_AUTH_TOKEN in your Functions runtime environment
-
-// ============= WhatsApp Utilities ============= //
 function getTwilioClient() {
     try {
         const sid = process.env.TWILIO_SID;
@@ -581,7 +736,6 @@ async function createWhatsAppReminderDocs({ userId, name, phoneE164, program, sl
     }
 }
 
-// Runs every 5 minutes to send pending WhatsApp reminders
 exports.processWhatsappReminders = onSchedule({
     schedule: 'every minute',
     timeZone: 'Asia/Kolkata',
@@ -621,7 +775,6 @@ const razorpay = new Razorpay({
     key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
-// Configure email transporter (using Gmail/SendGrid/etc)
 const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
@@ -630,7 +783,6 @@ const transporter = nodemailer.createTransport({
     },
 });
 
-// User OTP Functions
 exports.sendOtp = functions.https.onCall(async (data, context) => {
     console.log("data from sendOtp", data.data);
     const { email } = data.data;
@@ -740,7 +892,6 @@ exports.verifyOtp = functions.https.onCall(async (data, context) => {
     return { token };
 });
 
-// Admin OTP Functions
 exports.sendAdminOtp = functions.https.onCall(async (data, context) => {
     console.log("data from sendAdminOtp", data.data);
     const { email } = data.data;
@@ -954,7 +1105,6 @@ exports.sendContactEmail = functions.https.onCall(async (data, context) => {
     }
 });
 
-// Razorpay
 exports.createOrder = functions.https.onCall(async (data, context) => {
     console.log("data from createOrder", data.data);
     const options = {
@@ -1495,6 +1645,77 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                         }`
                     );
                 }
+                
+                // 2.2) Save Organizer Record (arrays of objects)
+                try {
+                    const typeKey = ((program.type || program.category || '') + '').toLowerCase().trim();
+                    if (["guide", "retreat", "live"].includes(typeKey)) {
+                        const organizer = {
+                            // Try to infer organizer/guide information if present on program
+                            email: program?.meetGuide?.email || program?.organizer?.email || null,
+                            number: program?.meetGuide?.number || program?.organizer?.number || program?.organizer?.contactNumber || null,
+                            title: program?.meetGuide?.title || program?.organizer?.name || null,
+                        };
+
+                        // program array
+                        const programArr = [{
+                            id: program.id || null,
+                            title: program.title || null,
+                            type: program.type || program.category || null,
+                            category: program.category || null,
+                            mode: program.mode || null,
+                            occupancyType: program.occupancyType || null,
+                            subscriptionType: program.subscriptionType || null,
+                        }];
+
+                        // user array
+                        const userArr = [{ userId, name, email }];
+
+                        // schedule dates + slots arrays
+                        let scheduleDates = [];
+                        let slots = [];
+                        if (Array.isArray(program.selectedSlots) && program.selectedSlots.length > 0) {
+                            scheduleDates = Array.from(new Set(program.selectedSlots.map(s => s.date).filter(Boolean)));
+                            slots = program.selectedSlots.map(s => ({
+                                id: s.id || null,
+                                date: s.date || null,
+                                startTime: s.startTime || s.start_time || null,
+                                endTime: s.endTime || s.end_time || null,
+                                location: s.location || null,
+                                type: s.type || program.occupancyType || null,
+                                status: "pending"
+                            }));
+                        } else if (program.date || program.slot) {
+                            if (program.date) scheduleDates = [program.date];
+                            if (program.slot && (program.slot.startTime || program.slot.start_time)) {
+                                slots = [{
+                                    date: program.date || null,
+                                    startTime: program.slot.startTime || program.slot.start_time || null,
+                                    endTime: program.slot.endTime || program.slot.end_time || null,
+                                    type: program.occupancyType || null,
+                                    status: "pending"
+                                }];
+                            }
+                        }
+
+                        // Update organiser nested structure under 'organisers' collection ONLY
+                        const organiserEmail = organizer?.email || null;
+                        if (organiserEmail) {
+                            const programInfo = {
+                                subscriptionType: program?.subscriptionType || null,
+                                scheduleDates,
+                                slots,
+                            };
+                            const userInfo = { userId, name, email };
+                            const adduserProgrammmm = await addUserToProgram(db, organizer, typeKey, program.title, programInfo, userInfo);
+                            console.log('Added user to program:', adduserProgrammmm)
+                        } else {
+                            console.log('No organiser email found; skipped addUserToProgram for', program.title);
+                        }
+                    }
+                } catch (orgErr) {
+                    console.error('Failed saving organizer record for program', program?.title, orgErr);
+                }
             } catch (err) {
                 console.error(`Error updating program ${program.title}:`, err);
             }
@@ -1593,8 +1814,23 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
         let invoiceAttachments = [];
         try {
             const invoiceNumber = `UP-${(paymentResponse?.razorpay_order_id || 'ORDER').toString().slice(-8)}-${(paymentResponse?.razorpay_payment_id || 'PAY').toString().slice(-6)}`;
-            const logoB64 = main_logo || null;
-            const pdfBase64 = await generateInvoicePdfBase64({
+            // Sanitize items for invoice (title, price, quantity)
+            const safeItems = (Array.isArray(cartData) ? cartData : []).map((it, idx) => ({
+                title: (it?.title || `Program ${idx + 1}`).toString().slice(0, 200),
+                price: Number(it?.price || 0) || 0,
+                quantity: Number(it?.quantity || 1) || 1,
+                mode: it?.mode || undefined,
+                subscriptionType: it?.subscriptionType || undefined,
+                occupancyType: it?.occupancyType || undefined,
+                gstRate: Number(it?.gstRate || it?.taxRate || process.env.DEFAULT_GST_PERCENT || 18) || 0,
+                sac: (it?.sac || it?.hsn || '').toString().slice(0, 32) || undefined,
+            }));
+
+            // Guard logo size/presence (skip if huge or missing)
+            const maxLogoLen = 2_000_000; // ~2MB base64 chars
+            const logoB64 = (typeof main_logo === 'string' && main_logo.length > 0 && main_logo.length <= maxLogoLen) ? main_logo : null;
+
+            let pdfBase64 = await generateInvoicePdfBase64({
                 invoiceNumber,
                 issueDateISO: new Date().toISOString(),
                 buyer: {
@@ -1605,7 +1841,7 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                     zip: formData?.zip || '',
                     country: formData?.country || 'India',
                 },
-                items: cartData,
+                items: safeItems,
                 totalAmount: Number(total || 0),
                 currency: 'INR',
                 company: {
@@ -1618,15 +1854,50 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                 },
                 logoBase64: logoB64,
             });
-            if (pdfBase64) {
-                invoiceAttachments.push({
-                    filename: `${invoiceNumber}.pdf`,
-                    content: Buffer.from(pdfBase64, 'base64'),
-                    contentType: 'application/pdf'
-                });
-            }
+
+            if (!pdfBase64) throw new Error('Empty PDF from invoice generator');
+
+            invoiceAttachments.push({
+                filename: `${invoiceNumber}.pdf`,
+                content: Buffer.from(pdfBase64, 'base64'),
+                contentType: 'application/pdf'
+            });
         } catch (e) {
-            console.error('Invoice generation failed (non-blocking):', e);
+            console.error('Invoice generation failed (non-blocking) primary attempt:', e);
+            // Fallback: retry minimal invoice without logo and with single summarized line
+            try {
+                const invoiceNumber = `UP-${(paymentResponse?.razorpay_order_id || 'ORDER').toString().slice(-8)}-${(paymentResponse?.razorpay_payment_id || 'PAY').toString().slice(-6)}-MIN`;
+                const summaryItem = [{
+                    title: `${(Array.isArray(cartData) ? cartData.length : 0)} Program(s)`,
+                    price: Number(total || 0) || 0,
+                    quantity: 1,
+                }];
+                const pdfBase64 = await generateInvoicePdfBase64({
+                    invoiceNumber,
+                    issueDateISO: new Date().toISOString(),
+                    buyer: {
+                        name: name || formData?.fullName || '',
+                        email: email || formData?.email || '',
+                    },
+                    items: summaryItem,
+                    totalAmount: Number(total || 0),
+                    currency: 'INR',
+                    company: {
+                        name: process.env.COMPANY_NAME || 'Urban Pilgrim',
+                        country: process.env.COMPANY_COUNTRY || 'India',
+                    },
+                    logoBase64: null,
+                });
+                if (pdfBase64) {
+                    invoiceAttachments.push({
+                        filename: `${invoiceNumber}.pdf`,
+                        content: Buffer.from(pdfBase64, 'base64'),
+                        contentType: 'application/pdf'
+                    });
+                }
+            } catch (e2) {
+                console.error('Invoice fallback generation failed (still non-blocking):', e2);
+            }
         }
         // Enhanced program list with monthly slot details
         const programList = cartData
@@ -2512,7 +2783,6 @@ exports.checkUserSubscriptionStatus = functions.https.onCall(async (data, contex
     }
 });
 
-// Gift Card: Create order (separate entry-point)
 exports.createGiftCardOrder = functions.https.onCall(async (data, context) => {
     console.log("data from createGiftCardOrder", data.data);
     const { amount } = data.data || {};
@@ -2533,7 +2803,6 @@ exports.createGiftCardOrder = functions.https.onCall(async (data, context) => {
     }
 });
 
-// Helper to generate uppercase coupon code
 function generateCouponCode(len = 10) {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let out = '';
@@ -2541,7 +2810,6 @@ function generateCouponCode(len = 10) {
     return out;
 }
 
-// Gift Card: Confirm payment, generate one-time coupon bound to a program, and email it
 exports.confirmGiftCardPayment = functions.https.onCall(async (data, context) => {
     try {
         const { purchaserEmail, purchaserName, programTitle, programType, programId, amount, paymentResponse } = data.data || {};
@@ -2609,7 +2877,6 @@ exports.confirmGiftCardPayment = functions.https.onCall(async (data, context) =>
     }
 });
 
-// twilio for whatsapp
 exports.sendWhatsappReminder = functions.https.onCall(async (data, context) => {
     try {
         const { phoneNumber, message } = data.data;
@@ -2628,7 +2895,6 @@ exports.sendWhatsappReminder = functions.https.onCall(async (data, context) => {
     }
 });
 
-// Instant send for fallback reminders (triggered on document create)
 exports.sendInstantWhatsappOnCreate = onDocumentCreated('whatsapp_reminders/{id}', async (event) => {
     try {
         const snap = event.data; // DocumentSnapshot
@@ -2726,9 +2992,6 @@ async function processGroupWaitingPeriods(today) {
     }
 }
 
-/**
- * Clean up expired bookings (after 1 month completion)
- */
 async function cleanupExpiredBookings(today) {
     try {
         // Find all bookings that have expired
@@ -2762,9 +3025,6 @@ async function cleanupExpiredBookings(today) {
     }
 }
 
-/**
- * Get booking count for specific slots and program
- */
 async function getSlotBookingCount(booking) {
     try {
         // Count bookings for the same program, mode, and occupancy type
@@ -2802,9 +3062,6 @@ async function getSlotBookingCount(booking) {
     }
 }
 
-/**
- * Process refund for group booking that didn't meet minimum
- */
 async function processGroupRefund(booking, bookingRef) {
     try {
         // Update booking status
@@ -2833,9 +3090,6 @@ async function processGroupRefund(booking, bookingRef) {
     }
 }
 
-/**
- * Send group activation email
- */
 async function sendGroupActivationEmail(booking) {
     try {
         const html = `
@@ -2892,9 +3146,6 @@ async function sendGroupActivationEmail(booking) {
     }
 }
 
-/**
- * Send refund notification email
- */
 async function sendRefundNotificationEmail(booking) {
     try {
         const html = `
@@ -2937,9 +3188,6 @@ async function sendRefundNotificationEmail(booking) {
     }
 }
 
-/**
- * Send booking completion email
- */
 async function sendBookingCompletionEmail(booking) {
     try {
         const html = `
