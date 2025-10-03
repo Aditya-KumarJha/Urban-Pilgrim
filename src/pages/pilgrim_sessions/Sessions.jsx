@@ -6,6 +6,7 @@ import SEO from "../../components/SEO.jsx";
 import LiveSessions from "../../components/pilgrim_sessions/LiveSessions";
 import Testimonials from "../../components/Testimonials";
 import RecordedPrograms from "../../components/pilgrim_sessions/RecordedPrograms";
+import Workshops from "../../components/pilgrim_workshop/Workshops";
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useSelector } from "react-redux";
 import { calculateBestSellingPrograms, getTopBestSellingPrograms } from "../../utils/bestSellingUtils";
@@ -69,6 +70,8 @@ export default function Sessions() {
                     <CategorySelector onCategoryChange={handleCategoryChange} />
                 </div>
             </div>
+            {/* workshop */}
+            <Workshops filters={filters} bestSellingActive={bestSellingActive} />
             <LiveSessions filters={filters} bestSellingActive={bestSellingActive} />
             <RecordedPrograms filters={filters} bestSellingActive={bestSellingActive} />
             {/* <SubscriptionPlans /> */}

@@ -3,6 +3,7 @@ import Sidebar from "./SideBar";
 import Home from "./Home";
 import Retreats from "./Retreats";
 import Sessions from "./Sessions";
+import Workshops from "./Workshops";
 import Guides from "./Guides";
 import Events from "./Events";
 import Bundles from "./Bundles";
@@ -20,6 +21,8 @@ export default function Admin() {
         return <Retreats />;
       case "sessions":
         return <Sessions />;
+      case "workshops":
+        return <Workshops />;
       case "guides":
         return <Guides />;
       case "events":

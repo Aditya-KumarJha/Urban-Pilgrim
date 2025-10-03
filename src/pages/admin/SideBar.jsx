@@ -12,6 +12,7 @@ export default function Sidebar({ activeSection, setActiveSection }) {
         { name: "Home Page", key: "home" },
         { name: "Pilgrim retreats", key: "retreats" },
         { name: "Pilgrim sessions", key: "sessions" },
+        { name: "Workshops", key: "workshops" },
         { name: "Pilgrim Guides", key: "guides" },
         { name: "Upcoming Events", key: "events" },
         // { name: "Bundle Program", key: "bundles" },

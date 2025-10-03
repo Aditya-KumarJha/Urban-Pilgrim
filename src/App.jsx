@@ -28,6 +28,7 @@ import PrivacyPolicy from "./pages/privacy_policy/PrivacyPolicy";
 import YogaDesc from "./components/YogaDesc";
 import EventDetails from "./components/upcoming_events/EventDetails";
 import LiveDetails from "./pages/program_details/LiveDeatils";
+import WorkshopDetails from "./components/pilgrim_workshop/WorkshopDetails";
 import Lenis from "@studio-freight/lenis";
 import WhatsAppFloatingButton from "./components/WhatsAppFloatingButton.jsx";
 import Organizer from "./pages/organizer/Organizer.jsx";
@@ -116,6 +117,8 @@ function App() {
                             <Route path="/pilgrim_retreats/:retreatName" element={<Retreatdescription />} />
                             {/* gift card */}
                             <Route path="/gift-card/:id" element={<GiftCardDetails />} />
+                            {/* workshop */}
+                            <Route path="/workshop/:title/details" element={<WorkshopDetails />} />
                             {/* event */}
                             <Route path="/event/:eventName" element={<EventDetails />} />
                             <Route path="/admin" element={<Admin />} />

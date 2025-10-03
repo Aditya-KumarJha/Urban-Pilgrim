@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Workshop Functions</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .container { background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        button { background: #c16a00; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
+        button:hover { background: #a55500; }
+        .result { background: white; padding: 15px; border-radius: 5px; margin: 10px 0; border-left: 4px solid #c16a00; }
+        .error { border-left-color: #ef4444; }
+        .success { border-left-color: #10b981; }
+        input, textarea { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px; }
+        label { font-weight: bold; display: block; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Workshop Functions Local Testing</h1>
+    
+    <div class="container">
+        <h2>Test Submit Workshop Request</h2>
+        <form id="requestForm">
+            <label>Workshop Title:</label>
+            <input type="text" id="workshopTitle" value="Test Workshop" required>
+            
+            <label>Workshop Price:</label>
+            <input type="number" id="workshopPrice" value="5000" required>
+            
+            <label>Participants:</label>
+            <input type="number" id="participants" value="2" required>
+            
+            <label>Customer Name:</label>
+            <input type="text" id="customerName" value="John Doe" required>
+            
+            <label>Customer Email:</label>
+            <input type="email" id="customerEmail" value="john@example.com" required>
+            
+            <label>Mobile Number:</label>
+            <input type="tel" id="mobile" value="+919876543210" required>
+            
+            <label>Address:</label>
+            <input type="text" id="address" value="123 Test Street, Mumbai">
+            
+            <label>Venue Name:</label>
+            <input type="text" id="venue" value="Test Community Center" required>
+            
+            <label>Venue Address:</label>
+            <textarea id="venueAddress" required>456 Venue Road, Mumbai, Maharashtra 400001</textarea>
+            
+            <label>Preferred Date:</label>
+            <input type="date" id="preferredDate" value="2024-01-15">
+            
+            <label>Preferred Time:</label>
+            <input type="time" id="preferredTime" value="10:00">
+            
+            <label>Additional Notes:</label>
+            <textarea id="additionalNotes">This is a test request for workshop booking system.</textarea>
+            
+            <button type="submit">Submit Workshop Request</button>
+        </form>
+        
+        <div id="submitResult"></div>
+    </div>
+    
+    <div class="container">
+        <h2>Test Get Request Status</h2>
+        <label>Workshop ID:</label>
+        <input type="text" id="workshopId" value="test-workshop-123">
+        <button onclick="testGetStatus()">Get Request Status</button>
+        <div id="statusResult"></div>
+    </div>
+    
+    <div class="container">
+        <h2>Test Admin Response (HTTP Function)</h2>
+        <label>Request ID:</label>
+        <input type="text" id="requestId" placeholder="Enter request ID from submit response">
+        <button onclick="testApprove()">Test Approve</button>
+        <button onclick="testReject()">Test Reject</button>
+        <div id="adminResult"></div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFunctions, httpsCallable, connectFunctionsEmulator } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js';
+
+        // Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyAf1hl2QhUpcBGExjXv0S_5ban58kmcBKo",
+            authDomain: "urban-pilgrim.firebaseapp.com",
+            projectId: "urban-pilgrim",
+            storageBucket: "urban-pilgrim.firebasestorage.app",
+            messagingSenderId: "747989822476",
+            appId: "1:747989822476:web:876d9c56022bad0c761229"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const functions = getFunctions(app);
+
+        // Connect to local emulator
+        try {
+            connectFunctionsEmulator(functions, "localhost", 5002);
+            console.log("🔧 Connected to Functions Emulator");
+            document.body.insertAdjacentHTML('afterbegin', '<div style="background: #10b981; color: white; padding: 10px; text-align: center; margin-bottom: 20px;">✅ Connected to Local Firebase Emulator (Port 5002)</div>');
+        } catch (error) {
+            console.log("Functions emulator connection failed:", error);
+            document.body.insertAdjacentHTML('afterbegin', '<div style="background: #ef4444; color: white; padding: 10px; text-align: center; margin-bottom: 20px;">❌ Failed to connect to emulator. Make sure it\'s running on port 5002.</div>');
+        }
+
+        // Test submit workshop request
+        document.getElementById('requestForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const submitResult = document.getElementById('submitResult');
+            submitResult.innerHTML = '<div>⏳ Submitting request...</div>';
+            
+            try {
+                const submitWorkshopRequest = httpsCallable(functions, 'submitWorkshopRequest');
+                
+                const requestData = {
+                    workshop: {
+                        id: 'test-workshop-123',
+                        title: document.getElementById('workshopTitle').value,
+                        price: document.getElementById('workshopPrice').value
+                    },
+                    variant: null,
+                    participants: parseInt(document.getElementById('participants').value),
+                    name: document.getElementById('customerName').value,
+                    email: document.getElementById('customerEmail').value,
+                    mobile: document.getElementById('mobile').value,
+                    address: document.getElementById('address').value,
+                    venue: document.getElementById('venue').value,
+                    venueAddress: document.getElementById('venueAddress').value,
+                    preferredDate: document.getElementById('preferredDate').value,
+                    preferredTime: document.getElementById('preferredTime').value,
+                    additionalNotes: document.getElementById('additionalNotes').value
+                };
+                
+                const result = await submitWorkshopRequest({ data: requestData });
+                
+                submitResult.innerHTML = `
+                    <div class="result success">
+                        <h3>✅ Success!</h3>
+                        <p><strong>Request ID:</strong> ${result.data.requestId}</p>
+                        <p><strong>Message:</strong> ${result.data.message}</p>
+                        <p><em>Copy the Request ID above to test admin response functions</em></p>
+                    </div>
+                `;
+                
+                // Auto-fill request ID for admin testing
+                document.getElementById('requestId').value = result.data.requestId;
+                
+            } catch (error) {
+                console.error('Error:', error);
+                submitResult.innerHTML = `
+                    <div class="result error">
+                        <h3>❌ Error</h3>
+                        <p>${error.message}</p>
+                        <pre>${JSON.stringify(error, null, 2)}</pre>
+                    </div>
+                `;
+            }
+        });
+
+        // Test get request status
+        window.testGetStatus = async () => {
+            const statusResult = document.getElementById('statusResult');
+            statusResult.innerHTML = '<div>⏳ Getting status...</div>';
+            
+            try {
+                const getWorkshopRequestStatus = httpsCallable(functions, 'getWorkshopRequestStatus');
+                const result = await getWorkshopRequestStatus({ 
+                    workshopId: document.getElementById('workshopId').value 
+                });
+                
+                statusResult.innerHTML = `
+                    <div class="result success">
+                        <h3>✅ Status Retrieved</h3>
+                        <p><strong>Status:</strong> ${result.data.status}</p>
+                        <p><strong>Request ID:</strong> ${result.data.requestId || 'N/A'}</p>
+                        <pre>${JSON.stringify(result.data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error:', error);
+                statusResult.innerHTML = `
+                    <div class="result error">
+                        <h3>❌ Error</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        };
+
+        // Test admin approve
+        window.testApprove = async () => {
+            const requestId = document.getElementById('requestId').value;
+            if (!requestId) {
+                alert('Please enter a Request ID');
+                return;
+            }
+            
+            const adminResult = document.getElementById('adminResult');
+            adminResult.innerHTML = '<div>⏳ Testing approve...</div>';
+            
+            try {
+                const response = await fetch(`http://localhost:5002/urban-pilgrim/us-central1/handleWorkshopRequestResponse?requestId=${requestId}&action=approve&adminNotes=Test approval from local testing`);
+                const text = await response.text();
+                
+                adminResult.innerHTML = `
+                    <div class="result success">
+                        <h3>✅ Approve Test Complete</h3>
+                        <p><strong>Status:</strong> ${response.status}</p>
+                        <p><strong>Response:</strong> HTML page returned (check console for full response)</p>
+                    </div>
+                `;
+                console.log('Approve response:', text);
+            } catch (error) {
+                console.error('Error:', error);
+                adminResult.innerHTML = `
+                    <div class="result error">
+                        <h3>❌ Error</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        };
+
+        // Test admin reject
+        window.testReject = async () => {
+            const requestId = document.getElementById('requestId').value;
+            if (!requestId) {
+                alert('Please enter a Request ID');
+                return;
+            }
+            
+            const adminResult = document.getElementById('adminResult');
+            adminResult.innerHTML = '<div>⏳ Testing reject...</div>';
+            
+            try {
+                const response = await fetch(`http://localhost:5002/urban-pilgrim/us-central1/handleWorkshopRequestResponse?requestId=${requestId}&action=reject&adminNotes=Test rejection from local testing`);
+                const text = await response.text();
+                
+                adminResult.innerHTML = `
+                    <div class="result success">
+                        <h3>✅ Reject Test Complete</h3>
+                        <p><strong>Status:</strong> ${response.status}</p>
+                        <p><strong>Response:</strong> HTML page returned (check console for full response)</p>
+                    </div>
+                `;
+                console.log('Reject response:', text);
+            } catch (error) {
+                console.error('Error:', error);
+                adminResult.innerHTML = `
+                    <div class="result error">
+                        <h3>❌ Error</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        };
+    </script>
+</body>
+</html>

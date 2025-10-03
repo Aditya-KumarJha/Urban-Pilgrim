@@ -1,9 +1,8 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-import { getFunctions } from "firebase/functions";
+import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
 import { getStorage } from "firebase/storage";
-// import { connectFunctionsEmulator } from "firebase/functions";
 
 const firebaseConfig = {
     apiKey: "AIzaSyAf1hl2QhUpcBGExjXv0S_5ban58kmcBKo",
@@ -20,5 +19,15 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const functions = getFunctions(app);
-// connectFunctionsEmulator(functions, "localhost", 5001);
+
+// Connect to emulator in development
+if (process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost') {
+    try {
+        connectFunctionsEmulator(functions, "localhost", 5002);
+        console.log("🔧 Connected to Functions Emulator");
+    } catch (error) {
+        console.log("Functions emulator already connected or not available");
+    }
+}
+
 export const storage = getStorage(app);

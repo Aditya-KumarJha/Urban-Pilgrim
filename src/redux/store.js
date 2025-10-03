@@ -22,6 +22,7 @@ import allEventsReducer from "../features/eventsSlice";
 import cartReducer from "../features/cartSlice";
 import programReducer from "../features/userProgramsSlice"
 import bundleReducer from "../features/bundleSlice";
+import workshopsReducer from "../features/workshopsSlice";
 
 import { 
     persistReducer,
@@ -64,6 +65,7 @@ const rootReducer = combineReducers({
         bundles: bundleReducer,
         cart: cartReducer,
         userProgram: programReducer,
+        workshops: workshopsReducer,
 })
 
 const persistedReducer = persistReducer(persistConfig, rootReducer)

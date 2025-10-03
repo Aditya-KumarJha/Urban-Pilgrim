@@ -3401,3 +3401,12 @@ async function sendBookingCompletionEmail(booking) {
         console.error('Error sending completion email:', error);
     }
 }
+
+// ========== WORKSHOP REQUEST SYSTEM ==========
+// Import workshop functions from separate file
+const workshopFunctions = require('./workshopRequests');
+
+// Export workshop functions
+exports.submitWorkshopRequest = workshopFunctions.submitWorkshopRequest;
+exports.handleWorkshopRequestResponse = workshopFunctions.handleWorkshopRequestResponse;
+exports.getWorkshopRequestStatus = workshopFunctions.getWorkshopRequestStatus;
