@@ -4,8 +4,12 @@ import { useDispatch } from "react-redux";
 import { addToCart } from "../../features/cartSlice";
 import { showSuccess, showError } from "../../utils/toast";
 import { httpsCallable } from "firebase/functions";
-import { functions } from "../../services/firebase";
+import { functions, auth, db } from "../../services/firebase";
 import { useSelector } from "react-redux";
+import { signInWithCustomToken } from "firebase/auth";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { setUser } from "../../features/authSlice";
+import UserDetailsOverlay from "./UserDetailsOverlay";
 
 export default function GiftCardDetails() {
     const { id } = useParams();
@@ -20,17 +24,7 @@ export default function GiftCardDetails() {
     const [selectedPrice, setSelectedPrice] = useState(null);
     const [purchaseLoading, setPurchaseLoading] = useState(false);
     const [processingPayment, setProcessingPayment] = useState(false);
-
-    const getMediaType = (url) => {
-        if (!url) return 'image';
-        const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi'];
-        return videoExtensions.some(ext => url.toLowerCase().includes(ext)) ? 'video' : 'image';
-    };
-
-    const handleMediaSelect = (mediaUrl) => {
-        setMainImage(mediaUrl);
-        setMainImageType(getMediaType(mediaUrl));
-    };
+    const [showUserDetails, setShowUserDetails] = useState(false);
 
     useEffect(() => {
         // Sample gift card data - replace with Firebase fetch later
@@ -143,8 +137,19 @@ export default function GiftCardDetails() {
         setLoading(false);
     }, [id]);
 
+    const getMediaType = (url) => {
+        if (!url) return 'image';
+        const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi'];
+        return videoExtensions.some(ext => url.toLowerCase().includes(ext)) ? 'video' : 'image';
+    };
+
+    const handleMediaSelect = (mediaUrl) => {
+        setMainImage(mediaUrl);
+        setMainImageType(getMediaType(mediaUrl));
+    };
+
     useEffect(() => {
-        window.scrollTo(0, 0);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }, []);
 
     // const handleAddToCart = () => {
@@ -173,21 +178,49 @@ export default function GiftCardDetails() {
     //     showSuccess(`${quantity} x ${giftCard.title} added to cart!`);
     // };
 
-    const handleBuyNow = async () => {
+    const handleBuyNow = () => {
         if (!selectedPrice) {
             showError('Please select an amount first');
             return;
         }
 
-        if (!user) {
-            showError('Please login to purchase gift card');
-            return;
-        }
+        setShowUserDetails(true);
+    };
 
-        setPurchaseLoading(true);
-        console.log("gidtcard: ", giftCard)
-        
+    // OTP helpers wired to Cloud Functions
+    const sendOtp = async (email) => {
+        const sendOtpFn = httpsCallable(functions, "sendOtp");
+        await sendOtpFn({ email });
+        return true;
+    };
+
+    const verifyOtp = async (email, otp) => {
+        const verifyOtpFn = httpsCallable(functions, "verifyOtp");
+        const res = await verifyOtpFn({ email, otp });
+        const result = await signInWithCustomToken(auth, res.data.token);
+        const user = result.user;
+        // Ensure user doc exists
+        const userRef = doc(db, "users", user.uid, "info", "details");
+        const userSnap = await getDoc(userRef);
+        if (!userSnap.exists()) {
+            await setDoc(userRef, { uid: user.uid, email: user.email, createdAt: new Date() });
+        }
+        dispatch(setUser({ uid: user.uid, email: user.email }));
+        return true;
+    };
+
+    const handleConfirmPurchase = async (formData) => {
         try {
+            // After OTP verification, user will be signed in. Guard just in case.
+            if (!user) {
+                showError("Please verify your email to continue");
+                return;
+            }
+
+            setPurchaseLoading(true);
+            setShowUserDetails(false);
+            console.log("giftcard: ", giftCard)
+            
             // Create order using new gift card program function
             const createOrder = httpsCallable(functions, 'createGiftCardProgramOrder');
             const { data: order } = await createOrder({ 
@@ -490,6 +523,22 @@ export default function GiftCardDetails() {
                     )}
                 </div>
             </div>
+
+            {/* User Details Overlay */}
+            {showUserDetails && (
+                <UserDetailsOverlay
+                    giftCard={giftCard}
+                    selectedPrice={selectedPrice}
+                    quantity={quantity}
+                    total={(selectedPrice?.value || 0) * quantity}
+                    onClose={() => setShowUserDetails(false)}
+                    onConfirm={handleConfirmPurchase}
+                    isLoggedIn={!!user}
+                    user={user}
+                    sendOtp={sendOtp}
+                    verifyOtp={verifyOtp}
+                />
+            )}
 
             {/* Processing Payment Overlay */}
             {processingPayment && (

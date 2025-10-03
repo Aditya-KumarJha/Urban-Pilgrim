@@ -1,0 +1,245 @@
+import { useState, useEffect } from "react";
+
+export default function UserDetailsOverlay({ 
+    giftCard, 
+    selectedPrice, 
+    quantity, 
+    total, 
+    onClose, 
+    onConfirm, 
+    isLoggedIn = false, 
+    user = null, 
+    sendOtp, 
+    verifyOtp 
+}) {
+    const [formData, setFormData] = useState({
+        firstName: "",
+        lastName: "",
+        address: "",
+        email: "",
+        whatsapp: "",
+        city: "",
+        state: "",
+        pin: "",
+    });
+
+    const [otp, setOtp] = useState("");
+    const [otpSent, setOtpSent] = useState(false);
+    const [emailVerified, setEmailVerified] = useState(false);
+    const [sending, setSending] = useState(false);
+    const [verifying, setVerifying] = useState(false);
+    const [errors, setErrors] = useState({});
+
+    // Auto-populate email when user is logged in
+    useEffect(() => {
+        if (isLoggedIn && user?.email) {
+            setFormData(prev => ({
+                ...prev,
+                email: user.email
+            }));
+            setEmailVerified(true); // Skip email verification for logged-in users
+        }
+    }, [isLoggedIn, user]);
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData({ ...formData, [name]: value });
+        // Clear field error on change
+        if (errors[name]) {
+            setErrors(prev => ({ ...prev, [name]: "" }));
+        }
+    };
+
+    const isValidWhatsapp = (value) => {
+        const digits = (value || "").replace(/\D/g, "");
+        return digits.length >= 10 && digits.length <= 15; // allow intl
+    };
+
+    const validate = () => {
+        const newErrors = {};
+        if (!formData.firstName?.trim()) newErrors.firstName = "First name is required";
+        if (!formData.lastName?.trim()) newErrors.lastName = "Last name is required";
+        if (!formData.address?.trim()) newErrors.address = "Address is required";
+        if (!isValidWhatsapp(formData.whatsapp)) newErrors.whatsapp = "Enter a valid WhatsApp number";
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+    const handleSendOtp = async () => {
+        if (!formData.email) return;
+        try {
+            setSending(true);
+            if (typeof sendOtp === 'function') {
+                await sendOtp(formData.email);
+            } else {
+                console.warn("sendOtp prop not provided. Wire this to your auth service.");
+            }
+            setOtpSent(true);
+        } catch (err) {
+            console.error("Failed to send OTP:", err);
+        } finally {
+            setSending(false);
+        }
+    };
+
+    const handleVerifyOtp = async () => {
+        if (!formData.email || !otp) return;
+        try {
+            setVerifying(true);
+            if (typeof verifyOtp === 'function') {
+                const ok = await verifyOtp(formData.email, otp);
+                if (ok === false) {
+                    setEmailVerified(false);
+                    return;
+                }
+            } else {
+                console.warn("verifyOtp prop not provided. Wire this to your auth service.");
+            }
+            setEmailVerified(true);
+        } catch (err) {
+            console.error("Failed to verify OTP:", err);
+            setEmailVerified(false);
+        } finally {
+            setVerifying(false);
+        }
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (!validate()) {
+            return;
+        }
+        // Require email verification if not logged in
+        if (!isLoggedIn && !emailVerified) {
+            alert("Please verify your email to continue.");
+            return;
+        }
+        onConfirm(formData); // Pass form data back to parent (parent should trigger Razorpay)
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-xs flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl w-[95vw] max-w-lg p-4 sm:p-6 shadow-lg relative max-h-[90vh] overflow-y-auto">
+                <button className="absolute top-3 right-3 text-gray-500" onClick={onClose}>✖</button>
+                
+                {/* Gift Card Summary */}
+                <div className="mb-4 pb-4 border-b">
+                    <h2 className="text-xl font-bold mb-3 text-[#2F6288]">Complete Your Purchase</h2>
+                    <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg">
+                        <img 
+                            src={giftCard.thumbnail} 
+                            alt={giftCard.title}
+                            className="w-12 h-12 object-cover rounded"
+                        />
+                        <div className="flex-1">
+                            <h3 className="font-medium text-sm">{giftCard.title}</h3>
+                            <p className="text-xs text-gray-600">
+                                ₹{selectedPrice?.value.toLocaleString("en-IN")} × {quantity} = ₹{total.toLocaleString("en-IN")}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 className="text-lg font-semibold mb-4">Billing Details</h3>
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    {/* Email field - always show, but read-only for logged-in users */}
+                    <div className="space-y-2">
+                        <input 
+                            name="email" 
+                            type="email" 
+                            placeholder="Email address" 
+                            value={formData.email} 
+                            onChange={handleChange} 
+                            className={`w-full border p-2 rounded ${isLoggedIn ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                            readOnly={isLoggedIn}
+                            required
+                        />
+                        {!isLoggedIn && (
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
+                                {!otpSent ? (
+                                    <button
+                                        type="button"
+                                        onClick={handleSendOtp}
+                                        className="px-3 py-2 text-sm rounded bg-[#2F6288] text-white disabled:opacity-50 w-full sm:w-auto"
+                                        disabled={sending || !formData.email}
+                                    >
+                                        {sending ? "Sending..." : "Send OTP"}
+                                    </button>
+                                ) : (
+                                    <>
+                                        <input
+                                            type="text"
+                                            inputMode="numeric"
+                                            placeholder="Enter OTP"
+                                            value={otp}
+                                            onChange={(e) => setOtp(e.target.value)}
+                                            className="w-full sm:flex-1 border p-2 rounded"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={handleVerifyOtp}
+                                            className="px-3 py-2 text-sm rounded bg-[#2F6288] text-white disabled:opacity-50 w-full sm:w-auto"
+                                            disabled={verifying || !otp}
+                                        >
+                                            {verifying ? "Verifying..." : (emailVerified ? "Verified" : "Verify OTP")}
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div className="flex-1">
+                            <input name="firstName" placeholder="First name" value={formData.firstName} onChange={handleChange} className={`w-full border p-2 rounded ${errors.firstName ? 'border-red-500' : ''}`} />
+                            {errors.firstName && <p className="text-xs text-red-600 mt-1">{errors.firstName}</p>}
+                        </div>
+                        <div className="flex-1">
+                            <input name="lastName" placeholder="Last name" value={formData.lastName} onChange={handleChange} className={`w-full border p-2 rounded ${errors.lastName ? 'border-red-500' : ''}`} />
+                            {errors.lastName && <p className="text-xs text-red-600 mt-1">{errors.lastName}</p>}
+                        </div>
+                    </div>
+
+                    <div>
+                        <input name="address" placeholder="Address" value={formData.address} onChange={handleChange} className={`w-full border p-2 rounded ${errors.address ? 'border-red-500' : ''}`} />
+                        {errors.address && <p className="text-xs text-red-600 mt-1">{errors.address}</p>}
+                    </div>
+                    <input 
+                        name="whatsapp" 
+                        type="tel" 
+                        inputMode="numeric"
+                        placeholder="WhatsApp number" 
+                        value={formData.whatsapp} 
+                        onChange={handleChange} 
+                        className={`w-full border p-2 rounded ${errors.whatsapp ? 'border-red-500' : ''}`}
+                    />
+                    {errors.whatsapp && <p className="text-xs text-red-600 mt-1">{errors.whatsapp}</p>}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <div className="min-w-0">
+                            <input name="city" placeholder="City" value={formData.city} onChange={handleChange} className={`w-full border p-2 rounded ${errors.city ? 'border-red-500' : ''}`} />
+                            {errors.city && <p className="text-xs text-red-600 mt-1">{errors.city}</p>}
+                        </div>
+                        <div className="min-w-0">
+                            <input name="state" placeholder="State" value={formData.state} onChange={handleChange} className={`w-full border p-2 rounded ${errors.state ? 'border-red-500' : ''}`} />
+                            {errors.state && <p className="text-xs text-red-600 mt-1">{errors.state}</p>}
+                        </div>
+                        <div className="min-w-0">
+                            <input name="pin" placeholder="PIN code" value={formData.pin} onChange={handleChange} className={`w-full border p-2 rounded ${errors.pin ? 'border-red-500' : ''}`} />
+                            {errors.pin && <p className="text-xs text-red-600 mt-1">{errors.pin}</p>}
+                        </div>
+                    </div>
+
+                    <button 
+                        type="submit" 
+                        className="w-full bg-[#2F6288] hover:bg-[#224b66] text-white py-3 rounded-lg font-semibold disabled:opacity-60"
+                        disabled={!isLoggedIn && !emailVerified}
+                    >
+                        Proceed to Payment - ₹{total.toLocaleString("en-IN")}
+                    </button>
+                </form>
+            </div>
+        </div>
+    );
+}

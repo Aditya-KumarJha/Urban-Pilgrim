@@ -384,6 +384,7 @@ export default function CartPage() {
 							<span>Subtotal</span>
 							<span>₹ {subtotal.toLocaleString()}</span>
 						</div>
+						
 						{monthlyDiscount > 0 && (
 							<div className="flex justify-between text-sm mb-2">
 								<span>Monthly Discount</span>
