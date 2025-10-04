@@ -1,15 +1,35 @@
 import { useDispatch, useSelector } from "react-redux";
 import WorkshopCard from "./WorkshopCard";
 import { useEffect, useState, useMemo } from "react";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "../../services/firebase";
 
 export default function Workshops({ filters = {}, bestSellingActive = false }) {
     const dispatch = useDispatch();
-    const workshopsData = useSelector((state) => state.workshops?.workshops || []);
+    const [workshopsData, setWorkshopsData] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Simulate loading time
-        setTimeout(() => setLoading(false), 500);
+        const fetchWorkshops = async () => {
+            try {
+                setLoading(true);
+                const workshopsCollection = collection(db, 'workshops');
+                const workshopsSnapshot = await getDocs(workshopsCollection);
+                const workshopsList = workshopsSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                setWorkshopsData(workshopsList);
+                console.log('Workshops fetched from database:', workshopsList);
+            } catch (error) {
+                console.error('Error fetching workshops:', error);
+                setWorkshopsData([]);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchWorkshops();
     }, []);
 
     // Transform workshop data to match the card format

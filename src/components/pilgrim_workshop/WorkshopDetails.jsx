@@ -4,46 +4,68 @@ import { useDispatch, useSelector } from "react-redux";
 import { addToCart } from "../../features/cartSlice";
 import { showSuccess, showError } from "../../utils/toast";
 import { httpsCallable } from "firebase/functions";
-import { functions } from "../../services/firebase";
+import { functions, db } from "../../services/firebase";
+import { collection, getDocs, query, where } from "firebase/firestore";
 
 export default function WorkshopDetails() {
     const { title } = useParams();
     const navigate = useNavigate();
     const dispatch = useDispatch();
     const user = useSelector((state) => state.auth.user);
-    const workshops = useSelector((state) => state.workshops.workshops);
     
     const [workshop, setWorkshop] = useState(null);
     const [loading, setLoading] = useState(true);
     const [mainImage, setMainImage] = useState("");
     const [mainImageType, setMainImageType] = useState('image');
     const [selectedVariant, setSelectedVariant] = useState(null);
-    const [participants, setParticipants] = useState(workshops[0]?.minPerson || 1);
+    const [participants, setParticipants] = useState(1);
     const [expandedGuides, setExpandedGuides] = useState({});
     const [requestStatus, setRequestStatus] = useState('initial'); // initial, pending, approved, rejected
     const [showRequestModal, setShowRequestModal] = useState(false);
     const [requestData, setRequestData] = useState(null);
 
     useEffect(() => {
-        // Find workshop by title
-        const foundWorkshop = workshops?.find(w => 
-            w.title?.replace(/\s+/g, '-').toLowerCase() === title
-        );
-        
-        if (foundWorkshop) {
-            setWorkshop(foundWorkshop);
-            setMainImage(foundWorkshop.thumbnail);
-            setSelectedVariant(foundWorkshop.variants?.[0] || null);
-            setParticipants(foundWorkshop.minPerson || 1);
-            
-            // Check request status from database
-            if (user) {
-                checkRequestStatusFromDB(foundWorkshop.id, user.uid);
+        const fetchWorkshopByTitle = async () => {
+            try {
+                setLoading(true);
+                
+                // Fetch all workshops from database
+                const workshopsCollection = collection(db, 'workshops');
+                const workshopsSnapshot = await getDocs(workshopsCollection);
+                const workshopsList = workshopsSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+
+                // Find workshop by title (URL slug format)
+                const foundWorkshop = workshopsList.find(w => 
+                    w.title?.replace(/\s+/g, '-').toLowerCase() === title
+                );
+                
+                if (foundWorkshop) {
+                    setWorkshop(foundWorkshop);
+                    setMainImage(foundWorkshop.thumbnail || foundWorkshop.images?.[0]);
+                    setSelectedVariant(foundWorkshop.variants?.[0] || null);
+                    setParticipants(parseInt(foundWorkshop.minPerson) || 1);
+                    
+                    // Check request status from database
+                    if (user) {
+                        checkRequestStatusFromDB(foundWorkshop.id, user.uid);
+                    }
+                } else {
+                    console.log('Workshop not found for title:', title);
+                    showError('Workshop not found');
+                }
+            } catch (error) {
+                console.error('Error fetching workshop:', error);
+                showError('Failed to load workshop details');
+            } finally {
+                setLoading(false);
             }
-        }
-        
-        setLoading(false);
-    }, [title, workshops, user]);
+        };
+
+        fetchWorkshopByTitle();
+    }, [title, user]);
       
     const checkRequestStatusFromDB = async (workshopId, userId) => {
         try {
