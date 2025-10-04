@@ -100,7 +100,21 @@ async function generateInvoicePdfBase64({
     return result?.pdf; // base64 string
 }
 
-admin.initializeApp();
+// Initialize Firebase Admin
+if (
+    process.env.FIREBASE_FUNCTIONS_EMULATOR === 'true' ||
+    process.env.NODE_ENV === 'development'
+) {
+    const serviceAccount = require("./serviceAccountKey.json");
+    admin.initializeApp({
+       credential: admin.credential.cert(serviceAccount),
+    });
+    console.log("🔥 Running in local emulator/development");
+} else {
+    admin.initializeApp();
+    console.log("🚀 Firebase initialized for production");
+}
+  
 const db = admin.firestore();
 try {
     admin.firestore().settings({ ignoreUndefinedProperties: true });
@@ -1130,11 +1144,7 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
         // ------------------------
         // 1) Save purchase in user's Firestore with expiration data
         // ------------------------
-        const userRef = db
-            .collection("users")
-            .doc(userId)
-            .collection("info")
-            .doc("details");
+        const userRef = db.collection("users").doc(userId).collection("info").doc("details");
         
         // Also save individual programs with expiration data
         const userProgramsRef = db.collection("users").doc(userId).collection("programs");

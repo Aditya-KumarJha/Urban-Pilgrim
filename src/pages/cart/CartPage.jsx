@@ -177,6 +177,11 @@ export default function CartPage() {
 						});
 						console.log("data from confirmPayment: ", dataContent);
 
+						if(dataContent?.data?.status === "error"){
+							toast.error("Payment failed !");
+							return;
+						}
+
 						// Reserve live session slots (AFTER payment success)
 						try {
 							const liveItems = (cartData || []).filter(it => it?.type === 'live' && Array.isArray(it?.slots) && it?.sessionId);

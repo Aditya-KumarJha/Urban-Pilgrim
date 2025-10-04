@@ -1208,18 +1208,6 @@ export default function GuideForm() {
         //     return;
         // }
 
-        // Debug: Check what data is being saved
-        console.log("=== SAVING GUIDE DATA ===");
-        console.log("FormData before save:", formData);
-        console.log("Online monthly data:", formData.online?.monthly);
-        console.log("Offline monthly data:", formData.offline?.monthly);
-        console.log("Sessions count online:", formData.online?.monthly?.sessionsCount);
-        console.log("Sessions count offline:", formData.offline?.monthly?.sessionsCount);
-        console.log("Weekly pattern online:", formData.online?.monthly?.weeklyPattern);
-        console.log("Weekly pattern offline:", formData.offline?.monthly?.weeklyPattern);
-        console.log("Day based pattern online:", formData.online?.monthly?.dayBasedPattern);
-        console.log("Day based pattern offline:", formData.offline?.monthly?.dayBasedPattern);
-
         const newCard = {
             guideCard: { ...formData.guideCard },
             organizer: { ...formData.organizer },
@@ -1235,36 +1223,6 @@ export default function GuideForm() {
                 }
             ]
         };
-
-        console.log("NewCard being saved:", newCard);
-        console.log("NewCard online monthly:", newCard.online?.monthly);
-        console.log("NewCard offline monthly:", newCard.offline?.monthly);
-        
-        // Final validation check
-        console.log("=== FINAL VALIDATION CHECK ===");
-        if (newCard.online?.monthly?.weeklyPattern?.length > 0) {
-            console.log("✅ Online monthly weeklyPattern has slots:", newCard.online.monthly.weeklyPattern.length);
-        } else {
-            console.log("❌ Online monthly weeklyPattern is empty or missing");
-        }
-        
-        if (newCard.offline?.monthly?.weeklyPattern?.length > 0) {
-            console.log("✅ Offline monthly weeklyPattern has slots:", newCard.offline.monthly.weeklyPattern.length);
-        } else {
-            console.log("❌ Offline monthly weeklyPattern is empty or missing");
-        }
-        
-        if (newCard.online?.monthly?.sessionsCount) {
-            console.log("✅ Online sessions count:", newCard.online.monthly.sessionsCount);
-        } else {
-            console.log("❌ Online sessions count missing");
-        }
-        
-        if (newCard.offline?.monthly?.sessionsCount) {
-            console.log("✅ Offline sessions count:", newCard.offline.monthly.sessionsCount);
-        } else {
-            console.log("❌ Offline sessions count missing");
-        }
 
         try {
             if (!uid) throw new Error("User not logged in");
