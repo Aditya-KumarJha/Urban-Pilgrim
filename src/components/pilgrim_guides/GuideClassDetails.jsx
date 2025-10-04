@@ -603,7 +603,10 @@ export default function GuideClassDetails() {
             const sub = sessionData.guideCard.subCategory.toLowerCase();
             if (sub === "offline") setMode("Offline");
             else if (sub === "online") setMode("Online");
-            else if (sub === "both") setMode("Offline"); // default
+            else if (sub === "both") {
+                // For "both" category, only set default if no mode is currently selected
+                if (!mode) setMode("Online"); // Default to Online instead of Offline
+            }
         }
     }, [sessionData]);
 
@@ -945,13 +948,13 @@ export default function GuideClassDetails() {
         const offlineAvailable = planHasPrice(sessionData?.offline?.[planKey]);
         const result = onlineAvailable || offlineAvailable;
         
-        console.log(`planAvailableAny(${planKey}):`, {
-            onlineAvailable,
-            offlineAvailable,
-            result,
-            onlineData: sessionData?.online?.[planKey],
-            offlineData: sessionData?.offline?.[planKey]
-        });
+        // console.log(`planAvailableAny(${planKey}):`, {
+        //     onlineAvailable,
+        //     offlineAvailable,
+        //     result,
+        //     onlineData: sessionData?.online?.[planKey],
+        //     offlineData: sessionData?.offline?.[planKey]
+        // });
         
         return result;
     };
@@ -1133,9 +1136,9 @@ export default function GuideClassDetails() {
                                 </button>
                                 {dropdownOpen && (
                                     <div className="absolute mt-2 bg-white border rounded shadow w-full z-10">
-                                        {["Offline", "Online"].map((opt) => (
+                                        {["Offline", "Online"].map((opt,i) => (
                                             <div
-                                                key={opt}
+                                                key={i}
                                                 className={`px-4 py-2 cursor-pointer hover:bg-gray-100 ${mode === opt ? "bg-gray-100 font-semibold" : ""
                                                     }`}
                                                 onClick={() => {
@@ -1230,15 +1233,21 @@ export default function GuideClassDetails() {
                                         <button
                                             onClick={() => {
                                                 console.log("=== MONTHLY BUTTON CLICKED ===");
+                                                console.log("Current mode before plan selection:", mode);
+                                                console.log("Is monthly available in current mode?", planAvailable('monthly'));
                                                 setSubscriptionType("monthly");
                                                 setSelectedPlan("monthly");
                                                 console.log("Subscription type set to: monthly");
                                                 if (!planAvailable('monthly')) {
+                                                    console.log("Monthly not available in current mode, finding alternative...");
                                                     const m = findModeForPlan('monthly');
+                                                    console.log("findModeForPlan returned:", m);
                                                     if (m) {
+                                                        console.log("Switching mode from", mode, "to", m);
                                                         setMode(m);
-                                                        console.log("Mode set to:", m);
                                                     }
+                                                } else {
+                                                    console.log("Monthly is available in current mode:", mode);
                                                 }
                                             }}
                                             className={`p-3 rounded-lg border-2 transition-all duration-200 ${subscriptionType === "monthly"
@@ -1251,7 +1260,12 @@ export default function GuideClassDetails() {
                                                 {(() => {
                                                     const pv = getPlanPricePreview('monthly');
                                                     return pv ? (
-                                                        <p className="text-xs mt-1">From ₹{new Intl.NumberFormat('en-IN').format(pv.price)}{planAvailable('monthly') ? '' : ` • ${pv.mode}`}</p>
+                                                        <>
+                                                            <p className="text-xs mt-1">From ₹{new Intl.NumberFormat('en-IN').format(pv.price)}</p>
+                                                            {/* <p className="text-xs font-medium text-blue-600 mt-1">
+                                                                Mode: {pv.mode || mode || 'Online'}
+                                                            </p> */}
+                                                        </>
                                                     ) : null;
                                                 })()}
                                             </div>
@@ -1279,13 +1293,19 @@ export default function GuideClassDetails() {
                                             {(() => {
                                                 const pv = getPlanPricePreview('oneTime');
                                                 return pv ? (
-                                                    <p className="text-xs mt-1">From ₹{new Intl.NumberFormat('en-IN').format(pv.price)}{planAvailable('oneTime') ? '' : ` • ${pv.mode}`}</p>
+                                                    <>
+                                                        <p className="text-xs mt-1">From ₹{new Intl.NumberFormat('en-IN').format(pv.price)}</p>
+                                                        {/* <p className="text-xs font-medium text-green-600 mt-1">
+                                                            Mode: {pv.mode || mode || 'Online'}
+                                                        </p> */}
+                                                    </>
                                                 ) : null;
                                             })()}
                                         </div>
                                     </button>
                                 )}
                             </div>
+                            
                             {/* Selected Plan Price Summary (uses occupancy price if selected) */}
                             {subscriptionType && (() => {
                                 const title = subscriptionType === 'oneTime' ? 'One Time Purchase' : 'Monthly Subscription';
@@ -1320,7 +1340,9 @@ export default function GuideClassDetails() {
                                                     selectedOccupancy,
                                                     availableSlots: availableSlots.length,
                                                     userMonthlySlots: userMonthlySlots.length,
-                                                    showCalendar // Current state of showCalendar
+                                                    showCalendar, // Current state of showCalendar
+                                                    subCategory: sessionData?.guideCard?.subCategory,
+                                                    planAvailableInCurrentMode: planAvailable(subscriptionType)
                                                 });
                                                 
                                                 try {
@@ -1433,9 +1455,9 @@ export default function GuideClassDetails() {
                     onClose={() => setShowCalendar(false)}
                     sessionData={sessionData}
                     selectedPlan={selectedPlan}
-                    mode={mode}
+                    mode={mode || 'Online'}
                     availableSlots={availableSlots}
-                    occupancyType={selectedOccupancy?.type || ''}
+                    occupancyType={selectedOccupancy?.type || 'individual'}
                     userMonthlySlots={userMonthlySlots}
                     slotBookings={slotBookings}
                     groupStatus={groupStatus}

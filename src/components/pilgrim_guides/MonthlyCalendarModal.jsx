@@ -6,6 +6,11 @@ import { addToCart } from "../../features/cartSlice.js";
 import { showSuccess, showError } from "../../utils/toast.js";
 
 export default function MonthlyCalendarModal({ isOpen, onClose, sessionData, selectedPlan, mode, availableSlots = [], occupancyType = '', userMonthlySlots = [], slotBookings = {}, onAddToCart, cartItems = [] }) {
+    // Dynamic mode with default fallback
+    const dynamicMode = mode || 'Online';
+    
+    // Dynamic occupancy type with default fallback
+    const dynamicOccupancyType = occupancyType || 'individual';
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(null);
     const [selectedSlot, setSelectedSlot] = useState(null);
@@ -32,7 +37,7 @@ export default function MonthlyCalendarModal({ isOpen, onClose, sessionData, sel
         };
     }, []);
 
-    const plan = sessionData?.[mode?.toLowerCase()]?.[selectedPlan] || {};
+    const plan = sessionData?.[dynamicMode?.toLowerCase()]?.[selectedPlan] || {};
     const sessionsPerMonth = Number(plan.sessionsCount || 0);
     const remainingSessions = sessionsPerMonth - userMonthlySlots.length;
 
@@ -41,7 +46,7 @@ export default function MonthlyCalendarModal({ isOpen, onClose, sessionData, sel
         .filter(item =>
             item.title === sessionData?.guideCard?.title &&
             item.subscriptionType === 'monthly' &&
-            item.mode === mode
+            item.mode === dynamicMode
         )
         .flatMap(item => item.selectedSlots || [])
         .map(slot => `${slot.date}-${slot.startTime}-${slot.endTime}`);
@@ -67,7 +72,7 @@ export default function MonthlyCalendarModal({ isOpen, onClose, sessionData, sel
 
     // Group progress helpers (distinct purchasers, min/max, first purchase)
     const getGroupConfig = () => {
-        const occ = (occupancyType || '').toLowerCase();
+        const occ = (dynamicOccupancyType || '').toLowerCase();
         if (occ !== 'group') return null;
         const occFromGuide = sessionData?.guideCard?.occupancies?.find(oc => (oc.type || '').toLowerCase() === 'group') || {};
         const minPersons = Number(occFromGuide.min || sessionData?.guideCard?.groupMinPersons || 2) || 2;
@@ -92,7 +97,7 @@ export default function MonthlyCalendarModal({ isOpen, onClose, sessionData, sel
         // Distinct purchasers for this guide/mode/monthly group (dedupe by uid/email)
         const purchasers = (sessionData?.purchasedUsers || []).filter(u =>
             (u?.subscriptionType || '').toLowerCase() === 'monthly' &&
-            (u?.mode || '').toLowerCase() === (mode || '').toLowerCase() &&
+            (u?.mode || '').toLowerCase() === (dynamicMode || '').toLowerCase() &&
             ((u?.slot?.type || u?.occupancyType || '').toLowerCase() === 'group')
         );
         const seen = new Set();
@@ -117,7 +122,7 @@ export default function MonthlyCalendarModal({ isOpen, onClose, sessionData, sel
                     const bucket = Math.floor(t / (60 * 60 * 1000));
                     // Also include guide title/mode to avoid cross-program collisions
                     const guideTitle = (sessionData?.guideCard?.title || '').toLowerCase();
-                    const modeKey = (mode || '').toLowerCase();
+                    const modeKey = (dynamicMode || '').toLowerCase();
                     key = `bucket:${bucket}|${guideTitle}|${modeKey}`;
                 }
             }
@@ -154,7 +159,7 @@ export default function MonthlyCalendarModal({ isOpen, onClose, sessionData, sel
             users.forEach(u => {
                 // Only consider monthly purchases for this guide/mode
                 if (!u?.subscriptionType || (u.subscriptionType || '').toLowerCase() !== 'monthly') return;
-                if (mode && u?.mode && (u.mode || '').toLowerCase() !== (mode || '').toLowerCase()) return;
+                if (dynamicMode && u?.mode && (u.mode || '').toLowerCase() !== (dynamicMode || '').toLowerCase()) return;
                 const slot = u?.slot || {};
                 if (!slot?.date || !(slot.startTime || slot.time)) return;
                 const key = `${slot.date}|${normalizeTime(slot.startTime || slot.time)}|${normalizeTime(slot.endTime || slot.end)}`;
@@ -164,14 +169,14 @@ export default function MonthlyCalendarModal({ isOpen, onClose, sessionData, sel
             console.warn('Failed to build purchasedIndex', e);
         }
         return idx;
-    }, [sessionData?.purchasedUsers, mode]);
+    }, [sessionData?.purchasedUsers, dynamicMode]);
 
     // Build a normalized set of cart slot keys for reliable matching
     const slotsInCartNormalized = cartItems
         .filter(item =>
             item.title === sessionData?.guideCard?.title &&
             item.subscriptionType === 'monthly' &&
-            item.mode === mode
+            item.mode === dynamicMode
         )
         .flatMap(item => item.selectedSlots || [])
         .map(s => makeSlotKey(s));
@@ -183,12 +188,12 @@ export default function MonthlyCalendarModal({ isOpen, onClose, sessionData, sel
         const meEmail = (user?.email || '').toLowerCase();
         return sessionData.purchasedUsers.some(u => {
             const isMonthly = (u?.subscriptionType || '').toLowerCase() === 'monthly';
-            const modeMatch = !u?.mode || !mode ? true : (u.mode || '').toLowerCase() === (mode || '').toLowerCase();
+            const modeMatch = !u?.mode || !dynamicMode ? true : (u.mode || '').toLowerCase() === (dynamicMode || '').toLowerCase();
             const isGroup = (u?.slot?.type || u?.occupancyType || '').toLowerCase() === 'group';
             const isMe = (meUid && u?.uid === meUid) || (!!meEmail && (u?.email || '').toLowerCase() === meEmail);
             return isMonthly && modeMatch && isGroup && isMe;
         });
-    }, [sessionData?.purchasedUsers, mode, user?.uid, user?.email]);
+    }, [sessionData?.purchasedUsers, dynamicMode, user?.uid, user?.email]);
 
     // Get slot capacity information based on occupancy type
     const getSlotCapacityInfo = (slot) => {
@@ -231,7 +236,7 @@ export default function MonthlyCalendarModal({ isOpen, onClose, sessionData, sel
             });
         }
 
-        const occupancy = occupancyType.toLowerCase();
+        const occupancy = dynamicOccupancyType.toLowerCase();
         let maxCapacity, displayText, isFull, currentBookings;
 
         if (occupancy === 'group') {
@@ -276,21 +281,21 @@ export default function MonthlyCalendarModal({ isOpen, onClose, sessionData, sel
         if (isOpen) {
             fetchAvailableSlots();
         }
-    }, [isOpen, availableSlots, mode, selectedPlan]);
+    }, [isOpen, availableSlots, dynamicMode, selectedPlan]);
 
     // Auto-select all slots for group occupancy
     useEffect(() => {
-        if (occupancyType.toLowerCase() === 'group' && localSlots.length > 0) {
+        if (dynamicOccupancyType.toLowerCase() === 'group' && localSlots.length > 0) {
             // Auto-select all available slots for group
             const availableGroupSlots = localSlots.filter(slot => isSlotVisible(slot));
             setSelectedSlotsMulti(availableGroupSlots);
         }
-    }, [localSlots, occupancyType]);
+    }, [localSlots, dynamicOccupancyType]);
 
     const fetchAvailableSlots = async () => {
         if (availableSlots.length > 0) {
             console.log("Using monthly slots from parent:", availableSlots);
-            console.log("Current occupancyType:", occupancyType);
+            console.log("Current occupancyType:", dynamicOccupancyType);
 
             const processedSlots = availableSlots.map((slot, index) => ({
                 id: slot.id || `monthly-${slot.date}-${slot.startTime}-${index}`,
@@ -338,17 +343,17 @@ export default function MonthlyCalendarModal({ isOpen, onClose, sessionData, sel
         const capacityInfo = getSlotCapacityInfo(slot);
 
         // For group: show slots unless full capacity reached based on distinct purchasers
-        if (occupancyType.toLowerCase() === 'group') {
+        if (dynamicOccupancyType.toLowerCase() === 'group') {
             return !capacityInfo.isFull;
         }
 
         // For couple: show slots unless 2/2 (full)
-        if (occupancyType.toLowerCase() === 'couple') {
+        if (dynamicOccupancyType.toLowerCase() === 'couple') {
             return !capacityInfo.isFull;
         }
 
         // For individual: hide if slot is reserved by anyone (including the current user)
-        if (occupancyType.toLowerCase() === 'individual') {
+        if (dynamicOccupancyType.toLowerCase() === 'individual') {
             // If reserved, do not show at all
             if (capacityInfo.isFull) return false;
             return true; // Show if available
@@ -359,10 +364,10 @@ export default function MonthlyCalendarModal({ isOpen, onClose, sessionData, sel
 
     // Check if group plan already added to cart
     const isGroupPlanInCart = () => {
-        return occupancyType.toLowerCase() === 'group' && cartItems.some(item =>
+        return dynamicOccupancyType.toLowerCase() === 'group' && cartItems.some(item =>
             item.title === sessionData?.guideCard?.title &&
             item.subscriptionType === 'monthly' &&
-            item.mode === mode &&
+            item.mode === dynamicMode &&
             item.occupancyType?.toLowerCase() === 'group'
         );
     };
@@ -387,24 +392,24 @@ export default function MonthlyCalendarModal({ isOpen, onClose, sessionData, sel
             }
 
             // Check if user has reached session limit (not applicable for group)
-            if (remainingSessionsAfterCart <= 0 && occupancyType.toLowerCase() !== 'group') {
+            if (remainingSessionsAfterCart <= 0 && dynamicOccupancyType.toLowerCase() !== 'group') {
                 showError('You have reached your monthly session limit');
                 return;
             }
 
-            const modeKey = mode?.toLowerCase();
+            const modeKey = dynamicMode?.toLowerCase();
             const subscriptionKey = selectedPlan;
             const planData = sessionData?.[modeKey]?.[subscriptionKey] || {};
 
             // Get price based on occupancy type from plan data structure
             let pricePerSession = 0;
-            const occupancy = occupancyType.toLowerCase();
+            const occupancy = dynamicOccupancyType.toLowerCase();
 
             // Debug: Check plan data structure
             console.log('=== PRICING DEBUG ===');
             console.log('Plan data:', JSON.stringify(planData, null, 2));
             console.log('Occupancy type:', occupancy);
-            console.log('Mode:', mode, 'Selected plan:', selectedPlan);
+            console.log('Mode:', dynamicMode, 'Selected plan:', selectedPlan);
 
             // Get price from guideCard occupancies array
             console.log('Looking for occupancy-specific pricing in guideCard...');
@@ -454,7 +459,7 @@ export default function MonthlyCalendarModal({ isOpen, onClose, sessionData, sel
 
             // Additional validations for Individual/Couple occupancy: enforce exact required count if available
             {
-                const occLower = (occupancyType || '').toLowerCase();
+                const occLower = (dynamicOccupancyType || '').toLowerCase();
                 if (occLower === 'individual' || occLower === 'couple') {
                     // Required sessions left to pick in this add-to-cart action
                     const requiredCount = Math.max(0, sessionsPerMonth - userMonthlySlots.length - sessionsInCart);
@@ -482,7 +487,7 @@ export default function MonthlyCalendarModal({ isOpen, onClose, sessionData, sel
             setLoading(true);
 
             // Group gating rules: 7-day window and capacity
-            if ((occupancyType || '').toLowerCase() === 'group') {
+            if ((dynamicOccupancyType || '').toLowerCase() === 'group') {
                 const cfg = getGroupConfig();
                 if (cfg) {
                     const distinctPurchasers = cfg.purchasedCount || 0;
@@ -533,7 +538,7 @@ export default function MonthlyCalendarModal({ isOpen, onClose, sessionData, sel
                 return;
             }
 
-            cartItemId = `${sessionData?.guideCard?.title || 'guide'}-monthly-${occupancyType}-${Date.now()}`;
+            cartItemId = `${sessionData?.guideCard?.title || 'guide'}-monthly-${dynamicOccupancyType}-${Date.now()}`;
 
             // Calculate booking lifecycle dates
             const bookingDate = new Date();
@@ -561,16 +566,16 @@ export default function MonthlyCalendarModal({ isOpen, onClose, sessionData, sel
                 image: sessionData?.guideCard?.thumbnail || '',
                 quantity: 1,
                 type: 'guide',
-                mode: mode,
+                mode: dynamicMode,
                 subscriptionType: selectedPlan,
-                occupancyType: occupancyType || '',
+                occupancyType: dynamicOccupancyType,
                 organizer: sessionData?.organizer || {},
                 calendarId: sessionData?.organizer?.calendarId || sessionData?.organizer?.email || 'primary',
                 // Include monthly discount so CartPage can apply it
                 monthly: monthlyDiscountPercent != null ? { discount: String(monthlyDiscountPercent) } : undefined,
                 // Add fields needed for Google Calendar event creation
                 summary: sessionData?.guideCard?.title || 'Monthly Session',
-                description: `${sessionData?.guideCard?.title || 'Monthly Session'} - ${occupancyType} booking confirmed via Urban Pilgrim`,
+                description: `${sessionData?.guideCard?.title || 'Monthly Session'} - ${dynamicOccupancyType} booking confirmed via Urban Pilgrim`,
                 timeZone: 'Asia/Kolkata',
                 customerEmail: user?.email || '',
                 organizerEmail: sessionData?.organizer?.email || '',
@@ -697,7 +702,7 @@ export default function MonthlyCalendarModal({ isOpen, onClose, sessionData, sel
 
             // Check occupancy type match
             const slotType = (slot.type || 'individual').toLowerCase();
-            const selectedOccupancy = (occupancyType || 'individual').toLowerCase();
+            const selectedOccupancy = (dynamicOccupancyType || 'individual').toLowerCase();
 
             return slotType === selectedOccupancy;
         });
@@ -705,7 +710,7 @@ export default function MonthlyCalendarModal({ isOpen, onClose, sessionData, sel
 
     const getSlotsForDate = (dateStr) => {
         const slotsForDate = localSlots.filter(slot => slot.date === dateStr && slot.available);
-        const selectedOccupancy = (occupancyType || 'individual').toLowerCase();
+        const selectedOccupancy = (dynamicOccupancyType || 'individual').toLowerCase();
 
         const filteredSlots = slotsForDate.filter(slot => {
             const slotType = (slot.type || 'individual').toLowerCase();
@@ -784,10 +789,10 @@ export default function MonthlyCalendarModal({ isOpen, onClose, sessionData, sel
 
     // Memoized group progress for header info box
     const groupProgress = useMemo(() => {
-        if ((occupancyType || '').toLowerCase() !== 'group') return null;
+        if ((dynamicOccupancyType || '').toLowerCase() !== 'group') return null;
         const cfg = getGroupConfig();
         return cfg ? { purchasedCount: cfg.purchasedCount, maxPersons: cfg.maxPersons, minPersons: cfg.minPersons, daysLeft: cfg.daysLeft, firstPurchaseDate: cfg.firstPurchaseDate } : null;
-    }, [sessionData?.guideCard?.occupancies, sessionData?.guideCard?.groupMaxPersons, sessionData?.guideCard?.groupMinPersons, sessionData?.purchasedUsers, occupancyType, mode]);
+    }, [sessionData?.guideCard?.occupancies, sessionData?.guideCard?.groupMaxPersons, sessionData?.guideCard?.groupMinPersons, sessionData?.purchasedUsers, dynamicOccupancyType, dynamicMode]);
 
     return (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-xs z-50 flex items-center justify-center p-4">
@@ -802,12 +807,12 @@ export default function MonthlyCalendarModal({ isOpen, onClose, sessionData, sel
                         </h2>
                         <div className="mt-1">
                             <p className="text-sm text-gray-600">
-                                {mode} - Monthly Plan ({sessionsPerMonth} sessions per month)
+                                {dynamicMode} - Monthly Plan ({sessionsPerMonth} sessions per month)
                             </p>
                             <p className="text-sm font-medium text-blue-600 mt-1">
-                                Occupancy: {occupancyType ? occupancyType.charAt(0).toUpperCase() + occupancyType.slice(1).toLowerCase() : 'Single/Individual'}
+                                Occupancy: {dynamicOccupancyType ? dynamicOccupancyType.charAt(0).toUpperCase() + dynamicOccupancyType.slice(1).toLowerCase() : 'Single/Individual'}
                             </p>
-                            {(occupancyType || '').toLowerCase() === 'group' && (
+                            {(dynamicOccupancyType || '').toLowerCase() === 'group' && (
                                 <p className="text-xs text-orange-600 mt-1">
                                     A group can be made if minimum {groupProgress?.minPersons || 0} persons are enrolled
                                 </p>
@@ -832,7 +837,7 @@ export default function MonthlyCalendarModal({ isOpen, onClose, sessionData, sel
                         <>
                             {/* Session Counter */}
                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                                {(occupancyType || '').toLowerCase() === 'group' ? (
+                                {(dynamicOccupancyType || '').toLowerCase() === 'group' ? (
                                     <div className="flex items-center justify-between">
                                         <div>
                                             <p className="text-sm text-blue-800 font-medium">
@@ -928,7 +933,7 @@ export default function MonthlyCalendarModal({ isOpen, onClose, sessionData, sel
                                             <h4 className="font-medium text-gray-800">Available Slots</h4>
                                             <p className="text-sm text-gray-600">
                                                 Select a date on the calendar to view and pick slots.
-                                                {occupancyType.toLowerCase() === 'group'
+                                                {dynamicOccupancyType.toLowerCase() === 'group'
                                                     ? 'Group slots become unavailable after 2 bookings.'
                                                     : `You can select up to ${remainingSessionsAfterCart} more session(s).`
                                                 }

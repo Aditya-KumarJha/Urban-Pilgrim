@@ -87,7 +87,8 @@ export default function GuideForm() {
             thumbnailType: null,
             occupancies: [{ type: "Single", price: "" }],
             showOccupancy: false,
-            description: ""
+            description: "",
+            listingType: "Listing" // Default to "Listing"
         },
         // Common open slots (weekly pattern) for both online and offline
         openSlots: [
@@ -526,7 +527,8 @@ export default function GuideForm() {
                 thumbnailType: slideToEdit?.guideCard?.thumbnailType || null,
                 occupancies: slideToEdit?.guideCard?.occupancies || [{ type: "Single", price: "" }],
                 showOccupancy: slideToEdit?.guideCard?.showOccupancy || false,
-                description: slideToEdit?.guideCard?.description || ""
+                description: slideToEdit?.guideCard?.description || "",
+                listingType: slideToEdit?.guideCard?.listingType || "Listing" // Default to "Listing" if not present
             },
             organizer: {
                 name: slideToEdit?.organizer?.name || "",
@@ -629,7 +631,8 @@ export default function GuideForm() {
                 thumbnailType: null,
                 occupancy: "",
                 showOccupancy: false,
-                description: ""
+                description: "",
+                listingType: "Listing" // Reset to default "Listing"
             },
             openSlots: [],
             online: {
@@ -1301,7 +1304,8 @@ export default function GuideForm() {
                     thumbnailType: null,
                     occupancies: [{ type: "Single", price: "" }],
                     showOccupancy: false,
-                    description: ""
+                    description: "",
+                    listingType: "Listing" // Reset to default "Listing"
                 },
                 online: {
                     monthly: {
@@ -1830,6 +1834,46 @@ export default function GuideForm() {
                             rows={3}
                         />
                         {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description}</p>}
+                    </div>
+
+                    {/* Listing Type */}
+                    <div>
+                        <label className="block text-md font-semibold text-gray-700 mb-2">Listing Type</label>
+                        <div className="flex gap-4">
+                            <div className="flex items-center">
+                                <input
+                                    type="radio"
+                                    id="listing"
+                                    name="listingType"
+                                    value="Listing"
+                                    checked={formData?.guideCard?.listingType === "Listing"}
+                                    onChange={(e) => handleFieldChange("guideCard", "listingType", e.target.value)}
+                                    disabled={true} // Admin cannot change this option
+                                    className="mr-2 text-[#2F6288] focus:ring-[#2F6288] cursor-not-allowed"
+                                />
+                                <label htmlFor="listing" className="text-sm font-medium text-gray-700 cursor-not-allowed">
+                                    Listing
+                                </label>
+                            </div>
+                            <div className="flex items-center">
+                                <input
+                                    type="radio"
+                                    id="own"
+                                    name="listingType"
+                                    value="Own"
+                                    checked={formData?.guideCard?.listingType === "Own"}
+                                    onChange={(e) => handleFieldChange("guideCard", "listingType", e.target.value)}
+                                    disabled={true} // Admin cannot change this option
+                                    className="mr-2 text-[#2F6288] focus:ring-[#2F6288] cursor-not-allowed"
+                                />
+                                <label htmlFor="own" className="text-sm font-medium text-gray-700 cursor-not-allowed">
+                                    Own
+                                </label>
+                            </div>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Default: Listing (Admin cannot modify this option)
+                        </p>
                     </div>
                 </div>
 

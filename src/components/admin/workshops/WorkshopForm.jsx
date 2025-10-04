@@ -34,6 +34,7 @@ export default function WorkshopForm() {
         price: "",
         extraPersonPrice: "",
         variants: [{ name: ""}],
+        listingType: "Listing", // Default to "Listing"
         
         // Session Details
         minPerson: "",
@@ -489,6 +490,44 @@ export default function WorkshopForm() {
                         onChange={(e) => handleFieldChange("description", e.target.value)}
                         className="text-sm w-full border border-gray-300 p-3 rounded-lg"
                     />
+
+                    {/* Listing Type */}
+                    <div className="mb-4">
+                        <label className="block text-md font-semibold text-gray-700 mb-2">Listing Type</label>
+                        <p className="text-sm text-gray-500 mt-1 mb-2">
+                            Choose one from the below
+                        </p>
+                        <div className="flex gap-4">
+                            <div className="flex items-center">
+                                <input
+                                    type="radio"
+                                    id="listing-workshop"
+                                    name="listingTypeWorkshop"
+                                    value="Listing"
+                                    checked={formData?.listingType === "Listing"}
+                                    onChange={(e) => handleFieldChange("listingType", e.target.value)}
+                                    className="mr-2 text-[#2F6288] focus:ring-[#2F6288]"
+                                />
+                                <label htmlFor="listing-workshop" className="text-sm font-medium text-gray-700">
+                                    Listing
+                                </label>
+                            </div>
+                            <div className="flex items-center">
+                                <input
+                                    type="radio"
+                                    id="own-workshop"
+                                    name="listingTypeWorkshop"
+                                    value="Own"
+                                    checked={formData?.listingType === "Own"}
+                                    onChange={(e) => handleFieldChange("listingType", e.target.value)}
+                                    className="mr-2 text-[#2F6288] focus:ring-[#2F6288]"
+                                />
+                                <label htmlFor="own-workshop" className="text-sm font-medium text-gray-700">
+                                    Own
+                                </label>
+                            </div>
+                        </div>
+                    </div>
 
                     {/* Base Price */}
                     <label className="block text-md font-semibold text-gray-700 mb-2">Base Price</label>

@@ -67,7 +67,8 @@ export default function LiveSession2() {
             days: "",
             videos: "",
             totalprice: "",
-            description: ""
+            description: "",
+            listingType: "Own" // Default to "Own"
         },
         organizer: {
             name: "",
@@ -400,6 +401,7 @@ export default function LiveSession2() {
                 videos: slideToEdit?.liveSessionCard?.videos || "",
                 totalprice: slideToEdit?.liveSessionCard?.totalprice || "",
                 description: slideToEdit?.liveSessionCard?.description || "",
+                listingType: slideToEdit?.liveSessionCard?.listingType || "Own" // Default to "Own" if not present
             },
             // Prefill organizer details
             organizer: {
@@ -754,6 +756,7 @@ export default function LiveSession2() {
                 videos: "",
                 totalprice: "",
                 description: "",
+                listingType: "Own" // Reset to default "Own"
             },
             aboutProgram: { title: "", shortDescription: "", points: [""] },
             organizer: { name: "", email: "", address: "", googleMeetLink: "", contactNumber: "" },
@@ -890,7 +893,8 @@ export default function LiveSession2() {
                     days: "",
                     videos: "",
                     totalprice: "",
-                    description: ""
+                    description: "",
+                    listingType: "Own" // Reset to default "Own"
                 },
                 aboutProgram: { title: "", shortDescription: "", points: [""] },
                 organizer: { name: "", email: "", address: "", googleMeetLink: "", contactNumber: "" },
@@ -1175,6 +1179,46 @@ export default function LiveSession2() {
                             onChange={(e) => handleFieldChange("liveSessionCard", "description", e.target.value)}
                             className="text-sm w-full border border-gray-300 p-3 rounded-lg "
                         />
+                    </div>
+
+                    {/* Listing Type */}
+                    <div className="mb-4">
+                        <label className="block text-md font-semibold text-gray-700 mb-2">Listing Type</label>
+                        <div className="flex gap-4">
+                            <div className="flex items-center">
+                                <input
+                                    type="radio"
+                                    id="listing-live"
+                                    name="listingTypeLive"
+                                    value="Listing"
+                                    checked={formData?.liveSessionCard?.listingType === "Listing"}
+                                    onChange={(e) => handleFieldChange("liveSessionCard", "listingType", e.target.value)}
+                                    disabled={true} // Admin cannot change this option
+                                    className="mr-2 text-[#2F6288] focus:ring-[#2F6288] cursor-not-allowed"
+                                />
+                                <label htmlFor="listing-live" className="text-sm font-medium text-gray-700 cursor-not-allowed">
+                                    Listing
+                                </label>
+                            </div>
+                            <div className="flex items-center">
+                                <input
+                                    type="radio"
+                                    id="own-live"
+                                    name="listingTypeLive"
+                                    value="Own"
+                                    checked={formData?.liveSessionCard?.listingType === "Own"}
+                                    onChange={(e) => handleFieldChange("liveSessionCard", "listingType", e.target.value)}
+                                    disabled={true} // Admin cannot change this option
+                                    className="mr-2 text-[#2F6288] focus:ring-[#2F6288] cursor-not-allowed"
+                                />
+                                <label htmlFor="own-live" className="text-sm font-medium text-gray-700 cursor-not-allowed">
+                                    Own
+                                </label>
+                            </div>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Default: Own (Admin cannot modify this option)
+                        </p>
                     </div>
                 </div>
 

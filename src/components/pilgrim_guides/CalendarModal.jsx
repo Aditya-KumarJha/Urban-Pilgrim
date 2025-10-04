@@ -17,9 +17,21 @@ export default function CalendarModal({
     capacityMax = 0,
     onAddToCart
 }) {
+    // Dynamic mode with default fallback
+    const dynamicMode = mode || 'Online';
+    
+    // Dynamic occupancy type with default fallback
+    const dynamicOccupancyType = occupancyType || 'individual';
+    
+    console.log("=== CALENDAR MODAL DEBUG ===");
     console.log("sessionData", sessionData);
     console.log("selectedPlan", selectedPlan);
     console.log("availableSlots", availableSlots);
+    console.log("Mode received from parent:", mode);
+    console.log("Dynamic mode (with fallback):", dynamicMode);
+    console.log("Occupancy received from parent:", occupancyType);
+    console.log("Dynamic occupancy type (with fallback):", dynamicOccupancyType);
+    console.log("=== END CALENDAR MODAL DEBUG ===");
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(null);
     const [selectedSlot, setSelectedSlot] = useState(null);
@@ -35,7 +47,7 @@ export default function CalendarModal({
         if (isOpen) {
             fetchAvailableSlots();
         }
-    }, [isOpen, availableSlots, mode, selectedPlan]);
+    }, [isOpen, availableSlots, dynamicMode, selectedPlan]);
 
     const fetchAvailableSlots = async () => {
         // Use slots passed from parent component instead of fetching
@@ -60,7 +72,14 @@ export default function CalendarModal({
         setLoading(true);
         try {
             // Fallback: Get slots from session data if no slots passed from parent
-            const modeKey = mode === 'Online' ? 'onlineSlots' : 'offlineSlots';
+            const modeKey = dynamicMode.toLowerCase() === 'online' ? 'onlineSlots' : 'offlineSlots';
+            console.log("Mode conversion debug:", {
+                originalMode: mode,
+                dynamicMode: dynamicMode,
+                dynamicModeLowerCase: dynamicMode.toLowerCase(),
+                isOnline: dynamicMode.toLowerCase() === 'online',
+                selectedModeKey: modeKey
+            });
             const slots = sessionData?.session?.[modeKey] || [];
             console.log("slots from session:", slots);
                 
@@ -89,7 +108,7 @@ export default function CalendarModal({
     const handleAddMultipleToCart = () => {
         if (!sessionData || selectedSlotsMulti.length === 0) return;
 
-        const modeKey = mode?.toLowerCase();
+        const modeKey = dynamicMode?.toLowerCase();
         const subscriptionKey = selectedPlan; // 'oneTime'
         const price = sessionData[modeKey]?.[subscriptionKey]?.price;
 
@@ -102,9 +121,9 @@ export default function CalendarModal({
                 image: sessionData?.guideCard?.thumbnail,
                 quantity: 1, // one item per slot ensures backend slot reservation per item
                 type: "guide",
-                mode: mode,
+                mode: dynamicMode,
                 subscriptionType: selectedPlan,
-                occupancyType: occupancyType || '',
+                occupancyType: dynamicOccupancyType,
                 organizer: sessionData?.organizer,
                 slot: slot,
                 date: slot.date,
@@ -127,7 +146,7 @@ export default function CalendarModal({
     const handleAddMonthlyToCart = () => {
         if (!sessionData || selectedSlotsMulti.length === 0) return;
 
-        const modeKey = mode?.toLowerCase();
+        const modeKey = dynamicMode?.toLowerCase();
         const subscriptionKey = selectedPlan; // 'monthly'
         const price = sessionData[modeKey]?.[subscriptionKey]?.price;
 
@@ -139,7 +158,7 @@ export default function CalendarModal({
             image: sessionData?.guideCard?.thumbnail,
             quantity: 1,
             type: "guide",
-            mode: mode,
+            mode: dynamicMode,
             subscriptionType: selectedPlan,
             organizer: sessionData?.organizer,
             selectedSlots: selectedSlotsMulti.map(s => ({ id: s.id, date: s.date, startTime: s.time || s.startTime, endTime: s.endTime, location: s.location, rowIdx: s.rowIdx, tIdx: s.tIdx, type: s.type })),
@@ -213,7 +232,7 @@ export default function CalendarModal({
     // Compute current enrolled counts from sessionData.slotBookings
     const getSlotBookings = () => {
         try {
-            const modeKey = mode?.toLowerCase();
+            const modeKey = dynamicMode?.toLowerCase();
             const subKey = selectedPlan;
             const plan = sessionData?.[modeKey]?.[subKey] || {};
             return (plan.slotBookings && typeof plan.slotBookings === 'object') ? plan.slotBookings : {};
@@ -226,7 +245,7 @@ export default function CalendarModal({
     // Retrieve first-booker occupancy locks per slot
     const getSlotLocks = () => {
         try {
-            const modeKey = mode?.toLowerCase();
+            const modeKey = dynamicMode?.toLowerCase();
             const subKey = selectedPlan;
             const plan = sessionData?.[modeKey]?.[subKey] || {};
             return (plan.slotLocks && typeof plan.slotLocks === 'object') ? plan.slotLocks : {};
@@ -239,7 +258,7 @@ export default function CalendarModal({
     // Compute per-slot price and running total for one-time purchases
     const getPerSlotPrice = () => {
         try {
-            const modeKey = mode?.toLowerCase();
+            const modeKey = dynamicMode?.toLowerCase();
             const subscriptionKey = 'oneTime';
             const p = Number(sessionData?.[modeKey]?.[subscriptionKey]?.price || 0);
             return isNaN(p) ? 0 : p;
@@ -270,7 +289,7 @@ export default function CalendarModal({
 
             // Enforce monthly selection cap if provided
             if (selectedPlan === 'monthly') {
-                const modeKey = mode?.toLowerCase();
+                const modeKey = dynamicMode?.toLowerCase();
                 const max = Number(sessionData?.[modeKey]?.monthly?.sessionsCount || 0);
                 if (max > 0 && prev.length >= max) return prev; // ignore if limit reached
             }
@@ -285,7 +304,7 @@ export default function CalendarModal({
         }
 
         // Get the price based on mode and subscription type
-        const modeKey = mode?.toLowerCase(); // "online" or "offline"
+        const modeKey = dynamicMode?.toLowerCase(); // "online" or "offline"
         const subscriptionKey = selectedPlan; // "monthly", "quarterly", "oneTime"
         const price = sessionData[modeKey]?.[subscriptionKey]?.price;
 
@@ -297,7 +316,7 @@ export default function CalendarModal({
             image: sessionData?.guideCard?.thumbnail,
             quantity: 1,
             type: "guide",
-            mode: mode,
+            mode: dynamicMode,
             subscriptionType: selectedPlan,
             organizer: sessionData?.organizer,
             slot: selectedSlot,
@@ -342,7 +361,10 @@ export default function CalendarModal({
                             {sessionData?.session?.title || 'Book Your Session'}
                         </h2>
                         <p className="text-sm text-gray-600 mt-1">
-                            {mode} - {selectedPlan === 'monthly' ? 'Monthly' : selectedPlan === 'quarterly' ? 'Quarterly' : 'One Time'} Plan
+                            {dynamicMode} - {selectedPlan === 'monthly' ? 'Monthly' : selectedPlan === 'quarterly' ? 'Quarterly' : 'One Time'} Plan
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Occupancy: {dynamicOccupancyType}
                         </p>
                     </div>
                     <button
@@ -437,11 +459,11 @@ export default function CalendarModal({
                                                         const booked = Number(slotBookings[key] || 0);
                                                         const cap = Number(capacityMax || 0);
                                                         const lock = (slotLocks[key] || '').toString().toLowerCase();
-                                                        const occ = (occupancyType || '').toString().toLowerCase();
+                                                        const occ = (dynamicOccupancyType || '').toString().toLowerCase();
                                                         const isSelected = selectedSlotsMulti.some(s => s.id === slot.id);
                                                         let disabled = false;
                                                         if (selectedPlan === 'monthly') {
-                                                            const modeKey = mode?.toLowerCase();
+                                                            const modeKey = dynamicMode?.toLowerCase();
                                                             const max = Number(sessionData?.[modeKey]?.monthly?.sessionsCount || 0);
                                                             disabled = max > 0 && !isSelected && selectedSlotsMulti.length >= max;
                                                         } else if (selectedPlan === 'oneTime') {
@@ -465,7 +487,7 @@ export default function CalendarModal({
                                                                         <p className="text-xs mt-1 text-gray-600">Enrolled: {booked}/{cap}</p>
                                                                     )}
                                                                     {selectedPlan === 'monthly' && (() => {
-                                                                        const modeKey = mode?.toLowerCase();
+                                                                        const modeKey = dynamicMode?.toLowerCase();
                                                                         const type = (slot.type || 'individual');
                                                                         const gMax = Number(sessionData?.[modeKey]?.monthly?.groupMax || 0) || 0;
                                                                         const capMonthly = type === 'couple' ? 2 : type === 'group' ? gMax : 0;
@@ -496,7 +518,7 @@ export default function CalendarModal({
                                                         </>
                                                     ) : (
                                                         (() => {
-                                                            const modeKey = mode?.toLowerCase();
+                                                            const modeKey = dynamicMode?.toLowerCase();
                                                             const max = Number(sessionData?.[modeKey]?.monthly?.sessionsCount || 0);
                                                             if (max > 0) {
                                                                 return <span>{`You can select up to ${max} session${max>1?'s':''} this month.`}</span>;
@@ -511,7 +533,7 @@ export default function CalendarModal({
                                                     <div className="text-sm text-gray-700">
                                                         Selected: <span className="font-semibold">{selectedSlotsMulti.length}</span>
                                                         {selectedPlan === 'monthly' && (() => {
-                                                            const modeKey = mode?.toLowerCase();
+                                                            const modeKey = dynamicMode?.toLowerCase();
                                                             const max = Number(sessionData?.[modeKey]?.monthly?.sessionsCount || 0);
                                                             return max > 0 ? <span className="ml-1">/ {max}</span> : null;
                                                         })()}

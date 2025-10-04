@@ -67,7 +67,8 @@ export default function RecordedSession2() {
             days: "",
             videos: "",
             totalprice: "",
-            description: ""
+            description: "",
+            listingType: "Own" // Default to "Own"
         },
         recordedVideo: [],
         // New: About Program section
@@ -1060,6 +1061,46 @@ export default function RecordedSession2() {
                             onChange={(e) => handleFieldChange("recordedProgramCard", "description", e.target.value)}
                             className="text-sm w-full border border-gray-300 p-3 rounded-lg "
                         />
+                    </div>
+
+                    {/* Listing Type */}
+                    <div className="mb-4">
+                        <label className="block text-md font-semibold text-gray-700 mb-2">Listing Type</label>
+                        <div className="flex gap-4">
+                            <div className="flex items-center">
+                                <input
+                                    type="radio"
+                                    id="listing-recorded"
+                                    name="listingTypeRecorded"
+                                    value="Listing"
+                                    checked={formData?.recordedProgramCard?.listingType === "Listing"}
+                                    onChange={(e) => handleFieldChange("recordedProgramCard", "listingType", e.target.value)}
+                                    disabled={true} // Admin cannot change this option
+                                    className="mr-2 text-[#2F6288] focus:ring-[#2F6288] cursor-not-allowed"
+                                />
+                                <label htmlFor="listing-recorded" className="text-sm font-medium text-gray-700 cursor-not-allowed">
+                                    Listing
+                                </label>
+                            </div>
+                            <div className="flex items-center">
+                                <input
+                                    type="radio"
+                                    id="own-recorded"
+                                    name="listingTypeRecorded"
+                                    value="Own"
+                                    checked={formData?.recordedProgramCard?.listingType === "Own"}
+                                    onChange={(e) => handleFieldChange("recordedProgramCard", "listingType", e.target.value)}
+                                    disabled={true} // Admin cannot change this option
+                                    className="mr-2 text-[#2F6288] focus:ring-[#2F6288] cursor-not-allowed"
+                                />
+                                <label htmlFor="own-recorded" className="text-sm font-medium text-gray-700 cursor-not-allowed">
+                                    Own
+                                </label>
+                            </div>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Default: Own (Admin cannot modify this option)
+                        </p>
                     </div>
                 </div>   
 

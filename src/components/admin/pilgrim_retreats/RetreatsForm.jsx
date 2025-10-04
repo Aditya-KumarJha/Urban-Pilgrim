@@ -84,7 +84,8 @@ export default function RetreatsForm() {
             category: "",
             categories: [],
             description: "",
-            duration: ""
+            duration: "",
+            listingType: "Listing" // Default to "Listing"
         },
         monthlySubscription: {
             price: "",
@@ -970,6 +971,45 @@ export default function RetreatsForm() {
                     onChange={(e) => handleFieldChange("pilgrimRetreatCard", "duration", e.target.value)}
                     className="text-sm w-full border p-3 rounded-lg mb-3"
                 />
+
+                {/* Listing Type */}
+                <div className="">
+                    <h3 className="block text-md font-semibold text-gray-700 mb-2">Listing Type</h3>
+                    <p className="text-sm text-gray-500 mt-1">
+                        Choose one from the below
+                    </p>
+                    <div className="flex gap-4">
+                        <div className="flex items-center">
+                            <input
+                                type="radio"
+                                id="listing"
+                                name="listingType"
+                                value="Listing"
+                                checked={formData?.pilgrimRetreatCard?.listingType === "Listing"}
+                                onChange={(e) => handleFieldChange("pilgrimRetreatCard", "listingType", e.target.value)}
+                                className="mr-2 text-[#2F6288] focus:ring-[#2F6288]"
+                            />
+                            <label htmlFor="listing" className="text-sm font-medium text-gray-700">
+                                Listing
+                            </label>
+                        </div>
+                        <div className="flex items-center">
+                            <input
+                                type="radio"
+                                id="own"
+                                name="listingType"
+                                value="Own"
+                                checked={formData?.pilgrimRetreatCard?.listingType === "Own"}
+                                onChange={(e) => handleFieldChange("pilgrimRetreatCard", "listingType", e.target.value)}
+                                className="mr-2 text-[#2F6288] focus:ring-[#2F6288]"
+                            />
+                            <label htmlFor="own" className="text-sm font-medium text-gray-700">
+                                Own
+                            </label>
+                        </div>
+                    </div>
+                    
+                </div>
 
             </div>
 
