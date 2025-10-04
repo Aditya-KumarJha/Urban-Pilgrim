@@ -1225,6 +1225,71 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
         }
 
         // ------------------------
+        // 1.5.5) Handle Workshop Bookings
+        // ------------------------
+        const workshopItems = cartData.filter(item => item.type === 'workshop' || item.category === 'workshop');
+        
+        for (const workshop of workshopItems) {
+            try {
+                console.log(`Processing workshop booking for: ${workshop.title}`);
+                
+                // Create workshop booking document
+                const workshopBookingId = `WB_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                const workshopBookingData = {
+                    bookingId: workshopBookingId,
+                    workshopId: workshop.id,
+                    workshopTitle: workshop.title,
+                    userId: userId,
+                    userInfo: {
+                        name: name,
+                        email: email,
+                        phone: formData?.whatsapp || formData?.phone || '',
+                        address: formData?.address || ''
+                    },
+                    bookingDetails: {
+                        participants: workshop.participants || 1,
+                        selectedVariant: workshop.selectedVariant || 'Standard',
+                        totalPrice: workshop.price,
+                        paymentId: paymentResponse.razorpay_payment_id,
+                        orderId: paymentResponse.razorpay_order_id
+                    },
+                    organizer: workshop.organizer || null,
+                    status: 'confirmed',
+                    bookedAt: new Date().toISOString(),
+                    createdAt: admin.firestore.FieldValue.serverTimestamp()
+                };
+
+                // Save workshop booking
+                await db.collection('workshopBookings').doc(workshopBookingId).set(workshopBookingData);
+
+                // Add user to workshop participants
+                const workshopRef = db.collection('workshops').doc(workshop.id);
+                await workshopRef.update({
+                    participants: admin.firestore.FieldValue.arrayUnion({
+                        userId: userId,
+                        name: name,
+                        email: email,
+                        phone: formData?.whatsapp || formData?.phone || '',
+                        bookingId: workshopBookingId,
+                        bookedAt: new Date().toISOString(),
+                        participantCount: workshop.participants || 1,
+                        variant: workshop.selectedVariant || 'Standard'
+                    }),
+                    // Update total participants count
+                    totalParticipants: admin.firestore.FieldValue.increment(workshop.participants || 1)
+                });
+
+                // Send emails to organizer, admin, and user
+                await sendWorkshopBookingEmails(workshopBookingData, formData);
+
+                console.log(`Workshop booking processed successfully: ${workshopBookingId}`);
+            } catch (workshopError) {
+                console.error(`Error processing workshop booking for ${workshop.title}:`, workshopError);
+                // Don't fail the entire payment for workshop processing errors
+            }
+        }
+
+        // ------------------------
         // 1.6) Send immediate WhatsApp confirmation to user
         // ------------------------
         try {
@@ -3402,6 +3467,146 @@ async function sendBookingCompletionEmail(booking) {
     }
 }
 
+// Workshop booking email notifications
+async function sendWorkshopBookingEmails(bookingData, formData) {
+    const { workshopTitle, userInfo, bookingDetails, organizer, bookingId } = bookingData;
+    
+    try {
+        // Email HTML template
+        const createEmailHTML = (recipient, isOrganizer = false, isAdmin = false) => `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <title>Workshop Booking Confirmation</title>
+                <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background: linear-gradient(135deg, #c16a00, #d4822a); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
+                    .content { background: #f9f9f9; padding: 20px; border-radius: 0 0 10px 10px; }
+                    .info-section { background: white; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 4px solid #c16a00; }
+                    .details { margin: 10px 0; }
+                    .label { font-weight: bold; color: #c16a00; }
+                    .status-confirmed { background: #10b981; color: white; padding: 15px; text-align: center; border-radius: 8px; margin: 20px 0; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>🏛️ Urban Pilgrim</h1>
+                        <h2>${isOrganizer ? 'New Workshop Booking' : isAdmin ? 'Workshop Booking Notification' : 'Workshop Booking Confirmed'}</h2>
+                    </div>
+                    
+                    <div class="content">
+                        <div class="status-confirmed">
+                            <h2>✅ Booking Confirmed!</h2>
+                            <p>${isOrganizer ? 'You have a new participant for your workshop.' : isAdmin ? 'A new workshop booking has been made.' : 'Your workshop booking has been confirmed.'}</p>
+                        </div>
+
+                        <div class="info-section">
+                            <h3>Workshop Details</h3>
+                            <div class="details">
+                                <p><span class="label">Workshop:</span> ${workshopTitle}</p>
+                                <p><span class="label">Participants:</span> ${bookingDetails.participants}</p>
+                                <p><span class="label">Variant:</span> ${bookingDetails.selectedVariant}</p>
+                                <p><span class="label">Total Amount:</span> ₹${Number(bookingDetails.totalPrice).toLocaleString("en-IN")}</p>
+                                <p><span class="label">Booking ID:</span> ${bookingId}</p>
+                                <p><span class="label">Payment ID:</span> ${bookingDetails.paymentId}</p>
+                            </div>
+                        </div>
+
+                        <div class="info-section">
+                            <h3>${isOrganizer || isAdmin ? 'Participant Information' : 'Your Information'}</h3>
+                            <div class="details">
+                                <p><span class="label">Name:</span> ${userInfo.name}</p>
+                                <p><span class="label">Email:</span> ${userInfo.email}</p>
+                                <p><span class="label">Phone:</span> ${userInfo.phone}</p>
+                                ${userInfo.address ? `<p><span class="label">Address:</span> ${userInfo.address}</p>` : ''}
+                            </div>
+                        </div>
+
+                        ${organizer && (isOrganizer || isAdmin) ? `
+                        <div class="info-section">
+                            <h3>Organizer Information</h3>
+                            <div class="details">
+                                <p><span class="label">Name:</span> ${organizer.name || organizer.title || 'Not specified'}</p>
+                                <p><span class="label">Email:</span> ${organizer.email || organizer.em || 'Not specified'}</p>
+                                <p><span class="label">Phone:</span> ${organizer.phone || organizer.number || 'Not specified'}</p>
+                            </div>
+                        </div>
+                        ` : ''}
+
+                        ${!isOrganizer && !isAdmin ? `
+                        <div style="text-align: center; margin: 20px 0;">
+                            <p><strong>Next Steps:</strong></p>
+                            <p>The workshop organizer will contact you soon with venue details and schedule confirmation.</p>
+                            <p>Please keep this booking confirmation for your records.</p>
+                        </div>
+                        ` : ''}
+
+                        ${isOrganizer ? `
+                        <div style="text-align: center; margin: 20px 0;">
+                            <p><strong>Action Required:</strong></p>
+                            <p>Please contact the participant to confirm venue details, schedule, and any specific requirements.</p>
+                        </div>
+                        ` : ''}
+
+                        <p style="text-align: center; color: #666; font-size: 12px; margin-top: 20px;">
+                            Booking Date: ${new Date().toLocaleString()}<br>
+                            For any queries, contact us at support@urbanpilgrim.com
+                        </p>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+
+        // Send email to user
+        if (userInfo.email) {
+            await transporter.sendMail({
+                from: gmailEmail,
+                to: userInfo.email,
+                subject: `Workshop Booking Confirmed - ${workshopTitle}`,
+                html: createEmailHTML('user', false, false)
+            });
+            console.log(`Workshop booking confirmation sent to user: ${userInfo.email}`);
+        }
+
+        // Send email to organizer
+        if (organizer) {
+            // Handle different organizer data structures
+            const organizerEmail = organizer.email || organizer.em || null;
+            const organizerPhone = organizer.phone || organizer.number || null;
+            
+            if (organizerEmail) {
+                await transporter.sendMail({
+                    from: gmailEmail,
+                    to: organizerEmail,
+                    subject: `New Workshop Booking - ${workshopTitle}`,
+                    html: createEmailHTML('organizer', true, false)
+                });
+                console.log(`Workshop booking notification sent to organizer: ${organizerEmail}`);
+            } else {
+                console.log('No organizer email found, skipping organizer notification');
+            }
+        }
+
+        // Send email to admin
+        const adminEmail = "urbanpilgrim25@gmail.com";
+        await transporter.sendMail({
+            from: gmailEmail,
+            to: adminEmail,
+            subject: `Workshop Booking Alert - ${workshopTitle}`,
+            html: createEmailHTML('admin', false, true)
+        });
+        console.log(`Workshop booking notification sent to admin: ${adminEmail}`);
+
+    } catch (error) {
+        console.error('Error sending workshop booking emails:', error);
+        // Don't throw error to avoid failing the payment
+    }
+}
+
 // ========== WORKSHOP REQUEST SYSTEM ==========
 // Import workshop functions from separate file
 const workshopFunctions = require('./workshopRequests');
@@ -3410,3 +3615,4 @@ const workshopFunctions = require('./workshopRequests');
 exports.submitWorkshopRequest = workshopFunctions.submitWorkshopRequest;
 exports.handleWorkshopRequestResponse = workshopFunctions.handleWorkshopRequestResponse;
 exports.getWorkshopRequestStatus = workshopFunctions.getWorkshopRequestStatus;
+exports.getWorkshopRequestStatusByWorkshop = workshopFunctions.getWorkshopRequestStatusByWorkshop;

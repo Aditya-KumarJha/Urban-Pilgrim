@@ -44,7 +44,7 @@ export default function CartItem({ item, onRemove, onQuantityChange, onPersonsCh
             {/* Product Image/Video */}
             {item.image && item.image.includes('.mp4') || item.image && item.image.includes('video') ? (
                 <video
-                    src={item.image}
+                    src={item.image || item.thumbnail}
                     className="w-20 h-20 rounded-md object-cover flex-shrink-0"
                     muted
                     loop
@@ -52,7 +52,7 @@ export default function CartItem({ item, onRemove, onQuantityChange, onPersonsCh
                 />
             ) : (
                 <img
-                    src={item.image}
+                    src={item.image || item.thumbnail}
                     alt={item.title}
                     className="w-20 h-20 rounded-md object-cover flex-shrink-0"
                 />

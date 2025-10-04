@@ -2,8 +2,12 @@ const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const nodemailer = require('nodemailer');
 
-// Get Firestore instance (admin is already initialized in index.js)
+if (!admin.apps.length) {
+    admin.initializeApp();
+}
+
 const db = admin.firestore();
+const FieldValue = admin.firestore.FieldValue;
 
 // Email configuration from environment variables (matching index.js)
 const gmailEmail = process.env.APP_GMAIL;
@@ -11,7 +15,7 @@ const gmailPassword = process.env.APP_GMAIL_PASSWORD;
 const contactEmail = process.env.CONTACT_EMAIL;
 
 // Email transporter configuration (matching index.js setup)
-const transporter = nodemailer.createTransporter({
+const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
         user: gmailEmail,
@@ -24,12 +28,14 @@ exports.submitWorkshopRequest = functions.https.onCall(async (data, context) => 
     try {
         // Optional user authentication (removed requirement for testing)
         console.log('Workshop request received:', { data });
+        console.log("contenx from submit backend: ", context);
 
         const {
             workshop,
             variant,
             participants,
             name,
+            userId,
             email,
             mobile,
             address,
@@ -51,7 +57,7 @@ exports.submitWorkshopRequest = functions.https.onCall(async (data, context) => 
         // Create request document
         const requestData = {
             requestId,
-            userId: context.auth?.uid || 'anonymous',
+            userId: userId || 'anonymous',
             workshop,
             variant,
             participants,
@@ -71,8 +77,8 @@ exports.submitWorkshopRequest = functions.https.onCall(async (data, context) => 
             },
             additionalNotes,
             status: 'pending',
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            // createdAt: FieldValue.serverTimestamp(),
+            // updatedAt: FieldValue.serverTimestamp()
         };
 
         // Save to Firestore
@@ -104,7 +110,7 @@ exports.handleWorkshopRequestResponse = functions.https.onRequest(async (req, re
 
         // Get request document
         const requestDoc = await db.collection('workshopRequests').doc(requestId).get();
-        
+
         if (!requestDoc.exists) {
             return res.status(404).send('Request not found');
         }
@@ -115,8 +121,8 @@ exports.handleWorkshopRequestResponse = functions.https.onRequest(async (req, re
         await db.collection('workshopRequests').doc(requestId).update({
             status: action === 'approve' ? 'approved' : 'rejected',
             adminNotes: adminNotes || '',
-            processedAt: admin.firestore.FieldValue.serverTimestamp(),
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            // processedAt: FieldValue.serverTimestamp(),
+            // updatedAt: FieldValue.serverTimestamp()
         });
 
         // Send email to customer
@@ -156,9 +162,10 @@ exports.handleWorkshopRequestResponse = functions.https.onRequest(async (req, re
 
 // Send Admin Notification Email
 async function sendAdminNotificationEmail(requestData) {
-    const baseUrl = process.env.NODE_ENV === 'development' 
-        ? 'http://localhost:5002/urban-pilgrim/us-central1'
+    const baseUrl = process.env.NODE_ENV === 'development'
+        ? 'http://127.0.0.1:5002/urban-pilgrim/us-central1'
         : 'https://us-central1-urban-pilgrim-c3e4b.cloudfunctions.net';
+    // const baseUrl = `http://127.0.0.1:5002/urban-pilgrim/us-central1`;
     const approveUrl = `${baseUrl}/handleWorkshopRequestResponse?requestId=${requestData.requestId}&action=approve`;
     const rejectUrl = `${baseUrl}/handleWorkshopRequestResponse?requestId=${requestData.requestId}&action=reject`;
 
@@ -250,8 +257,8 @@ async function sendAdminNotificationEmail(requestData) {
     `;
 
     const mailOptions = {
-        from: gmailEmail,
-        to: contactEmail || 'admin@urbanpilgrim.com',
+        from: requestData.customerInfo.email,
+        to: gmailEmail,
         subject: `New Workshop Request - ${requestData.workshop.title}`,
         html: emailHtml
     };
@@ -262,7 +269,7 @@ async function sendAdminNotificationEmail(requestData) {
 // Send Customer Response Email
 async function sendCustomerResponseEmail(requestData, action, adminNotes) {
     const isApproved = action === 'approve';
-    
+    console.log('Sending customer response email for request:', requestData, action, adminNotes);
     const emailHtml = `
         <!DOCTYPE html>
         <html>
@@ -346,43 +353,62 @@ async function sendCustomerResponseEmail(requestData, action, adminNotes) {
     await transporter.sendMail(mailOptions);
 }
 
-// Get Request Status (for frontend to check)
+// Get Request Status by RequestId (for frontend to check)
 exports.getWorkshopRequestStatus = functions.https.onCall(async (data, context) => {
+    const { requestId } = data.data;
+    console.log("Getting request status for requestId:", requestId);
+
+    if (!requestId) {
+        throw new functions.https.HttpsError(
+            "invalid-argument",
+            "The function must be called with a valid requestId."
+        );
+    }
+
     try {
-        const { workshopId } = data;
-        
-        console.log('Getting request status for workshop:', workshopId);
-        
-        // Get latest request for this workshop (with or without user filter)
-        let query = db.collection('workshopRequests')
-            .where('workshop.id', '==', workshopId)
-            .orderBy('createdAt', 'desc')
-            .limit(1);
-            
-        // If user is authenticated, filter by user
-        if (context.auth?.uid) {
-            query = db.collection('workshopRequests')
-                .where('userId', '==', context.auth.uid)
-                .where('workshop.id', '==', workshopId)
-                .orderBy('createdAt', 'desc')
-                .limit(1);
-        }
-        
-        const requestsSnapshot = await query.get();
+        const snapshot = await db.collection("workshopRequests")
+            .where("requestId", "==", requestId)
+            .get();
 
-        if (requestsSnapshot.empty) {
-            return { status: 'initial' };
+        if (snapshot.empty) {
+            return { status: "not_found" };
         }
 
-        const requestData = requestsSnapshot.docs[0].data();
-        return {
-            status: requestData.status,
-            requestId: requestData.requestId,
-            requestData: requestData
-        };
-
+        return snapshot.docs.map(doc => doc.data());
     } catch (error) {
-        console.error('Error getting workshop request status:', error);
-        throw new functions.https.HttpsError('internal', 'Failed to get request status');
+        console.error("Error getting workshop request status:", error);
+        throw new functions.https.HttpsError("internal", "Error fetching status");
     }
 });
+
+// Get Request Status by Workshop ID and User ID (for frontend to check)
+exports.getWorkshopRequestStatusByWorkshop = functions.https.onCall(async (data, context) => {
+    try {
+        const { workshopId, userId } = data.data;
+        console.log("Getting request status for workshop:", workshopId, "user:", userId);
+
+        if (!workshopId || !userId) {
+            throw new functions.https.HttpsError(
+                "invalid-argument",
+                "The function must be called with valid workshopId and userId."
+            );
+        }
+
+        // Query for requests by this user for this workshop
+        const snapshot = await db.collection("workshopRequests")
+            .where("workshop.id", "==", workshopId)
+            .where("userId", "==", userId)
+            .get();
+
+        console.log("🚀🚀snapshot: ",snapshot);
+        if (snapshot.empty) {
+            return [];
+        }
+
+        return snapshot.docs.map(doc => doc.data());
+    } catch (error) {
+        console.error("Error getting workshop request status by workshop:", error);
+        throw new functions.https.HttpsError("internal", "Error fetching status");
+    }
+});
+

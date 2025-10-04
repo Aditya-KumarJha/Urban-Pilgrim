@@ -36,24 +36,49 @@ export default function WorkshopDetails() {
             setSelectedVariant(foundWorkshop.variants?.[0] || null);
             setParticipants(foundWorkshop.minPerson || 1);
             
-            // Check request status if user is logged in
+            // Check request status from database
             if (user) {
-                checkRequestStatus(foundWorkshop.id);
+                checkRequestStatusFromDB(foundWorkshop.id, user.uid);
             }
         }
         
         setLoading(false);
     }, [title, workshops, user]);
-
-    const checkRequestStatus = async (workshopId) => {
+      
+    const checkRequestStatusFromDB = async (workshopId, userId) => {
         try {
+            console.log("Checking request status for workshop:", workshopId, "user:", userId);
+            const getRequestStatus = httpsCallable(functions, 'getWorkshopRequestStatusByWorkshop');
+            const result = await getRequestStatus({ workshopId, userId });
+            
+            if (result.data && result.data.length > 0) {
+                // Sort by requestId to get the most recent (requestId contains timestamp)
+                const sortedRequests = result.data.sort((a, b) => b.requestId.localeCompare(a.requestId));
+                const latestRequest = sortedRequests[0];
+                setRequestStatus(latestRequest.status);
+                setRequestData(latestRequest);
+                console.log("Found request status:", latestRequest.status);
+            } else {
+                setRequestStatus('initial');
+                console.log("No request found, status: initial");
+            }
+        } catch (error) {
+            console.error("Error checking request status:", error);
+            setRequestStatus('initial');
+        }
+    };
+
+    const checkRequestStatus = async (requestId) => {
+        try {
+            console.log("Checking request status for requestId:", requestId);
             const getRequestStatus = httpsCallable(functions, 'getWorkshopRequestStatus');
-            const result = await getRequestStatus({ workshopId });
+            const result = await getRequestStatus({ requestId });
             
             if (result.data.status !== 'initial') {
                 setRequestStatus(result.data.status);
                 setRequestData(result.data.requestData);
             }
+            console.log("status : ",requestStatus)
         } catch (error) {
             console.error("Error checking request status:", error);
             // Don't show error to user, just keep initial status
@@ -87,6 +112,10 @@ export default function WorkshopDetails() {
     };
 
     const handleRequestSubmit = async (formData) => {
+        if (!user) {
+            alert("Please sign in before submitting request");
+            return;
+        }
         try {
             setLoading(true);
             setRequestStatus('pending');
@@ -96,6 +125,7 @@ export default function WorkshopDetails() {
             // Call Firebase function to submit request
             const submitRequest = httpsCallable(functions, 'submitWorkshopRequest');
             const result = await submitRequest({
+                userId: user?.uid,
                 workshop: {
                     id: workshop.id,
                     title: workshop.title,
@@ -107,7 +137,12 @@ export default function WorkshopDetails() {
             });
 
             if (result.data.success) {
+                setRequestStatus('pending');
                 showSuccess("Request submitted successfully! You will be notified via email once reviewed.");
+                // Refresh the status from database
+                if (user) {
+                    checkRequestStatusFromDB(workshop.id, user.uid);
+                }
             } else {
                 throw new Error(result.data.message || 'Failed to submit request');
             }
@@ -160,7 +195,8 @@ export default function WorkshopDetails() {
                 participants: participants,
                 selectedVariant: selectedVariant?.name || 'Standard',
                 minPerson: workshop.minPerson,
-                maxPerson: workshop.maxPerson
+                maxPerson: workshop.maxPerson,
+                organizer: workshop.guide && workshop.guide.length > 0 ? workshop.guide[0] : null,
             };
             
             dispatch(addToCart(cartItem));

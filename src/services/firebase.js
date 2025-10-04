@@ -23,7 +23,7 @@ export const functions = getFunctions(app);
 // Connect to emulator in development
 if (process.env.NODE_ENV === 'development' || window.location.hostname === 'localhost') {
     try {
-        connectFunctionsEmulator(functions, "localhost", 5002);
+        connectFunctionsEmulator(functions, "127.0.0.1", 5002);
         console.log("🔧 Connected to Functions Emulator");
     } catch (error) {
         console.log("Functions emulator already connected or not available");
