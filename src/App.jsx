@@ -32,11 +32,15 @@ import WorkshopDetails from "./components/pilgrim_workshop/WorkshopDetails";
 import Lenis from "@studio-freight/lenis";
 import WhatsAppFloatingButton from "./components/WhatsAppFloatingButton.jsx";
 import Organizer from "./pages/organizer/Organizer.jsx";
+import OrganizerUsers from "./pages/organizer/Users.jsx";
 
 function App() {
     const [loading, setLoading] = useState(true);
     const location = useLocation();
-    const isAdminRoute = location.pathname === "/admin" || location.pathname === "/userdashboard" || location.pathname === "/organizer";
+    const isAdminRoute = location.pathname === "/admin" || 
+    location.pathname === "/userdashboard" || 
+    location.pathname === "/organizer" || 
+    location.pathname === "/organizer/users";
 
     // Decide whether to show loader only on the very first visit
     useEffect(() => {
@@ -124,6 +128,7 @@ function App() {
                             <Route path="/admin" element={<Admin />} />
                             <Route path="/userdashboard" element={<UserDashboard />} />
                             <Route path="/organizer" element={<Organizer />} />
+                            <Route path="/organizer/users" element={<OrganizerUsers />} />
                             <Route path="*" element={<Home replace={'/'} />} />
                         </Routes>
                         {!isAdminRoute && <Footer className="mt-10" />}

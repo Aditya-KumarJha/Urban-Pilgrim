@@ -30,23 +30,45 @@ export default function WorkshopCard({
         navigate(`/workshop/${title.replace(/\s+/g, '-').toLowerCase()}/details`);
     };
 
+    // Helper function to determine media type
+    const getMediaType = (url) => {
+        if (!url) return 'image';
+        const videoExtensions = ['.mp4', '.webm', '.ogg', '.avi', '.mov'];
+        const lowerUrl = url.toLowerCase();
+        return videoExtensions.some(ext => lowerUrl.includes(ext)) || lowerUrl.includes('video') ? 'video' : 'image';
+    };
+
+    const mediaType = getMediaType(image);
+    const mediaSrc = image || '/assets/workshop-placeholder.jpg';
+
     return (
         <div 
             className="rounded-xl overflow-hidden shadow-md bg-white flex flex-col max-w-[300px] sm:max-w-xs cursor-pointer hover:shadow-lg transition-shadow" 
             onClick={handleCardClick}
         >
-            {/* Workshop Image */}
+            {/* Workshop Media */}
             <div className="relative">
-                <img 
-                    src={image || '/assets/workshop-placeholder.jpg'} 
-                    alt={title} 
-                    className="w-full aspect-[5/4] object-cover object-top" 
-                />
+                {mediaType === 'video' ? (
+                    <video
+                        src={mediaSrc}
+                        className="w-full aspect-[5/4] object-cover object-top"
+                        muted
+                        loop
+                        autoPlay
+                        playsInline
+                    />
+                ) : (
+                    <img 
+                        src={mediaSrc} 
+                        alt={title} 
+                        className="w-full aspect-[5/4] object-cover object-top" 
+                    />
+                )}
                 
                 {/* Price Badge */}
                 <div className="absolute top-3 right-3">
                     <span className="bg-white/90 backdrop-blur-sm text-gray-900 px-2 py-1 rounded-full text-xs font-bold">
-                        ₹{Number(price || 0).toLocaleString("en-IN")}
+                        ₹{Number(price || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                 </div>
 
@@ -79,16 +101,9 @@ export default function WorkshopCard({
                     </span>
                 </div>
 
-                {/* Extra Person Price */}
-                {extraPersonPrice && (
-                    <div className="text-xs text-orange-600 mb-2">
-                        +₹{Number(extraPersonPrice).toLocaleString("en-IN")} per extra person
-                    </div>
-                )}
-
                 {/* Price */}
                 <p className="text-[#2F6288] font-semibold mb-4 text-sm sm:text-base">
-                    ₹{Number(price || 0).toLocaleString("en-IN")}
+                    ₹{Number(price || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
 
                 {/* Action Buttons */}

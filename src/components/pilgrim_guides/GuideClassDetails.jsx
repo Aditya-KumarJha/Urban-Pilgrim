@@ -607,20 +607,41 @@ export default function GuideClassDetails() {
         }
     }, [sessionData]);
 
-    // Default occupancy selection: always ensure a default when none chosen
-    // Priority: match 'Individual'/'Single' from admin list, else first item, else synthetic { type: 'Individual' }
+    // Default occupancy selection: always ensure Individual is highlighted by default
+    // Priority: match 'Individual' first, then 'Single', else first item, else synthetic { type: 'Individual' }
     useEffect(() => {
         if (selectedOccupancy) return;
         const occupancies = sessionData?.guideCard?.occupancies;
         let defaultOcc = null;
+        
         if (Array.isArray(occupancies) && occupancies.length > 0) {
-            defaultOcc = occupancies.find(o => /individual|single/i.test(o?.type || '')) || occupancies[0];
+            // First priority: exact match for "Individual"
+            defaultOcc = occupancies.find(o => (o?.type || '').toLowerCase() === 'individual');
+            
+            // Second priority: exact match for "Single" 
+            if (!defaultOcc) {
+                defaultOcc = occupancies.find(o => (o?.type || '').toLowerCase() === 'single');
+            }
+            
+            // Third priority: any occupancy containing "individual" or "single"
+            if (!defaultOcc) {
+                defaultOcc = occupancies.find(o => /individual|single/i.test(o?.type || ''));
+            }
+            
+            // Fallback: first available occupancy
+            if (!defaultOcc) {
+                defaultOcc = occupancies[0];
+            }
         } else {
-            // Admin didn't configure occupancies; assume Individual
+            // Admin didn't configure occupancies; create synthetic Individual
             defaultOcc = { type: 'Individual' };
         }
-        if (defaultOcc) setSelectedOccupancy(defaultOcc);
-    }, [sessionData, selectedOccupancy]);
+        
+        if (defaultOcc) {
+            console.log('Setting default occupancy:', defaultOcc);
+            setSelectedOccupancy(defaultOcc);
+        }
+    }, [sessionData]);
 
     // Get slots by subscription type and mode
     const getAvailableSlots = () => {

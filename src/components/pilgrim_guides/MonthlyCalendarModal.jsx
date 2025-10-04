@@ -800,17 +800,19 @@ export default function MonthlyCalendarModal({ isOpen, onClose, sessionData, sel
                         <h2 className="text-xl font-bold text-gray-800">
                             Monthly Booking Calendar
                         </h2>
-                        <p className="text-sm text-gray-600 mt-1">
-                            {(occupancyType || '').toLowerCase() === 'group'
-                                ? (
-                                    <>A group can be made if minimum {groupProgress?.minPersons || 0} persons are enrolled</>
-                                  )
-                                : (
-                                    <>
-                                        {mode} - Monthly Plan ({sessionsPerMonth} sessions per month)
-                                    </>
-                                  )}
-                        </p>
+                        <div className="mt-1">
+                            <p className="text-sm text-gray-600">
+                                {mode} - Monthly Plan ({sessionsPerMonth} sessions per month)
+                            </p>
+                            <p className="text-sm font-medium text-blue-600 mt-1">
+                                Occupancy: {occupancyType ? occupancyType.charAt(0).toUpperCase() + occupancyType.slice(1).toLowerCase() : 'Single/Individual'}
+                            </p>
+                            {(occupancyType || '').toLowerCase() === 'group' && (
+                                <p className="text-xs text-orange-600 mt-1">
+                                    A group can be made if minimum {groupProgress?.minPersons || 0} persons are enrolled
+                                </p>
+                            )}
+                        </div>
                     </div>
                     <button
                         onClick={handleCloseModal}

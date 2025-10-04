@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../../services/firebase';
-import { collection, doc, getDoc, getDocs, query, updateDoc, where, } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, updateDoc, setDoc, where, } from 'firebase/firestore';
 import { Calendar, Users, CheckCircle, Clock, Video, TrendingUp } from 'lucide-react';
 import { showSuccess, showError } from '../../utils/toast';
 
@@ -11,6 +12,7 @@ function Home() {
     const [organiserDocId, setOrganiserDocId] = useState('');
     const [programs, setPrograms] = useState([]); // [{category, id, title, meetLink, users: {}, rootKey}]
     const organizer = useSelector(state => state.organizerAuth?.organizer);
+    const navigate = useNavigate();
 
     // Calculate counts
     const counts = useMemo(() => {
@@ -223,24 +225,47 @@ function Home() {
     // Mark slot as completed - updates root-level structure
     async function markCompleted(programId, rootKey, userId, slot) {
         try {
-            if (!organiserDocId) return;
-    
-            const orgRef = doc(db, "organisers", organiserDocId);
-            const orgSnap = await getDoc(orgRef);
-            if (!orgSnap.exists()) return;
-    
-            const orgData = orgSnap.data();
-    
-            // 🔑 usersMap is stored as a flat object field
-            const usersPath = `${rootKey}.${programId}.users`;
-            const usersMap = orgData[usersPath] || {};
-    
-            if (!usersMap[userId]) {
-                console.error("User not found in program");
+            console.log("🚀 Starting markCompleted function");
+            console.log("Parameters:", { programId, rootKey, userId, slot });
+            
+            if (!organiserDocId) {
+                console.error("No organiserDocId found");
+                showError("Organizer ID not found");
                 return;
             }
     
-            const scheduleddate = usersMap[userId].scheduleddate || [];
+            console.log("📄 Fetching organizer document:", organiserDocId);
+            const orgRef = doc(db, "organisers", organiserDocId);
+            const orgSnap = await getDoc(orgRef);
+            
+            if (!orgSnap.exists()) {
+                console.error("Organizer document does not exist");
+                showError("Organizer document not found");
+                return;
+            }
+    
+            const orgData = orgSnap.data();
+            console.log("📊 Organizer data keys:", Object.keys(orgData));
+    
+            // 🔑 usersMap is stored as a flat object field using dot-notation
+            const usersPath = `${rootKey}.${programId}.users`;
+            console.log("🔍 Looking for users at path:", usersPath);
+            
+            const usersMap = orgData[usersPath] || {};
+            console.log("👥 Users found:", Object.keys(usersMap));
+    
+            if (!usersMap[userId]) {
+                console.error("User not found in program:", userId);
+                console.error("Available users:", Object.keys(usersMap));
+                showError("User not found in program");
+                return;
+            }
+    
+            const userData = usersMap[userId];
+            console.log("👤 User data:", userData);
+            
+            const scheduleddate = [...(userData.scheduleddate || [])];
+            console.log("📅 User's scheduled dates:", scheduleddate);
     
             // Find the slot to update
             const slotIndex = scheduleddate.findIndex(
@@ -249,67 +274,98 @@ function Home() {
     
             if (slotIndex === -1) {
                 console.error("Slot not found for update");
+                console.error("Looking for:", { date: slot.date, time: slot.time });
+                console.error("Available slots:", scheduleddate.map(s => ({ date: s.date, time: s.time })));
+                showError("Session slot not found");
                 return;
             }
     
-            console.log("Current slot status:", scheduleddate[slotIndex].status);
-            console.log("UsersPath:", usersPath);
-            console.log("UserId:", userId);
+            console.log("✅ Found slot at index:", slotIndex);
+            console.log("Current slot:", scheduleddate[slotIndex]);
             
-            if ((scheduleddate[slotIndex].status || "pending") === "pending") {
-                scheduleddate[slotIndex] = {
-                    ...scheduleddate[slotIndex],
-                    status: "completed",
-                };
+            // Always update to completed
+            scheduleddate[slotIndex] = {
+                ...scheduleddate[slotIndex],
+                status: "completed",
+                completedAt: new Date().toISOString(),
+            };
     
-                // ✅ Update the entire users field since it's a single field string
-                // Get the current users object, update it, then write it back
-                const updatedUsersMap = {
-                    ...usersMap,
-                    [userId]: {
-                        ...usersMap[userId],
-                        scheduleddate,
+            // Update the entire users field
+            const updatedUsersMap = {
+                ...usersMap,
+                [userId]: {
+                    ...userData,
+                    scheduleddate,
+                }
+            };
+            
+            console.log("🔄 Attempting Firestore update...");
+            console.log("Document path:", `organisers/${organiserDocId}`);
+            console.log("Field path:", usersPath);
+            console.log("Updated slot:", scheduleddate[slotIndex]);
+            
+            // Perform the update using setDoc with merge to avoid conflicts
+            console.log("🔧 Using setDoc with merge for more reliable update...");
+            await setDoc(orgRef, {
+                [usersPath]: updatedUsersMap,
+            }, { merge: true });
+            
+            console.log("✅ Firestore update completed successfully");
+            
+            // Verify the update with a longer delay to ensure propagation
+            console.log("🔍 Verifying update...");
+            await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay
+            const verifySnap = await getDoc(orgRef);
+            if (verifySnap.exists()) {
+                const verifyData = verifySnap.data();
+                const verifyUsersMap = verifyData[usersPath] || {};
+                const verifyUser = verifyUsersMap[userId];
+                
+                if (verifyUser && verifyUser.scheduleddate) {
+                    const verifySlot = verifyUser.scheduleddate.find(s => s.date === slot.date && s.time === slot.time);
+                    console.log("🔍 Verified slot status:", verifySlot?.status);
+                    
+                    if (verifySlot?.status === "completed") {
+                        console.log("✅ Verification successful - status updated in Firestore");
+                    } else {
+                        console.error("❌ Verification failed - status not updated in Firestore");
+                        console.error("Expected: completed, Got:", verifySlot?.status);
                     }
-                };
-                
-                console.log("Updating field:", usersPath);
-                console.log("New users object:", updatedUsersMap);
-                
-                await updateDoc(orgRef, {
-                    [usersPath]: updatedUsersMap,
-                });
-    
-                console.log("✅ Successfully updated Firestore");
-    
-                // ✅ Update local UI immediately
-                setPrograms(prev =>
-                    prev.map(p => {
-                        if (p.id === programId && p.rootKey === rootKey) {
-                            return {
-                                ...p,
-                                slots: p.slots.map(s =>
-                                    s.date === slot.date &&
-                                    s.time === slot.time &&
-                                    s.userId === userId
-                                        ? { ...s, status: "completed" }
-                                        : s
-                                ),
-                                users: Object.entries(usersMap).map(([id, u]) => ({
-                                    userId: id,
-                                    name: u.name || "",
-                                    email: u.email || "",
-                                }))
-                            };
-                        }
-                        return p;
-                    })
-                );
-    
-                showSuccess("Session marked as completed ✅");
+                }
             }
+    
+            // Update local UI
+            setPrograms(prev =>
+                prev.map(p => {
+                    if (p.id === programId && p.rootKey === rootKey) {
+                        return {
+                            ...p,
+                            slots: p.slots.map(s =>
+                                s.date === slot.date &&
+                                s.time === slot.time &&
+                                s.userId === userId
+                                    ? { ...s, status: "completed", completedAt: new Date().toISOString() }
+                                    : s
+                            ),
+                            users: updatedUsersMap
+                        };
+                    }
+                    return p;
+                })
+            );
+    
+            showSuccess("Session marked as completed ✅");
+            console.log("🎉 markCompleted function completed successfully");
+            
         } catch (e) {
-            console.error("Failed to mark completed", e);
-            showError("Failed to update session status. Please try again.");
+            console.error("💥 Error in markCompleted:", e);
+            console.error("Error details:", {
+                name: e.name,
+                message: e.message,
+                code: e.code,
+                stack: e.stack
+            });
+            showError(`Failed to update session status: ${e.message}`);
         }
     }    
 
@@ -337,9 +393,7 @@ function Home() {
             </div>
         );
     }
-
-    console.log("program dhinchak: ", programs)
-
+    
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-orange-50 to-blue-50 p-4 md:p-8">
             <div className="max-w-7xl mx-auto">
@@ -353,7 +407,10 @@ function Home() {
 
                 {/* Summary Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-transform">
+                    <div 
+                        onClick={() => navigate('/organizer/users')}
+                        className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-transform cursor-pointer"
+                    >
                         <div className="flex items-center justify-between mb-4">
                             <Users className="w-8 h-8 opacity-80" />
                             <TrendingUp className="w-5 h-5 opacity-60" />
@@ -543,6 +600,7 @@ function Home() {
                                                             }`}
                                                         >
                                                             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                                                                {/* name time date */}
                                                                 <div className="flex-1">
                                                                     <div className="flex items-center gap-3 mb-2">
                                                                         <div className={`w-2 h-2 rounded-full ${isCompleted ? 'bg-green-500' : 'bg-orange-500'}`}></div>
@@ -560,6 +618,8 @@ function Home() {
                                                                         </div>
                                                                     </div>
                                                                 </div>
+
+                                                                {/* button */}
                                                                 <div className="flex items-center gap-3">
                                                                     {isCompleted ? (
                                                                         <span className="flex items-center gap-2 text-green-600 font-semibold">
