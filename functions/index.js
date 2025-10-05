@@ -4,10 +4,13 @@ const nodemailer = require("nodemailer");
 const easyinvoice = require("easyinvoice");
 const Razorpay = require("razorpay");
 const fs = require('fs');
+const path = require('path');
 const twilio = require("twilio");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onRequest } = require("firebase-functions/v2/https");
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { generateInvoicePdfBuffer } = require("./invoicePdfKit");
+const { generateOrganizerInvoicePdfBuffer } = require("./invoiceOrganizerPdfKit");
 
 const { google } = require("googleapis");
 const { OAuth2Client } = require("google-auth-library");
@@ -15,7 +18,42 @@ require("dotenv").config();
 
 const cors = require("cors")({ origin: true });
 
-const main_logo = fs.readFileSync('urban_pilgrim_logo.png').toString('base64');
+let main_logo = null;
+try {
+    const logoPath = path.join(__dirname, 'urban_pilgrim_logo.png');
+    const buf = fs.readFileSync(logoPath);
+    // Keep it small to avoid easyinvoice/image issues
+    const MAX_BYTES = 2000 * 1024; // 200 KB
+    if (buf && buf.length <= MAX_BYTES) {
+        main_logo = buf.toString('base64');
+        console.log('Logo loaded successfully');
+    } else {
+        console.log('Logo too large or missing, skipping logo in invoice');
+    }
+} catch (e) {
+    console.log('Logo load failed:', e.message);
+}
+
+// Initialize Firebase Admin
+if ( process.env.FUNCTIONS_EMULATOR  === 'true' || process.env.NODE_ENV === 'development') {
+    const serviceAcc = require("./serviceAccountKey.json");
+    admin.initializeApp({
+       credential: admin.credential.cert(serviceAcc),
+    });
+    console.log("🔥 Running in local emulator/development");
+} else {
+    admin.initializeApp();
+    console.log("🚀 Firebase initialized for production");
+}
+
+const db = admin.firestore();
+try {
+    admin.firestore().settings({ ignoreUndefinedProperties: true });
+} catch (e) {
+    console.log(e)
+}
+
+const { FieldValue } = require('firebase-admin/firestore');
 
 async function generateInvoicePdfBase64({
     invoiceNumber,
@@ -28,26 +66,65 @@ async function generateInvoicePdfBase64({
     logoBase64,
     signatureBase64
 }) {
-    const defaultGst = Number(process.env.DEFAULT_GST_PERCENT || 18);
-    const products = (items || []).map((it) => {
-        const gst = Number(it.taxRate || it.gstRate || defaultGst || 0);
-        const sac = it.sac || it.hsn || '';
-        const descParts = [it.title];
-        if (it.mode) descParts.push(it.mode);
-        if (it.subscriptionType) descParts.push(it.subscriptionType);
-        if (it.occupancyType) descParts.push(it.occupancyType);
+    // Helpers to sanitize numbers and strings
+    const toNumber = (v, def = 0) => {
+        const n = Number(v);
+        return Number.isFinite(n) ? n : def;
+    };
+    const toPositiveInt = (v, def = 1) => {
+        const n = parseInt(v, 10);
+        return Number.isFinite(n) && n > 0 ? n : def;
+    };
+
+    const defaultGst = toNumber(process.env.DEFAULT_GST_PERCENT, 18);
+
+    // Sanitize items for easyinvoice
+    let products = (Array.isArray(items) ? items : []).map((it) => {
+        const title = (it?.title ?? 'Item').toString().slice(0, 200) || 'Item';
+        const price = toNumber(it?.price, 0);
+        const quantity = toPositiveInt(it?.quantity, 1);
+        const rawGst = it?.taxRate ?? it?.gstRate ?? defaultGst ?? 0;
+        let gst = toNumber(rawGst, 0);
+        if (gst < 0) gst = 0; // clamp
+        if (gst > 100) gst = 100;
+
+        // Normalize SAC/HSN (alphanumeric + hyphen only, max 32)
+        let sac = (it?.sac || it?.hsn || '').toString();
+        sac = sac.replace(/[^a-zA-Z0-9\-]/g, '').slice(0, 32);
+
+        const descParts = [title];
+        if (it?.mode) descParts.push(String(it.mode));
+        if (it?.subscriptionType) descParts.push(String(it.subscriptionType));
+        if (it?.occupancyType) descParts.push(String(it.occupancyType));
         if (sac) descParts.push(`SAC/HSN: ${sac}`);
+
         return {
-            quantity: it.quantity || 1,
+            quantity,
             description: descParts.filter(Boolean).join(' • '),
-            taxRate: isNaN(gst) ? 0 : gst,
-            price: Number(it.price || 0),
+            taxRate: gst,
+            price,
         };
     });
 
+    // Ensure at least one product; if not, create a summary line
+    if (!products.length) {
+        products = [{
+            quantity: 1,
+            description: 'Program(s)',
+            taxRate: 0,
+            price: toNumber(totalAmount, 0),
+        }];
+    }
+
+    // Validate base64 logo (optional)
     const images = {};
-    if (logoBase64) images.logo = `data:image/png;base64,${logoBase64}`;
-    if (signatureBase64) images.background = `data:image/png;base64,${signatureBase64}`; // optional watermark/signature
+    const isBase64 = (s) => typeof s === 'string' && /^[A-Za-z0-9+/=]+$/.test(s);
+    if (logoBase64 && isBase64(logoBase64) && logoBase64.length <= 2_000_000) {
+        images.logo = `data:image/png;base64,${logoBase64}`;
+    }
+    if (signatureBase64 && isBase64(signatureBase64) && signatureBase64.length <= 2_000_000) {
+        images.background = `data:image/png;base64,${signatureBase64}`; // optional watermark/signature
+    }
 
     const data = {
         images,
@@ -96,27 +173,13 @@ async function generateInvoicePdfBase64({
         },
     };
 
-    const result = await easyinvoice.createInvoice(data);
-    return result?.pdf; // base64 string
-}
-
-// Initialize Firebase Admin
-if ( process.env.FIREBASE_FUNCTIONS_EMULATOR === 'true' || process.env.NODE_ENV === 'development') {
-    const serviceAccount = require("./serviceAccountKey.json");
-    admin.initializeApp({
-       credential: admin.credential.cert(serviceAccount),
-    });
-    console.log("🔥 Running in local emulator/development");
-} else {
-    admin.initializeApp();
-    console.log("🚀 Firebase initialized for production");
-}
-  
-const db = admin.firestore();
-try {
-    admin.firestore().settings({ ignoreUndefinedProperties: true });
-} catch (e) {
-    console.log(e)
+    try {
+        const result = await easyinvoice.createInvoice(data);
+        return result?.pdf; // base64 string
+    } catch (err) {
+        console.error('easyinvoice.createInvoice failed', { message: err?.message });
+        throw err;
+    }
 }
 
 async function addUserToProgram(db, organiserMeta, categoryKey, programTitle, programInfo, userInfo) {
@@ -1149,7 +1212,7 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
         
         // Save to existing structure for compatibility
         batch.set(userRef, {
-            yourPrograms: admin.firestore.FieldValue.arrayUnion(
+            yourPrograms: FieldValue.arrayUnion(
                 ...cartData.map((item) => ({
                     ...item,
                     purchasedAt: new Date().toISOString(),
@@ -1263,7 +1326,7 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                     organizer: workshop.organizer || null,
                     status: 'confirmed',
                     bookedAt: new Date().toISOString(),
-                    createdAt: admin.firestore.FieldValue.serverTimestamp()
+                    createdAt: FieldValue.serverTimestamp()
                 };
 
                 // Save workshop booking
@@ -1272,7 +1335,7 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                 // Add user to workshop participants
                 const workshopRef = db.collection('workshops').doc(workshop.id);
                 await workshopRef.update({
-                    participants: admin.firestore.FieldValue.arrayUnion({
+                    participants: FieldValue.arrayUnion({
                         userId: userId,
                         name: name,
                         email: email,
@@ -1283,7 +1346,7 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                         variant: workshop.selectedVariant || 'Standard'
                     }),
                     // Update total participants count
-                    totalParticipants: admin.firestore.FieldValue.increment(workshop.participants || 1)
+                    totalParticipants: FieldValue.increment(workshop.participants || 1)
                 });
 
                 // Send emails to organizer, admin, and user
@@ -1893,21 +1956,6 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
             refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
         });
         
-        const accessToken = await oAuth2Client.getAccessToken();
-        const gmailEmail = process.env.GMAIL_EMAIL || adminEmail;
-        
-        const transporter = nodemailer.createTransport({
-            service: "gmail",
-            auth: {
-                type: "OAuth2",
-                user: gmailEmail,
-                clientId: process.env.GOOGLE_CLIENT_ID,
-                clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-                refreshToken: process.env.GOOGLE_REFRESH_TOKEN,
-                accessToken: accessToken.token,
-            },
-        });
-
         // Build invoice(s) for attachment based on listingType
         let invoiceAttachments = [];
         
@@ -1958,6 +2006,7 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                 commission,
                 organizer: item?.organizer || item?.meetGuide || null
             };
+            console.log("safeItem: ", safeItem);
             
             if (listingType === 'Listing' && commission.organizerShare > 0) {
                 itemsNeedingDualInvoices.push(safeItem);
@@ -1973,41 +2022,55 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
             const maxLogoLen = 2_000_000; // ~2MB base64 chars
             const logoB64 = (typeof main_logo === 'string' && main_logo.length > 0 && main_logo.length <= maxLogoLen) ? main_logo : null;
 
-            // Generate single invoice for "Own" items and recorded/live sessions
+            // Generate single invoice for "Own" items and recorded/live sessions (HTML -> PDF)
             if (itemsNeedingSingleInvoice.length > 0) {
-                const singleTotal = itemsNeedingSingleInvoice.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-                
-                let pdfBase64 = await generateInvoicePdfBase64({
-                    invoiceNumber: `${invoiceNumber}-ADMIN`,
-                    issueDateISO: new Date().toISOString(),
-                    buyer: {
-                        name: name || formData?.fullName || '',
-                        email: email || formData?.email || '',
-                        address: formData?.address || '',
-                        city: formData?.city || '',
-                        zip: formData?.zip || '',
-                        country: formData?.country || 'India',
-                    },
-                    items: itemsNeedingSingleInvoice,
-                    totalAmount: singleTotal,
-                    currency: 'INR',
-                    company: {
-                        name: process.env.COMPANY_NAME || 'Urban Pilgrim',
-                        address: process.env.COMPANY_ADDRESS || 'India',
-                        city: process.env.COMPANY_CITY || '',
-                        zip: process.env.COMPANY_ZIP || '',
-                        country: process.env.COMPANY_COUNTRY || 'India',
-                        gstin: process.env.COMPANY_GSTIN || '',
-                    },
-                    logoBase64: logoB64,
-                });
-
-                if (pdfBase64) {
-                    invoiceAttachments.push({
-                        filename: `${invoiceNumber}-ADMIN.pdf`,
-                        content: Buffer.from(pdfBase64, 'base64'),
-                        contentType: 'application/pdf'
-                    });
+                try {
+                    const singleTotal = itemsNeedingSingleInvoice.reduce((sum, item) => sum + (Number(item.price || 0) * Number(item.quantity || 1)), 0);
+                    const htmlData = {
+                        company: {
+                            name: process.env.COMPANY_NAME || 'Urban Pilgrim',
+                            address: process.env.COMPANY_ADDRESS || 'India',
+                            email: process.env.COMPANY_EMAIL || (process.env.APP_GMAIL || ''),
+                            phone: process.env.COMPANY_PHONE || '',
+                            cin: process.env.COMPANY_CIN || '',
+                            website: process.env.COMPANY_WEBSITE || 'urbanpilgrim.in'
+                        },
+                        customer: {
+                            name: name || formData?.fullName || (email || formData?.email) || 'Customer',
+                            address: `${formData?.address || ''} ${formData?.city || ''} ${formData?.zip || ''}`.trim(),
+                            state: formData?.state || '',
+                            placeOfSupply: formData?.state || ''
+                        },
+                        provider: {
+                            gstin: process.env.COMPANY_GSTIN || '',
+                            name: process.env.COMPANY_NAME || 'Urban Pilgrim',
+                            address: process.env.COMPANY_ADDRESS || 'India',
+                            state: process.env.COMPANY_STATE || ''
+                        },
+                        invoiceNumber: `${invoiceNumber}-ADMIN`,
+                        invoiceDate: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+                        items: itemsNeedingSingleInvoice.map(it => ({
+                            title: `${it.title}`,
+                            sac: it.sac || '',
+                            gross: Number(it.price || 0) * Number(it.quantity || 1),
+                            discount: 0,
+                            taxableValue: Number(it.price || 0) * Number(it.quantity || 1),
+                            igst: ((Number(it.price || 0) * Number(it.quantity || 1)) * (Number(it.gstRate || 0) / 100))
+                        })),
+                        totalAmount: singleTotal
+                    };
+                    const pdfBuffer = await generateInvoicePdfBuffer(htmlData);
+                    if (pdfBuffer && Buffer.isBuffer(pdfBuffer)) {
+                        invoiceAttachments.push({
+                            filename: `${invoiceNumber}-ADMIN.pdf`,
+                            content: pdfBuffer,
+                            contentType: 'application/pdf'
+                        });
+                    } else {
+                        console.warn('Single invoice generation returned empty buffer');
+                    }
+                } catch (singleErr) {
+                    console.error('Single invoice generation failed (continuing):', singleErr?.message || singleErr);
                 }
             }
 
@@ -2017,121 +2080,147 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                 const adminAmount = (itemTotal * item.commission.adminShare) / 100;
                 const organizerAmount = (itemTotal * item.commission.organizerShare) / 100;
 
-                // Admin invoice (commission share)
-                const adminInvoice = await generateInvoicePdfBase64({
-                    invoiceNumber: `${invoiceNumber}-ADMIN-${item.title.slice(0, 10)}`,
-                    issueDateISO: new Date().toISOString(),
-                    buyer: {
-                        name: name || formData?.fullName || '',
-                        email: email || formData?.email || '',
-                        address: formData?.address || '',
-                        city: formData?.city || '',
-                        zip: formData?.zip || '',
-                        country: formData?.country || 'India',
-                    },
-                    items: [{
-                        title: `${item.title} - Admin Commission (${item.commission.adminShare}%)`,
-                        price: adminAmount,
-                        quantity: 1,
-                        gstRate: item.gstRate,
-                        sac: item.sac,
-                    }],
-                    totalAmount: adminAmount,
-                    currency: 'INR',
-                    company: {
-                        name: process.env.COMPANY_NAME || 'Urban Pilgrim',
-                        address: process.env.COMPANY_ADDRESS || 'India',
-                        city: process.env.COMPANY_CITY || '',
-                        zip: process.env.COMPANY_ZIP || '',
-                        country: process.env.COMPANY_COUNTRY || 'India',
-                        gstin: process.env.COMPANY_GSTIN || '',
-                    },
-                    logoBase64: logoB64,
-                });
+                console.log("------")
+                console.log("item", item)
+                console.log("itemTotal", itemTotal)
+                console.log("adminAmount", adminAmount)
+                console.log("organizerAmount", organizerAmount)
+                console.log("------")
 
-                if (adminInvoice) {
-                    invoiceAttachments.push({
-                        filename: `${invoiceNumber}-ADMIN-${item.title.slice(0, 10)}.pdf`,
-                        content: Buffer.from(adminInvoice, 'base64'),
-                        contentType: 'application/pdf'
-                    });
+                // Admin invoice (commission share) via HTML -> PDF
+                try {
+                    const htmlDataAdmin = {
+                        company: {
+                            name: process.env.COMPANY_NAME || 'Urban Pilgrim',
+                            address: process.env.COMPANY_ADDRESS || 'India',
+                            email: process.env.COMPANY_EMAIL || (process.env.APP_GMAIL || ''),
+                            phone: process.env.COMPANY_PHONE || '',
+                            cin: process.env.COMPANY_CIN || '',
+                            website: process.env.COMPANY_WEBSITE || 'urbanpilgrim.in'
+                        },
+                        customer: {
+                            name: name || formData?.fullName || (email || formData?.email) || 'Customer',
+                            address: `${formData?.address || ''} ${formData?.city || ''} ${formData?.zip || ''}`.trim(),
+                            state: formData?.state || '',
+                            placeOfSupply: formData?.state || ''
+                        },
+                        provider: {
+                            gstin: process.env.COMPANY_GSTIN || '',
+                            name: process.env.COMPANY_NAME || 'Urban Pilgrim',
+                            address: process.env.COMPANY_ADDRESS || 'India',
+                            state: process.env.COMPANY_STATE || ''
+                        },
+                        invoiceNumber: `${invoiceNumber}-ADMIN-${item.title.slice(0, 10)}`,
+                        invoiceDate: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+                        items: [{
+                            title: `${item.title} - Admin Commission (${item.commission.adminShare}%)`,
+                            sac: item.sac || '',
+                            gross: adminAmount,
+                            discount: 0,
+                            taxableValue: adminAmount,
+                            igst: adminAmount * (Number(item.gstRate || 0) / 100)
+                        }],
+                        totalAmount: adminAmount
+                    };
+                    const adminPdf = await generateInvoicePdfBuffer(htmlDataAdmin);
+                    console.log("Admin invoice buffer length:", adminPdf?.length)
+
+                    if (adminPdf && Buffer.isBuffer(adminPdf)) {
+                        invoiceAttachments.push({
+                            filename: `${invoiceNumber}-ADMIN-${item.title.slice(0, 10)}.pdf`,
+                            content: adminPdf,
+                            contentType: 'application/pdf'
+                        });
+                    } else {
+                        console.log("Admin invoice failed")
+                    }
+                } catch (adminInvErr) {
+                    console.error('Admin invoice generation failed (continuing):', adminInvErr?.message || adminInvErr);
                 }
 
                 // Organizer invoice (their share) - will be sent separately to organizer
                 if (item.organizer && item.organizer.email) {
-                    const organizerInvoice = await generateInvoicePdfBase64({
-                        invoiceNumber: `${invoiceNumber}-ORG-${item.title.slice(0, 10)}`,
-                        issueDateISO: new Date().toISOString(),
-                        buyer: {
-                            name: name || formData?.fullName || '',
-                            email: email || formData?.email || '',
-                            address: formData?.address || '',
-                            city: formData?.city || '',
-                            zip: formData?.zip || '',
-                            country: formData?.country || 'India',
-                        },
-                        items: [{
-                            title: `${item.title} - Organizer Share (${item.commission.organizerShare}%)`,
-                            price: organizerAmount,
-                            quantity: 1,
-                            gstRate: item.gstRate,
-                            sac: item.sac,
-                        }],
-                        totalAmount: organizerAmount,
-                        currency: 'INR',
-                        company: {
-                            name: process.env.COMPANY_NAME || 'Urban Pilgrim',
-                            address: process.env.COMPANY_ADDRESS || 'India',
-                            city: process.env.COMPANY_CITY || '',
-                            zip: process.env.COMPANY_ZIP || '',
-                            country: process.env.COMPANY_COUNTRY || 'India',
-                            gstin: process.env.COMPANY_GSTIN || '',
-                        },
-                        logoBase64: logoB64,
-                    });
+                    try {
+                        const htmlDataOrg = {
+                            company: {
+                                name: process.env.COMPANY_NAME || 'Urban Pilgrim',
+                                address: process.env.COMPANY_ADDRESS || 'India',
+                                email: process.env.COMPANY_EMAIL || (process.env.APP_GMAIL || ''),
+                                phone: process.env.COMPANY_PHONE || '',
+                                cin: process.env.COMPANY_CIN || '',
+                                website: process.env.COMPANY_WEBSITE || 'urbanpilgrim.in'
+                            },
+                            customer: {
+                                name: name || formData?.fullName || (email || formData?.email) || 'Customer',
+                                address: `${formData?.address || ''} ${formData?.city || ''} ${formData?.zip || ''}`.trim(),
+                                state: formData?.state || '',
+                                placeOfSupply: formData?.state || ''
+                            },
+                            provider: {
+                                name: item.organizer.name || item.organizer.title || 'Service Provider',
+                                address: item.organizer.address || ''
+                            },
+                            invoiceNumber: `${invoiceNumber}-ORG-${item.title.slice(0, 10)}`,
+                            invoiceDate: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+                            items: [{
+                                title: `${item.title} - Organizer Share (${item.commission.organizerShare}%)`,
+                                gross: organizerAmount,
+                                discount: 0,
+                                taxableValue: organizerAmount
+                            }],
+                            totalAmount: organizerAmount
+                        };
+                        const organizerInvoice = await generateOrganizerInvoicePdfBuffer(htmlDataOrg);
 
-                    // Add organizer invoice to user's email attachments (for dual invoice email)
-                    if (organizerInvoice) {
-                        invoiceAttachments.push({
-                            filename: `${invoiceNumber}-ORG-${item.title.slice(0, 10)}.pdf`,
-                            content: Buffer.from(organizerInvoice, 'base64'),
-                            contentType: 'application/pdf'
-                        });
+                        console.log("organizer invoice buffer length: ", organizerInvoice?.length)
 
-                        // Send separate organizer invoice to organizer
-                        try {
-                            await transporter.sendMail({
-                                from: gmailEmail,
-                                to: item.organizer.email,
-                                subject: `Payment Receipt - ${item.title} (Organizer Share)`,
-                                html: `
-                                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                                        <h2 style="color: #2F6288;">Payment Receipt - Organizer Share</h2>
-                                        <p>Dear ${item.organizer.name || item.organizer.title || 'Organizer'},</p>
-                                        <p>You have received a booking for <strong>${item.title}</strong>.</p>
-                                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                                            <h3>Booking Details:</h3>
-                                            <p><strong>Customer:</strong> ${name}</p>
-                                            <p><strong>Program:</strong> ${item.title}</p>
-                                            <p><strong>Your Share:</strong> ₹${organizerAmount.toFixed(2)} (${item.commission.organizerShare}%)</p>
-                                            <p><strong>Payment ID:</strong> ${paymentResponse?.razorpay_payment_id}</p>
-                                        </div>
-                                        <p>Please find your payment receipt attached.</p>
-                                        <p>Best regards,<br>Urban Pilgrim Team</p>
-                                    </div>
-                                `,
-                                attachments: [{
-                                    filename: `${invoiceNumber}-ORG-${item.title.slice(0, 10)}.pdf`,
-                                    content: Buffer.from(organizerInvoice, 'base64'),
-                                    contentType: 'application/pdf'
-                                }]
+                        // Add organizer invoice to user's email attachments (for dual invoice email)
+                        if (organizerInvoice && Buffer.isBuffer(organizerInvoice)) {
+                            invoiceAttachments.push({
+                                filename: `${invoiceNumber}-ORG-${item.title.slice(0, 10)}.pdf`,
+                                content: organizerInvoice,
+                                contentType: 'application/pdf'
                             });
-                            console.log(`Organizer invoice sent to: ${item.organizer.email}`);
-                        } catch (emailError) {
-                            console.error('Failed to send organizer invoice:', emailError);
+
+                            // Send separate organizer invoice to organizer
+                            try {
+                                await transporter.sendMail({
+                                    from: gmailEmail,
+                                    to: item.organizer.email || adminEmail,
+                                    subject: `Payment Receipt - ${item.title} (Organizer Share)`,
+                                    html: `
+                                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                                            <h2 style="color: #2F6288;">Payment Receipt - Organizer Share</h2>
+                                            <p>Dear ${item.organizer.name || item.organizer.title || 'Organizer'},</p>
+                                            <p>You have received a booking for <strong>${item.title}</strong>.</p>
+                                            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                                                <h3>Booking Details:</h3>
+                                                <p><strong>Customer:</strong> ${name}</p>
+                                                <p><strong>Program:</strong> ${item.title}</p>
+                                                <p><strong>Your Share:</strong> ₹${organizerAmount.toFixed(2)} (${item.commission.organizerShare}%)</p>
+                                                <p><strong>Payment ID:</strong> ${paymentResponse?.razorpay_payment_id}</p>
+                                            </div>
+                                            <p>Please find your payment receipt attached.</p>
+                                            <p>Best regards,<br>Urban Pilgrim Team</p>
+                                        </div>
+                                    `,
+                                    attachments: [{
+                                        filename: `${invoiceNumber}-ORG-${item.title.slice(0, 10)}.pdf`,
+                                        content: Buffer.from(organizerInvoice, 'base64'),
+                                        contentType: 'application/pdf'
+                                    }]
+                                });
+                                console.log(`Organizer invoice sent to: ${item.organizer.email}`);
+                            } catch (emailError) {
+                                console.error('Failed to send organizer invoice:', emailError);
+                            }
+                        } else {
+                            console.log("Organizer invoice failed")
                         }
+                    } catch (orgInvErr) {
+                        console.error('Organizer invoice generation failed (continuing):', orgInvErr?.message || orgInvErr);
                     }
-                }
+                } 
             }
         } catch (e) {
             console.error('Invoice generation failed (non-blocking) primary attempt:', e);
@@ -2170,6 +2259,7 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                 console.error('Invoice fallback generation failed (still non-blocking):', e2);
             }
         }
+        
         // Enhanced program list with monthly slot details
         const programList = cartData
             .map((p) => {
@@ -3836,3 +3926,4 @@ exports.submitWorkshopRequest = workshopFunctions.submitWorkshopRequest;
 exports.handleWorkshopRequestResponse = workshopFunctions.handleWorkshopRequestResponse;
 exports.getWorkshopRequestStatus = workshopFunctions.getWorkshopRequestStatus;
 exports.getWorkshopRequestStatusByWorkshop = workshopFunctions.getWorkshopRequestStatusByWorkshop;
+
