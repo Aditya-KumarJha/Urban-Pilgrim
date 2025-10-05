@@ -17,41 +17,8 @@ export default function GiftCards() {
                 canonicalUrl="/gift-cards"
                 ogImage="/assets/golden-mandala.png"
             />
-            
-            {/* Hero Section */}
-            <div className="relative w-full mb-16">
-                <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white">
-                    <div className="max-w-7xl mx-auto px-4 py-16 text-center">
-                        <h1 className="text-4xl md:text-5xl font-bold mb-6">Gift Cards</h1>
-                        <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
-                            Give the gift of transformation. Perfect for loved ones seeking spiritual growth and wellness experiences.
-                        </p>
-                        <div className="flex flex-wrap justify-center gap-4 text-lg">
-                            <div className="flex items-center gap-2">
-                                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
-                                </svg>
-                                <span>Digital Delivery</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
-                                </svg>
-                                <span>No Expiry Fees</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
-                                </svg>
-                                <span>Transferable</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             {/* Gift Cards Section */}
-            <div className="py-16">
+            <div className="py-10">
                 <div className="max-w-7xl mx-auto px-4">
                     <div className="text-center mb-12">
                         <h2 className="text-3xl md:text-4xl font-bold mb-4">Choose Your Gift Card</h2>

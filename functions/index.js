@@ -3226,23 +3226,59 @@ exports.confirmGiftCardPayment = functions.https.onCall(async (data, context) =>
 
         await couponsRef.add(couponDoc);
 
-        // Email code to purchaser
+        // Email code to purchaser with gift card image
         const html = `
-            <div style="font-family: Arial, sans-serif; line-height:1.6;">
+            <div style="font-family: Arial, sans-serif; line-height:1.6; max-width: 600px; margin: 0 auto;">
                 <h2 style="color:#2F6288;">Your Urban Pilgrim Gift Card</h2>
                 <p>Hi ${purchaserName || 'Pilgrim'},</p>
-                <p>Thank you for your purchase. Here is your one-time gift coupon code:</p>
-                <div style="border:2px dashed #C5703F; padding:16px; border-radius:8px; display:inline-block; font-weight:bold; font-size:20px; letter-spacing:2px;">${code}</div>
-                <p style="margin-top:12px;">Value: <strong>₹${amount}</strong></p>
-                ${programTitle ? `<p>Applicable Program: <strong>${programTitle}</strong></p>` : ''}
-                <p>You can apply this code in the cart's coupon field. This code can be used only once.</p>
+                <p>Thank you for your purchase. Here is your gift card:</p>
+                
+                <!-- Gift Card Image with Coupon Code Overlay -->
+                <table cellpadding="0" cellspacing="0" border="0" style="margin: 20px auto; max-width: 500px; width: 100%;">
+                    <tr>
+                        <td style="position: relative; padding: 0;">
+                            <img src="cid:giftCardImage" alt="Gift Card" style="width: 100%; display: block; border-radius: 12px 12px 0 0;" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="background: rgba(197, 112, 63, 0.95); padding: 16px; text-align: center; border-radius: 0 0 12px 12px;">
+                            <p style="margin: 0; color: white; font-size: 12px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;">Your Coupon Code</p>
+                            <p style="margin: 8px 0 0 0; color: white; font-size: 28px; font-weight: bold; letter-spacing: 4px;">${code}</p>
+                        </td>
+                    </tr>
+                </table>
+                
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <p style="margin: 0 0 10px 0;"><strong>Value:</strong> ₹${amount}</p>
+                    ${programTitle ? `<p style="margin: 0 0 10px 0;"><strong>Applicable Program:</strong> ${programTitle}</p>` : ''}
+                    <p style="margin: 0;"><strong>How to use:</strong> Apply this code in the cart's coupon field during checkout.</p>
+                    <p style="margin: 10px 0 0 0; color: #dc3545; font-weight: 600;">⚠️ This code can be used only once.</p>
+                </div>
+                
+                <p style="color: #666; font-size: 14px; margin-top: 20px;">
+                    Thank you for choosing Urban Pilgrim. We look forward to serving you!
+                </p>
             </div>
         `;
+        
+        // Read gift card image
+        const giftCardImagePath = path.join(__dirname, 'gift_card.jpg');
+        const giftCardAttachment = fs.existsSync(giftCardImagePath) 
+            ? [{
+                filename: 'gift_card.jpg',
+                path: giftCardImagePath,
+                cid: 'giftCardImage'
+            }]
+            : [];
+
+        console.log("gift card attachment: ",giftCardAttachment);
+        
         await transporter.sendMail({
             from: gmailEmail,
             to: purchaserEmail,
             subject: 'Your Urban Pilgrim Gift Card',
-            html
+            html,
+            attachments: giftCardAttachment
         });
 
         return { success: true, code };
@@ -3358,51 +3394,71 @@ exports.confirmGiftCardProgramPayment = functions.https.onCall(async (data, cont
 
         await couponsRef.add(couponDoc);
 
-        // Enhanced email with program type information
+        // Enhanced email with program type information and gift card image
         const html = `
             <div style="font-family: Arial, sans-serif; line-height:1.6; max-width: 600px; margin: 0 auto;">
-                <div style="background: linear-gradient(135deg, #2F6288 0%, #C5703F 100%); padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
-                    <h1 style="color: white; margin: 0; font-size: 24px;">🎁 Your Urban Pilgrim Gift Card</h1>
+                <h2 style="color:#2F6288;">Your Urban Pilgrim Gift Card</h2>
+                <p>Hi ${purchaserName || 'Pilgrim'},</p>
+                <p>Thank you for your purchase. Here is your gift card:</p>
+                
+                <!-- Gift Card Image with Coupon Code Overlay -->
+                <table cellpadding="0" cellspacing="0" border="0" style="margin: 20px auto; max-width: 500px; width: 100%;">
+                    <tr>
+                        <td style="position: relative; padding: 0;">
+                            <img src="cid:giftCardImage" alt="Gift Card" style="width: 100%; display: block; border-radius: 12px 12px 0 0;" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="background: rgba(197, 112, 63, 0.95); padding: 16px; text-align: center; border-radius: 0 0 12px 12px;">
+                            <p style="margin: 0; color: white; font-size: 12px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;">Your Coupon Code</p>
+                            <p style="margin: 8px 0 0 0; color: white; font-size: 28px; font-weight: bold; letter-spacing: 4px;">${code}</p>
+                        </td>
+                    </tr>
+                </table>
+                
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <h3 style="color: #2F6288; margin-top: 0;">Gift Card Details:</h3>
+                    <p style="margin: 0 0 10px 0;"><strong>Type:</strong> ${giftCardTitle || programDescription}</p>
+                    <p style="margin: 0 0 10px 0;"><strong>Value:</strong> ₹${totalAmount.toLocaleString('en-IN')}</p>
+                    ${quantity > 1 ? `<p style="margin: 0 0 10px 0;"><strong>Quantity:</strong> ${quantity}</p>` : ''}
+                    <p style="margin: 0 0 10px 0;"><strong>Valid for:</strong> ${programDescription}</p>
+                    <p style="margin: 0;"><strong>Usage:</strong> One-time use only</p>
                 </div>
-                <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px;">
-                    <p style="font-size: 16px; color: #333;">Hi ${purchaserName || 'Pilgrim'},</p>
-                    <p style="color: #666;">Thank you for your purchase! Here is your gift card coupon code:</p>
-                    
-                    <div style="background: white; border: 2px dashed #C5703F; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
-                        <div style="font-weight: bold; font-size: 24px; letter-spacing: 3px; color: #2F6288; margin-bottom: 10px;">${code}</div>
-                        <div style="font-size: 18px; color: #C5703F; font-weight: bold;">₹${totalAmount.toLocaleString('en-IN')}</div>
-                    </div>
-                    
-                    <div style="background: white; padding: 20px; border-radius: 8px; border-left: 4px solid #C5703F;">
-                        <h3 style="color: #2F6288; margin-top: 0;">Gift Card Details:</h3>
-                        <p><strong>Type:</strong> ${giftCardTitle || programDescription}</p>
-                        <p><strong>Value:</strong> ₹${totalAmount.toLocaleString('en-IN')}</p>
-                        ${quantity > 1 ? `<p><strong>Quantity:</strong> ${quantity}</p>` : ''}
-                        <p><strong>Valid for:</strong> ${programDescription}</p>
-                        <p><strong>Usage:</strong> One-time use only</p>
-                    </div>
-                    
-                    <div style="margin-top: 20px; padding: 15px; background: #e8f4f8; border-radius: 8px;">
-                        <h4 style="color: #2F6288; margin-top: 0;">How to Use:</h4>
-                        <ol style="color: #666; padding-left: 20px;">
-                            <li>Add ${programDescription.toLowerCase()} to your cart</li>
-                            <li>Enter the coupon code: <strong>${code}</strong></li>
-                            <li>Enjoy your discount!</li>
-                        </ol>
-                    </div>
-                    
-                    <p style="text-align: center; margin-top: 30px; color: #999; font-size: 14px;">
-                        Thank you for choosing Urban Pilgrim! 🙏
-                    </p>
+                
+                <div style="background: #e8f4f8; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                    <h4 style="color: #2F6288; margin-top: 0;">How to Use:</h4>
+                    <ol style="color: #666; padding-left: 20px; margin: 0;">
+                        <li>Add ${programDescription.toLowerCase()} to your cart</li>
+                        <li>Enter the coupon code: <strong>${code}</strong></li>
+                        <li>Enjoy your discount!</li>
+                    </ol>
+                    <p style="margin: 10px 0 0 0; color: #dc3545; font-weight: 600;">⚠️ This code can be used only once.</p>
                 </div>
+                
+                <p style="color: #666; font-size: 14px; margin-top: 20px; text-align: center;">
+                    Thank you for choosing Urban Pilgrim! 🙏
+                </p>
             </div>
         `;
+        
+        // Read gift card image
+        const giftCardImagePath = path.join(__dirname, 'gift_card.jpg');
+        const giftCardAttachment = fs.existsSync(giftCardImagePath) 
+            ? [{
+                filename: 'gift_card.jpg',
+                path: giftCardImagePath,
+                cid: 'giftCardImage'
+            }]
+            : [];
+
+        console.log("gift card attachment (program): ", giftCardAttachment);
         
         await transporter.sendMail({
             from: gmailEmail,
             to: purchaserEmail,
             subject: `🎁 Your ${giftCardTitle || programDescription} Gift Card - ₹${totalAmount.toLocaleString('en-IN')}`,
-            html
+            html,
+            attachments: giftCardAttachment
         });
 
         return { success: true, code, programType, totalAmount };

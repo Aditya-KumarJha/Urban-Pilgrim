@@ -34,15 +34,6 @@ export default function GiftCardItem({ giftCard }) {
 
     return (
         <div ref={cardRef} className="bg-white rounded-xl shadow-[-16px_16px_18px_rgba(0,0,0,0.25)] overflow-hidden transition-shadow duration-300">
-            {/* Popular Badge */}
-            {giftCard.isPopular && (
-                <div className="relative">
-                    <div className="absolute top-4 left-4 bg-[rgb(197,112,63)] text-white px-3 py-1 rounded-full text-sm font-semibold z-10">
-                        Popular
-                    </div>
-                </div>
-            )}
-
             {/* Main Media Display */}
             <div className="relative">
                 {mainImageType === 'video' ? (
@@ -72,43 +63,6 @@ export default function GiftCardItem({ giftCard }) {
                     </div>
                 )}
             </div>
-
-            {/* Gallery Thumbnails */}
-            {giftCard.gallery && giftCard.gallery.length > 1 && (
-                <div className="px-4 py-3">
-                    <div className="flex gap-2 overflow-x-auto">
-                        {giftCard.gallery.map((media, index) => (
-                            <div key={index} className="relative flex-shrink-0">
-                                {getMediaType(media) === 'video' ? (
-                                    <div className="relative">
-                                        <video
-                                            src={media}
-                                            className="w-16 h-16 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-                                            muted
-                                            preload="metadata"
-                                            onClick={() => handleMediaSelect(media)}
-                                        />
-                                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                            <div className="bg-black bg-opacity-50 rounded-full p-1">
-                                                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path d="M8 5v10l8-5-8-5z"/>
-                                                </svg>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <img
-                                        src={media}
-                                        alt={`Gallery ${index + 1}`}
-                                        className="w-16 h-16 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-                                        onClick={() => handleMediaSelect(media)}
-                                    />
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
 
             {/* Content */}
             <div className="px-4 pt-2 pb-4">

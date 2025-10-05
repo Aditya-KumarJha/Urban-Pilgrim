@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import "./NavBar.css";
 import { CiSearch } from "react-icons/ci";
 import { FaRegUser } from "react-icons/fa";
-import { FiShoppingCart } from "react-icons/fi";
+import { FiShoppingCart, FiGift } from "react-icons/fi";
 import { useSelector } from "react-redux";
 import SignIn from "../SignIn";
 import SearchBar from "../SearchBar";
@@ -139,6 +139,13 @@ const NavBar = () => {
                         onClick={() => setShowSignIn(true)}
                     />
                 )}
+
+                {/* 🎁 Gift Card */}
+                <FiGift
+                    className="user-icon cursor-pointer"
+                    onClick={() => navigate("/gift-cards")}
+                    title="Gift Cards"
+                />
 
                 {/* 🛒 Cart */}
                 <div className="relative">
