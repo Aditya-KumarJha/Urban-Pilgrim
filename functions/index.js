@@ -6,6 +6,7 @@ const Razorpay = require("razorpay");
 const fs = require('fs');
 const path = require('path');
 const twilio = require("twilio");
+const sharp = require('sharp');
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onRequest } = require("firebase-functions/v2/https");
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
@@ -179,6 +180,47 @@ async function generateInvoicePdfBase64({
     } catch (err) {
         console.error('easyinvoice.createInvoice failed', { message: err?.message });
         throw err;
+    }
+}
+
+// Helper function to create gift card image with coupon code overlay
+async function createGiftCardWithCoupon(couponCode) {
+    try {
+        const inputImagePath = path.join(__dirname, 'gift_card.jpg');
+        const outputImagePath = path.join(__dirname, `gift_card_${couponCode}.jpg`);
+
+        // Get image dimensions
+        const metadata = await sharp(inputImagePath).metadata();
+        const imageWidth = metadata.width || 800;
+        const imageHeight = metadata.height || 600;
+
+        // Create SVG overlay with coupon code text at 73% height from top
+        const overlayYPosition = Math.floor(imageHeight * 0.73);
+        
+        const svgOverlay = `
+        <svg width="${imageWidth}" height="${imageHeight}">
+            <style>
+                .coupon-label { fill: rgb(197, 112, 63); font-size: 20px; font-weight: 600; font-family: Arial; letter-spacing: 2px; text-transform: uppercase; }
+                .coupon-code { fill: rgb(197, 112, 63); font-size: 56px; font-weight: bold; font-family: Arial; letter-spacing: 8px; }
+            </style>
+            <text x="${imageWidth / 2}" y="${overlayYPosition}" text-anchor="middle" class="coupon-label">YOUR COUPON CODE</text>
+            <text x="${imageWidth / 2}" y="${overlayYPosition + 65}" text-anchor="middle" class="coupon-code">${couponCode}</text>
+        </svg>`;
+
+        // Composite the SVG overlay onto the image
+        await sharp(inputImagePath)
+            .composite([{
+                input: Buffer.from(svgOverlay),
+                top: 0,
+                left: 0
+            }])
+            .toFile(outputImagePath);
+
+        console.log('✅ Gift card with coupon created:', outputImagePath);
+        return outputImagePath;
+    } catch (error) {
+        console.error('Error creating gift card with coupon:', error);
+        return null;
     }
 }
 
@@ -3226,6 +3268,9 @@ exports.confirmGiftCardPayment = functions.https.onCall(async (data, context) =>
 
         await couponsRef.add(couponDoc);
 
+        // Create personalized gift card image with coupon code
+        const personalizedGiftCardPath = await createGiftCardWithCoupon(code);
+
         // Email code to purchaser with gift card image
         const html = `
             <div style="font-family: Arial, sans-serif; line-height:1.6; max-width: 600px; margin: 0 auto;">
@@ -3234,19 +3279,9 @@ exports.confirmGiftCardPayment = functions.https.onCall(async (data, context) =>
                 <p>Thank you for your purchase. Here is your gift card:</p>
                 
                 <!-- Gift Card Image with Coupon Code Overlay -->
-                <table cellpadding="0" cellspacing="0" border="0" style="margin: 20px auto; max-width: 500px; width: 100%;">
-                    <tr>
-                        <td style="position: relative; padding: 0;">
-                            <img src="cid:giftCardImage" alt="Gift Card" style="width: 100%; display: block; border-radius: 12px 12px 0 0;" />
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="background: rgba(197, 112, 63, 0.95); padding: 16px; text-align: center; border-radius: 0 0 12px 12px;">
-                            <p style="margin: 0; color: white; font-size: 12px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;">Your Coupon Code</p>
-                            <p style="margin: 8px 0 0 0; color: white; font-size: 28px; font-weight: bold; letter-spacing: 4px;">${code}</p>
-                        </td>
-                    </tr>
-                </table>
+                <div style="margin: 20px auto; max-width: 500px; text-align: center;">
+                    <img src="cid:giftCardImage" alt="Gift Card" style="width: 100%; display: block; border-radius: 12px;" />
+                </div>
                 
                 <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
                     <p style="margin: 0 0 10px 0;"><strong>Value:</strong> ₹${amount}</p>
@@ -3261,8 +3296,8 @@ exports.confirmGiftCardPayment = functions.https.onCall(async (data, context) =>
             </div>
         `;
         
-        // Read gift card image
-        const giftCardImagePath = path.join(__dirname, 'gift_card.jpg');
+        // Use personalized gift card image or fallback to original
+        const giftCardImagePath = personalizedGiftCardPath || path.join(__dirname, 'gift_card.jpg');
         const giftCardAttachment = fs.existsSync(giftCardImagePath) 
             ? [{
                 filename: 'gift_card.jpg',
@@ -3271,7 +3306,7 @@ exports.confirmGiftCardPayment = functions.https.onCall(async (data, context) =>
             }]
             : [];
 
-        console.log("gift card attachment: ",giftCardAttachment);
+        console.log("gift card attachment: ", giftCardAttachment);
         
         await transporter.sendMail({
             from: gmailEmail,
@@ -3394,6 +3429,9 @@ exports.confirmGiftCardProgramPayment = functions.https.onCall(async (data, cont
 
         await couponsRef.add(couponDoc);
 
+        // Create personalized gift card image with coupon code
+        const personalizedGiftCardPath = await createGiftCardWithCoupon(code);
+
         // Enhanced email with program type information and gift card image
         const html = `
             <div style="font-family: Arial, sans-serif; line-height:1.6; max-width: 600px; margin: 0 auto;">
@@ -3402,19 +3440,9 @@ exports.confirmGiftCardProgramPayment = functions.https.onCall(async (data, cont
                 <p>Thank you for your purchase. Here is your gift card:</p>
                 
                 <!-- Gift Card Image with Coupon Code Overlay -->
-                <table cellpadding="0" cellspacing="0" border="0" style="margin: 20px auto; max-width: 500px; width: 100%;">
-                    <tr>
-                        <td style="position: relative; padding: 0;">
-                            <img src="cid:giftCardImage" alt="Gift Card" style="width: 100%; display: block; border-radius: 12px 12px 0 0;" />
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="background: rgba(197, 112, 63, 0.95); padding: 16px; text-align: center; border-radius: 0 0 12px 12px;">
-                            <p style="margin: 0; color: white; font-size: 12px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;">Your Coupon Code</p>
-                            <p style="margin: 8px 0 0 0; color: white; font-size: 28px; font-weight: bold; letter-spacing: 4px;">${code}</p>
-                        </td>
-                    </tr>
-                </table>
+                <div style="margin: 20px auto; max-width: 500px; text-align: center;">
+                    <img src="cid:giftCardImage" alt="Gift Card" style="width: 100%; display: block; border-radius: 12px;" />
+                </div>
                 
                 <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
                     <h3 style="color: #2F6288; margin-top: 0;">Gift Card Details:</h3>
@@ -3441,8 +3469,8 @@ exports.confirmGiftCardProgramPayment = functions.https.onCall(async (data, cont
             </div>
         `;
         
-        // Read gift card image
-        const giftCardImagePath = path.join(__dirname, 'gift_card.jpg');
+        // Use personalized gift card image or fallback to original
+        const giftCardImagePath = personalizedGiftCardPath || path.join(__dirname, 'gift_card.jpg');
         const giftCardAttachment = fs.existsSync(giftCardImagePath) 
             ? [{
                 filename: 'gift_card.jpg',
