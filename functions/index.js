@@ -761,12 +761,53 @@ async function sendWhatsApp(toE164, body, useTemplate = false) {
         } else {
             params.from = from;
         }
+        console.log("body: ", body);
 
         if (useTemplate) {
             // send template
             params.contentSid = "HXa1977e3988f9ea9fdee5b0c64d379f95"; // your template SID
             params.contentVariables = JSON.stringify({
                 1: body || "Urban Pilgrim booking confirmed ✅"
+            });
+        } else {
+            // fallback free-text
+            params.body = body;
+        }
+
+        const res = await client.messages.create(params);
+        return { ok: true, sid: res.sid };
+    } catch (err) {
+        console.error('WhatsApp send error:', err);
+        return { ok: false, error: err?.message };
+    }
+}
+
+async function sendWhatsAppOTP(toE164, body, useTemplate = false) {
+    if (!toE164) return { ok: false, error: 'No phone' };
+    try {
+        const client = getTwilioClient();
+        if (!client) return { ok: false, error: 'Twilio client not configured' };
+
+        const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID || "";
+        const envFrom = process.env.TWILIO_WHATSAPP_FROM || "";
+        const from = envFrom
+            ? (envFrom.startsWith("whatsapp:") ? envFrom : `whatsapp:${envFrom}`)
+            : "whatsapp:+15558599523";
+
+        let params = { to: `whatsapp:${toE164}` };
+
+        if (messagingServiceSid) {
+            params.messagingServiceSid = messagingServiceSid;
+        } else {
+            params.from = from;
+        }
+        console.log("body: ", body);
+
+        if (useTemplate) {
+            // send template
+            params.contentSid = "HX9c74a88c52f7a8dc13b1805f4fe489e6"; // your template SID
+            params.contentVariables = JSON.stringify({
+                1: body || `Hi, your Urban Pilgrim verification code is ${body}.\nThis code will expire in 5 minutes.\n\n Urban Pilgrim`
             });
         } else {
             // fallback free-text
@@ -901,17 +942,18 @@ const transporter = nodemailer.createTransport({
 
 exports.sendOtp = functions.https.onCall(async (data, context) => {
     console.log("data from sendOtp", data.data);
-    const { email } = data.data;
-    if (!email)
+    const { email, whatsappNumber } = data.data;
+    if (!email){
         throw new functions.https.HttpsError(
             "invalid-argument",
             "Email required"
         );
-
+    }
+    
     const Otp = Math.floor(100000 + Math.random() * 900000); // 6-digit OTP
     const ExpiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
 
-    await db.collection("emailOtps").doc(email).set({ Otp, ExpiresAt });
+    await db.collection("emailOtps").doc(email).set({ Otp, ExpiresAt, whatsappNumber });
 
     // Send OTP email
     await transporter.sendMail({
@@ -962,6 +1004,24 @@ exports.sendOtp = functions.https.onCall(async (data, context) => {
             </html>
         `,
     });
+
+    // Send OTP via WhatsApp
+    try {
+        const formattedNumber = formatPhoneNumber(whatsappNumber);
+        if (formattedNumber) {
+            // Use approved template with OTP as variable
+            const result = await sendWhatsAppOTP(formattedNumber, `${Otp}`, true);
+            if (result.ok) {
+                console.log(`WhatsApp OTP sent to ${formattedNumber}, SID: ${result.sid}`);
+            } else {
+                console.error('Failed to send WhatsApp OTP:', result.error);
+            }
+        } else {
+            console.error('Invalid WhatsApp number format');
+        }
+    } catch (whatsappError) {
+        console.error('Error sending WhatsApp OTP:', whatsappError);
+    }
 
     return { success: true };
 });

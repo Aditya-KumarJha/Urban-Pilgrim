@@ -18,8 +18,6 @@ export default function GiftCardDetails() {
     const user = useSelector((state) => state.auth.user);
     const [giftCard, setGiftCard] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [mainImage, setMainImage] = useState("");
-    const [mainImageType, setMainImageType] = useState('image');
     const [quantity, setQuantity] = useState(1);
     const [selectedPrice, setSelectedPrice] = useState(null);
     const [purchaseLoading, setPurchaseLoading] = useState(false);
@@ -127,9 +125,6 @@ export default function GiftCardDetails() {
         const foundGiftCard = sampleGiftCards.find(card => card.id === id);
         if (foundGiftCard) {
             setGiftCard(foundGiftCard);
-            setMainImage(foundGiftCard.thumbnail);
-            setMainImageType(getMediaType(foundGiftCard.thumbnail));
-            // Set default selected price to the first option
             if (foundGiftCard.priceOptions && foundGiftCard.priceOptions.length > 0) {
                 setSelectedPrice(foundGiftCard.priceOptions[0]);
             }
@@ -143,40 +138,9 @@ export default function GiftCardDetails() {
         return videoExtensions.some(ext => url.toLowerCase().includes(ext)) ? 'video' : 'image';
     };
 
-    const handleMediaSelect = (mediaUrl) => {
-        setMainImage(mediaUrl);
-        setMainImageType(getMediaType(mediaUrl));
-    };
-
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }, []);
-
-    // const handleAddToCart = () => {
-    //     if (!selectedPrice) {
-    //         showError('Please select an amount first');
-    //         return;
-    //     }
-
-    //     const cartItem = {
-    //         id: `gift-card-${giftCard.id}-${selectedPrice.value}`,
-    //         title: giftCard.title,
-    //         price: selectedPrice.value,
-    //         image: giftCard.thumbnail,
-    //         type: 'gift-card',
-    //         category: 'gift-card',
-    //         quantity: quantity,
-    //         persons: quantity,
-    //         duration: 1,
-    //         giftCardData: {
-    //             ...giftCard,
-    //             selectedPrice: selectedPrice
-    //         }
-    //     };
-        
-    //     dispatch(addToCart(cartItem));
-    //     showSuccess(`${quantity} x ${giftCard.title} added to cart!`);
-    // };
 
     const handleBuyNow = () => {
         if (!selectedPrice) {
@@ -188,9 +152,9 @@ export default function GiftCardDetails() {
     };
 
     // OTP helpers wired to Cloud Functions
-    const sendOtp = async (email) => {
+    const sendOtp = async (email, whatsappNumber) => {
         const sendOtpFn = httpsCallable(functions, "sendOtp");
-        await sendOtpFn({ email });
+        await sendOtpFn({ email, whatsappNumber });
         return true;
     };
 
@@ -313,7 +277,7 @@ export default function GiftCardDetails() {
     }
 
     return (
-        <div className="px-4 py-10 mt-[100px] bg-gradient-to-r from-[#FAF4F0] to-white">
+        <div className="px-4 py-10 lg:mt-[100px] mt-[50px] bg-gradient-to-r from-[#FAF4F0] to-white">
             {/* Title and Price */}
             <div className="max-w-7xl mx-auto px-4">
                 <div className="flex items-center">
@@ -337,60 +301,11 @@ export default function GiftCardDetails() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-7xl mx-auto px-4 md:py-10 py-4">
                 {/* Image - Sticky */}
                 <div className="flex-shrink-0 space-y-4 md:sticky mx-auto top-24 self-start">
-                    {/* Main Media Display */}
-                    {mainImageType === 'video' ? (
-                        <video
-                            src={mainImage || giftCard.thumbnail}
-                            controls
-                            autoPlay
-                            muted
-                            className="rounded-xl xl:h-[400px] xl:w-[700px] md:h-[450px] sm:h-[480px] object-contain"
-                            preload="metadata"
-                        >
-                            Your browser does not support the video tag.
-                        </video>
-                    ) : (
-                        <img
-                            src={mainImage || giftCard.thumbnail}
+                    <img
+                            src="/gift_card.jpg"
                             alt={giftCard.title}
-                            className="rounded-xl xl:h-[400px] xl:w-[700px] md:h-[450px] sm:h-[480px] object-contain"
-                        />
-                    )}
-
-                    {/* Gallery Media Thumbnails */}
-                    {giftCard.gallery && giftCard.gallery.length > 0 && (
-                        <div className="flex gap-3 overflow-x-auto pb-2">
-                            {giftCard.gallery.map((media, index) => (
-                                <div key={index} className="relative flex-shrink-0">
-                                    {getMediaType(media) === 'video' ? (
-                                        <div className="relative">
-                                            <video
-                                                src={media}
-                                                className="w-20 h-20 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-                                                muted
-                                                preload="metadata"
-                                                onClick={() => handleMediaSelect(media)}
-                                            />
-                                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                                <div className="bg-black bg-opacity-50 rounded-full p-1">
-                                                    <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                                        <path d="M8 5v10l8-5-8-5z"/>
-                                                    </svg>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <img
-                                            src={media}
-                                            alt={`Gallery ${index + 1}`}
-                                            className="w-20 h-20 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-                                            onClick={() => handleMediaSelect(media)}
-                                        />
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    )}
+                            className="rounded-xl xl:h-[380px] lg:h-[280px] md:h-[210px] sm:h-[350px] object-cover"
+                    />
                 </div>
 
                 {/* Details and Purchase */}

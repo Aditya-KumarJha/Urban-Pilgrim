@@ -17,7 +17,7 @@ export default function UserDetailsOverlay({
         lastName: "",
         address: "",
         email: "",
-        whatsapp: "",
+        whatsappNumber: "",
         city: "",
         state: "",
         pin: "",
@@ -29,6 +29,8 @@ export default function UserDetailsOverlay({
     const [sending, setSending] = useState(false);
     const [verifying, setVerifying] = useState(false);
     const [errors, setErrors] = useState({});
+    const [emailError, setEmailError] = useState("");
+    const [whatsappError, setWhatsappError] = useState("");
 
     // Auto-populate email when user is logged in
     useEffect(() => {
@@ -43,7 +45,21 @@ export default function UserDetailsOverlay({
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData({ ...formData, [name]: value });
+        
+        // Handle WhatsApp number - only allow digits
+        if (name === 'whatsappNumber') {
+            const digitsOnly = value.replace(/\D/g, '');
+            if (digitsOnly.length <= 10) {
+                setFormData({ ...formData, [name]: digitsOnly });
+                setWhatsappError("");
+            }
+        } else {
+            setFormData({ ...formData, [name]: value });
+            if (name === 'email') {
+                setEmailError("");
+            }
+        }
+        
         // Clear field error on change
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: "" }));
@@ -52,7 +68,7 @@ export default function UserDetailsOverlay({
 
     const isValidWhatsapp = (value) => {
         const digits = (value || "").replace(/\D/g, "");
-        return digits.length >= 10 && digits.length <= 15; // allow intl
+        return digits.length === 10;
     };
 
     const validate = () => {
@@ -60,17 +76,36 @@ export default function UserDetailsOverlay({
         if (!formData.firstName?.trim()) newErrors.firstName = "First name is required";
         if (!formData.lastName?.trim()) newErrors.lastName = "Last name is required";
         if (!formData.address?.trim()) newErrors.address = "Address is required";
-        if (!isValidWhatsapp(formData.whatsapp)) newErrors.whatsapp = "Enter a valid WhatsApp number";
+        if (!isValidWhatsapp(formData.whatsappNumber)) newErrors.whatsappNumber = "Enter a valid 10-digit WhatsApp number";
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
     const handleSendOtp = async () => {
-        if (!formData.email) return;
+        // Clear previous errors
+        setEmailError("");
+        setWhatsappError("");
+
+        // Validate email
+        if (!formData.email) {
+            setEmailError("Please enter your email!");
+            return;
+        }
+        
+        // Validate WhatsApp number
+        if (!formData.whatsappNumber) {
+            setWhatsappError("Please enter your WhatsApp number!");
+            return;
+        }
+        if (formData.whatsappNumber.length !== 10) {
+            setWhatsappError("WhatsApp number must be 10 digits!");
+            return;
+        }
+
         try {
             setSending(true);
             if (typeof sendOtp === 'function') {
-                await sendOtp(formData.email);
+                await sendOtp(formData.email, formData.whatsappNumber);
             } else {
                 console.warn("sendOtp prop not provided. Wire this to your auth service.");
             }
@@ -145,16 +180,45 @@ export default function UserDetailsOverlay({
                 <form onSubmit={handleSubmit} className="space-y-4">
                     {/* Email field - always show, but read-only for logged-in users */}
                     <div className="space-y-2">
-                        <input 
-                            name="email" 
-                            type="email" 
-                            placeholder="Email address" 
-                            value={formData.email} 
-                            onChange={handleChange} 
-                            className={`w-full border p-2 rounded ${isLoggedIn ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-                            readOnly={isLoggedIn}
-                            required
-                        />
+                        <div>
+                            <input 
+                                name="email" 
+                                type="email" 
+                                placeholder="Email (e.g., example@gmail.com)" 
+                                value={formData.email} 
+                                onChange={handleChange} 
+                                className={`w-full border p-2 rounded ${isLoggedIn ? 'bg-gray-100 cursor-not-allowed' : ''} ${
+                                    emailError ? 'border-red-500' : ''
+                                }`}
+                                readOnly={isLoggedIn}
+                                required
+                            />
+                            {emailError && (
+                                <p className="text-red-500 text-xs text-left mt-1 ml-1">{emailError}</p>
+                            )}
+                        </div>
+
+                        {/* WhatsApp Number field */}
+                        {!isLoggedIn && (
+                            <div>
+                                <input 
+                                    name="whatsappNumber" 
+                                    type="tel" 
+                                    placeholder="WhatsApp Number (e.g., 9876543210)" 
+                                    value={formData.whatsappNumber} 
+                                    onChange={handleChange} 
+                                    maxLength={10}
+                                    className={`w-full border p-2 rounded ${
+                                        whatsappError ? 'border-red-500' : ''
+                                    }`}
+                                    required
+                                />
+                                {whatsappError && (
+                                    <p className="text-red-500 text-xs text-left mt-1 ml-1">{whatsappError}</p>
+                                )}
+                            </div>
+                        )}
+
                         {!isLoggedIn && (
                             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
                                 {!otpSent ? (
@@ -162,7 +226,7 @@ export default function UserDetailsOverlay({
                                         type="button"
                                         onClick={handleSendOtp}
                                         className="px-3 py-2 text-sm rounded bg-[#2F6288] text-white disabled:opacity-50 w-full sm:w-auto"
-                                        disabled={sending || !formData.email}
+                                        disabled={sending || !formData.email || !formData.whatsappNumber}
                                     >
                                         {sending ? "Sending..." : "Send OTP"}
                                     </button>
@@ -205,16 +269,6 @@ export default function UserDetailsOverlay({
                         <input name="address" placeholder="Address" value={formData.address} onChange={handleChange} className={`w-full border p-2 rounded ${errors.address ? 'border-red-500' : ''}`} />
                         {errors.address && <p className="text-xs text-red-600 mt-1">{errors.address}</p>}
                     </div>
-                    <input 
-                        name="whatsapp" 
-                        type="tel" 
-                        inputMode="numeric"
-                        placeholder="WhatsApp number" 
-                        value={formData.whatsapp} 
-                        onChange={handleChange} 
-                        className={`w-full border p-2 rounded ${errors.whatsapp ? 'border-red-500' : ''}`}
-                    />
-                    {errors.whatsapp && <p className="text-xs text-red-600 mt-1">{errors.whatsapp}</p>}
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <div className="min-w-0">

@@ -36,25 +36,12 @@ export default function GiftCardItem({ giftCard }) {
         <div ref={cardRef} className="bg-white rounded-xl shadow-[-16px_16px_18px_rgba(0,0,0,0.25)] overflow-hidden transition-shadow duration-300">
             {/* Main Media Display */}
             <div className="relative">
-                {mainImageType === 'video' ? (
-                    <video
-                        src={mainImage || giftCard.thumbnail}
-                        controls
-                        autoPlay
-                        muted
-                        className="w-full h-64 md:object-cover object-cover"
-                        preload="metadata"
-                    >
-                        Your browser does not support the video tag.
-                    </video>
-                ) : (
-                    <img
-                        src={imageError ? fallbackImage : (mainImage || giftCard.thumbnail)}
-                        alt={giftCard.title}
-                        className="w-full h-64 md:object-cover object-cover"
-                        onError={() => setImageError(true)}
-                    />
-                )}
+                <img
+                    src="/gift_card.jpg"
+                    alt={giftCard.title}
+                    className="w-full h-[210px] object-cover"
+                    onError={() => setImageError(true)}
+                />
 
                 {/* Discount Badge */}
                 {giftCard.priceOptions && giftCard.priceOptions[0]?.discount > 0 && (

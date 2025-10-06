@@ -128,9 +128,9 @@ export default function CartPage() {
 	}
 
 	// OTP helpers wired to Cloud Functions
-	const sendOtp = async (email) => {
+	const sendOtp = async (email, whatsappNumber) => {
 		const sendOtpFn = httpsCallable(functions, "sendOtp");
-		await sendOtpFn({ email });
+		await sendOtpFn({ email, whatsappNumber });
 		return true;
 	};
 
