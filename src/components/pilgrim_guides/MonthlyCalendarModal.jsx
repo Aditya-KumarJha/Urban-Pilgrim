@@ -405,15 +405,6 @@ export default function MonthlyCalendarModal({ isOpen, onClose, sessionData, sel
             let pricePerSession = 0;
             const occupancy = dynamicOccupancyType.toLowerCase();
 
-            // Debug: Check plan data structure
-            console.log('=== PRICING DEBUG ===');
-            console.log('Plan data:', JSON.stringify(planData, null, 2));
-            console.log('Occupancy type:', occupancy);
-            console.log('Mode:', dynamicMode, 'Selected plan:', selectedPlan);
-
-            // Get price from guideCard occupancies array
-            console.log('Looking for occupancy-specific pricing in guideCard...');
-
             if (sessionData?.guideCard?.occupancies && Array.isArray(sessionData.guideCard.occupancies)) {
                 const matchingOccupancy = sessionData.guideCard.occupancies.find(occ =>
                     occ.type && occ.type.toLowerCase() === occupancy
@@ -432,9 +423,6 @@ export default function MonthlyCalendarModal({ isOpen, onClose, sessionData, sel
                 pricePerSession = Number(planData.price) || 0;
                 console.log(`Using plan price for ${occupancy}:`, pricePerSession);
             }
-
-            console.log('Final price per session:', pricePerSession);
-            console.log('=== END PRICING DEBUG ===');
 
             // Determine monthly discount percent from Firestore structure
             // Primary path: sessionData.slides[0]?.[modeKey]?.monthly?.discount (e.g., "00", "10")
@@ -562,6 +550,7 @@ export default function MonthlyCalendarModal({ isOpen, onClose, sessionData, sel
                 id: cartItemId,
                 title: sessionData?.guideCard?.title || 'Monthly Session',
                 price: Number(pricePerSession) * (occupancy === 'couple' ? 2 : 1), // Couple is priced as 1x2
+                gst: sessionData?.guideCard?.gst || 0,
                 persons: 1,
                 image: sessionData?.guideCard?.thumbnail || '',
                 quantity: 1,
@@ -607,16 +596,7 @@ export default function MonthlyCalendarModal({ isOpen, onClose, sessionData, sel
                 date: finalSlots.length > 0 ? finalSlots[0].date : new Date().toISOString().slice(0, 10),
                 timestamp: new Date().toISOString()
             };
-
-            // Debug: Log cart item before sending
-            console.log('=== MONTHLY CART ITEM DEBUG ===');
-            console.log('Cart item being sent:', JSON.stringify(cartItem, null, 2));
-            console.log('Selected slots:', JSON.stringify(finalSlots, null, 2));
-            console.log('User email:', user?.email);
-            console.log('Organizer data:', JSON.stringify(sessionData?.organizer, null, 2));
-            console.log('Session title:', sessionData?.guideCard?.title);
-            console.log('=== END DEBUG ===');
-
+            
             // Prefer parent handler if provided; otherwise fallback to Redux dispatch
             try {
                 if (typeof onAddToCart === 'function') {

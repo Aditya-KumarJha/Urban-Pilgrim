@@ -29,24 +29,27 @@ export default function YogaDesc() {
             />
 
             {/* Title */}
-            <h2 className="text-2xl md:text-2xl capitalize lg:text-4xl font-bold text-gray-900 leading-snug">
+            <h2 className="text-2xl md:text-2xl capitalize lg:text-4xl font-bold text-gray-900 leading-snug mb-8">
                 {title}
             </h2>
 
-            {/* Image */}
-            <div className="mt-6 flex justify-center">
-                <img
-                    src={image}
-                    alt={title}
-                    className="rounded-xl shadow-lg border border-gray-200 w-full lg:h-[400px] md:h-[300px] sm:h-[250px] h-[200px] object-cover"
-                />
-            </div>
+            {/* Flex Container: Image Left, Content Right */}
+            <div className="flex flex-col lg:flex-row gap-8 items-start">
+                {/* Image - Left Side */}
+                <div className="w-full lg:w-1/2 flex-shrink-0">
+                    <img
+                        src={image}
+                        alt={title}
+                        className="rounded-xl shadow-lg border border-gray-200 w-full h-[300px] md:h-[400px] lg:h-[500px] object-cover"
+                    />
+                </div>
 
-            {/* Description */}
-            <div className="mt-6 text-gray-700 lg:text-base sm:text-sm text-xs leading-relaxed space-y-4">
-                {description.split("\n").map((para, idx) => (
-                    <p key={idx}>{para}</p>
-                ))}
+                {/* Description - Right Side */}
+                <div className="w-full lg:w-1/2 text-gray-700 lg:text-base sm:text-sm text-xs leading-relaxed space-y-4">
+                    {description.split("\n").map((para, idx) => (
+                        <p key={idx}>{para}</p>
+                    ))}
+                </div>
             </div>
         </section>
     );

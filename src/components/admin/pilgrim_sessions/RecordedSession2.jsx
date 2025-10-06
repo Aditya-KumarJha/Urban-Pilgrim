@@ -63,6 +63,7 @@ export default function RecordedSession2() {
             title: "",
             category: "",
             price: "",
+            gst: "",
             thumbnail: null,
             days: "",
             videos: "",
@@ -516,6 +517,7 @@ export default function RecordedSession2() {
                 title: slideToEdit?.recordedProgramCard?.title,
                 category: slideToEdit?.recordedProgramCard?.category,
                 price: slideToEdit?.recordedProgramCard?.price,
+                gst: slideToEdit?.recordedProgramCard?.gst || "",
                 thumbnail: slideToEdit?.recordedProgramCard?.thumbnail || null,
                 days: slideToEdit?.recordedProgramCard?.days || "",
                 videos: slideToEdit?.recordedProgramCard?.videos || "",
@@ -564,6 +566,7 @@ export default function RecordedSession2() {
                 title: "",
                 category: "",
                 price: "",
+                gst: "",
                 thumbnail: null,
                 days: "",
                 videos: "",
@@ -1022,6 +1025,21 @@ export default function RecordedSession2() {
                             className="text-sm w-full border border-gray-300 p-3 rounded-lg "
                         />
                         {errors.recordedPrice && <p className="text-red-500 text-sm mt-1">{errors.recordedPrice}</p>}
+                    </div>
+
+                    {/* GST */}
+                    <div className="mb-4">
+                        <label className="block text-md font-semibold text-gray-700 mb-2">GST (%)</label>
+                        <input
+                            placeholder="Enter GST percentage (e.g., 18)"
+                            type="number"
+                            value={formData.recordedProgramCard.gst}
+                            onChange={(e) => handleFieldChange("recordedProgramCard", "gst", e.target.value)}
+                            className="text-sm w-full border border-gray-300 p-3 rounded-lg "
+                            min="0"
+                            max="100"
+                            step="0.01"
+                        />
                     </div>
 
                     {/* Number of days */}

@@ -93,6 +93,7 @@ export default function LiveCalendarModal({
                 id: `${sessionData?.guideCard?.title}-${slot.id}`,
                 title: sessionData?.guideCard?.title,
                 price: slot.selectedPrice || getPerSlotPrice(), // Use individual slot price
+                gst: sessionData?.liveSessionCard?.gst || 0,
                 persons: Math.max(1, Number(personsPerBooking || 1)),
                 image: sessionData?.guideCard?.thumbnail,
                 quantity: 1, // one item per slot ensures backend slot reservation per item
@@ -124,6 +125,7 @@ export default function LiveCalendarModal({
             id: `${sessionData?.guideCard?.title}-monthly-${Date.now()}`,
             title: sessionData?.guideCard?.title,
             price: price, // monthly price
+            gst: sessionData?.liveSessionCard?.gst || 0,
             persons: 1,
             image: sessionData?.guideCard?.thumbnail,
             quantity: 1,

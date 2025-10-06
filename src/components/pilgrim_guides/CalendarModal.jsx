@@ -107,6 +107,7 @@ export default function CalendarModal({
                 id: `${sessionData?.guideCard?.title}-${slot.id}`,
                 title: sessionData?.guideCard?.title,
                 price: price,
+                gst: sessionData?.guideCard?.gst || 0,
                 persons: Math.max(1, Number(personsPerBooking || 1)),
                 image: sessionData?.guideCard?.thumbnail,
                 quantity: 1, // one item per slot ensures backend slot reservation per item
@@ -144,6 +145,7 @@ export default function CalendarModal({
             id: `${sessionData?.guideCard?.title}-monthly-${Date.now()}`,
             title: sessionData?.guideCard?.title,
             price: price, // monthly price
+            gst: sessionData?.guideCard?.gst || 0,
             persons: 1,
             image: sessionData?.guideCard?.thumbnail,
             quantity: 1,
@@ -302,6 +304,7 @@ export default function CalendarModal({
             id: `${sessionData?.guideCard?.title}-${selectedSlot.id}`, // unique id
             title: sessionData?.guideCard?.title,
             price: price,
+            gst: sessionData?.guideCard?.gst || 0,
             persons: 1, // default to 1 person
             image: sessionData?.guideCard?.thumbnail,
             quantity: 1,

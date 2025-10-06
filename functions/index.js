@@ -931,7 +931,7 @@ exports.sendOtp = functions.https.onCall(async (data, context) => {
                     <!-- Header -->
                     <div style="background: linear-gradient(135deg, #2F6288 0%, #C5703F 100%); padding: 30px 20px; text-align: center;">
                         <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">Urban Pilgrim</h1>
-                        <p style="color: #ffffff; margin: 10px 0 0 0; opacity: 0.9; font-size: 16px;">Your Spiritual Journey Awaits</p>
+                        <p style="color: #ffffff; margin: 10px 0 0 0; opacity: 0.9; font-size: 16px;">Your Wellness Journey Awaits</p>
                     </div>
                     
                     <!-- Content -->
@@ -1260,6 +1260,7 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                     purchasedAt: new Date().toISOString(),
                     paymentId: paymentResponse.razorpay_payment_id,
                     orderId: paymentResponse.razorpay_order_id,
+                    totalAmountPaid: total, // Total amount paid by user (including GST, after discounts)
                 }))
             ),
         }, { merge: true });
@@ -1272,6 +1273,7 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                 purchasedAt: new Date().toISOString(),
                 paymentId: paymentResponse.razorpay_payment_id,
                 orderId: paymentResponse.razorpay_order_id,
+                totalAmountPaid: total, // Total amount paid by user (including GST, after discounts)
                 // Include expiration data if present
                 ...(item.subscriptionType && { subscriptionType: item.subscriptionType }),
                 ...(item.expirationDate && { expirationDate: item.expirationDate }),
@@ -2035,6 +2037,31 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
             const listingType = item.listingType || item.guideCard?.listingType || item.pilgrimRetreatCard?.listingType || item.liveSessionCard?.listingType || item.recordedProgramCard?.listingType || 'Listing';
             const commission = getCommissionSplit(item);
             
+            // Extract GST from component-specific nested structures
+            let gstRate = 0;
+            if (item?.gstRate !== undefined || item?.taxRate !== undefined) {
+                // Direct GST rate (backward compatibility)
+                gstRate = Number(item?.gstRate || item?.taxRate || 0);
+            } else if (item?.guideCard?.gst !== undefined) {
+                // GuideForm component
+                gstRate = Number(item.guideCard.gst || 0);
+            } else if (item?.pilgrimRetreatCard?.gst !== undefined) {
+                // RetreatsForm component
+                gstRate = Number(item.pilgrimRetreatCard.gst || 0);
+            } else if (item?.liveSessionCard?.gst !== undefined) {
+                // LiveSessions2 component
+                gstRate = Number(item.liveSessionCard.gst || 0);
+            } else if (item?.recordedProgramCard?.gst !== undefined) {
+                // RecordedSession2 component
+                gstRate = Number(item.recordedProgramCard.gst || 0);
+            } else if (item?.gst !== undefined) {
+                // WorkshopForm component (flat structure)
+                gstRate = Number(item.gst || 0);
+            } else {
+                // Fallback to default GST
+                gstRate = Number(process.env.DEFAULT_GST_PERCENT || 18);
+            }
+            
             const safeItem = {
                 title: (item?.title || `Program ${idx + 1}`).toString().slice(0, 200),
                 price: Number(item?.price || 0) || 0,
@@ -2042,7 +2069,7 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                 mode: item?.mode || undefined,
                 subscriptionType: item?.subscriptionType || undefined,
                 occupancyType: item?.occupancyType || undefined,
-                gstRate: Number(item?.gstRate || item?.taxRate || process.env.DEFAULT_GST_PERCENT || 18) || 0,
+                gstRate: gstRate,
                 sac: (item?.sac || item?.hsn || '').toString().slice(0, 32) || undefined,
                 listingType,
                 commission,
@@ -2353,13 +2380,13 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                         <!-- Header -->
                         <div style="background: linear-gradient(135deg, #2F6288 0%, #C5703F 100%); padding: 30px 20px; text-align: center;">
                             <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">Urban Pilgrim</h1>
-                            <p style="color: #ffffff; margin: 10px 0 0 0; opacity: 0.9; font-size: 16px;">Your Spiritual Journey Begins</p>
+                            <p style="color: #ffffff; margin: 10px 0 0 0; opacity: 0.9; font-size: 16px;">Your Wellness Journey Begins</p>
                         </div>
                         
                         <!-- Content -->
                         <div style="padding: 20px 30px 40px;">
                             <h2 style="color: #2F6288; text-align: center; margin: 20px 0; font-size: 24px;">Purchase Confirmed!</h2>
-                            <p style="color: #666; text-align: center; margin: 0 0 30px 0; font-size: 16px;">Hi ${name}, thank you for choosing Urban Pilgrim for your spiritual journey.</p>
+                            <p style="color: #666; text-align: center; margin: 0 0 30px 0; font-size: 16px;">Hi ${name}, thank you for choosing Urban Pilgrim for your Wellness journey.</p>
                             
                             <!-- Purchase Details -->
                             <div style="background: #f8f9fa; border-radius: 12px; padding: 25px; margin: 25px 0;">
@@ -2452,7 +2479,7 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                         <!-- Footer -->
                         <div style="background: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #eee;">
                             <p style="color: #999; margin: 0; font-size: 12px;">© 2024 Urban Pilgrim. All rights reserved.</p>
-                            <p style="color: #999; margin: 5px 0 0 0; font-size: 12px;">Thank you for being part of our spiritual community.</p>
+                            <p style="color: #999; margin: 5px 0 0 0; font-size: 12px;">Thank you for being part of our Wellness community.</p>
                         </div>
                     </div>
                 </body>
@@ -2807,7 +2834,7 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                         <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
                             <div style="background: linear-gradient(135deg, #2F6288 0%, #C5703F 100%); padding: 25px 20px; text-align: center;">
                                 <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">
-                                    ${program.selectedSlots && program.selectedSlots.length > 1 ? 'Monthly Guide Sessions Booked' : 'Guide Session Booked'}
+                                    ${program.selectedSlots && program.selectedSlots.length > 1 ? 'Booking Confirmation - Pilgrim Guide Session' : 'Guide Session Booked'}
                                 </h1>
                                 <p style="color: #e6f0f7; margin: 6px 0 0 0; font-size: 14px;">Urban Pilgrim • Organizer Notification</p>
                             </div>

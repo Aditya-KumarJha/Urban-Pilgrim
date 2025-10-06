@@ -83,6 +83,7 @@ export default function GuideForm() {
             category: "",
             subCategory: "",
             price: "",
+            gst: "",
             thumbnail: null,
             thumbnailType: null,
             occupancies: [{ type: "Single", price: "" }],
@@ -523,6 +524,7 @@ export default function GuideForm() {
                 category: slideToEdit?.guideCard?.category,
                 subCategory: slideToEdit?.guideCard?.subCategory || "",
                 price: slideToEdit?.guideCard?.price,
+                gst: slideToEdit?.guideCard?.gst || "",
                 thumbnail: slideToEdit?.guideCard?.thumbnail || null,
                 thumbnailType: slideToEdit?.guideCard?.thumbnailType || null,
                 occupancies: slideToEdit?.guideCard?.occupancies || [{ type: "Single", price: "" }],
@@ -627,6 +629,7 @@ export default function GuideForm() {
                 category: "",
                 subCategory: "",
                 price: "",
+                gst: "",
                 thumbnail: null,
                 thumbnailType: null,
                 occupancy: "",
@@ -1712,6 +1715,21 @@ export default function GuideForm() {
                             className="text-sm w-full border border-gray-300 p-3 rounded-lg "
                         />
                         {errors.guidePrice && <p className="text-red-500 text-sm mt-1">{errors.guidePrice}</p>}
+                    </div>
+
+                    {/* GST */}
+                    <div className="mb-4">
+                        <label className="block text-md font-semibold text-gray-700 mb-2">GST (%)</label>
+                        <input
+                            placeholder="Enter GST percentage (e.g., 18)"
+                            type="number"
+                            value={formData?.guideCard?.gst}
+                            onChange={(e) => handleFieldChange("guideCard", "gst", e.target.value)}
+                            className="text-sm w-full border border-gray-300 p-3 rounded-lg "
+                            min="0"
+                            max="100"
+                            step="0.01"
+                        />
                     </div>
 
                     {/* Occupancy & Price */}

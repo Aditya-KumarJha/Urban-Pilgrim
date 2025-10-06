@@ -210,6 +210,7 @@ export default function WorkshopDetails() {
                 id: workshop.id,
                 title: workshop.title,
                 price: calculateTotalPrice(),
+                gst: workshop.gst || 0,
                 thumbnail: workshop.thumbnail,
                 category: 'workshop',
                 type: 'workshop',

@@ -32,6 +32,7 @@ export default function WorkshopForm() {
         title: "",
         description: "",
         price: "",
+        gst: "",
         extraPersonPrice: "",
         variants: [{ name: ""}],
         listingType: "Listing", // Default to "Listing"
@@ -364,6 +365,7 @@ export default function WorkshopForm() {
             title: "",
             description: "",
             price: "",
+            gst: "",
             extraPersonPrice: "",
             variants: [{ name: ""}],
             minPerson: "",
@@ -538,6 +540,21 @@ export default function WorkshopForm() {
                         onChange={(e) => handleFieldChange("price", e.target.value)}
                         className="text-sm w-full border border-gray-300 p-3 rounded-lg"
                     />
+
+                    {/* GST */}
+                    <div className="mb-4">
+                        <label className="block text-md font-semibold text-gray-700 mb-2">GST (%)</label>
+                        <input
+                            type="number"
+                            value={formData.gst || ''}
+                            placeholder="Enter GST percentage (e.g., 18)"
+                            onChange={(e) => handleFieldChange("gst", e.target.value)}
+                            className="text-sm w-full border border-gray-300 p-3 rounded-lg"
+                            min="0"
+                            max="100"
+                            step="0.01"
+                        />
+                    </div>
 
                     {/* Extra Person Price */}
                     <div className="mb-4">

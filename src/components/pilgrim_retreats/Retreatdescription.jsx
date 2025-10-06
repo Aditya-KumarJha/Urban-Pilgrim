@@ -119,10 +119,6 @@ export default function Retreatdescription() {
         loadEvents();
     }, [dispatch, allEvents]);
 
-    console.log("data ....: ", retreatData)
-    console.log("pilgrimRetreatCard price:", retreatData?.pilgrimRetreatCard?.price)
-    console.log("selectedOccupancy:", selectedOccupancy)
-
     return (
         <>
             <div className="max-w-7xl mx-auto p-6 bg-gradient-to-b from-[#FAF4F0] to-white rounded-2xl shadow-lg grid gap-6 md:mt-[100px] mt-[80px] px-4">
@@ -291,6 +287,7 @@ export default function Retreatdescription() {
                                     id: retreatData?.id || `${retreatData?.pilgrimRetreatCard?.title || 'retreat'}-${Date.now()}`,
                                     title: retreatData?.pilgrimRetreatCard?.title || "Retreat",
                                     price: numericPrice,
+                                    gst: retreatData?.pilgrimRetreatCard?.gst || 0,
                                     image: derivedImage,
                                     type: "retreat",
                                     persons: persons || 1,

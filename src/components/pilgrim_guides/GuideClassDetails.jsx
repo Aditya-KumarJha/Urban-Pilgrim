@@ -866,11 +866,6 @@ export default function GuideClassDetails() {
 
     // Load monthly booking data when component mounts or session data changes
     useEffect(() => {
-        console.log("=== MONTHLY BOOKING DATA LOADING ===");
-        console.log("SessionData exists:", !!sessionData);
-        console.log("User exists:", !!user);
-        console.log("User details:", user);
-        
         if (sessionData && user) {
             console.log("✅ Loading monthly booking data...");
             loadUserMonthlyBookings();
@@ -882,17 +877,8 @@ export default function GuideClassDetails() {
 
     // Update available slots when mode or subscription type changes
     useEffect(() => {
-        console.log("=== AVAILABLE SLOTS UPDATE ===");
-        console.log("Mode:", mode);
-        console.log("Subscription Type:", subscriptionType);
-        console.log("Selected Occupancy:", selectedOccupancy);
-        console.log("SessionData exists:", !!sessionData);
-        
         if (sessionData && mode && subscriptionType) {
-            console.log("✅ All conditions met for slot generation");
             const s = getAvailableSlots();
-            console.log("Generated slots:", s);
-            console.log("Generated slots count:", s.length);
             setAvailableSlots(s);
         } else {
             console.log("❌ Missing conditions for slot generation:", {
@@ -1333,26 +1319,10 @@ export default function GuideClassDetails() {
                                         <button
                                             onClick={async (e) => {
                                                 e.preventDefault();
-                                                console.log("=== BOOK NOW CLICKED ===");
-                                                console.log("Current state:", {
-                                                    subscriptionType,
-                                                    mode,
-                                                    selectedOccupancy,
-                                                    availableSlots: availableSlots.length,
-                                                    userMonthlySlots: userMonthlySlots.length,
-                                                    showCalendar, // Current state of showCalendar
-                                                    subCategory: sessionData?.guideCard?.subCategory,
-                                                    planAvailableInCurrentMode: planAvailable(subscriptionType)
-                                                });
-                                                
                                                 try {
-                                                    console.log("1. Loading purchased users...");
                                                     await loadPurchasedUsers();
-                                                    console.log("2. Loading slot bookings...");
                                                     await loadSlotBookings();
-                                                    console.log("3. Setting showCalendar to true");
                                                     setShowCalendar(true);
-                                                    console.log("4. showCalendar state should now be true");
                                                 } catch (error) {
                                                     console.error("Error in Book Now click handler:", error);
                                                 }

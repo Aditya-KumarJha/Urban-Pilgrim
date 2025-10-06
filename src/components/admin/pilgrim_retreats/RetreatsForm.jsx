@@ -81,6 +81,7 @@ export default function RetreatsForm() {
             thumbnailType: null,
             location: "",
             price: "",
+            gst: "",
             category: "",
             categories: [],
             description: "",
@@ -729,6 +730,7 @@ export default function RetreatsForm() {
                 thumbnailType: null,
                 location: "",
                 price: "",
+                gst: "",
                 category: "", 
                 categories: [], 
                 description: "",
@@ -950,6 +952,19 @@ export default function RetreatsForm() {
                     value={formData?.pilgrimRetreatCard?.price}
                     onChange={(e) => handleFieldChange("pilgrimRetreatCard", "price", e.target.value)}
                     className="text-sm w-full border p-3 rounded-lg mb-3"
+                />
+
+                {/* GST */}
+                <h3 className="block text-md font-semibold text-gray-700 mb-2">GST (%)</h3>
+                <input
+                    type="number"
+                    placeholder="Enter GST percentage (e.g., 18)"
+                    value={formData?.pilgrimRetreatCard?.gst}
+                    onChange={(e) => handleFieldChange("pilgrimRetreatCard", "gst", e.target.value)}
+                    className="text-sm w-full border p-3 rounded-lg mb-3"
+                    min="0"
+                    max="100"
+                    step="0.01"
                 />
 
                 {/* Description */}

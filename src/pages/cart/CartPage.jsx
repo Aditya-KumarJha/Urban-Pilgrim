@@ -75,7 +75,28 @@ export default function CartPage() {
 	}, 0);
 	const couponDiscount = appliedCoupon ? appliedCoupon.discount : 0;
 	const totalDiscount = monthlyDiscount + couponDiscount;
-	const total = subtotal - totalDiscount;
+	
+	// Calculate GST for each item and round up
+	const gstAmount = cartData.reduce((acc, item) => {
+		const lineTotal =
+			item.price *
+			(item.persons ?? 1) *
+			(item.quantity ?? 1) *
+			(item.duration ?? 1);
+		
+		// Get GST rate from item (default to 0 if not set)
+		const gstRate = Number(item.gst || 0);
+		
+		// Calculate GST amount for this item
+		const itemGst = (lineTotal * gstRate) / 100;
+		
+		return acc + itemGst;
+	}, 0);
+	
+	// Round up GST to nearest integer (23.7 becomes 24)
+	const roundedGst = Math.ceil(gstAmount);
+	
+	const total = subtotal - totalDiscount + roundedGst;
 
 	const handleRemoveItem = (id) => {
 		dispatch(removeFromCart(id));
@@ -397,6 +418,11 @@ export default function CartPage() {
 							</div>
 						)}
 
+						<div className="flex justify-between text-sm mb-2 text-gray-700">
+							<span>GST</span>
+							<span>₹ {roundedGst.toLocaleString()}</span>
+						</div>
+						
 						{/* Coupon Section */}
 						<div className="mt-4 mb-4">
 							{!appliedCoupon ? (
@@ -446,6 +472,14 @@ export default function CartPage() {
 							)}
 						</div>
 
+						<div className="flex justify-between font-bold text-lg mt-4 mb-6">
+							<span>Total</span>
+							<span>₹ {total.toLocaleString()}</span>
+						</div>
+						<button onClick={handleCheckout} className="w-full bg-gradient-to-r from-[#C5703F] to-[#C16A00] text-white py-2 rounded-full font-semibold hover:opacity-90 transition-opacity">
+							Go to Checkout →
+						</button>
+
 						<div className="w-full h-[1px] bg-[#00000033] my-6"></div>
 
 						<div className="mb-6">
@@ -480,14 +514,6 @@ export default function CartPage() {
 								{giftLoading ? 'Processing...' : 'Purchase Gift Card'}
 							</button>
 						</div>
-
-						<div className="flex justify-between font-bold text-lg mt-4 mb-6">
-							<span>Total</span>
-							<span>₹ {total.toLocaleString()}</span>
-						</div>
-						<button onClick={handleCheckout} className="w-full bg-gradient-to-r from-[#C5703F] to-[#C16A00] text-white py-2 rounded-full font-semibold hover:opacity-90 transition-opacity">
-							Go to Checkout →
-						</button>
 
 						{showCheckout && (
 							<CheckoutOverlay

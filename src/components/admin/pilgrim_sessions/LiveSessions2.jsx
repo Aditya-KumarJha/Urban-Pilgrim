@@ -63,6 +63,7 @@ export default function LiveSession2() {
             title: "",
             category: "",
             price: "",
+            gst: "",
             thumbnail: null,
             days: "",
             videos: "",
@@ -396,6 +397,7 @@ export default function LiveSession2() {
                 title: slideToEdit?.liveSessionCard?.title,
                 category: slideToEdit?.liveSessionCard?.category,
                 price: slideToEdit?.liveSessionCard?.price,
+                gst: slideToEdit?.liveSessionCard?.gst || "",
                 thumbnail: slideToEdit?.liveSessionCard?.thumbnail || null,
                 days: slideToEdit?.liveSessionCard?.days || "",
                 videos: slideToEdit?.liveSessionCard?.videos || "",
@@ -751,6 +753,7 @@ export default function LiveSession2() {
                 title: "",
                 category: "",
                 price: "",
+                gst: "",
                 thumbnail: null,
                 days: "",
                 videos: "",
@@ -889,6 +892,7 @@ export default function LiveSession2() {
                     title: "",
                     category: "",
                     price: "",
+                    gst: "",
                     thumbnail: null,
                     days: "",
                     videos: "",
@@ -1140,6 +1144,21 @@ export default function LiveSession2() {
                             className="text-sm w-full border border-gray-300 p-3 rounded-lg "
                         />
                         {errors.liveSessionCardPrice && <p className="text-red-500 text-sm mt-1">{errors.liveSessionCardPrice}</p>}
+                    </div>
+
+                    {/* GST */}
+                    <div className="mb-4">
+                        <label className="block text-md font-semibold text-gray-700 mb-2">GST (%)</label>
+                        <input
+                            placeholder="Enter GST percentage (e.g., 18)"
+                            type="number"
+                            value={formData.liveSessionCard.gst}
+                            onChange={(e) => handleFieldChange("liveSessionCard", "gst", e.target.value)}
+                            className="text-sm w-full border border-gray-300 p-3 rounded-lg "
+                            min="0"
+                            max="100"
+                            step="0.01"
+                        />
                     </div>
 
                     {/* Number of days */}

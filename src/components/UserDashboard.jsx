@@ -37,7 +37,6 @@ function Dashboard() {
     const [searchTerm, setSearchTerm] = useState("");
     const [loading, setLoading] = useState(true);
 
-    // Sort state
     const [sortOpen, setSortOpen] = useState(false);
     const [sortBy, setSortBy] = useState('newest'); // 'newest' | 'oldest'
     const sortRef = useRef(null);
@@ -45,19 +44,15 @@ function Dashboard() {
     const dispatch = useDispatch();
     const navigate = useNavigate();
 
-    // Get data from Redux store
     const userPrograms = useSelector((state) => state.userProgram);
     const currentUser = useSelector((state) => state.auth.user);
 
-    // Sort filtered programs based on sortBy
-    // Set loading to false once user is available (programs already loaded on login)
     useEffect(() => {
         if (currentUser?.uid) {
             setLoading(false);
         }
     }, [currentUser?.uid]);
 
-    // Close sort dropdown on outside click
     useEffect(() => {
         const onClick = (e) => {
             if (!sortOpen) return;
@@ -69,7 +64,6 @@ function Dashboard() {
         return () => document.removeEventListener('mousedown', onClick);
     }, [sortOpen]);
 
-    // Filter + Sort programs based on search term and selected order
     useEffect(() => {
         if (!userPrograms) {
             setFilteredPrograms([]);
@@ -129,7 +123,7 @@ function Dashboard() {
             session: program.title || "Unknown Program",
             date: program.purchasedAt ? new Date(program.purchasedAt).toLocaleDateString('en-GB') : "N/A",
             category: program.category || program.type || "General",
-            price: program.price || 0,
+            price: program.totalAmountPaid || program.price || 0,
             status: program.paymentId ? "Completed" : "Pending"
         };
     };

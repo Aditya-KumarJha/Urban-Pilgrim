@@ -87,6 +87,7 @@ export default function ProgramDetails() {
             id: programData.recordedProgramCard?.title, // use unique id if available
             title: programData.recordedProgramCard?.title,
             price: getNumericPrice(),
+            gst: programData.recordedProgramCard?.gst || 0,
             persons,
             image: programData.recordedProgramCard?.thumbnail,
             quantity: 1,
@@ -103,8 +104,6 @@ export default function ProgramDetails() {
         // Redirect to the program details page
         navigate(`/program_details/${normalizeSlug(programData?.recordedProgramCard?.title)}`);
     };
-
-    console.log("allEvents: ", allEvents);
 
     // Helper: get numeric base price from available fields
     const getNumericPrice = () => {
