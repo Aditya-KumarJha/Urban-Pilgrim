@@ -48,7 +48,7 @@ async function generateInvoicePdfBuffer(invoiceData) {
       
       // Company details (left side) - 10px gap after logo
       doc.fontSize(9).font('Helvetica')
-        .text(company.address || '', 40, startY + 90, { width: 250 })
+        .text(company.address || '', 40, startY + 80, { width: 250 })
         .text(company.email ? `Email: ${company.email}` : '', 40)
         .text(company.phone ? `Telephone: ${company.phone}` : '', 40)
         .text(company.cin ? `CIN: ${company.cin}` : '', 40)
@@ -149,7 +149,7 @@ async function generateInvoicePdfBuffer(invoiceData) {
       // Total
       yPos += 10;
       doc.fontSize(11).font('Helvetica-Bold').text('TOTAL AMOUNT', 40, yPos);
-      doc.text(`Rs. ${totalAmount.toFixed(0)}`, 500, yPos, { align: 'right' });
+      doc.text(`Rs. ${igst.toFixed(2) + taxable.toFixed(2) - discount.toFixed(2)}`, 500, yPos, { align: 'right' });
 
       // Signature section
       const signatureY = 720;

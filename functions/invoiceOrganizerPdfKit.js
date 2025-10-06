@@ -76,6 +76,7 @@ async function generateOrganizerInvoicePdfBuffer(invoiceData) {
         const gross = currency(it.gross);
         const discount = currency(it.discount);
         const taxable = currency(it.taxableValue);
+        const igst = currency(it.igst);
 
         doc.fontSize(9).font('Helvetica').text(title, 40, yPos, { width: 400 });
         yPos += 20;
@@ -94,13 +95,18 @@ async function generateOrganizerInvoicePdfBuffer(invoiceData) {
         doc.text('Taxable Value', amountX, amountY);
         doc.text(`Rs. ${taxable.toFixed(0)}`, 500, amountY, { align: 'right' });
 
+        amountY += 20;
+        const gstRate = igst > 0 ? ((igst / taxable) * 100).toFixed(0) : '18';
+        doc.text(`IGST @${gstRate}%`, amountX, amountY);
+        doc.text(`Rs. ${igst.toFixed(0)}`, 500, amountY, { align: 'right' });
+
         yPos = amountY + 30;
       }
 
       // Total
       yPos += 10;
       doc.fontSize(11).font('Helvetica-Bold').text('TOTAL AMOUNT', 40, yPos);
-      doc.text(`Rs. ${totalAmount.toFixed(0)}`, 500, yPos, { align: 'right' });
+      doc.text(`Rs. ${igst.toFixed(0) + taxable.toFixed(0) - discount.toFixed(0)}`, 500, yPos, { align: 'right' });
 
       // Footer disclaimer
       yPos += 40;

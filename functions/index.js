@@ -765,9 +765,12 @@ async function sendWhatsApp(toE164, body, useTemplate = false) {
 
         if (useTemplate) {
             // send template
-            params.contentSid = "HXa1977e3988f9ea9fdee5b0c64d379f95"; // your template SID
+            params.contentSid = "HX2fc305c30b505cdc240844f65ebb3f7f"; // your template SID
             params.contentVariables = JSON.stringify({
-                1: body || "Urban Pilgrim booking confirmed ✅"
+                1: body.name || "user",
+                2: body.titles || "wellness",
+                3: body.amount || 0,
+                4: body.paymentId || "1234567890"
             });
         } else {
             // fallback free-text
@@ -808,6 +811,49 @@ async function sendWhatsAppOTP(toE164, body, useTemplate = false) {
             params.contentSid = "HX9c74a88c52f7a8dc13b1805f4fe489e6"; // your template SID
             params.contentVariables = JSON.stringify({
                 1: body || `Hi, your Urban Pilgrim verification code is ${body}.\nThis code will expire in 5 minutes.\n\n Urban Pilgrim`
+            });
+        } else {
+            // fallback free-text
+            params.body = body;
+        }
+
+        const res = await client.messages.create(params);
+        return { ok: true, sid: res.sid };
+    } catch (err) {
+        console.error('WhatsApp send error:', err);
+        return { ok: false, error: err?.message };
+    }
+}
+
+async function sendWhatsApp2(toE164, body, useTemplate = false) {
+    if (!toE164) return { ok: false, error: 'No phone' };
+    try {
+        const client = getTwilioClient();
+        if (!client) return { ok: false, error: 'Twilio client not configured' };
+
+        const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID || "";
+        const envFrom = process.env.TWILIO_WHATSAPP_FROM || "";
+        const from = envFrom
+            ? (envFrom.startsWith("whatsapp:") ? envFrom : `whatsapp:${envFrom}`)
+            : "whatsapp:+15558599523";
+
+        let params = { to: `whatsapp:${toE164}` };
+
+        if (messagingServiceSid) {
+            params.messagingServiceSid = messagingServiceSid;
+        } else {
+            params.from = from;
+        }
+        console.log("body: ", body);
+
+        if (useTemplate) {
+            // send template
+            params.contentSid = "HXc4dd8c286a32c98e4fe55f60e6cf28f7"; // your template SID
+            params.contentVariables = JSON.stringify({
+                1: body.name,
+                2: body.titles,
+                3: body.mode,
+                4: body.occupancyType
             });
         } else {
             // fallback free-text
@@ -1468,7 +1514,7 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
         // ------------------------
         try {
             const userPhone = formatPhoneNumber(
-                formData?.whatsapp || formData?.phone || formData?.contact || ''
+                formData?.whatsapp || formData?.phone || formData?.whatsappNumber || formData?.number || ''
             );
             if (userPhone) {
                 const titles = (cartData || []).map(i => i?.title).filter(Boolean).join(', ');
@@ -1477,7 +1523,7 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                 const message = `Hi ${name || 'Pilgrim'}, your payment is successful. Booking confirmed for: ${titles}. Amount: ₹${amountINR.toLocaleString('en-IN')} ${currency}. Payment ID: ${paymentResponse?.razorpay_payment_id || ''}`;
 
                 // Try template first (for business-initiated), fallback to free text
-                let res = await sendWhatsApp(userPhone, message, true);
+                let res = await sendWhatsApp(userPhone, {name, titles, amount: amountINR.toLocaleString('en-IN'), paymentId: paymentResponse?.razorpay_payment_id || '' }, true);
                 if (!res?.ok) {
                     console.warn('WA template send failed, falling back to free text:', res?.error);
                     await sendWhatsApp(userPhone, message, false);
@@ -1964,7 +2010,7 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
         // 2.5) Send WhatsApp notifications + schedule reminders (Guide monthly & one-time)
         // ------------------------
         try {
-            const rawPhone = formData?.whatsapp || formData?.phone || formData?.contact || formData?.mobile || null;
+            const rawPhone = formData?.whatsapp || formData?.phone || formData?.whatsappNumber || formData?.number || null;
             const phoneE164 = formatPhoneNumber(rawPhone);
             console.log('WA: normalized phone', { rawPhone, phoneE164 });
             if (phoneE164) {
@@ -1994,7 +2040,15 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                         ? `Hi ${name || 'Pilgrim'}, ✅ Your monthly session for "${program.title}" has been booked successfully. We'll remind you 60 and 30 minutes before each session here on WhatsApp.\nMode: ${program.mode}${program.occupancyType ? ` • ${program.occupancyType}` : ''}`
                         : `Hi ${name || 'Pilgrim'}, ✅ Your session "${program.title}" has been booked successfully. We'll remind you 60 and 30 minutes before the session here on WhatsApp.\nMode: ${program.mode ?? "Offline"}${program.occupancyType ? ` • ${program.occupancyType}` : ''}`;
 
-                    const waRes = await sendWhatsApp(phoneE164, confirmMsg);
+                    const waRes = await sendWhatsApp2(
+                        phoneE164, 
+                        {
+                            name: name || 'Pilgrim', 
+                            titles: program.title, 
+                            mode: program.mode ?? "Offline", 
+                            occupancyType: program.occupancyType ? ` • ${program.occupancyType}` : '', 
+                        }
+                    );
                     console.log('WA: confirmation send result', { ok: waRes?.ok, error: waRes?.error });
 
                     // Fallback: if immediate send fails, schedule an immediate reminder (+1 minute)

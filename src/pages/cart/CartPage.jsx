@@ -143,9 +143,9 @@ export default function CartPage() {
 		const userRef = doc(db, "users", user.uid, "info", "details");
 		const userSnap = await getDoc(userRef);
 		if (!userSnap.exists()) {
-			await setDoc(userRef, { uid: user.uid, email: user.email, createdAt: new Date() });
+			await setDoc(userRef, { uid: user.uid, email: user.email, whatsappNumber: user.whatsappNumber, createdAt: new Date() });
 		}
-		dispatch(setUser({ uid: user.uid, email: user.email }));
+		dispatch(setUser({ uid: user.uid, email: user.email, whatsappNumber: user.whatsappNumber }));
 		return true;
 	};
 

@@ -47,6 +47,8 @@ function Dashboard() {
     const userPrograms = useSelector((state) => state.userProgram);
     const currentUser = useSelector((state) => state.auth.user);
 
+    console.log("program: ", userPrograms);
+
     useEffect(() => {
         if (currentUser?.uid) {
             setLoading(false);

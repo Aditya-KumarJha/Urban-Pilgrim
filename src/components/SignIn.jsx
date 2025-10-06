@@ -100,6 +100,7 @@ export default function SignIn({ onClose }) {
             dispatch(setUser({
                 uid: user.uid,
                 email: user.email,
+                whatsappNumber: whatsappNumber
             }));
 
             // 📚 Fetch user programs immediately after login
