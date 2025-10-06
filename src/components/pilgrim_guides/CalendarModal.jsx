@@ -22,16 +22,6 @@ export default function CalendarModal({
     
     // Dynamic occupancy type with default fallback
     const dynamicOccupancyType = occupancyType || 'individual';
-    
-    console.log("=== CALENDAR MODAL DEBUG ===");
-    console.log("sessionData", sessionData);
-    console.log("selectedPlan", selectedPlan);
-    console.log("availableSlots", availableSlots);
-    console.log("Mode received from parent:", mode);
-    console.log("Dynamic mode (with fallback):", dynamicMode);
-    console.log("Occupancy received from parent:", occupancyType);
-    console.log("Dynamic occupancy type (with fallback):", dynamicOccupancyType);
-    console.log("=== END CALENDAR MODAL DEBUG ===");
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(null);
     const [selectedSlot, setSelectedSlot] = useState(null);
@@ -348,7 +338,7 @@ export default function CalendarModal({
 
     if (!isOpen) return null;
 
-    const nextSlot = getNextAvailableSlot();
+    // const nextSlot = getNextAvailableSlot();
     const monthName = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
     return (
@@ -361,7 +351,7 @@ export default function CalendarModal({
                             {sessionData?.session?.title || 'Book Your Session'}
                         </h2>
                         <p className="text-sm text-gray-600 mt-1">
-                            {dynamicMode} - {selectedPlan === 'monthly' ? 'Monthly' : selectedPlan === 'quarterly' ? 'Quarterly' : 'One Time'} Plan
+                            {dynamicMode} - {selectedPlan === 'monthly' ? 'Monthly' : 'One Time'} Plan
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
                             Occupancy: {dynamicOccupancyType}
@@ -508,6 +498,7 @@ export default function CalendarModal({
                                                         );
                                                     })}
                                                 </div>
+
                                                 {/* Info text above footer */}
                                                 <div className="mt-4 text-xs sm:text-sm text-gray-600">
                                                     {selectedPlan === 'oneTime' ? (

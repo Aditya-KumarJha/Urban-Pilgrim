@@ -1,13 +1,16 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Home from "./Home";
 import OrganizerProtectedRoute from "./OrganizerProtectedRoute";
 
 export default function Organizer() {
   const [activeSection, setActiveSection] = useState("home");
+  const [searchParams] = useSearchParams();
+  const organizerUid = searchParams.get('uid'); // Get uid from query params
 
   const renderSection = () => {
-    return <Home />
+    return <Home organizerUid={organizerUid} />
   };
 
   return (

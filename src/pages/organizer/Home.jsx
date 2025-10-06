@@ -6,12 +6,13 @@ import { collection, doc, getDoc, getDocs, query, updateDoc, setDoc, where, } fr
 import { Calendar, Users, CheckCircle, Clock, Video, TrendingUp } from 'lucide-react';
 import { showSuccess, showError } from '../../utils/toast';
 
-function Home() {
+function Home({ organizerUid }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [organiserDocId, setOrganiserDocId] = useState('');
     const [programs, setPrograms] = useState([]); // [{category, id, title, meetLink, users: {}, rootKey}]
     const organizer = useSelector(state => state.organizerAuth?.organizer);
+    const isAdmin = useSelector(state => state.adminAuth?.isAuthenticated);
     const navigate = useNavigate();
 
     // Calculate counts
@@ -33,30 +34,48 @@ function Home() {
                 setLoading(true);
                 setError('');
     
-                // Require organizer auth (Redux)
-                if (!organizer) {
-                    throw new Error('Please sign in as an organiser to view the dashboard.');
+                let orgDoc = null;
+                let orgDocId = '';
+    
+                // If admin is accessing with uid parameter, use that directly
+                if (isAdmin && organizerUid) {
+                    const docRef = doc(db, 'organisers', organizerUid);
+                    const docSnap = await getDoc(docRef);
+                    
+                    if (!docSnap.exists()) {
+                        throw new Error('Organizer not found.');
+                    }
+                    
+                    orgDoc = docSnap;
+                    orgDocId = docSnap.id;
+                } else {
+                    // Regular organizer auth flow (Redux)
+                    if (!organizer) {
+                        throw new Error('Please sign in as an organiser to view the dashboard.');
+                    }
+        
+                    // Find organiser doc by email, fallback to name
+                    let orgSnap = null;
+                    if (organizer.email) {
+                        orgSnap = await getDocs(
+                            query(collection(db, 'organisers'), where('email', '==', organizer.email))
+                        );
+                    }
+                    if ((!orgSnap || orgSnap.empty) && organizer.name) {
+                        orgSnap = await getDocs(
+                            query(collection(db, 'organisers'), where('name', '==', organizer.name))
+                        );
+                    }
+                    if (!orgSnap || orgSnap.empty) {
+                        throw new Error('No organiser profile found for this account.');
+                    }
+        
+                    orgDoc = orgSnap.docs[0];
+                    orgDocId = orgDoc.id;
                 }
     
-                // Find organiser doc by email, fallback to name
-                let orgSnap = null;
-                if (organizer.email) {
-                    orgSnap = await getDocs(
-                        query(collection(db, 'organisers'), where('email', '==', organizer.email))
-                    );
-                }
-                if ((!orgSnap || orgSnap.empty) && organizer.name) {
-                    orgSnap = await getDocs(
-                        query(collection(db, 'organisers'), where('name', '==', organizer.name))
-                    );
-                }
-                if (!orgSnap || orgSnap.empty) {
-                    throw new Error('No organiser profile found for this account.');
-                }
-    
-                const orgDoc = orgSnap.docs[0];
                 if (!isMounted) return;
-                setOrganiserDocId(orgDoc.id);
+                setOrganiserDocId(orgDocId);
     
                 const orgData = orgDoc.data() || {};
                 console.log('Organizer data:', orgData);
@@ -220,7 +239,7 @@ function Home() {
         return () => {
             isMounted = false;
         };
-    }, [organizer]);    
+    }, [organizer, isAdmin, organizerUid]);    
 
     // Mark slot as completed - updates root-level structure
     async function markCompleted(programId, rootKey, userId, slot) {

@@ -807,7 +807,10 @@ export default function MonthlyCalendarModal({ isOpen, onClose, sessionData, sel
                         </h2>
                         <div className="mt-1">
                             <p className="text-sm text-gray-600">
-                                {dynamicMode} - Monthly Plan ({sessionsPerMonth} sessions per month)
+                                {dynamicMode} - Monthly Plan 
+                                {(dynamicOccupancyType || '').toLowerCase() !== 'group' && (
+                                    <span>({sessionsPerMonth} sessions per month) </span>
+                                )}
                             </p>
                             <p className="text-sm font-medium text-blue-600 mt-1">
                                 Occupancy: {dynamicOccupancyType ? dynamicOccupancyType.charAt(0).toUpperCase() + dynamicOccupancyType.slice(1).toLowerCase() : 'Single/Individual'}
@@ -932,10 +935,9 @@ export default function MonthlyCalendarModal({ isOpen, onClose, sessionData, sel
                                         <div className="space-y-2">
                                             <h4 className="font-medium text-gray-800">Available Slots</h4>
                                             <p className="text-sm text-gray-600">
-                                                Select a date on the calendar to view and pick slots.
                                                 {dynamicOccupancyType.toLowerCase() === 'group'
-                                                    ? 'Group slots become unavailable after 2 bookings.'
-                                                    : `You can select up to ${remainingSessionsAfterCart} more session(s).`
+                                                    ? 'Group slots are auto selected, you do not need to select any slots  '
+                                                    : `Select a date on the calendar to view and pick slots. You can select up to ${remainingSessionsAfterCart} more session(s).`
                                                 }
                                             </p>
                                             {sessionsInCart > 0 && (
@@ -1101,13 +1103,13 @@ export default function MonthlyCalendarModal({ isOpen, onClose, sessionData, sel
                             <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                                 <h4 className="font-medium text-yellow-800 mb-2">Booking Instructions:</h4>
                                 <ul className="text-sm text-yellow-700 space-y-1">
-                                    <li>• You can book up to {sessionsPerMonth} sessions per month</li>
+                                    <li>{occupancyType.toLowerCase() === 'group' ? '' : `• You can book up to ${sessionsPerMonth} sessions per month`}</li>
                                     <li>• {occupancyType.toLowerCase() === 'group' ? 'All available group slots are auto-selected' : `Sessions in cart: ${sessionsInCart}, Remaining: ${remainingSessionsAfterCart}`}</li>
-                                    <li>• {occupancyType.toLowerCase() === 'group' ? 'Group slots become unavailable after 2 bookings' : 'Individual slots become unavailable once booked'}</li>
+                                    <li>• {occupancyType} slots become unavailable once booked</li>
                                     <li>• Blue highlighted dates have available slots</li>
-                                    <li>• Click on a date to see available time slots</li>
+                                    <li>{occupancyType.toLowerCase() === 'group' ? '' : '• Click on a date to see available time slots'}</li>
                                 </ul>
-                            </div>
+                            </div> 
                         </>
                     )}
                 </div>

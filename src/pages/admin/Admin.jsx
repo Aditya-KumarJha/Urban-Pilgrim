@@ -9,6 +9,7 @@ import Events from "./Events";
 import Bundles from "./Bundles";
 import Coupons from "./Coupons";
 import Analysis from "./Analysis";
+import Organizers from "./Organizers";
 import UpcomingEvents from "../../components/admin/upcoming_events/UpcomingEvents";
 import AdminProtectedRoute from "../../components/admin/AdminProtectedRoute";
 
@@ -29,6 +30,8 @@ export default function Admin() {
         return <Events />;
       case "bundles":
         return <Bundles />;
+      case "organizer":
+        return <Organizers />;
       case "coupons":
         return <Coupons />;
       case "analysis":

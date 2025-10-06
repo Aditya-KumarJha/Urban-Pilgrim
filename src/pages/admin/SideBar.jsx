@@ -15,7 +15,7 @@ export default function Sidebar({ activeSection, setActiveSection }) {
         { name: "Workshops", key: "workshops" },
         { name: "Pilgrim Guides", key: "guides" },
         { name: "Upcoming Events", key: "events" },
-        // { name: "Bundle Program", key: "bundles" },
+        { name: "Organizer", key: "organizer" },
         { name: "Coupons", key: "coupons" },
         { name: "Analytics", key: "analysis" },
     ];
@@ -79,7 +79,7 @@ export default function Sidebar({ activeSection, setActiveSection }) {
                 ${isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
             >
                 {/* Admin Info */}
-                <div className="mt-[60px] md:mt-[60px] mb-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="mt-[40px] md:mt-[20px] mb-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-[rgb(47,98,136)] rounded-full flex items-center justify-center">
                             <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -98,7 +98,7 @@ export default function Sidebar({ activeSection, setActiveSection }) {
                 </div>
                 
                 {/* Menu */}
-                <div className="space-y-3">
+                <div className="space-y-2">
                     {menu.map(({ name, key }) => (
                         <button
                             key={key}
