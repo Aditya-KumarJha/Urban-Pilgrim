@@ -251,6 +251,7 @@ const SessionSlots = () => {
                 canonicalUrl="/session_slots"
                 ogImage="https://images.unsplash.com/photo-1506748686214-e9df14d4d9d0"
             />
+            
             <div className="relative w-full ">
                 <img
                     src="/retreats.svg"
@@ -261,7 +262,7 @@ const SessionSlots = () => {
                     <p className="text-3xl text-[#2F6288] font-bold">
                         {sessionData?.title || "Live Session"} <span className="bg-[#2F6288] mt-4 w-1/3 min-w-20 h-1 block"></span>
                     </p>
-                    <img src="/assets/slots/zoom.png" alt="Zoom Icon" className="w-48 h-full" />
+                    {/* <img src="/assets/slots/zoom.png" alt="Zoom Icon" className="w-48 h-full" /> */}
                 </div>
                 <div className="bg-gradient-to-b from-white/10 via-white/60 to-[#FAF4F0] absolute -bottom-4 z-8 h-24 w-full"></div>
             </div>

@@ -83,6 +83,7 @@ const SessionDescription = () => {
                 </div>
                 <div className="bg-gradient-to-b from-white/10 via-white/60 to-[#FAF4F0] absolute -bottom-4 z-8 h-24 w-full"></div>
             </div>
+            
             <div className="flex flex-col items-center justify-center bg-gradient-to-b from-[#FAF4F0] to-white px-4 pb-4 max-w-7xl mx-auto z-10 relative">
                 {loading ? (
                     <div className="flex justify-center items-center py-12">

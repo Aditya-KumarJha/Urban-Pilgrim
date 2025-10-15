@@ -10,8 +10,6 @@ import SignIn from "../SignIn";
 import SearchBar from "../SearchBar";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../services/firebase";
-// import { auth, db } from "../../services/firebase";
-// import { doc, getDoc } from "firebase/firestore";
 
 const NavBar = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -25,32 +23,6 @@ const NavBar = () => {
     const itemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
     const uid = "your-unique-id"
-
-    // const [userData, setUserData] = useState(null);
-
-    // useEffect(() => {
-    //     const fetchData = async () => {
-    //         try {
-    //             const currentUser = auth.currentUser; // logged-in Firebase user
-    //             if (!currentUser) return;
-
-    //             // reference to user document
-    //             const userRef = doc(db, "users", currentUser.uid);
-    //             const userSnap = await getDoc(userRef);
-
-    //             if (userSnap.exists()) {
-    //                 setUserData(userSnap.data());
-    //                 console.log("User data:", userSnap.data());
-    //             } else {
-    //                 console.log("No such user document!");
-    //             }
-    //         } catch (error) {
-    //             console.log("Error fetching user data:", error);
-    //         }
-    //     };
-
-    //     fetchData();
-    // }, []);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -74,7 +46,6 @@ const NavBar = () => {
 
     const toggleMenu = () => setIsOpen(!isOpen);
     const toggleSearch = () => setShowSearch(true);
-    // console.log("userData in NavBar:", userData);
 
     return (
         <nav className="navbar">
@@ -94,12 +65,6 @@ const NavBar = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
             >
-                {/* <Link to="/" onClick={() => setIsOpen(false)}>Home</Link>
-                <Link to="/pilgrim_retreats" onClick={() => setIsOpen(false)}>Pilgrim Retreats</Link>
-                <Link to="/pilgrim_sessions" onClick={() => setIsOpen(false)}>Pilgrim Sessions</Link>
-                <Link to="/pilgrim_guides" onClick={() => setIsOpen(false)}>Pilgrim Guides</Link>
-                <Link to="/contact" onClick={() => setIsOpen(false)}>Contact</Link> */}
-
                 {
                     navbarData.map((link, index) => (
                         <span 
