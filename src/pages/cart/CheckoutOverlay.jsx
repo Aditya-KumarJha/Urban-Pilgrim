@@ -112,7 +112,7 @@ export default function CheckoutOverlay({ cartData, total, onClose, onConfirm, i
         try {
             setVerifying(true);
             if (typeof verifyOtp === 'function') {
-                const ok = await verifyOtp(formData.email, otp);
+                const ok = await verifyOtp(formData.email, otp, formData.whatsappNumber);
                 if (ok === false) {
                     setEmailVerified(false);
                     return;
@@ -141,6 +141,8 @@ export default function CheckoutOverlay({ cartData, total, onClose, onConfirm, i
         }
         onConfirm(formData); // Pass form data back to parent (parent should trigger Razorpay)
     };
+
+    console.log(formData)
 
     return (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-xs flex items-center justify-center z-50">

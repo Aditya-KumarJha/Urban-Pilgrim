@@ -84,6 +84,8 @@ export default function CartPage() {
 			(item.quantity ?? 1) *
 			(item.duration ?? 1);
 		
+		console.log("iiiii",item);
+		
 		// Get GST rate from item (default to 0 if not set)
 		const gstRate = Number(item.gst || 0);
 		
@@ -134,20 +136,44 @@ export default function CartPage() {
 		return true;
 	};
 
-	const verifyOtp = async (email, otp) => {
-		const verifyOtpFn = httpsCallable(functions, "verifyOtp");
-		const res = await verifyOtpFn({ email, otp });
-		const result = await signInWithCustomToken(auth, res.data.token);
-		const user = result.user;
-		// Ensure user doc exists
-		const userRef = doc(db, "users", user.uid, "info", "details");
-		const userSnap = await getDoc(userRef);
-		if (!userSnap.exists()) {
-			await setDoc(userRef, { uid: user.uid, email: user.email, whatsappNumber: user.whatsappNumber, createdAt: new Date() });
-		}
-		dispatch(setUser({ uid: user.uid, email: user.email, whatsappNumber: user.whatsappNumber }));
-		return true;
-	};
+	const verifyOtp = async (email, otp, whatsappNumber) => {
+        try {
+            const verifyOtpFn = httpsCallable(functions, "verifyOtp");
+            const res = await verifyOtpFn({ email, otp });
+            // Sign in using custom token
+            const result = await signInWithCustomToken(auth, res.data.token);
+            const user = result.user;
+
+            // Ensure user doc exists and update WhatsApp number if changed
+            const userRef = doc(db, "users", user.uid, "info", "details");
+            const userSnap = await getDoc(userRef);
+            if (!userSnap.exists()) {
+                await setDoc(userRef, {
+                    uid: user.uid,
+                    email: user.email,
+                    whatsappNumber: whatsappNumber ?? "",
+                    createdAt: new Date(),
+                });
+            } else {
+                const existingData = userSnap.data();
+                if (typeof whatsappNumber !== 'undefined' && existingData.whatsappNumber !== whatsappNumber) {
+                    await setDoc(userRef, { whatsappNumber }, { merge: true });
+                }
+            }
+
+            // Update Redux auth user (align format with SignIn.jsx)
+            dispatch(setUser({
+                uid: user.uid,
+                email: user.email,
+                whatsappNumber: whatsappNumber ?? (userSnap?.data()?.whatsappNumber ?? ""),
+            }));
+
+            return true;
+        } catch (err) {
+            console.error("Cart verifyOtp failed:", err);
+            return false;
+        }
+    };
 
 	const handleConfirmCheckout = async (formData) => {
 		try {
@@ -476,6 +502,7 @@ export default function CartPage() {
 							<span>Total</span>
 							<span>₹ {total.toLocaleString()}</span>
 						</div>
+						
 						<button onClick={handleCheckout} className="w-full bg-gradient-to-r from-[#C5703F] to-[#C16A00] text-white py-2 rounded-full font-semibold hover:opacity-90 transition-opacity">
 							Go to Checkout →
 						</button>

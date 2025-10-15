@@ -5,17 +5,7 @@ import { useDispatch } from "react-redux";
 import { addToCart } from "../../features/cartSlice.js";
 import { showSuccess } from "../../utils/toast.js";
 
-export default function LiveCalendarModal({ 
-    isOpen, 
-    onClose, 
-    sessionData, 
-    selectedPlan, 
-    mode,
-    availableSlots = [],
-    personsPerBooking = 1,
-    occupancyType = '',
-    capacityMax = 0
-}) {
+export default function LiveCalendarModal({ isOpen, onClose, sessionData, selectedPlan, mode,availableSlots = [],personsPerBooking = 1,occupancyType = '',capacityMax = 0}) {
     console.log("sessionData", sessionData);
     console.log("selectedPlan", selectedPlan);
     console.log("availableSlots", availableSlots);
@@ -93,7 +83,7 @@ export default function LiveCalendarModal({
                 id: `${sessionData?.guideCard?.title}-${slot.id}`,
                 title: sessionData?.guideCard?.title,
                 price: slot.selectedPrice || getPerSlotPrice(), // Use individual slot price
-                gst: sessionData?.liveSessionCard?.gst || 0,
+                gst: sessionData?.guideCard?.gst || 0,
                 persons: Math.max(1, Number(personsPerBooking || 1)),
                 image: sessionData?.guideCard?.thumbnail,
                 quantity: 1, // one item per slot ensures backend slot reservation per item
@@ -125,7 +115,7 @@ export default function LiveCalendarModal({
             id: `${sessionData?.guideCard?.title}-monthly-${Date.now()}`,
             title: sessionData?.guideCard?.title,
             price: price, // monthly price
-            gst: sessionData?.liveSessionCard?.gst || 0,
+            gst: sessionData?.guideCard?.gst || 0,
             persons: 1,
             image: sessionData?.guideCard?.thumbnail,
             quantity: 1,
@@ -373,6 +363,7 @@ export default function LiveCalendarModal({
             quantity: 1,
             type: "guide",
             mode: mode,
+            gst: sessionData?.guideCard?.gst || 0,
             subscriptionType: selectedPlan,
             organizer: sessionData?.organizer,
             slot: selectedSlot,
@@ -599,6 +590,7 @@ export default function LiveCalendarModal({
                                                         );
                                                     })}
                                                 </div>
+
                                                 {/* Info text above footer */}
                                                 <div className="mt-4 text-xs sm:text-sm text-gray-600">
                                                     {selectedPlan === 'oneTime' ? (

@@ -125,7 +125,7 @@ export default function LiveDetails() {
         loadEvents();
     }, [dispatch, allEvents]);
 
-    // console.log("programData: ", programData);
+    console.log("programData: ", programData);
 
     const increment = () => setPersons((prev) => prev + 1);
     const decrement = () => setPersons((prev) => (prev > 1 ? prev - 1 : 1));
@@ -147,12 +147,6 @@ export default function LiveDetails() {
 
     const handleViewPreviousBooking = () => {
         navigate('/userdashboard');
-    };
-
-    const redirectToSession = () => {
-        if (!programData) return;
-        // Redirect to the program details page
-        navigate(`/program_details/${normalizeSlug(programData?.liveSessionCard?.title)}`);
     };
 
     function formatDateWithSuffix(dateStr) {
@@ -394,8 +388,8 @@ export default function LiveDetails() {
                     )}
                 </div>
             </div>
-
-            {   programData?.guide[0].length > 0 &&
+            
+            {   programData?.guide[0] && 
                 <PilgrimGuide guides={programData?.guide[0]} />
             }
 
@@ -444,7 +438,8 @@ export default function LiveDetails() {
                 sessionData={{
                     guideCard: {
                         title: programData?.liveSessionCard?.title,
-                        thumbnail: programData?.liveSessionCard?.thumbnail
+                        thumbnail: programData?.liveSessionCard?.thumbnail,
+                        gst: programData?.liveSessionCard?.gst || 0,
                     },
                     organizer: programData?.organizer,
                     online: {
@@ -508,7 +503,7 @@ export default function LiveDetails() {
                                 return locks;
                             })()
                         }
-                    }
+                    },
                 }}
                 selectedPlan="oneTime"
                 mode={mode || "Online"}
