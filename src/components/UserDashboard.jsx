@@ -50,10 +50,30 @@ function Dashboard() {
     console.log("program: ", userPrograms);
 
     useEffect(() => {
-        if (currentUser?.uid) {
-            setLoading(false);
-        }
-    }, [currentUser?.uid]);
+        let active = true;
+        const fetchPrograms = async () => {
+            if (!currentUser?.uid) return;
+            setLoading(true);
+            try {
+                const detailsRef = doc(db, "users", currentUser.uid, "info", "details");
+                const snap = await getDoc(detailsRef);
+                const data = snap.exists() ? snap.data() : {};
+                let programs = data?.yourPrograms ?? [];
+                if (programs && !Array.isArray(programs) && typeof programs === 'object') {
+                    programs = Object.values(programs);
+                }
+                if (!Array.isArray(programs)) programs = [];
+                if (active) dispatch(setUserPrograms(programs));
+            } catch (e) {
+                console.error("Failed to fetch yourPrograms:", e);
+                if (active) dispatch(setUserPrograms([]));
+            } finally {
+                if (active) setLoading(false);
+            }
+        };
+        fetchPrograms();
+        return () => { active = false; };
+    }, [currentUser?.uid, dispatch]);
 
     useEffect(() => {
         const onClick = (e) => {

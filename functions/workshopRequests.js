@@ -162,9 +162,9 @@ exports.handleWorkshopRequestResponse = functions.https.onRequest(async (req, re
 
 // Send Admin Notification Email
 async function sendAdminNotificationEmail(requestData) {
-    const baseUrl = process.env.NODE_ENV === 'development'
+    const baseUrl = process.env.FUNCTIONS_EMULATOR  === 'true' || process.env.NODE_ENV === 'ghf'
         ? 'http://127.0.0.1:5002/urban-pilgrim/us-central1'
-        : 'https://us-central1-urban-pilgrim-c3e4b.cloudfunctions.net';
+        : 'https://handleworkshoprequestresponse-w7fradofka-uc.a.run.app';
     // const baseUrl = `http://127.0.0.1:5002/urban-pilgrim/us-central1`;
     const approveUrl = `${baseUrl}/handleWorkshopRequestResponse?requestId=${requestData.requestId}&action=approve`;
     const rejectUrl = `${baseUrl}/handleWorkshopRequestResponse?requestId=${requestData.requestId}&action=reject`;
@@ -324,12 +324,12 @@ async function sendCustomerResponseEmail(requestData, action, adminNotes) {
                     ${isApproved ? `
                     <div style="text-align: center;">
                         <p><strong>You can now proceed to book this workshop!</strong></p>
-                        <a href="https://urbanpilgrim.com/workshop/${requestData.workshop.title.replace(/\s+/g, '-').toLowerCase()}/details" class="button">Book Now</a>
+                        <a href="https://urbanpilgrim.in/workshop/${requestData.workshop.title.replace(/\s+/g, '-').toLowerCase()}/details" class="button">Book Now</a>
                     </div>
                     ` : `
                     <div style="text-align: center;">
                         <p>You can submit a new request with different details if needed.</p>
-                        <a href="https://urbanpilgrim.com/workshop/${requestData.workshop.title.replace(/\s+/g, '-').toLowerCase()}/details" class="button">Try Again</a>
+                        <a href="https://urbanpilgrim.in/workshop/${requestData.workshop.title.replace(/\s+/g, '-').toLowerCase()}/details" class="button">Try Again</a>
                     </div>
                     `}
 

@@ -54,7 +54,7 @@ try {
     console.log(e)
 }
 
-const { FieldValue } = require('firebase-admin/firestore');
+const { FieldValue, Timestamp } = require('firebase-admin/firestore');
 
 async function generateInvoicePdfBase64({
     invoiceNumber,
@@ -2044,10 +2044,11 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                         phoneE164, 
                         {
                             name: name || 'Pilgrim', 
-                            titles: program.title, 
+                            titles: program.title || name, 
                             mode: program.mode ?? "Offline", 
                             occupancyType: program.occupancyType ? ` • ${program.occupancyType}` : '', 
-                        }
+                        },
+                        true
                     );
                     console.log('WA: confirmation send result', { ok: waRes?.ok, error: waRes?.error });
 
@@ -2056,8 +2057,8 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                         try {
                             await db.collection('whatsapp_reminders').add({
                                 status: 'pending',
-                                createdAt: admin.firestore.Timestamp.now(),
-                                sendAt: admin.firestore.Timestamp.fromDate(new Date(Date.now() + 60 * 1000)),
+                                createdAt: Timestamp.now(),
+                                sendAt: Timestamp.fromDate(new Date(Date.now() + 60 * 1000)),
                                 to: phoneE164,
                                 userId,
                                 name,
@@ -2153,9 +2154,9 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
             
             // Extract GST from component-specific nested structures
             let gstRate = 0;
-            if (item?.gstRate !== undefined || item?.taxRate !== undefined) {
+            if (item?.gstRate !== undefined || item?.gst !== undefined || item?.GST !== undefined) {
                 // Direct GST rate (backward compatibility)
-                gstRate = Number(item?.gstRate || item?.taxRate || 0);
+                gstRate = Number(item?.gstRate || item?.gst || item?.GST || 0);
             } else if (item?.guideCard?.gst !== undefined) {
                 // GuideForm component
                 gstRate = Number(item.guideCard.gst || 0);
@@ -2198,6 +2199,7 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
             }
         });
 
+        // invoice system
         try {
             const invoiceNumber = `UP-${(paymentResponse?.razorpay_order_id || 'ORDER').toString().slice(-8)}-${(paymentResponse?.razorpay_payment_id || 'PAY').toString().slice(-6)}`;
             
@@ -2232,14 +2234,19 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                         },
                         invoiceNumber: `${invoiceNumber}-ADMIN`,
                         invoiceDate: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
-                        items: itemsNeedingSingleInvoice.map(it => ({
+                        items: itemsNeedingSingleInvoice.map(it => {
+                            const gross = Number(it.price || 0) * Number(it.quantity || 1);
+                            const taxRate = Number(it.gstRate || 0);
+                            const igstAmount = gross * (taxRate / 100);
+                            return {
                             title: `${it.title}`,
                             sac: it.sac || '',
-                            gross: Number(it.price || 0) * Number(it.quantity || 1),
+                            gross: gross,
                             discount: 0,
-                            taxableValue: Number(it.price || 0) * Number(it.quantity || 1),
-                            igst: ((Number(it.price || 0) * Number(it.quantity || 1)) * (Number(it.gstRate || 0) / 100))
-                        })),
+                            taxableValue: gross,
+                            igst: igstAmount
+                        };
+                        }),
                         totalAmount: singleTotal
                     };
                     const pdfBuffer = await generateInvoicePdfBuffer(htmlData);

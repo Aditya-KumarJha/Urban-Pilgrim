@@ -109,13 +109,22 @@ async function generateInvoicePdfBuffer(invoiceData) {
 
       yPos += 25;
       // Items table
+      let totalGross = 0;
+      let totalDiscount = 0;
+      let totalTaxable = 0;
+      let totalIgst = 0;
       for (const it of items) {
         const title = (it.title || '').toString();
         const sac = (it.sac || '').toString();
         const gross = currency(it.gross);
         const discount = currency(it.discount);
         const taxable = currency(it.taxableValue);
-        const igst = currency(it.igst);
+        const igst = currency(it.igst || 0);
+
+        totalGross += gross;
+        totalDiscount += discount;
+        totalTaxable += taxable;
+        totalIgst += igst;
 
         doc.fontSize(9).font('Helvetica').text(title, 40, yPos, { width: 400 });
         yPos += 15;
@@ -148,8 +157,9 @@ async function generateInvoicePdfBuffer(invoiceData) {
 
       // Total
       yPos += 10;
+      const grandTotal = totalTaxable - totalDiscount + totalIgst;
       doc.fontSize(11).font('Helvetica-Bold').text('TOTAL AMOUNT', 40, yPos);
-      doc.text(`Rs. ${igst.toFixed(2) + taxable.toFixed(2) - discount.toFixed(2)}`, 500, yPos, { align: 'right' });
+      doc.text(`Rs. ${grandTotal.toFixed(2)}`, 500, yPos, { align: 'right' });
 
       // Signature section
       const signatureY = 720;
