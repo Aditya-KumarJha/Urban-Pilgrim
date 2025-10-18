@@ -86,8 +86,6 @@ export default function GuideForm() {
             gst: "",
             thumbnail: null,
             thumbnailType: null,
-            occupancies: [{ type: "Single", price: "" }],
-            showOccupancy: false,
             description: "",
             listingType: "Listing" // Default to "Listing"
         },
@@ -96,6 +94,7 @@ export default function GuideForm() {
             // { days: ["Mon","Wed","Fri"], times: [{ startTime: "07:00", endTime: "08:00" }] }
         ],
         online: {
+            planChoice: "One Time", // Plan selection: One Time | Monthly | Both
             monthly: {
                 // Pricing variations
                 price: "", // backward compatibility
@@ -108,7 +107,8 @@ export default function GuideForm() {
                 description: "",
                 sessionsCount: "", // number of sessions per month
                 slots: [],
-                weeklyPattern: [] // [{ days:["Sun","Mon"], times:[{startTime, endTime}]}]
+                weeklyPattern: [], // [{ days:["Sun","Mon"], times:[{startTime, endTime}]}]
+                occupancies: [{ type: "Individual", price: "" }]
             },
             oneTime: {
                 price: "", // backward compatibility
@@ -118,10 +118,12 @@ export default function GuideForm() {
                 groupMin: "",
                 groupMax: "",
                 description: "",
-                slots: []
+                slots: [],
+                occupancies: [{ type: "Individual", price: "" }]
             }
         },
         offline: {
+            planChoice: "One Time", // Plan selection: One Time | Monthly | Both
             monthly: {
                 price: "", // backward compatibility
                 individualPrice: "",
@@ -133,7 +135,8 @@ export default function GuideForm() {
                 description: "",
                 sessionsCount: "", // number of sessions per month
                 slots: [],
-                weeklyPattern: []
+                weeklyPattern: [],
+                occupancies: [{ type: "Individual", price: "" }]
             },
             oneTime: {
                 price: "", // backward compatibility
@@ -143,7 +146,8 @@ export default function GuideForm() {
                 groupMin: "",
                 groupMax: "",
                 description: "",
-                slots: []
+                slots: [],
+                occupancies: [{ type: "Individual", price: "" }]
             }
         },
         organizer: {
@@ -202,7 +206,7 @@ export default function GuideForm() {
     const handleFieldChange = (section, field, value, mode = null, subscriptionType = null) => {
         setFormData((prev) => {
             if (mode && subscriptionType) {
-                // Handle nested structure for online/offline subscriptions
+                // Handle nested structure for online/offline subscriptions (e.g., online.monthly.price)
                 const updated = {
                     ...prev,
                     [mode]: {
@@ -221,8 +225,17 @@ export default function GuideForm() {
                 }
                 
                 return updated;
+            } else if (mode && !subscriptionType) {
+                // Handle mode-level fields (e.g., online.planChoice, offline.planChoice)
+                return {
+                    ...prev,
+                    [mode]: {
+                        ...prev[mode],
+                        [field]: value,
+                    },
+                };
             } else {
-                // Handle regular sections
+                // Handle regular sections (e.g., guideCard.title)
                 return {
                     ...prev,
                     [section]: {
@@ -527,8 +540,6 @@ export default function GuideForm() {
                 gst: slideToEdit?.guideCard?.gst || "",
                 thumbnail: slideToEdit?.guideCard?.thumbnail || null,
                 thumbnailType: slideToEdit?.guideCard?.thumbnailType || null,
-                occupancies: slideToEdit?.guideCard?.occupancies || [{ type: "Single", price: "" }],
-                showOccupancy: slideToEdit?.guideCard?.showOccupancy || false,
                 description: slideToEdit?.guideCard?.description || "",
                 listingType: slideToEdit?.guideCard?.listingType || "Listing" // Default to "Listing" if not present
             },
@@ -540,6 +551,7 @@ export default function GuideForm() {
                 contactNumber: slideToEdit?.organizer?.contactNumber || "",
             },
             online: {
+                planChoice: slideToEdit?.online?.planChoice || "One Time",
                 monthly: {
                     price: slideToEdit?.online?.monthly?.price || "",
                     discount: slideToEdit?.online?.monthly?.discount || "",
@@ -549,14 +561,17 @@ export default function GuideForm() {
                     weeklyPattern: normalizeWeekly(slideToEdit?.online?.monthly?.weeklyPattern || []),
                     dayBasedPattern: slideToEdit?.online?.monthly?.dayBasedPattern || null,
                     groupMin: slideToEdit?.online?.monthly?.groupMin || "",
-                    groupMax: slideToEdit?.online?.monthly?.groupMax || ""
+                    groupMax: slideToEdit?.online?.monthly?.groupMax || "",
+                    occupancies: slideToEdit?.online?.monthly?.occupancies || [{ type: "Individual", price: "" }]
                 },
                 oneTime: {
                     price: slideToEdit?.online?.oneTime?.price || "",
                     slots: normalizeSlots(slideToEdit?.online?.oneTime?.slots || []),
+                    occupancies: slideToEdit?.online?.oneTime?.occupancies || [{ type: "Individual", price: "" }]
                 }
             },
             offline: {
+                planChoice: slideToEdit?.offline?.planChoice || "One Time",
                 monthly: {
                     price: slideToEdit?.offline?.monthly?.price || "",
                     discount: slideToEdit?.offline?.monthly?.discount || "",
@@ -566,11 +581,13 @@ export default function GuideForm() {
                     weeklyPattern: normalizeWeekly(slideToEdit?.offline?.monthly?.weeklyPattern || []),
                     dayBasedPattern: slideToEdit?.offline?.monthly?.dayBasedPattern || null,
                     groupMin: slideToEdit?.offline?.monthly?.groupMin || "",
-                    groupMax: slideToEdit?.offline?.monthly?.groupMax || ""
+                    groupMax: slideToEdit?.offline?.monthly?.groupMax || "",
+                    occupancies: slideToEdit?.offline?.monthly?.occupancies || [{ type: "Individual", price: "" }]
                 },
                 oneTime: {
                     price: slideToEdit?.offline?.oneTime?.price || "",
-                    slots: normalizeSlots(slideToEdit?.offline?.oneTime?.slots || [])
+                    slots: normalizeSlots(slideToEdit?.offline?.oneTime?.slots || []),
+                    occupancies: slideToEdit?.offline?.oneTime?.occupancies || [{ type: "Individual", price: "" }]
                 }
             },
             session: {
@@ -632,13 +649,12 @@ export default function GuideForm() {
                 gst: "",
                 thumbnail: null,
                 thumbnailType: null,
-                occupancy: "",
-                showOccupancy: false,
                 description: "",
                 listingType: "Listing" // Reset to default "Listing"
             },
             openSlots: [],
             online: {
+                planChoice: "One Time",
                 monthly: {
                     price: "",
                     individualPrice: "",
@@ -663,6 +679,7 @@ export default function GuideForm() {
                 }
             },
             offline: {
+                planChoice: "One Time",
                 monthly: {
                     price: "",
                     individualPrice: "",
@@ -863,7 +880,7 @@ export default function GuideForm() {
     // ========== New Day-Based Weekly Pattern Functions ==========
     const initializeDayBasedWeeklyPattern = (modeKey) => {
         setFormData(prev => {
-            const next = { ...prev };
+            const next = JSON.parse(JSON.stringify(prev)); // Deep clone
             const weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
             
             // Preserve existing dayBasedPattern if it exists
@@ -884,7 +901,7 @@ export default function GuideForm() {
 
     const addSlotToDay = (modeKey, dayName) => {
         setFormData(prev => {
-            const next = { ...prev };
+            const next = JSON.parse(JSON.stringify(prev)); // Deep clone to avoid frozen object issues
             if (!next[modeKey].monthly.dayBasedPattern) {
                 next[modeKey].monthly.dayBasedPattern = {};
             }
@@ -906,11 +923,10 @@ export default function GuideForm() {
 
     const updateDaySlot = (modeKey, dayName, slotIndex, field, value) => {
         setFormData(prev => {
-            const next = { ...prev };
+            const next = JSON.parse(JSON.stringify(prev)); // Deep clone
             if (next[modeKey].monthly.dayBasedPattern?.[dayName]?.slots?.[slotIndex]) {
                 next[modeKey].monthly.dayBasedPattern[dayName].slots[slotIndex][field] = value;
                 console.log(`Updated ${field} for ${dayName} slot ${slotIndex}:`, value);
-                console.log(`Updated slot:`, next[modeKey].monthly.dayBasedPattern[dayName].slots[slotIndex]);
             }
             return next;
         });
@@ -918,7 +934,7 @@ export default function GuideForm() {
 
     const removeDaySlot = (modeKey, dayName, slotIndex) => {
         setFormData(prev => {
-            const next = { ...prev };
+            const next = JSON.parse(JSON.stringify(prev)); // Deep clone
             if (next[modeKey].monthly.dayBasedPattern?.[dayName]?.slots) {
                 next[modeKey].monthly.dayBasedPattern[dayName].slots.splice(slotIndex, 1);
             }
@@ -1055,7 +1071,7 @@ export default function GuideForm() {
         const valid = (otOnlineSelectedDates || []).filter(d => d && d >= todayYmd);
         if (valid.length === 0) return;
         setFormData(prev => {
-            const next = { ...prev };
+            const next = JSON.parse(JSON.stringify(prev)); // Deep clone
             const slots = next.online.oneTime.slots || [];
             next.online.oneTime.slots = [
                 ...slots,
@@ -1075,7 +1091,7 @@ export default function GuideForm() {
         const valid = (otOfflineSelectedDates || []).filter(d => d && d >= todayYmd);
         if (valid.length === 0) return;
         setFormData(prev => {
-            const next = { ...prev };
+            const next = JSON.parse(JSON.stringify(prev)); // Deep clone
             const slots = next.offline.oneTime.slots || [];
             next.offline.oneTime.slots = [
                 ...slots,
@@ -1093,6 +1109,7 @@ export default function GuideForm() {
         if (dateYmd < todayYmd) return;
 
         setFormData(prev => {
+            const next = JSON.parse(JSON.stringify(prev)); // Deep clone
             const newSlot = { 
                 id: uuidv4(),
                 date: dateYmd, 
@@ -1101,33 +1118,50 @@ export default function GuideForm() {
                 type: 'individual' // Default to individual type
             };
             
-            return {
-                ...prev,
-                [modeKey]: {
-                    ...prev[modeKey],
-                    oneTime: {
-                        ...prev[modeKey].oneTime,
-                        slots: [...(prev[modeKey].oneTime.slots || []), newSlot]
-                    }
-                }
-            };
+            if (!next[modeKey].oneTime.slots) {
+                next[modeKey].oneTime.slots = [];
+            }
+            next[modeKey].oneTime.slots.push(newSlot);
+            
+            return next;
         });
     }
 
     // Update/remove one-time slot by unique id for robust editing
     const updateOneTimeSlot = (modeKey, slotId, field, value) => {
+        console.log(`🔄 Updating ${modeKey} slot ${slotId}: ${field} = ${value}`);
+        
         setFormData(prev => {
-            const next = { ...prev };
-            next[modeKey].oneTime.slots = (next[modeKey].oneTime.slots || []).map(s =>
-                s.id === slotId ? { ...s, [field]: value } : s
-            );
+            const next = JSON.parse(JSON.stringify(prev)); // Deep clone
+            const slots = next[modeKey].oneTime.slots || [];
+            const slotIndex = slots.findIndex(s => s.id === slotId);
+            
+            console.log(`Found slot at index ${slotIndex}`, slots[slotIndex]);
+            
+            if (slotIndex !== -1) {
+                // Ensure slot has all required fields with proper defaults
+                const currentSlot = slots[slotIndex];
+                slots[slotIndex] = {
+                    id: currentSlot.id || slotId,
+                    date: currentSlot.date || '',
+                    startTime: currentSlot.startTime || '',
+                    endTime: currentSlot.endTime || '',
+                    type: currentSlot.type || 'individual',
+                    [field]: value // Update the specific field
+                };
+                
+                console.log(`✅ Updated slot:`, slots[slotIndex]);
+            } else {
+                console.error(`❌ Slot not found: ${slotId}`);
+            }
+            
             return next;
         });
     };
 
     const removeOneTimeSlot = (modeKey, slotId) => {
         setFormData(prev => {
-            const next = { ...prev };
+            const next = JSON.parse(JSON.stringify(prev)); // Deep clone
             next[modeKey].oneTime.slots = (next[modeKey].oneTime.slots || []).filter(s => s.id !== slotId);
             return next;
         });
@@ -1261,14 +1295,14 @@ export default function GuideForm() {
                     category: "",
                     subCategory: "",
                     price: "",
+                    gst: "",
                     thumbnail: null,
                     thumbnailType: null,
-                    occupancies: [{ type: "Single", price: "" }],
-                    showOccupancy: false,
                     description: "",
                     listingType: "Listing" // Reset to default "Listing"
                 },
                 online: {
+                    planChoice: "One Time",
                     monthly: {
                         price: "",
                         discount: "",
@@ -1280,6 +1314,7 @@ export default function GuideForm() {
                     }
                 },
                 offline: {
+                    planChoice: "One Time",
                     monthly: {
                         price: "",
                         discount: "",
@@ -1732,73 +1767,6 @@ export default function GuideForm() {
                         />
                     </div>
 
-                    {/* Occupancy & Price */}
-                    <div className="mb-4">
-                        <label className="block text-md font-semibold text-gray-700 mb-2 mt-4">Occupancy & Price</label>
-                        {formData?.guideCard?.occupancies.map((occ, index) => (
-                            <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-2 items-center">
-                                <input
-                                    type="text"
-                                    value={occ.type || ""}
-                                    placeholder="Enter Occupancy Type"
-                                    onChange={(e) => updateOccupancy(index, "type", e.target.value)}
-                                    className="text-sm w-full border p-3 rounded-lg"
-                                />
-                                <input
-                                    type="number"
-                                    value={occ.price || ""}
-                                    placeholder="Price"
-                                    onChange={(e) => updateOccupancy(index, "price", e.target.value)}
-                                    className="text-sm w-full border p-3 rounded-lg"
-                                />
-                                <input
-                                    type="number"
-                                    value={occ.min || ""}
-                                    placeholder="Min persons"
-                                    onChange={(e) => updateOccupancy(index, "min", e.target.value)}
-                                    className="text-sm w-full border p-3 rounded-lg"
-                                />
-                                <div className="flex items-center gap-2">
-                                    <input
-                                        type="number"
-                                        value={occ.max || ""}
-                                        placeholder="Max persons"
-                                        onChange={(e) => updateOccupancy(index, "max", e.target.value)}
-                                        className="text-sm w-full border p-3 rounded-lg"
-                                    />
-                                {index === formData?.guideCard?.occupancies.length - 1 ? (
-                                    <button
-                                        onClick={addOccupancy}
-                                        type="button"
-                                        className="border border-dashed px-2 py-1 rounded text-xl"
-                                    >
-                                        +
-                                    </button>
-                                ) : (
-                                    <button
-                                        onClick={() => removeOccupancy(index)}
-                                        type="button"
-                                        className="border border-dashed px-2 py-1 rounded text-xl"
-                                    >-</button>
-                                )}
-                                </div>
-                            </div>
-                        ))}
-
-                        <div className="flex items-center gap-2 mt-2">
-                            <input
-                                type="checkbox"
-                                id="showOccupancy"
-                                checked={formData?.guideCard?.showOccupancy}
-                                onChange={() => handleFieldChange("guideCard", "showOccupancy", !formData?.guideCard?.showOccupancy)}
-                                className="w-4 h-4"
-                            />
-                            <label htmlFor="showOccupancy" className="text-sm text-gray-600">
-                                *Tick it to Show Occupancy in Pilgrim Guide
-                            </label>
-                        </div>
-                    </div>
-
                     {/* Description */}
                     <div>
                         <label className="block text-md font-semibold text-gray-700 mb-2">Description</label>
@@ -1824,7 +1792,7 @@ export default function GuideForm() {
                                     value="Listing"
                                     checked={formData?.guideCard?.listingType === "Listing"}
                                     onChange={(e) => handleFieldChange("guideCard", "listingType", e.target.value)}
-                                    disabled={true} // Admin cannot change this option
+                                    disabled={true}
                                     className="mr-2 text-[#2F6288] focus:ring-[#2F6288] cursor-not-allowed"
                                 />
                                 <label htmlFor="listing" className="text-sm font-medium text-gray-700 cursor-not-allowed">
@@ -1839,7 +1807,7 @@ export default function GuideForm() {
                                     value="Own"
                                     checked={formData?.guideCard?.listingType === "Own"}
                                     onChange={(e) => handleFieldChange("guideCard", "listingType", e.target.value)}
-                                    disabled={true} // Admin cannot change this option
+                                    disabled={true}
                                     className="mr-2 text-[#2F6288] focus:ring-[#2F6288] cursor-not-allowed"
                                 />
                                 <label htmlFor="own" className="text-sm font-medium text-gray-700 cursor-not-allowed">
@@ -1856,7 +1824,39 @@ export default function GuideForm() {
                 {/* Conditional Subscription Plans based on SubCategory (Mode) */}
                 {formData?.guideCard?.subCategory && (formData?.guideCard?.subCategory === "Online" || formData?.guideCard?.subCategory === "Both") && (
                     <>
+                        {/* Plan Type Selection - Online */}
+                        <div className="mb-8">
+                            <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+                                Online Subscriptions <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
+                            </h2>
+                            <div className="mb-4">
+                                <label className="block text-md font-semibold text-gray-700 mb-2">Select Plan Type</label>
+                                <div className="flex flex-wrap gap-4">
+                                    {[
+                                        { id: 'plan-online-one-time', label: 'One Time' },
+                                        { id: 'plan-online-monthly', label: 'Monthly' },
+                                        { id: 'plan-online-both', label: 'Both' }
+                                    ].map(opt => (
+                                        <label key={opt.id} htmlFor={opt.id} className="inline-flex items-center gap-2 text-sm">
+                                            <input
+                                                type="radio"
+                                                id={opt.id}
+                                                name="planChoiceOnline"
+                                                value={opt.label}
+                                                checked={formData?.online?.planChoice === opt.label}
+                                                onChange={(e)=> handleFieldChange(null, "planChoice", e.target.value, "online")}
+                                                className="text-[#2F6288] focus:ring-[#2F6288]"
+                                            />
+                                            <span>{opt.label}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                                <p className="text-xs text-gray-500 mt-1">Default: One Time. Choose Both to configure both Monthly and One Time details.</p>
+                            </div>
+                        </div>
+
                         {/* Monthly Online Subscription */}
+                        {(formData?.online?.planChoice === "Monthly" || formData?.online?.planChoice === "Both") && (
                         <div className="mb-8">
                             <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
                                 {isEditing ? "Edit Monthly Online Subscription" : "Monthly Online Subscription"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
@@ -1897,6 +1897,85 @@ export default function GuideForm() {
                                         onChange={(e) => handleFieldChange(null, "sessionsCount", e.target.value, "online", "monthly")}
                                         className="text-sm w-full border border-gray-300 p-3 rounded-lg "
                                     />
+                                </div>
+
+                                {/* Occupancy & Price - Monthly Online */}
+                                <div className="mb-4">
+                                    <label className="block text-md font-semibold text-gray-700 mb-2 mt-4">Occupancy & Price</label>
+                                    {formData?.online?.monthly?.occupancies?.map((occ, index) => (
+                                        <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-2 items-center">
+                                            <select
+                                                value={occ.type || ""}
+                                                onChange={(e) => {
+                                                    const updated = JSON.parse(JSON.stringify(formData.online.monthly.occupancies));
+                                                    updated[index].type = e.target.value;
+                                                    handleFieldChange(null, "occupancies", updated, "online", "monthly");
+                                                }}
+                                                className="text-sm w-full border p-3 rounded-lg bg-white"
+                                            >
+                                                <option value="">Select Occupancy</option>
+                                                <option value="Individual">Individual</option>
+                                                <option value="Couple">Couple</option>
+                                                <option value="Group">Group</option>
+                                            </select>
+                                            <input
+                                                type="number"
+                                                value={occ.price || ""}
+                                                placeholder="Price"
+                                                onChange={(e) => {
+                                                    const updated = JSON.parse(JSON.stringify(formData.online.monthly.occupancies));
+                                                    updated[index].price = e.target.value;
+                                                    handleFieldChange(null, "occupancies", updated, "online", "monthly");
+                                                }}
+                                                className="text-sm w-full border p-3 rounded-lg"
+                                            />
+                                            <input
+                                                type="number"
+                                                value={occ.min || ""}
+                                                placeholder="Min persons"
+                                                onChange={(e) => {
+                                                    const updated = JSON.parse(JSON.stringify(formData.online.monthly.occupancies));
+                                                    updated[index].min = e.target.value;
+                                                    handleFieldChange(null, "occupancies", updated, "online", "monthly");
+                                                }}
+                                                className="text-sm w-full border p-3 rounded-lg"
+                                            />
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="number"
+                                                    value={occ.max || ""}
+                                                    placeholder="Max persons"
+                                                    onChange={(e) => {
+                                                        const updated = JSON.parse(JSON.stringify(formData.online.monthly.occupancies));
+                                                        updated[index].max = e.target.value;
+                                                        handleFieldChange(null, "occupancies", updated, "online", "monthly");
+                                                    }}
+                                                    className="text-sm w-full border p-3 rounded-lg"
+                                                />
+                                                {index === formData?.online?.monthly?.occupancies.length - 1 ? (
+                                                    <button
+                                                        onClick={() => {
+                                                            const updated = [...JSON.parse(JSON.stringify(formData.online.monthly.occupancies)), { type: "Individual", price: "" }];
+                                                            handleFieldChange(null, "occupancies", updated, "online", "monthly");
+                                                        }}
+                                                        type="button"
+                                                        className="border border-dashed px-2 py-1 rounded text-xl"
+                                                    >
+                                                        +
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => {
+                                                            const updated = JSON.parse(JSON.stringify(formData.online.monthly.occupancies)).filter((_, i) => i !== index);
+                                                            handleFieldChange(null, "occupancies", updated, "online", "monthly");
+                                                        }}
+                                                        type="button"
+                                                        className="border border-dashed px-2 py-1 rounded text-xl"
+                                                    >-</button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
 
                                 <div>
@@ -2105,12 +2184,339 @@ export default function GuideForm() {
 
                             </div>
                         </div>
+                        )}
+
+                        {/* One-Time Online Purchase */}
+                        {(formData?.online?.planChoice === "One Time" || formData?.online?.planChoice === "Both") && (
+                        <div className="mb-8">
+                            <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+                                {isEditing ? "Edit One-Time Online Purchase" : "One-Time Online Purchase"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
+                            </h2>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-md font-semibold text-gray-700 mb-2">One-Time Online Purchase Price</label>
+                                    <input
+                                        placeholder="Enter Price"
+                                        type="number"
+                                        value={formData?.online?.oneTime?.price}
+                                        onChange={(e) => handleFieldChange(null, "price", e.target.value, "online", "oneTime")}
+                                        className="text-sm w-full border border-gray-300 p-3 rounded-lg "
+                                    />
+                                    {errors.oneTimeOnlinePrice && <p className="text-red-500 text-sm mt-1">{errors.oneTimeOnlinePrice}</p>}
+                                </div>
+
+                                {/* Occupancy & Price - One-Time Online */}
+                                <div className="mb-4">
+                                    <label className="block text-md font-semibold text-gray-700 mb-2 mt-4">Occupancy & Price</label>
+                                    {formData?.online?.oneTime?.occupancies?.map((occ, index) => (
+                                        <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-2 items-center">
+                                            <select
+                                                value={occ.type || ""}
+                                                onChange={(e) => {
+                                                    const updated = JSON.parse(JSON.stringify(formData.online.oneTime.occupancies));
+                                                    updated[index].type = e.target.value;
+                                                    handleFieldChange(null, "occupancies", updated, "online", "oneTime");
+                                                }}
+                                                className="text-sm w-full border p-3 rounded-lg bg-white"
+                                            >
+                                                <option value="">Select Occupancy</option>
+                                                <option value="Individual">Individual</option>
+                                                <option value="Couple">Couple</option>
+                                                <option value="Group">Group</option>
+                                            </select>
+                                            <input
+                                                type="number"
+                                                value={occ.price || ""}
+                                                placeholder="Price"
+                                                onChange={(e) => {
+                                                    const updated = JSON.parse(JSON.stringify(formData.online.oneTime.occupancies));
+                                                    updated[index].price = e.target.value;
+                                                    handleFieldChange(null, "occupancies", updated, "online", "oneTime");
+                                                }}
+                                                className="text-sm w-full border p-3 rounded-lg"
+                                            />
+                                            <input
+                                                type="number"
+                                                value={occ.min || ""}
+                                                placeholder="Min persons"
+                                                onChange={(e) => {
+                                                    const updated = JSON.parse(JSON.stringify(formData.online.oneTime.occupancies));
+                                                    updated[index].min = e.target.value;
+                                                    handleFieldChange(null, "occupancies", updated, "online", "oneTime");
+                                                }}
+                                                className="text-sm w-full border p-3 rounded-lg"
+                                            />
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="number"
+                                                    value={occ.max || ""}
+                                                    placeholder="Max persons"
+                                                    onChange={(e) => {
+                                                        const updated = JSON.parse(JSON.stringify(formData.online.oneTime.occupancies));
+                                                        updated[index].max = e.target.value;
+                                                        handleFieldChange(null, "occupancies", updated, "online", "oneTime");
+                                                    }}
+                                                    className="text-sm w-full border p-3 rounded-lg"
+                                                />
+                                                {index === formData?.online?.oneTime?.occupancies.length - 1 ? (
+                                                    <button
+                                                        onClick={() => {
+                                                            const updated = [...JSON.parse(JSON.stringify(formData.online.oneTime.occupancies)), { type: "Individual", price: "" }];
+                                                            handleFieldChange(null, "occupancies", updated, "online", "oneTime");
+                                                        }}
+                                                        type="button"
+                                                        className="border border-dashed px-2 py-1 rounded text-xl"
+                                                    >
+                                                        +
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => {
+                                                            const updated = JSON.parse(JSON.stringify(formData.online.oneTime.occupancies)).filter((_, i) => i !== index);
+                                                            handleFieldChange(null, "occupancies", updated, "online", "oneTime");
+                                                        }}
+                                                        type="button"
+                                                        className="border border-dashed px-2 py-1 rounded text-xl"
+                                                    >-</button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* One-Time Online Slots - Calendar Based */}
+                                <div className="mt-6">
+                                    <h3 className="text-lg font-semibold text-gray-700 mb-4">One-Time Online – Calendar</h3>
+                                    <div className="grid md:grid-cols-2 gap-4">
+                                        {/* Calendar */}
+                                        <div className="border rounded-lg p-3">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <button onClick={()=>prevMonthGuard(setOtOnlineMonth, otOnlineMonth)} className="px-2 py-1 border rounded">Prev</button>
+                                                <div className="font-semibold">{otOnlineMonth.toLocaleString('default',{month:'long'})} {otOnlineMonth.getFullYear()}</div>
+                                                <button onClick={()=>setOtOnlineMonth(new Date(otOnlineMonth.getFullYear(), otOnlineMonth.getMonth()+1, 1))} className="px-2 py-1 border rounded">Next</button>
+                                            </div>
+                                            <div className="grid grid-cols-7 gap-1 text-center text-xs text-gray-600 mb-1">
+                                                {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=> <div key={d}>{d}</div>)}
+                                            </div>
+                                            <div className="grid grid-cols-7 gap-1">
+                                                {calGrid(otOnlineMonth).map((d,i)=> {
+                                                    const y = d ? fmtYMD(d) : '';
+                                                    const selected = y && otOnlineSelectedDates.includes(y);
+                                                    return (
+                                                        <button
+                                                            key={i}
+                                                            disabled={!d || isPast(d)}
+                                                            onClick={()=> {
+                                                                if (!d || isPast(d)) return;
+                                                                const ymd = fmtYMD(d);
+                                                                if (otOnlineMulti) {
+                                                                    setOtOnlineSelectedDates(prev => prev.includes(ymd) ? prev.filter(x => x !== ymd) : [...prev, ymd]);
+                                                                } else {
+                                                                    setOtOnlineSelectedDates([ymd]);
+                                                                    setOtOnlineDate(ymd);
+                                                                }
+                                                            }}
+                                                            className={`h-10 rounded border text-sm ${(!d || isPast(d))
+                                                                ? 'text-gray-300 border-gray-200 cursor-not-allowed'
+                                                                : (selected || (y===otOnlineDate && !otOnlineMulti))
+                                                                    ? 'bg-[#2F6288] text-white border-[#2F6288]'
+                                                                    : 'bg-white text-gray-700 border-gray-200 hover:border-[#2F6288]'
+                                                            }`}
+                                                        >
+                                                            {d? d.getDate(): ''}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+
+                                            {/* Multi-select controls */}
+                                            <div className="mt-2 flex items-center justify-between">
+                                                <label className="flex items-center gap-2 text-sm">
+                                                    <input type="checkbox" className="h-4 w-4 text-[#2F6288]" checked={otOnlineMulti} onChange={(e)=> setOtOnlineMulti(e.target.checked)} />
+                                                    <span>Multi-select dates</span>
+                                                </label>
+                                                {otOnlineSelectedDates.length > 1 && (
+                                                    <button type="button" onClick={()=> setOtOnlineSelectedDates([])} className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700">Clear All</button>
+                                                )}
+                                            </div>
+                                            {otOnlineSelectedDates.length > 0 && (
+                                                <div className="mt-2 flex flex-wrap gap-1">
+                                                    {otOnlineSelectedDates.map(d => (
+                                                        <span key={d} className="text-xs bg-[#2F6288] text-white px-2 py-0.5 rounded">{d}</span>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            <div className="mt-3">
+                                                <button
+                                                    type="button"
+                                                    onClick={()=>{
+                                                        if (otOnlineSelectedDates.length > 1) {
+                                                            setOtOnlinePending(p => ({ ...p, open: true }));
+                                                        } else {
+                                                            const target = otOnlineSelectedDates[0] || otOnlineDate;
+                                                            if (target) addOneTimeSlotFor('online', target);
+                                                        }
+                                                    }}
+                                                    className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-[#2F6288]"
+                                                >
+                                                    {otOnlineSelectedDates.length > 1 ? `Add Time Range to ${otOnlineSelectedDates.length} dates` : `Add Slot for ${otOnlineDate}`}
+                                                </button>
+                                            </div>
+
+                                            {otOnlinePending.open && otOnlineSelectedDates.length > 1 && (
+                                                <div className="mt-3 border border-dashed border-gray-300 rounded-lg p-3 bg-gray-50">
+                                                    <p className="text-sm font-medium text-gray-700 mb-2">Add a time range that will apply to all selected dates</p>
+                                                    <div className="grid sm:grid-cols-[auto_1fr_auto_1fr_auto] grid-cols-1 gap-2 items-center">
+                                                        <div className="flex items-center gap-3">
+                                                            <label className="inline-flex items-center text-xs">
+                                                                <input type="radio" name="ot-online-type" checked={(otOnlinePending.type||'individual')==='individual'} onChange={()=>setOtOnlinePending(p=>({...p,type:'individual'}))} className="h-4 w-4 text-[#2F6288]" />
+                                                                <span className="ml-1">Individual</span>
+                                                            </label>
+                                                            <label className="inline-flex items-center text-xs">
+                                                                <input type="radio" name="ot-online-type" checked={otOnlinePending.type==='couple'} onChange={()=>setOtOnlinePending(p=>({...p,type:'couple'}))} className="h-4 w-4 text-[#2F6288]" />
+                                                                <span className="ml-1">Couple</span>
+                                                            </label>
+                                                            <label className="inline-flex items-center text-xs">
+                                                                <input type="radio" name="ot-online-type" checked={otOnlinePending.type==='group'} onChange={()=>setOtOnlinePending(p=>({...p,type:'group'}))} className="h-4 w-4 text-[#2F6288]" />
+                                                                <span className="ml-1">Group</span>
+                                                            </label>
+                                                        </div>
+                                                        <input type="time" value={otOnlinePending.startTime} onChange={(e)=> setOtOnlinePending(p=>({...p,startTime:e.target.value}))} className="text-sm w-full border border-gray-300 p-2 rounded-lg" />
+                                                        <span className="hidden sm:flex justify-center text-gray-500">-</span>
+                                                        <input type="time" value={otOnlinePending.endTime} onChange={(e)=> setOtOnlinePending(p=>({...p,endTime:e.target.value}))} className="text-sm w-full border border-gray-300 p-2 rounded-lg" />
+                                                        <div className="flex items-center gap-2">
+                                                            <button type="button" onClick={applyOtOnlinePending} className="text-xs px-3 py-1.5 bg-[#2F6288] text-white rounded-md">Apply to {otOnlineSelectedDates.length} dates</button>
+                                                            <button type="button" onClick={()=> setOtOnlinePending({ open:false, startTime:"", endTime:"", type:"individual" })} className="text-xs px-3 py-1.5 bg-gray-200 text-gray-700 rounded-md">Cancel</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Slots for selected date */}
+                                        <div className="border rounded-lg p-3">
+                                            <div className="font-semibold mb-2">Slots for {otOnlineDate}</div>
+                                            <div className="space-y-3">
+                                                {(formData?.online?.oneTime?.slots||[]).filter(s=>ymd(s.date)===otOnlineDate).map((s, idx) => {
+                                                    const slotType = s.type || 'individual';
+                                                    return (
+                                                    <div key={s.id || `${otOnlineDate}-${idx}`} className="border rounded-lg p-3 space-y-2 bg-gray-50">
+                                                        <div className="flex items-center gap-4 mb-2">
+                                                            <label className="inline-flex items-center cursor-pointer">
+                                                                <input 
+                                                                    type="radio" 
+                                                                    name={`online-slot-type-${s.id}`}
+                                                                    value="individual"
+                                                                    checked={slotType === 'individual'}
+                                                                    onChange={() => {
+                                                                        console.log(`📻 Radio: ${s.id} -> individual`);
+                                                                        updateOneTimeSlot('online', s.id, 'type', 'individual');
+                                                                    }}
+                                                                    className="form-radio h-4 w-4 text-[#2F6288]"
+                                                                />
+                                                                <span className="ml-2">Individual</span>
+                                                            </label>
+                                                            <label className="inline-flex items-center cursor-pointer">
+                                                                <input 
+                                                                    type="radio" 
+                                                                    name={`online-slot-type-${s.id}`}
+                                                                    value="couple"
+                                                                    checked={slotType === 'couple'}
+                                                                    onChange={() => {
+                                                                        console.log(`📻 Radio: ${s.id} -> couple`);
+                                                                        updateOneTimeSlot('online', s.id, 'type', 'couple');
+                                                                    }}
+                                                                    className="form-radio h-4 w-4 text-[#2F6288]"
+                                                                />
+                                                                <span className="ml-2">Couple</span>
+                                                            </label>
+                                                            <label className="inline-flex items-center cursor-pointer">
+                                                                <input 
+                                                                    type="radio" 
+                                                                    name={`online-slot-type-${s.id}`}
+                                                                    value="group"
+                                                                    checked={slotType === 'group'}
+                                                                    onChange={() => {
+                                                                        console.log(`📻 Radio: ${s.id} -> group`);
+                                                                        updateOneTimeSlot('online', s.id, 'type', 'group');
+                                                                    }}
+                                                                    className="form-radio h-4 w-4 text-[#2F6288]"
+                                                                />
+                                                                <span className="ml-2">Group</span>
+                                                            </label>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <input 
+                                                                type="time" 
+                                                                value={s.startTime||''} 
+                                                                onChange={(e)=>updateOneTimeSlot('online', s.id, 'startTime', e.target.value)} 
+                                                                className="border p-2 rounded flex-1" 
+                                                            />
+                                                            <span>-</span>
+                                                            <input 
+                                                                type="time" 
+                                                                value={s.endTime||''} 
+                                                                onChange={(e)=>updateOneTimeSlot('online', s.id, 'endTime', e.target.value)} 
+                                                                className="border p-2 rounded flex-1" 
+                                                            />
+                                                            <button 
+                                                                type="button"
+                                                                onClick={()=>removeOneTimeSlot('online', s.id)} 
+                                                                className="text-red-600 hover:text-red-800 p-1"
+                                                                title="Delete slot"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        )}
                     </>
                 )}
 
                 {formData?.guideCard?.subCategory && (formData?.guideCard?.subCategory === "Offline" || formData?.guideCard?.subCategory === "Both") && (
                     <>
+                        {/* Plan Type Selection - Offline */}
+                        <div className="mb-8">
+                            <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+                                Offline Subscriptions <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
+                            </h2>
+                            <div className="mb-4">
+                                <label className="block text-md font-semibold text-gray-700 mb-2">Select Plan Type</label>
+                                <div className="flex flex-wrap gap-4">
+                                    {[
+                                        { id: 'plan-offline-one-time', label: 'One Time' },
+                                        { id: 'plan-offline-monthly', label: 'Monthly' },
+                                        { id: 'plan-offline-both', label: 'Both' }
+                                    ].map(opt => (
+                                        <label key={opt.id} htmlFor={opt.id} className="inline-flex items-center gap-2 text-sm">
+                                            <input
+                                                type="radio"
+                                                id={opt.id}
+                                                name="planChoiceOffline"
+                                                value={opt.label}
+                                                checked={formData?.offline?.planChoice === opt.label}
+                                                onChange={(e)=> handleFieldChange(null, "planChoice", e.target.value, "offline")}
+                                                className="text-[#2F6288] focus:ring-[#2F6288]"
+                                            />
+                                            <span>{opt.label}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                                <p className="text-xs text-gray-500 mt-1">Default: One Time. Choose Both to configure both Monthly and One Time details.</p>
+                            </div>
+                        </div>
+
                         {/* Monthly Offline Subscription */}
+                        {(formData?.offline?.planChoice === "Monthly" || formData?.offline?.planChoice === "Both") && (
                         <div className="mb-8">
                             <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
                                 {isEditing ? "Edit Monthly Offline Subscription" : "Monthly Offline Subscription"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
@@ -2151,6 +2557,85 @@ export default function GuideForm() {
                                         onChange={(e) => handleFieldChange(null, "sessionsCount", e.target.value, "offline", "monthly")}
                                         className="text-sm w-full border border-gray-300 p-3 rounded-lg "
                                     />
+                                </div>
+
+                                {/* Occupancy & Price - Monthly Offline */}
+                                <div className="mb-4">
+                                    <label className="block text-md font-semibold text-gray-700 mb-2 mt-4">Occupancy & Price</label>
+                                    {formData?.offline?.monthly?.occupancies?.map((occ, index) => (
+                                        <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-2 items-center">
+                                            <select
+                                                value={occ.type || ""}
+                                                onChange={(e) => {
+                                                    const updated = JSON.parse(JSON.stringify(formData.offline.monthly.occupancies));
+                                                    updated[index].type = e.target.value;
+                                                    handleFieldChange(null, "occupancies", updated, "offline", "monthly");
+                                                }}
+                                                className="text-sm w-full border p-3 rounded-lg bg-white"
+                                            >
+                                                <option value="">Select Occupancy</option>
+                                                <option value="Individual">Individual</option>
+                                                <option value="Couple">Couple</option>
+                                                <option value="Group">Group</option>
+                                            </select>
+                                            <input
+                                                type="number"
+                                                value={occ.price || ""}
+                                                placeholder="Price"
+                                                onChange={(e) => {
+                                                    const updated = JSON.parse(JSON.stringify(formData.offline.monthly.occupancies));
+                                                    updated[index].price = e.target.value;
+                                                    handleFieldChange(null, "occupancies", updated, "offline", "monthly");
+                                                }}
+                                                className="text-sm w-full border p-3 rounded-lg"
+                                            />
+                                            <input
+                                                type="number"
+                                                value={occ.min || ""}
+                                                placeholder="Min persons"
+                                                onChange={(e) => {
+                                                    const updated = JSON.parse(JSON.stringify(formData.offline.monthly.occupancies));
+                                                    updated[index].min = e.target.value;
+                                                    handleFieldChange(null, "occupancies", updated, "offline", "monthly");
+                                                }}
+                                                className="text-sm w-full border p-3 rounded-lg"
+                                            />
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="number"
+                                                    value={occ.max || ""}
+                                                    placeholder="Max persons"
+                                                    onChange={(e) => {
+                                                        const updated = JSON.parse(JSON.stringify(formData.offline.monthly.occupancies));
+                                                        updated[index].max = e.target.value;
+                                                        handleFieldChange(null, "occupancies", updated, "offline", "monthly");
+                                                    }}
+                                                    className="text-sm w-full border p-3 rounded-lg"
+                                                />
+                                                {index === formData?.offline?.monthly?.occupancies.length - 1 ? (
+                                                    <button
+                                                        onClick={() => {
+                                                            const updated = [...JSON.parse(JSON.stringify(formData.offline.monthly.occupancies)), { type: "Individual", price: "" }];
+                                                            handleFieldChange(null, "occupancies", updated, "offline", "monthly");
+                                                        }}
+                                                        type="button"
+                                                        className="border border-dashed px-2 py-1 rounded text-xl"
+                                                    >
+                                                        +
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => {
+                                                            const updated = JSON.parse(JSON.stringify(formData.offline.monthly.occupancies)).filter((_, i) => i !== index);
+                                                            handleFieldChange(null, "occupancies", updated, "offline", "monthly");
+                                                        }}
+                                                        type="button"
+                                                        className="border border-dashed px-2 py-1 rounded text-xl"
+                                                    >-</button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
 
                                 <div>
@@ -2349,406 +2834,301 @@ export default function GuideForm() {
 
                             </div>
                         </div>
+                        )}
+
+                        {/* One-Time Offline Purchase */}
+                        {(formData?.offline?.planChoice === "One Time" || formData?.offline?.planChoice === "Both") && (
+                            <div className="mb-8">
+                                <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+                                    {isEditing ? "Edit One-Time Offline Purchase" : "One-Time Offline Purchase"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
+                                </h2>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-md font-semibold text-gray-700 mb-2">One-Time Offline Purchase Price</label>
+                                        <input
+                                            placeholder="Enter Price"
+                                            type="number"
+                                            value={formData?.offline?.oneTime?.price}
+                                            onChange={(e) => handleFieldChange(null, "price", e.target.value, "offline", "oneTime")}
+                                            className="text-sm w-full border border-gray-300 p-3 rounded-lg "
+                                        />
+                                        {errors.oneTimeOfflinePrice && <p className="text-red-500 text-sm mt-1">{errors.oneTimeOfflinePrice}</p>}
+                                    </div>
+
+                                    {/* Occupancy & Price - One-Time Offline */}
+                                    <div className="mb-4">
+                                        <label className="block text-md font-semibold text-gray-700 mb-2 mt-4">Occupancy & Price</label>
+                                        {formData?.offline?.oneTime?.occupancies?.map((occ, index) => (
+                                            <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-2 items-center">
+                                                <select
+                                                    value={occ.type || ""}
+                                                    onChange={(e) => {
+                                                        const updated = JSON.parse(JSON.stringify(formData.offline.oneTime.occupancies));
+                                                        updated[index].type = e.target.value;
+                                                        handleFieldChange(null, "occupancies", updated, "offline", "oneTime");
+                                                    }}
+                                                    className="text-sm w-full border p-3 rounded-lg bg-white"
+                                                >
+                                                    <option value="">Select Occupancy</option>
+                                                    <option value="Individual">Individual</option>
+                                                    <option value="Couple">Couple</option>
+                                                    <option value="Group">Group</option>
+                                                </select>
+                                                <input
+                                                    type="number"
+                                                    value={occ.price || ""}
+                                                    placeholder="Price"
+                                                    onChange={(e) => {
+                                                        const updated = JSON.parse(JSON.stringify(formData.offline.oneTime.occupancies));
+                                                        updated[index].price = e.target.value;
+                                                        handleFieldChange(null, "occupancies", updated, "offline", "oneTime");
+                                                    }}
+                                                    className="text-sm w-full border p-3 rounded-lg"
+                                                />
+                                                <input
+                                                    type="number"
+                                                    value={occ.min || ""}
+                                                    placeholder="Min persons"
+                                                    onChange={(e) => {
+                                                        const updated = JSON.parse(JSON.stringify(formData.offline.oneTime.occupancies));
+                                                        updated[index].min = e.target.value;
+                                                        handleFieldChange(null, "occupancies", updated, "offline", "oneTime");
+                                                    }}
+                                                    className="text-sm w-full border p-3 rounded-lg"
+                                                />
+                                                <div className="flex items-center gap-2">
+                                                    <input
+                                                        type="number"
+                                                        value={occ.max || ""}
+                                                        placeholder="Max persons"
+                                                        onChange={(e) => {
+                                                            const updated = JSON.parse(JSON.stringify(formData.offline.oneTime.occupancies));
+                                                            updated[index].max = e.target.value;
+                                                            handleFieldChange(null, "occupancies", updated, "offline", "oneTime");
+                                                        }}
+                                                        className="text-sm w-full border p-3 rounded-lg"
+                                                    />
+                                                    {index === formData?.offline?.oneTime?.occupancies.length - 1 ? (
+                                                        <button
+                                                            onClick={() => {
+                                                                const updated = [...JSON.parse(JSON.stringify(formData.offline.oneTime.occupancies)), { type: "Individual", price: "" }];
+                                                                handleFieldChange(null, "occupancies", updated, "offline", "oneTime");
+                                                            }}
+                                                            type="button"
+                                                            className="border border-dashed px-2 py-1 rounded text-xl"
+                                                        >
+                                                            +
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => {
+                                                                const updated = JSON.parse(JSON.stringify(formData.offline.oneTime.occupancies)).filter((_, i) => i !== index);
+                                                                handleFieldChange(null, "occupancies", updated, "offline", "oneTime");
+                                                            }}
+                                                            type="button"
+                                                            className="border border-dashed px-2 py-1 rounded text-xl"
+                                                        >-</button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* One-Time Offline Slots - Calendar Based */}
+                                <div className="mt-6">
+                                    <h3 className="text-lg font-semibold text-gray-700 mb-4">One-Time Offline – Calendar</h3>
+                                    <div className="grid md:grid-cols-2 gap-4">
+                                        {/* Calendar */}
+                                        <div className="border rounded-lg p-3">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <button onClick={()=>prevMonthGuard(setOtOfflineMonth, otOfflineMonth)} className="px-2 py-1 border rounded">Prev</button>
+                                                <div className="font-semibold">{otOfflineMonth.toLocaleString('default',{month:'long'})} {otOfflineMonth.getFullYear()}</div>
+                                                <button onClick={()=>setOtOfflineMonth(new Date(otOfflineMonth.getFullYear(), otOfflineMonth.getMonth()+1, 1))} className="px-2 py-1 border rounded">Next</button>
+                                            </div>
+                                            <div className="grid grid-cols-7 gap-1 text-center text-xs text-gray-600 mb-1">
+                                                {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=> <div key={d}>{d}</div>)}
+                                            </div>
+                                            <div className="grid grid-cols-7 gap-1">
+                                                {calGrid(otOfflineMonth).map((d,i)=> {
+                                                    const y = d ? fmtYMD(d) : '';
+                                                    const selected = y && otOfflineSelectedDates.includes(y);
+                                                    return (
+                                                        <button
+                                                            key={i}
+                                                            disabled={!d || isPast(d)}
+                                                            onClick={()=> {
+                                                                if (!d || isPast(d)) return;
+                                                                const ymd = fmtYMD(d);
+                                                                if (otOfflineMulti) {
+                                                                    setOtOfflineSelectedDates(prev => prev.includes(ymd) ? prev.filter(x => x !== ymd) : [...prev, ymd]);
+                                                                } else {
+                                                                    setOtOfflineSelectedDates([ymd]);
+                                                                    setOtOfflineDate(ymd);
+                                                                }
+                                                            }}
+                                                            className={`h-10 rounded border text-sm ${(!d || isPast(d))
+                                                                ? 'text-gray-300 border-gray-200 cursor-not-allowed'
+                                                                : (selected || (y===otOfflineDate && !otOfflineMulti))
+                                                                    ? 'bg-[#2F6288] text-white border-[#2F6288]'
+                                                                    : 'bg-white text-gray-700 border-gray-200 hover:border-[#2F6288]'
+                                                            }`}
+                                                        >
+                                                            {d? d.getDate(): ''}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+
+                                            {/* Multi-select controls */}
+                                            <div className="mt-2 flex items-center justify-between">
+                                                <label className="flex items-center gap-2 text-sm">
+                                                    <input type="checkbox" className="h-4 w-4 text-[#2F6288]" checked={otOfflineMulti} onChange={(e)=> setOtOfflineMulti(e.target.checked)} />
+                                                    <span>Multi-select dates</span>
+                                                </label>
+                                                {otOfflineSelectedDates.length > 1 && (
+                                                    <button type="button" onClick={()=> setOtOfflineSelectedDates([])} className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700">Clear All</button>
+                                                )}
+                                            </div>
+                                            {otOfflineSelectedDates.length > 0 && (
+                                                <div className="mt-2 flex flex-wrap gap-1">
+                                                    {otOfflineSelectedDates.map(d => (
+                                                        <span key={d} className="text-xs bg-[#2F6288] text-white px-2 py-0.5 rounded">{d}</span>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            <div className="mt-3">
+                                                <button
+                                                    type="button"
+                                                    onClick={()=>{
+                                                        if (otOfflineSelectedDates.length > 1) {
+                                                            setOtOfflinePending(p => ({ ...p, open: true }));
+                                                        } else {
+                                                            const target = otOfflineSelectedDates[0] || otOfflineDate;
+                                                            if (target) addOneTimeSlotFor('offline', target);
+                                                        }
+                                                    }}
+                                                    className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-[#2F6288]"
+                                                >
+                                                    {otOfflineSelectedDates.length > 1 ? `Add Time Range to ${otOfflineSelectedDates.length} dates` : `Add Slot for ${otOfflineDate}`}
+                                                </button>
+                                            </div>
+
+                                            {otOfflinePending.open && otOfflineSelectedDates.length > 1 && (
+                                                <div className="mt-3 border border-dashed border-gray-300 rounded-lg p-3 bg-gray-50">
+                                                    <p className="text-sm font-medium text-gray-700 mb-2">Add a time range that will apply to all selected dates</p>
+                                                    <div className="grid sm:grid-cols-[auto_1fr_auto_1fr_auto] grid-cols-1 gap-2 items-center">
+                                                        <div className="flex items-center gap-3">
+                                                            <label className="inline-flex items-center text-xs">
+                                                                <input type="radio" name="ot-offline-type" checked={(otOfflinePending.type||'individual')==='individual'} onChange={()=>setOtOfflinePending(p=>({...p,type:'individual'}))} className="h-4 w-4 text-[#2F6288]" />
+                                                                <span className="ml-1">Individual</span>
+                                                            </label>
+                                                            <label className="inline-flex items-center text-xs">
+                                                                <input type="radio" name="ot-offline-type" checked={otOfflinePending.type==='couple'} onChange={()=>setOtOfflinePending(p=>({...p,type:'couple'}))} className="h-4 w-4 text-[#2F6288]" />
+                                                                <span className="ml-1">Couple</span>
+                                                            </label>
+                                                            <label className="inline-flex items-center text-xs">
+                                                                <input type="radio" name="ot-offline-type" checked={otOfflinePending.type==='group'} onChange={()=>setOtOfflinePending(p=>({...p,type:'group'}))} className="h-4 w-4 text-[#2F6288]" />
+                                                                <span className="ml-1">Group</span>
+                                                            </label>
+                                                        </div>
+                                                        <input type="time" value={otOfflinePending.startTime} onChange={(e)=> setOtOfflinePending(p=>({...p,startTime:e.target.value}))} className="text-sm w-full border border-gray-300 p-2 rounded-lg" />
+                                                        <span className="hidden sm:flex justify-center text-gray-500">-</span>
+                                                        <input type="time" value={otOfflinePending.endTime} onChange={(e)=> setOtOfflinePending(p=>({...p,endTime:e.target.value}))} className="text-sm w-full border border-gray-300 p-2 rounded-lg" />
+                                                        <div className="flex items-center gap-2">
+                                                            <button type="button" onClick={applyOtOfflinePending} className="text-xs px-3 py-1.5 bg-[#2F6288] text-white rounded-md">Apply to {otOfflineSelectedDates.length} dates</button>
+                                                            <button type="button" onClick={()=> setOtOfflinePending({ open:false, startTime:"", endTime:"", type:"individual" })} className="text-xs px-3 py-1.5 bg-gray-200 text-gray-700 rounded-md">Cancel</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                        {/* Slots for selected date */}
+                                        <div className="border rounded-lg p-3">
+                                            <div className="font-semibold mb-2">Slots for {otOfflineDate}</div>
+                                            <div className="space-y-3">
+                                                {(formData?.offline?.oneTime?.slots||[]).filter(s=>ymd(s.date)===otOfflineDate).map((s, idx) => {
+                                                    const slotType = s.type || 'individual';
+                                                    return (
+                                                    <div key={s.id || `${otOfflineDate}-${idx}`} className="border rounded-lg p-3 space-y-2 bg-gray-50">
+                                                        <div className="flex items-center gap-4 mb-2">
+                                                            <label className="inline-flex items-center cursor-pointer">
+                                                                <input 
+                                                                    type="radio" 
+                                                                    name={`offline-slot-type-${s.id}`}
+                                                                    value="individual"
+                                                                    checked={slotType === 'individual'}
+                                                                    onChange={() => {
+                                                                        console.log(`📻 Offline Radio: ${s.id} -> individual`);
+                                                                        updateOneTimeSlot('offline', s.id, 'type', 'individual');
+                                                                    }}
+                                                                    className="form-radio h-4 w-4 text-[#2F6288]"
+                                                                />
+                                                                <span className="ml-2">Individual</span>
+                                                            </label>
+                                                            <label className="inline-flex items-center cursor-pointer">
+                                                                <input 
+                                                                    type="radio" 
+                                                                    name={`offline-slot-type-${s.id}`}
+                                                                    value="couple"
+                                                                    checked={slotType === 'couple'}
+                                                                    onChange={() => {
+                                                                        console.log(`📻 Offline Radio: ${s.id} -> couple`);
+                                                                        updateOneTimeSlot('offline', s.id, 'type', 'couple');
+                                                                    }}
+                                                                    className="form-radio h-4 w-4 text-[#2F6288]"
+                                                                />
+                                                                <span className="ml-2">Couple</span>
+                                                            </label>
+                                                            <label className="inline-flex items-center cursor-pointer">
+                                                                <input 
+                                                                    type="radio" 
+                                                                    name={`offline-slot-type-${s.id}`}
+                                                                    value="group"
+                                                                    checked={slotType === 'group'}
+                                                                    onChange={() => {
+                                                                        console.log(`📻 Offline Radio: ${s.id} -> group`);
+                                                                        updateOneTimeSlot('offline', s.id, 'type', 'group');
+                                                                    }}
+                                                                    className="form-radio h-4 w-4 text-[#2F6288]"
+                                                                />
+                                                                <span className="ml-2">Group</span>
+                                                            </label>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <input 
+                                                                type="time" 
+                                                                value={s.startTime||''} 
+                                                                onChange={(e)=>updateOneTimeSlot('offline', s.id, 'startTime', e.target.value)} 
+                                                                className="border p-2 rounded flex-1" 
+                                                            />
+                                                            <span>-</span>
+                                                            <input 
+                                                                type="time" 
+                                                                value={s.endTime||''} 
+                                                                onChange={(e)=>updateOneTimeSlot('offline', s.id, 'endTime', e.target.value)} 
+                                                                className="border p-2 rounded flex-1" 
+                                                            />
+                                                            <button 
+                                                                type="button"
+                                                                onClick={()=>removeOneTimeSlot('offline', s.id)} 
+                                                                className="text-red-600 hover:text-red-800 p-1"
+                                                                title="Delete slot"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </>
-                )}
-
-                {/* One-Time Online Purchase */}
-                {formData?.guideCard?.subCategory && (formData?.guideCard?.subCategory === "Online" || formData?.guideCard?.subCategory === "Both") && (
-                    <div className="mb-8">
-                        <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
-                            {isEditing ? "Edit One-Time Online Purchase" : "One-Time Online Purchase"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
-                        </h2>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-md font-semibold text-gray-700 mb-2">One-Time Online Purchase Price</label>
-                                <input
-                                    placeholder="Enter Price"
-                                    type="number"
-                                    value={formData?.online?.oneTime?.price}
-                                    onChange={(e) => handleFieldChange(null, "price", e.target.value, "online", "oneTime")}
-                                    className="text-sm w-full border border-gray-300 p-3 rounded-lg "
-                                />
-                                {errors.oneTimeOnlinePrice && <p className="text-red-500 text-sm mt-1">{errors.oneTimeOnlinePrice}</p>}
-                            </div>
-
-                            {/* One-Time Online Slots - Calendar Based */}
-                            <div className="mt-6">
-                                <h3 className="text-lg font-semibold text-gray-700 mb-4">One-Time Online – Calendar</h3>
-                                <div className="grid md:grid-cols-2 gap-4">
-                                    {/* Calendar */}
-                                    <div className="border rounded-lg p-3">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <button onClick={()=>prevMonthGuard(setOtOnlineMonth, otOnlineMonth)} className="px-2 py-1 border rounded">Prev</button>
-                                            <div className="font-semibold">{otOnlineMonth.toLocaleString('default',{month:'long'})} {otOnlineMonth.getFullYear()}</div>
-                                            <button onClick={()=>setOtOnlineMonth(new Date(otOnlineMonth.getFullYear(), otOnlineMonth.getMonth()+1, 1))} className="px-2 py-1 border rounded">Next</button>
-                                        </div>
-                                        <div className="grid grid-cols-7 gap-1 text-center text-xs text-gray-600 mb-1">
-                                            {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=> <div key={d}>{d}</div>)}
-                                        </div>
-                                        <div className="grid grid-cols-7 gap-1">
-                                            {calGrid(otOnlineMonth).map((d,i)=> {
-                                                const y = d ? fmtYMD(d) : '';
-                                                const selected = y && otOnlineSelectedDates.includes(y);
-                                                return (
-                                                    <button
-                                                        key={i}
-                                                        disabled={!d || isPast(d)}
-                                                        onClick={()=> {
-                                                            if (!d || isPast(d)) return;
-                                                            const ymd = fmtYMD(d);
-                                                            if (otOnlineMulti) {
-                                                                setOtOnlineSelectedDates(prev => prev.includes(ymd) ? prev.filter(x => x !== ymd) : [...prev, ymd]);
-                                                            } else {
-                                                                setOtOnlineSelectedDates([ymd]);
-                                                                setOtOnlineDate(ymd);
-                                                            }
-                                                        }}
-                                                        className={`h-10 rounded border text-sm ${(!d || isPast(d))
-                                                            ? 'text-gray-300 border-gray-200 cursor-not-allowed'
-                                                            : (selected || (y===otOnlineDate && !otOnlineMulti))
-                                                                ? 'bg-[#2F6288] text-white border-[#2F6288]'
-                                                                : 'bg-white text-gray-700 border-gray-200 hover:border-[#2F6288]'
-                                                        }`}
-                                                    >
-                                                        {d? d.getDate(): ''}
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-
-                                        {/* Multi-select controls */}
-                                        <div className="mt-2 flex items-center justify-between">
-                                            <label className="flex items-center gap-2 text-sm">
-                                                <input type="checkbox" className="h-4 w-4 text-[#2F6288]" checked={otOnlineMulti} onChange={(e)=> setOtOnlineMulti(e.target.checked)} />
-                                                <span>Multi-select dates</span>
-                                            </label>
-                                            {otOnlineSelectedDates.length > 1 && (
-                                                <button type="button" onClick={()=> setOtOnlineSelectedDates([])} className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700">Clear All</button>
-                                            )}
-                                        </div>
-                                        {otOnlineSelectedDates.length > 0 && (
-                                            <div className="mt-2 flex flex-wrap gap-1">
-                                                {otOnlineSelectedDates.map(d => (
-                                                    <span key={d} className="text-xs bg-[#2F6288] text-white px-2 py-0.5 rounded">{d}</span>
-                                                ))}
-                                            </div>
-                                        )}
-
-                                        <div className="mt-3">
-                                            <button
-                                                type="button"
-                                                onClick={()=>{
-                                                    if (otOnlineSelectedDates.length > 1) {
-                                                        setOtOnlinePending(p => ({ ...p, open: true }));
-                                                    } else {
-                                                        const target = otOnlineSelectedDates[0] || otOnlineDate;
-                                                        if (target) addOneTimeSlotFor('online', target);
-                                                    }
-                                                }}
-                                                className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-[#2F6288]"
-                                            >
-                                                {otOnlineSelectedDates.length > 1 ? `Add Time Range to ${otOnlineSelectedDates.length} dates` : `Add Slot for ${otOnlineDate}`}
-                                            </button>
-                                        </div>
-
-                                        {otOnlinePending.open && otOnlineSelectedDates.length > 1 && (
-                                            <div className="mt-3 border border-dashed border-gray-300 rounded-lg p-3 bg-gray-50">
-                                                <p className="text-sm font-medium text-gray-700 mb-2">Add a time range that will apply to all selected dates</p>
-                                                <div className="grid sm:grid-cols-[auto_1fr_auto_1fr_auto] grid-cols-1 gap-2 items-center">
-                                                    <div className="flex items-center gap-3">
-                                                        <label className="inline-flex items-center text-xs">
-                                                            <input type="radio" name="ot-online-type" checked={(otOnlinePending.type||'individual')==='individual'} onChange={()=>setOtOnlinePending(p=>({...p,type:'individual'}))} className="h-4 w-4 text-[#2F6288]" />
-                                                            <span className="ml-1">Individual</span>
-                                                        </label>
-                                                        <label className="inline-flex items-center text-xs">
-                                                            <input type="radio" name="ot-online-type" checked={otOnlinePending.type==='couple'} onChange={()=>setOtOnlinePending(p=>({...p,type:'couple'}))} className="h-4 w-4 text-[#2F6288]" />
-                                                            <span className="ml-1">Couple</span>
-                                                        </label>
-                                                        <label className="inline-flex items-center text-xs">
-                                                            <input type="radio" name="ot-online-type" checked={otOnlinePending.type==='group'} onChange={()=>setOtOnlinePending(p=>({...p,type:'group'}))} className="h-4 w-4 text-[#2F6288]" />
-                                                            <span className="ml-1">Group</span>
-                                                        </label>
-                                                    </div>
-                                                    <input type="time" value={otOnlinePending.startTime} onChange={(e)=> setOtOnlinePending(p=>({...p,startTime:e.target.value}))} className="text-sm w-full border border-gray-300 p-2 rounded-lg" />
-                                                    <span className="hidden sm:flex justify-center text-gray-500">-</span>
-                                                    <input type="time" value={otOnlinePending.endTime} onChange={(e)=> setOtOnlinePending(p=>({...p,endTime:e.target.value}))} className="text-sm w-full border border-gray-300 p-2 rounded-lg" />
-                                                    <div className="flex items-center gap-2">
-                                                        <button type="button" onClick={applyOtOnlinePending} className="text-xs px-3 py-1.5 bg-[#2F6288] text-white rounded-md">Apply to {otOnlineSelectedDates.length} dates</button>
-                                                        <button type="button" onClick={()=> setOtOnlinePending({ open:false, startTime:"", endTime:"", type:"individual" })} className="text-xs px-3 py-1.5 bg-gray-200 text-gray-700 rounded-md">Cancel</button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                    {/* Slots for selected date */}
-                                    <div className="border rounded-lg p-3">
-                                        <div className="font-semibold mb-2">Slots for {otOnlineDate}</div>
-                                        <div className="space-y-3">
-                                            {(formData?.online?.oneTime?.slots||[]).filter(s=>ymd(s.date)===otOnlineDate).map((s, idx) => (
-                                                <div key={`${otOnlineDate}-${idx}`} className="border rounded-lg p-3 space-y-2 bg-gray-50">
-                                                    <div className="flex items-center gap-4 mb-2">
-                                                        <label className="inline-flex items-center">
-                                                            <input 
-                                                                type="radio" 
-                                                                name={`online-slot-type-${idx}`}
-                                                                checked={(s.type || 'individual') === 'individual'}
-                                                                onChange={() => updateOneTimeSlot('online', s.id, 'type', 'individual')}
-                                                                className="form-radio h-4 w-4 text-[#2F6288]"
-                                                            />
-                                                            <span className="ml-2">Individual</span>
-                                                        </label>
-                                                        <label className="inline-flex items-center">
-                                                            <input 
-                                                                type="radio" 
-                                                                name={`online-slot-type-${idx}`}
-                                                                checked={s.type === 'couple'}
-                                                                onChange={() => updateOneTimeSlot('online', s.id, 'type', 'couple')}
-                                                                className="form-radio h-4 w-4 text-[#2F6288]"
-                                                            />
-                                                            <span className="ml-2">Couple</span>
-                                                        </label>
-                                                        <label className="inline-flex items-center">
-                                                            <input 
-                                                                type="radio" 
-                                                                name={`online-slot-type-${idx}`}
-                                                                checked={s.type === 'group'}
-                                                                onChange={() => updateOneTimeSlot('online', s.id, 'type', 'group')}
-                                                                className="form-radio h-4 w-4 text-[#2F6288]"
-                                                            />
-                                                            <span className="ml-2">Group</span>
-                                                        </label>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <input 
-                                                            type="time" 
-                                                            value={s.startTime||''} 
-                                                            onChange={(e)=>updateOneTimeSlot('online', s.id, 'startTime', e.target.value)} 
-                                                            className="border p-2 rounded flex-1" 
-                                                        />
-                                                        <span>-</span>
-                                                        <input 
-                                                            type="time" 
-                                                            value={s.endTime||''} 
-                                                            onChange={(e)=>updateOneTimeSlot('online', s.id, 'endTime', e.target.value)} 
-                                                            className="border p-2 rounded flex-1" 
-                                                        />
-                                                        <button 
-                                                            type="button"
-                                                            onClick={()=>removeOneTimeSlot('online', s.id)} 
-                                                            className="text-red-600 hover:text-red-800 p-1"
-                                                            title="Delete slot"
-                                                        >
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* One-Time Offline Purchase */}
-                {formData?.guideCard?.subCategory && (formData?.guideCard?.subCategory === "Offline" || formData?.guideCard?.subCategory === "Both") && (
-                    <div className="mb-8">
-                        <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
-                            {isEditing ? "Edit One-Time Offline Purchase" : "One-Time Offline Purchase"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
-                        </h2>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-md font-semibold text-gray-700 mb-2">One-Time Offline Purchase Price</label>
-                                <input
-                                    placeholder="Enter Price"
-                                    type="number"
-                                    value={formData?.offline?.oneTime?.price}
-                                    onChange={(e) => handleFieldChange(null, "price", e.target.value, "offline", "oneTime")}
-                                    className="text-sm w-full border border-gray-300 p-3 rounded-lg "
-                                />
-                                {errors.oneTimeOfflinePrice && <p className="text-red-500 text-sm mt-1">{errors.oneTimeOfflinePrice}</p>}
-                            </div>
-
-                            {/* One-Time Offline Slots - Calendar Based */}
-                            <div className="mt-6">
-                                <h3 className="text-lg font-semibold text-gray-700 mb-4">One-Time Offline – Calendar</h3>
-                                <div className="grid md:grid-cols-2 gap-4">
-                                    {/* Calendar */}
-                                    <div className="border rounded-lg p-3">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <button onClick={()=>prevMonthGuard(setOtOfflineMonth, otOfflineMonth)} className="px-2 py-1 border rounded">Prev</button>
-                                            <div className="font-semibold">{otOfflineMonth.toLocaleString('default',{month:'long'})} {otOfflineMonth.getFullYear()}</div>
-                                            <button onClick={()=>setOtOfflineMonth(new Date(otOfflineMonth.getFullYear(), otOfflineMonth.getMonth()+1, 1))} className="px-2 py-1 border rounded">Next</button>
-                                        </div>
-                                        <div className="grid grid-cols-7 gap-1 text-center text-xs text-gray-600 mb-1">
-                                            {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=> <div key={d}>{d}</div>)}
-                                        </div>
-                                        <div className="grid grid-cols-7 gap-1">
-                                            {calGrid(otOfflineMonth).map((d,i)=> {
-                                                const y = d ? fmtYMD(d) : '';
-                                                const selected = y && otOfflineSelectedDates.includes(y);
-                                                return (
-                                                    <button
-                                                        key={i}
-                                                        disabled={!d || isPast(d)}
-                                                        onClick={()=> {
-                                                            if (!d || isPast(d)) return;
-                                                            const ymd = fmtYMD(d);
-                                                            if (otOfflineMulti) {
-                                                                setOtOfflineSelectedDates(prev => prev.includes(ymd) ? prev.filter(x => x !== ymd) : [...prev, ymd]);
-                                                            } else {
-                                                                setOtOfflineSelectedDates([ymd]);
-                                                                setOtOfflineDate(ymd);
-                                                            }
-                                                        }}
-                                                        className={`h-10 rounded border text-sm ${(!d || isPast(d))
-                                                            ? 'text-gray-300 border-gray-200 cursor-not-allowed'
-                                                            : (selected || (y===otOfflineDate && !otOfflineMulti))
-                                                                ? 'bg-[#2F6288] text-white border-[#2F6288]'
-                                                                : 'bg-white text-gray-700 border-gray-200 hover:border-[#2F6288]'
-                                                        }`}
-                                                    >
-                                                        {d? d.getDate(): ''}
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-
-                                        {/* Multi-select controls */}
-                                        <div className="mt-2 flex items-center justify-between">
-                                            <label className="flex items-center gap-2 text-sm">
-                                                <input type="checkbox" className="h-4 w-4 text-[#2F6288]" checked={otOfflineMulti} onChange={(e)=> setOtOfflineMulti(e.target.checked)} />
-                                                <span>Multi-select dates</span>
-                                            </label>
-                                            {otOfflineSelectedDates.length > 1 && (
-                                                <button type="button" onClick={()=> setOtOfflineSelectedDates([])} className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700">Clear All</button>
-                                            )}
-                                        </div>
-                                        {otOfflineSelectedDates.length > 0 && (
-                                            <div className="mt-2 flex flex-wrap gap-1">
-                                                {otOfflineSelectedDates.map(d => (
-                                                    <span key={d} className="text-xs bg-[#2F6288] text-white px-2 py-0.5 rounded">{d}</span>
-                                                ))}
-                                            </div>
-                                        )}
-
-                                        <div className="mt-3">
-                                            <button
-                                                type="button"
-                                                onClick={()=>{
-                                                    if (otOfflineSelectedDates.length > 1) {
-                                                        setOtOfflinePending(p => ({ ...p, open: true }));
-                                                    } else {
-                                                        const target = otOfflineSelectedDates[0] || otOfflineDate;
-                                                        if (target) addOneTimeSlotFor('offline', target);
-                                                    }
-                                                }}
-                                                className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-[#2F6288]"
-                                            >
-                                                {otOfflineSelectedDates.length > 1 ? `Add Time Range to ${otOfflineSelectedDates.length} dates` : `Add Slot for ${otOfflineDate}`}
-                                            </button>
-                                        </div>
-
-                                        {otOfflinePending.open && otOfflineSelectedDates.length > 1 && (
-                                            <div className="mt-3 border border-dashed border-gray-300 rounded-lg p-3 bg-gray-50">
-                                                <p className="text-sm font-medium text-gray-700 mb-2">Add a time range that will apply to all selected dates</p>
-                                                <div className="grid sm:grid-cols-[auto_1fr_auto_1fr_auto] grid-cols-1 gap-2 items-center">
-                                                    <div className="flex items-center gap-3">
-                                                        <label className="inline-flex items-center text-xs">
-                                                            <input type="radio" name="ot-offline-type" checked={(otOfflinePending.type||'individual')==='individual'} onChange={()=>setOtOfflinePending(p=>({...p,type:'individual'}))} className="h-4 w-4 text-[#2F6288]" />
-                                                            <span className="ml-1">Individual</span>
-                                                        </label>
-                                                        <label className="inline-flex items-center text-xs">
-                                                            <input type="radio" name="ot-offline-type" checked={otOfflinePending.type==='couple'} onChange={()=>setOtOfflinePending(p=>({...p,type:'couple'}))} className="h-4 w-4 text-[#2F6288]" />
-                                                            <span className="ml-1">Couple</span>
-                                                        </label>
-                                                        <label className="inline-flex items-center text-xs">
-                                                            <input type="radio" name="ot-offline-type" checked={otOfflinePending.type==='group'} onChange={()=>setOtOfflinePending(p=>({...p,type:'group'}))} className="h-4 w-4 text-[#2F6288]" />
-                                                            <span className="ml-1">Group</span>
-                                                        </label>
-                                                    </div>
-                                                    <input type="time" value={otOfflinePending.startTime} onChange={(e)=> setOtOfflinePending(p=>({...p,startTime:e.target.value}))} className="text-sm w-full border border-gray-300 p-2 rounded-lg" />
-                                                    <span className="hidden sm:flex justify-center text-gray-500">-</span>
-                                                    <input type="time" value={otOfflinePending.endTime} onChange={(e)=> setOtOfflinePending(p=>({...p,endTime:e.target.value}))} className="text-sm w-full border border-gray-300 p-2 rounded-lg" />
-                                                    <div className="flex items-center gap-2">
-                                                        <button type="button" onClick={applyOtOfflinePending} className="text-xs px-3 py-1.5 bg-[#2F6288] text-white rounded-md">Apply to {otOfflineSelectedDates.length} dates</button>
-                                                        <button type="button" onClick={()=> setOtOfflinePending({ open:false, startTime:"", endTime:"", type:"individual" })} className="text-xs px-3 py-1.5 bg-gray-200 text-gray-700 rounded-md">Cancel</button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                    {/* Slots for selected date */}
-                                    <div className="border rounded-lg p-3">
-                                        <div className="font-semibold mb-2">Slots for {otOfflineDate}</div>
-                                        <div className="space-y-3">
-                                            {(formData?.offline?.oneTime?.slots||[]).filter(s=>ymd(s.date)===otOfflineDate).map((s, idx) => (
-                                                <div key={`${otOfflineDate}-${idx}`} className="border rounded-lg p-3 space-y-2 bg-gray-50">
-                                                    <div className="flex items-center gap-4 mb-2">
-                                                        <label className="inline-flex items-center">
-                                                            <input 
-                                                                type="radio" 
-                                                                name={`offline-slot-type-${idx}`}
-                                                                checked={(s.type || 'individual') === 'individual'}
-                                                                onChange={() => updateOneTimeSlot('offline', s.id, 'type', 'individual')}
-                                                                className="form-radio h-4 w-4 text-[#2F6288]"
-                                                            />
-                                                            <span className="ml-2">Individual</span>
-                                                        </label>
-                                                        <label className="inline-flex items-center">
-                                                            <input 
-                                                                type="radio" 
-                                                                name={`offline-slot-type-${idx}`}
-                                                                checked={s.type === 'couple'}
-                                                                onChange={() => updateOneTimeSlot('offline', s.id, 'type', 'couple')}
-                                                                className="form-radio h-4 w-4 text-[#2F6288]"
-                                                            />
-                                                            <span className="ml-2">Couple</span>
-                                                        </label>
-                                                        <label className="inline-flex items-center">
-                                                            <input 
-                                                                type="radio" 
-                                                                name={`offline-slot-type-${idx}`}
-                                                                checked={s.type === 'group'}
-                                                                onChange={() => updateOneTimeSlot('offline', s.id, 'type', 'group')}
-                                                                className="form-radio h-4 w-4 text-[#2F6288]"
-                                                            />
-                                                            <span className="ml-2">Group</span>
-                                                        </label>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <input 
-                                                            type="time" 
-                                                            value={s.startTime||''} 
-                                                            onChange={(e)=>updateOneTimeSlot('offline', s.id, 'startTime', e.target.value)} 
-                                                            className="border p-2 rounded flex-1" 
-                                                        />
-                                                        <span>-</span>
-                                                        <input 
-                                                            type="time" 
-                                                            value={s.endTime||''} 
-                                                            onChange={(e)=>updateOneTimeSlot('offline', s.id, 'endTime', e.target.value)} 
-                                                            className="border p-2 rounded flex-1" 
-                                                        />
-                                                        <button 
-                                                            type="button"
-                                                            onClick={()=>removeOneTimeSlot('offline', s.id)} 
-                                                            className="text-red-600 hover:text-red-800 p-1"
-                                                            title="Delete slot"
-                                                        >
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-                                                    {/* Location removed for One-Time Offline slots */}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 )}
 
                 {/* Organizer Information */}
@@ -2761,12 +3141,10 @@ export default function GuideForm() {
                             <label className="block text-md font-semibold text-gray-700 mb-2">Organizer Name</label>
                             <input
                                 placeholder="Enter Organizer Name"
-                                type="text"
-                                value={formData?.organizer?.name}
+                                value={formData?.organizer?.name || ""}
                                 onChange={(e) => handleFieldChange("organizer", "name", e.target.value)}
-                                className="text-sm w-full border border-gray-300 p-3 rounded-lg "
+                                className="text-sm w-full border border-gray-300 p-3 rounded-lg"
                             />
-                            {errors?.organizerName && <p className="text-red-500 text-sm mt-1">{errors?.organizerName}</p>}
                         </div>
 
                         <div>
@@ -2828,7 +3206,7 @@ export default function GuideForm() {
                             placeholder="Enter Description"
                             value={formData?.session?.sessiondescription}
                             onChange={(e) => handleFieldChange("session", "sessiondescription", e.target.value)}
-                            className="text-sm w-full border border-gray-300 p-3 rounded-lg  h-32 resize-none"
+                            className="text-sm w-full border border-gray-300 p-3 rounded-lg h-24 resize-none"
                         />
                     </div>
 
@@ -3054,150 +3432,6 @@ export default function GuideForm() {
                     </div>
                 </div>
 
-                {/* Dynamic Guide Slots based on Sub-Category */}
-                {formData?.guideCard?.subCategory && (
-                    <div className="mb-8">
-                        <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
-                            {isEditing ? "Edit Guide Slots" : "Guide Slots"} <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
-                        </h2>
-                        
-                        {/* Online Slots */}
-                        {(formData?.guideCard?.subCategory === "Online" || formData?.guideCard?.subCategory === "both") && (
-                            <div className="mb-6">
-                                <h3 className="text-lg font-semibold text-gray-700 mb-4">Session Online Slots</h3>
-                                <div className="space-y-4">
-                                    {formData?.session?.onlineSlots && formData.session.onlineSlots.map((slot, i) => (
-                                        <div key={i} className="border border-gray-200 rounded-lg p-4 space-y-4 bg-blue-50">
-                                            <div className="flex justify-between items-center">
-                                                <p className="font-semibold text-gray-700">Online Slot {i + 1}</p>
-                                                {formData.session.onlineSlots.length > 1 && (
-                                                    <button
-                                                        onClick={() => removeSessionSlot("online", i)}
-                                                        className="text-red-500 hover:text-red-700 p-1"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
-                                                )}
-                                            </div>
-
-                                            <label className="block text-md font-semibold text-gray-700 mb-2">Preferred Date</label>
-                                            <input
-                                                type="date"
-                                                value={slot.date}
-                                                onChange={(e) => handleOnlineSlotChange(i, "date", e.target.value)}
-                                                className="sm:flex block w-full border border-gray-300 p-3 rounded-lg"
-                                            />
-
-                                            <div className="grid sm:grid-cols-2 gap-4">
-                                                <div>
-                                                    <label className="block text-md font-semibold text-gray-700 mb-2">Start Time</label>
-                                                    <input
-                                                        type="time"
-                                                        value={slot.startTime}
-                                                        onChange={(e) => handleOnlineSlotChange(i, "startTime", e.target.value)}
-                                                        className="text-sm w-full border border-gray-300 p-3 rounded-lg"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-md font-semibold text-gray-700 mb-2">End Time</label>
-                                                    <input
-                                                        type="time"
-                                                        value={slot.endTime}
-                                                        onChange={(e) => handleOnlineSlotChange(i, "endTime", e.target.value)}
-                                                        className="text-sm w-full border border-gray-300 p-3 rounded-lg"
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-
-                                    <button
-                                        onClick={addOnlineSlot}
-                                        className="text-sm w-full px-4 py-3 text-white rounded-lg transition-colors flex items-center justify-center gap-2 hover:opacity-90"
-                                        style={{ backgroundColor: 'rgb(47, 98, 136)' }}
-                                    >
-                                        <Plus className="w-4 h-4" />
-                                        Add Online Slot
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Offline Slots */}
-                        {(formData?.guideCard?.subCategory === "Offline" || formData?.guideCard?.subCategory === "both") && (
-                            <div className="mb-6">
-                                <h3 className="text-lg font-semibold text-gray-700 mb-4">Session Offline Slots</h3>
-                                <div className="space-y-4">
-                                    {formData?.guideCard?.subCategory && formData?.session?.offlineSlots?.map((slot, i) => (
-                                        <div key={i} className="border border-gray-200 rounded-lg p-4 space-y-4 bg-green-50">
-                                            <div className="flex justify-between items-center">
-                                                <p className="font-semibold text-gray-700">Offline Slot {i + 1}</p>
-                                                {formData?.session?.offlineSlots.length > 1 && (
-                                                    <button
-                                                        onClick={() => removeSessionSlot("offline", i)}
-                                                        className="text-red-500 hover:text-red-700 p-1"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
-                                                )}
-                                            </div>
-
-                                            <label className="block text-md font-semibold text-gray-700 mb-2">Preferred Date</label>
-                                            <input
-                                                type="date"
-                                                value={slot.date}
-                                                onChange={(e) => handleSlotChange(i, "date", e.target.value)}
-                                                className="sm:flex block w-full border border-gray-300 p-3 rounded-lg"
-                                            />
-
-                                            <div className="grid sm:grid-cols-2 gap-4">
-                                                <div>
-                                                    <label className="block text-md font-semibold text-gray-700 mb-2">Start Time</label>
-                                                    <input
-                                                        type="time"
-                                                        value={slot.startTime}
-                                                        onChange={(e) => handleSlotChange("offline", "quarterly", i, "startTime", e.target.value)}
-                                                        className="text-sm w-full border border-gray-300 p-3 rounded-lg"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-md font-semibold text-gray-700 mb-2">End Time</label>
-                                                    <input
-                                                        type="time"
-                                                        value={slot.endTime}
-                                                        onChange={(e) => handleSlotChange("offline", "quarterly", i, "endTime", e.target.value)}
-                                                        className="text-sm w-full border border-gray-300 p-3 rounded-lg"
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            <div>
-                                                <label className="block text-md font-semibold text-gray-700 mb-2">Location</label>
-                                                <input
-                                                    type="text"
-                                                    placeholder="Enter location for offline session"
-                                                    value={slot.location}
-                                                    onChange={(e) => handleSlotChange(i, "location", e.target.value)}
-                                                    className="text-sm w-full border border-gray-300 p-3 rounded-lg"
-                                                />
-                                            </div>
-                                        </div>
-                                    ))}
-
-                                    <button
-                                        onClick={addOfflineSlot}
-                                        className="text-sm w-full px-4 py-3 text-white rounded-lg transition-colors flex items-center justify-center gap-2 hover:opacity-90"
-                                        style={{ backgroundColor: 'rgb(47, 98, 136)' }}
-                                    >
-                                        <Plus className="w-4 h-4" />
-                                        Add Offline Slot
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                )}
-
                 {/* Save Button */}
                 <div className="flex gap-4">
                     <button
@@ -3237,9 +3471,7 @@ export default function GuideForm() {
                         </DndProvider>
                     </div>
                 )}
-
             </div>
         </div>
     );
-}         
-    
+}

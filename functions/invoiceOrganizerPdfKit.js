@@ -70,43 +70,74 @@ async function generateOrganizerInvoicePdfBuffer(invoiceData) {
       doc.fontSize(9).font('Helvetica').text('Taxable Value', 480, yPos, { align: 'right' });
 
       yPos += 25;
+      
+      // Track totals
+      let totalGross = 0;
+      let totalDiscount = 0;
+      let totalTaxable = 0;
+      let totalIgst = 0;
+      let totalGiftCardDiscount = 0;
+      
       // Items table
       for (const it of items) {
         const title = (it.title || '').toString();
         const gross = currency(it.gross);
         const discount = currency(it.discount);
         const taxable = currency(it.taxableValue);
-        const igst = currency(it.igst);
+        const igst = currency(it.igst || 0);
+        const GiftCardCoupon = currency(it?.GiftCardCoupon || 0);
+        
+        totalGross += gross;
+        totalDiscount += discount;
+        totalTaxable += taxable;
+        totalIgst += igst;
+        totalGiftCardDiscount += GiftCardCoupon;
 
-        doc.fontSize(9).font('Helvetica').text(title, 40, yPos, { width: 400 });
+        // Simple item display: title and price only
+        doc.fontSize(9).font('Helvetica').text(title, 40, yPos, { width: 420 });
+        doc.text(`Rs. ${gross.toFixed(2)}`, 500, yPos, { align: 'right' });
         yPos += 20;
-
-        // Right aligned amounts
-        const amountX = 430;
-        let amountY = yPos - 20;
-        doc.fontSize(9).font('Helvetica').text('Gross Amount', amountX, amountY);
-        doc.text(`Rs. ${gross.toFixed(0)}`, 500, amountY, { align: 'right' });
-        
-        amountY += 20;
-        doc.text('Discount', amountX, amountY);
-        doc.text(`- Rs. ${discount.toFixed(0)}`, 500, amountY, { align: 'right' });
-        
-        amountY += 20;
-        doc.text('Taxable Value', amountX, amountY);
-        doc.text(`Rs. ${taxable.toFixed(0)}`, 500, amountY, { align: 'right' });
-
-        amountY += 20;
-        const gstRate = igst > 0 ? ((igst / taxable) * 100).toFixed(0) : '18';
-        doc.text(`IGST @${gstRate}%`, amountX, amountY);
-        doc.text(`Rs. ${igst.toFixed(0)}`, 500, amountY, { align: 'right' });
-
-        yPos = amountY + 30;
       }
 
-      // Total
+      // Summary Section
       yPos += 10;
-      doc.fontSize(11).font('Helvetica-Bold').text('TOTAL AMOUNT', 40, yPos);
-      doc.text(`Rs. ${igst.toFixed(0) + taxable.toFixed(0) - discount.toFixed(0)}`, 500, yPos, { align: 'right' });
+      doc.moveTo(40, yPos).lineTo(570, yPos).stroke();
+      yPos += 15;
+      
+      const summaryX = 350;
+      
+      // Total Price (sum of all item prices)
+      doc.fontSize(9).font('Helvetica').text('Total Price', summaryX, yPos);
+      doc.text(`Rs. ${totalGross.toFixed(2)}`, 500, yPos, { align: 'right' });
+      
+      // Tax with percentage
+      yPos += 15;
+      const avgGstRate = totalTaxable > 0 ? ((totalIgst / totalTaxable) * 100).toFixed(0) : '18';
+      doc.text(`Tax (${avgGstRate}%)`, summaryX, yPos);
+      doc.text(`Rs. ${totalIgst.toFixed(2)}`, 500, yPos, { align: 'right' });
+      
+      // Discount
+      if (totalDiscount > 0) {
+        yPos += 15;
+        doc.text('Discount', summaryX, yPos);
+        doc.text(`- Rs. ${totalDiscount.toFixed(2)}`, 500, yPos, { align: 'right' });
+      }
+      
+      // Gift Card Discount
+      if (totalGiftCardDiscount > 0) {
+        yPos += 15;
+        doc.text('Gift Card Discount', summaryX, yPos);
+        doc.text(`- Rs. ${totalGiftCardDiscount.toFixed(2)}`, 500, yPos, { align: 'right' });
+      }
+      
+      yPos += 20;
+      doc.moveTo(40, yPos).lineTo(570, yPos).stroke();
+      yPos += 15;
+      
+      // Net Amount (Total Price + Tax - Discount - Gift Card Discount)
+      const netAmount = totalGross + totalIgst - totalDiscount - totalGiftCardDiscount;
+      doc.fontSize(11).font('Helvetica-Bold').text('Net Amount', summaryX, yPos);
+      doc.text(`Rs. ${netAmount.toFixed(2)}`, 500, yPos, { align: 'right' });
 
       // Footer disclaimer
       yPos += 40;

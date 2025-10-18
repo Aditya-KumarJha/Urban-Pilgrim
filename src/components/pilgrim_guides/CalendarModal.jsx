@@ -5,18 +5,7 @@ import { useDispatch } from "react-redux";
 import { addToCart } from "../../features/cartSlice.js";
 import { showSuccess } from "../../utils/toast.js";
 
-export default function CalendarModal({ 
-    isOpen, 
-    onClose, 
-    sessionData, 
-    selectedPlan, 
-    mode,
-    availableSlots = [],
-    personsPerBooking = 1,
-    occupancyType = '',
-    capacityMax = 0,
-    onAddToCart
-}) {
+export default function CalendarModal({ isOpen, onClose, sessionData, selectedPlan, mode,availableSlots = [],personsPerBooking = 1,occupancyType = '',capacityMax = 0,onAddToCart}) {
     // Dynamic mode with default fallback
     const dynamicMode = mode || 'Online';
     

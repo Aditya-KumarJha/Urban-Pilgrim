@@ -217,6 +217,7 @@ export default function CartPage() {
 						const dataContent = await confirmPayment({
 							...checkoutData,
 							total,
+							GiftCardCoupon: checkoutData?.coupon ?? 0,
 							paymentResponse: response,
 							// Send both original and expanded cart data
 							cartData: checkoutData.expandedCartData, // Individual items for processing

@@ -469,8 +469,6 @@ export default function GuideClassDetails() {
         return weeklyPattern;
     };
 
-    // Each booking counts as 1 seat towards capacity (even for couple/group)
-    // Pricing by occupancy is handled separately; do not multiply persons in cart
     const getPersonsPerBooking = () => 1;
 
     const getCapacityMax = () => {
@@ -599,9 +597,11 @@ export default function GuideClassDetails() {
 
     // Default occupancy selection: always ensure Individual is highlighted by default
     // Priority: match 'Individual' first, then 'Single', else first item, else synthetic { type: 'Individual' }
+    // Set default occupancy based on current mode and subscription type
     useEffect(() => {
-        if (selectedOccupancy) return;
-        const occupancies = sessionData?.guideCard?.occupancies;
+        if (selectedOccupancy || !mode || !subscriptionType) return;
+        
+        const occupancies = getCurrentOccupancies();
         let defaultOcc = null;
         
         if (Array.isArray(occupancies) && occupancies.length > 0) {
@@ -628,42 +628,28 @@ export default function GuideClassDetails() {
         }
         
         if (defaultOcc) {
-            console.log('Setting default occupancy:', defaultOcc);
+            console.log('Setting default occupancy for', mode, subscriptionType, ':', defaultOcc);
             setSelectedOccupancy(defaultOcc);
         }
-    }, [sessionData]);
+    }, [sessionData, mode, subscriptionType]);
 
-    // Default plan selection when both are present: prefer One-Time for Individual/Single, else Monthly
+    // Default plan selection: always prefer One-Time when both plans are available
     useEffect(() => {
         if (!sessionData) return;
         if (subscriptionType) return; // already chosen
-        const occ = (selectedOccupancy?.type || '').toLowerCase();
         const hasMonthly = planAvailableAny('monthly');
         const hasOneTime = planAvailableAny('oneTime');
-        if (hasMonthly && hasOneTime) {
-            if (/individual|single/.test(occ)) {
-                setSubscriptionType('oneTime');
-                setSelectedPlan('oneTime');
-                if (!planAvailable('oneTime')) {
-                    const m = findModeForPlan('oneTime');
-                    if (m) setMode(m);
-                }
-            } else {
-                setSubscriptionType('monthly');
-                setSelectedPlan('monthly');
-                if (!planAvailable('monthly')) {
-                    const m = findModeForPlan('monthly');
-                    if (m) setMode(m);
-                }
-            }
-        } else if (hasOneTime && !hasMonthly) {
+        
+        // Prefer One-Time by default (whether both available or only oneTime available)
+        if (hasOneTime) {
             setSubscriptionType('oneTime');
             setSelectedPlan('oneTime');
             if (!planAvailable('oneTime')) {
                 const m = findModeForPlan('oneTime');
                 if (m) setMode(m);
             }
-        } else if (hasMonthly && !hasOneTime) {
+        } else if (hasMonthly) {
+            // Only select Monthly if One-Time is not available
             setSubscriptionType('monthly');
             setSelectedPlan('monthly');
             if (!planAvailable('monthly')) {
@@ -952,6 +938,16 @@ export default function GuideClassDetails() {
     const planAvailable = (planKey) => {
         if (!sessionData || !mode) return false;
         const pk = sessionData[mode.toLowerCase()]?.[planKey];
+        // For monthly, only show if a positive monthly.price is configured. Ignore schedule presence.
+        if (planKey === 'monthly') {
+            const monthlyPrice = Number(pk?.price);
+            return !isNaN(monthlyPrice) && monthlyPrice > 0;
+        }
+        // For oneTime, only show if a positive oneTime.price is configured
+        if (planKey === 'oneTime') {
+            const oneTimePrice = Number(pk?.price);
+            return !isNaN(oneTimePrice) && oneTimePrice > 0;
+        }
         return planHasPrice(pk) || planHasUsableSchedule(pk);
     };
 
@@ -959,6 +955,22 @@ export default function GuideClassDetails() {
         if (!sessionData) return false;
         const onlinePlan = sessionData?.online?.[planKey];
         const offlinePlan = sessionData?.offline?.[planKey];
+        // For monthly, availability should be based strictly on a positive monthly.price in either mode
+        if (planKey === 'monthly') {
+            const onlineMonthlyPrice = Number(onlinePlan?.price);
+            const offlineMonthlyPrice = Number(offlinePlan?.price);
+            const onlineAvailable = !isNaN(onlineMonthlyPrice) && onlineMonthlyPrice > 0;
+            const offlineAvailable = !isNaN(offlineMonthlyPrice) && offlineMonthlyPrice > 0;
+            return onlineAvailable || offlineAvailable;
+        }
+        // For oneTime, availability requires positive price in any mode
+        if (planKey === 'oneTime') {
+            const onlineOneTimePrice = Number(onlinePlan?.price);
+            const offlineOneTimePrice = Number(offlinePlan?.price);
+            const onlineAvailable = !isNaN(onlineOneTimePrice) && onlineOneTimePrice > 0;
+            const offlineAvailable = !isNaN(offlineOneTimePrice) && offlineOneTimePrice > 0;
+            return onlineAvailable || offlineAvailable;
+        }
         const onlineAvailable = planHasPrice(onlinePlan) || planHasUsableSchedule(onlinePlan);
         const offlineAvailable = planHasPrice(offlinePlan) || planHasUsableSchedule(offlinePlan);
         return onlineAvailable || offlineAvailable;
@@ -987,13 +999,43 @@ export default function GuideClassDetails() {
         return Math.min(...prices);
     };
 
+    // Get minimum price from occupancies for a plan
+    const getMinOccupancyPrice = (planKey, modeKey) => {
+        if (!sessionData || !modeKey || !planKey) return null;
+        const plan = sessionData[modeKey]?.[planKey];
+        const occupancies = plan?.occupancies || [];
+        
+        if (!Array.isArray(occupancies) || occupancies.length === 0) return null;
+        
+        const prices = occupancies
+            .map(occ => parseNumber(occ?.price))
+            .filter(p => p !== null && p > 0);
+        
+        return prices.length > 0 ? Math.min(...prices) : null;
+    };
+
     const getPlanPricePreview = (planKey) => {
         if (!sessionData) return null;
         let price = null;
         let usedMode = mode;
-        if (planKey === 'monthly') {
+        
+        // Try to get minimum price from occupancies first
+        const currentModeKey = mode?.toLowerCase?.();
+        price = getMinOccupancyPrice(planKey, currentModeKey);
+        
+        if (price == null) {
+            // Try alternate mode
+            const altModeKey = mode === 'Online' ? 'offline' : 'online';
+            price = getMinOccupancyPrice(planKey, altModeKey);
+            if (price !== null) {
+                usedMode = altModeKey === 'online' ? 'Online' : 'Offline';
+            }
+        }
+        
+        // Fallback to plan price if no occupancy prices found
+        if (price == null && planKey === 'monthly') {
             // Monthly should always use constant monthly.price
-            const currentPlan = sessionData[mode?.toLowerCase?.()]?.monthly;
+            const currentPlan = sessionData[currentModeKey]?.monthly;
             price = parseNumber(currentPlan?.price);
             if (price == null) {
                 const altModeKey = mode === 'Online' ? 'offline' : 'online';
@@ -1005,8 +1047,8 @@ export default function GuideClassDetails() {
             if (price == null) {
                 price = parseNumber(sessionData?.guideCard?.price);
             }
-        } else {
-            const current = sessionData[mode?.toLowerCase?.()]?.[planKey];
+        } else if (price == null) {
+            const current = sessionData[currentModeKey]?.[planKey];
             price = getPlanFromPrice(current);
             if (price == null) {
                 const altMode = mode === 'Online' ? 'offline' : 'online';
@@ -1015,16 +1057,41 @@ export default function GuideClassDetails() {
                 usedMode = altMode === 'online' ? 'Online' : altMode === 'offline' ? 'Offline' : usedMode;
             }
         }
+        
         if (price == null) return null;
         return { price, mode: usedMode };
     };
 
-    // Prefer selected occupancy price if provided, else use plan price preview
+    // Get occupancies based on current mode and subscription type
+    const getCurrentOccupancies = () => {
+        if (!sessionData || !mode || !subscriptionType) return [];
+        const modeKey = mode.toLowerCase();
+        const occupancies = sessionData[modeKey]?.[subscriptionType]?.occupancies || [];
+        return Array.isArray(occupancies) ? occupancies : [];
+    };
+
+    // Prefer selected occupancy price if provided, else show minimum occupancy price for the selected plan
     const getDisplayedPrice = () => {
-        if (!subscriptionType) return null;
-        // Monthly: use monthly.price if present, else fallback to outer guideCard.price; ignore occupancy-specific prices
-        if (subscriptionType === 'monthly') {
-            const modeKey = mode?.toLowerCase?.();
+        if (!subscriptionType || !mode) return null;
+        
+        // If user has selected a specific occupancy, show that price
+        if (selectedOccupancy && selectedOccupancy.price) {
+            const n = Number(selectedOccupancy.price);
+            return isNaN(n) ? null : n;
+        }
+        
+        // Otherwise, show minimum price from all occupancies for this plan
+        const modeKey = mode.toLowerCase();
+        let minPrice = getMinOccupancyPrice(subscriptionType, modeKey);
+        
+        // Try alternate mode if not found
+        if (minPrice == null) {
+            const altModeKey = mode === 'Online' ? 'offline' : 'online';
+            minPrice = getMinOccupancyPrice(subscriptionType, altModeKey);
+        }
+        
+        // Fallback for monthly: use monthly.price if present
+        if (minPrice == null && subscriptionType === 'monthly') {
             let price = parseNumber(sessionData?.[modeKey]?.monthly?.price);
             if (price == null) {
                 const altKey = mode === 'Online' ? 'offline' : 'online';
@@ -1035,12 +1102,14 @@ export default function GuideClassDetails() {
             }
             return price;
         }
-        if (selectedOccupancy && selectedOccupancy.price) {
-            const n = Number(selectedOccupancy.price);
-            return isNaN(n) ? null : n;
+        
+        // Final fallback to getPlanPricePreview
+        if (minPrice == null) {
+            const pv = getPlanPricePreview(subscriptionType);
+            return pv?.price ?? null;
         }
-        const pv = getPlanPricePreview(subscriptionType);
-        return pv?.price ?? null;
+        
+        return minPrice;
     };
 
     const handleShowFreeTrail = () => {
@@ -1055,7 +1124,7 @@ export default function GuideClassDetails() {
     }
 
     return (
-        <div className="px-4 py-10 mt-[100px] bg-gradient-to-r from-[#FAF4F0] to-white">
+        <div className="px-4 py-10 md:mt-[100px] mt-[70px] bg-gradient-to-r from-[#FAF4F0] to-white">
             {/* title and price */}
             <div className="max-w-7xl mx-auto px-4">
                 <h1 className="text-4xl font-bold">
@@ -1186,6 +1255,7 @@ export default function GuideClassDetails() {
                                                     }`}
                                                 onClick={() => {
                                                     setMode(opt);
+                                                    setSelectedOccupancy(null); // Reset occupancy when changing mode
                                                     setDropdownOpen(false);
                                                 }}
                                             >
@@ -1226,96 +1296,55 @@ export default function GuideClassDetails() {
                         ))}
                     </div>
 
-                    {/* occupency/group type */}
-                    {sessionData?.guideCard?.occupancies && sessionData?.guideCard?.occupancies.length > 0 && sessionData?.guideCard?.showOccupancy && (
-                        <div className="flex flex-col gap-3">
-                            {
-                                sessionData?.guideCard?.occupancies[0].type === "Single" || sessionData?.guideCard?.occupancies[0].type === "Twin" ? (
-                                    <div className="flex items-center gap-2">
-                                        <FaUser className="text-[#C5703F]" />
-                                        <span className="text-sm font-medium">Select Occupancy:</span>
-                                    </div>
-                                ) : ""
-                            }
-                            <div className="flex flex-wrap gap-2">
-                                {sessionData.guideCard.occupancies.map((occupancy, index) => (
-                                    <button
-                                        key={index}
-                                        onClick={() => {
-                                            console.log("=== OCCUPANCY SELECTED ===");
-                                            console.log("Selected occupancy:", occupancy);
-                                            setSelectedOccupancy(occupancy);
-                                        }}
-                                        className={`px-4 py-2 rounded-lg border transition-all duration-200 text-sm ${
-                                            selectedOccupancy?.type === occupancy.type
-                                                ? "border-[#C5703F] bg-[#C5703F] text-white shadow-md"
-                                                : "border-gray-300 bg-white text-gray-700 hover:border-[#C5703F] hover:bg-gray-50"
-                                        }`}
-                                    >
-                                        <div className="text-center">
-                                            <p className="font-semibold">{occupancy.type}</p>
-                                            {occupancy.price && (
-                                                <p className="text-xs opacity-90">
-                                                    ₹{new Intl.NumberFormat("en-IN").format(occupancy.price)}
-                                                </p>
-                                            )}
-                                        </div>
-                                    </button>
-                                ))}
+                    {/* occupency/group type - Based on selected mode and subscription type */}
+                    {(() => {
+                        const currentOccupancies = getCurrentOccupancies();
+                        return currentOccupancies && currentOccupancies.length > 0 && (
+                            <div className="flex flex-col gap-3">
+                                <div className="flex items-center gap-2">
+                                    <FaUser className="text-[#C5703F]" />
+                                    <span className="text-sm font-medium">Select Occupancy:</span>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    {currentOccupancies.map((occupancy, index) => (
+                                        <button
+                                            key={index}
+                                            onClick={() => {
+                                                console.log("=== OCCUPANCY SELECTED ===");
+                                                console.log("Selected occupancy:", occupancy);
+                                                setSelectedOccupancy(occupancy);
+                                            }}
+                                            className={`px-4 py-2 rounded-lg border transition-all duration-200 text-sm ${
+                                                selectedOccupancy?.type === occupancy.type
+                                                    ? "border-[#C5703F] bg-[#C5703F] text-white shadow-md"
+                                                    : "border-gray-300 bg-white text-gray-700 hover:border-[#C5703F] hover:bg-gray-50"
+                                            }`}
+                                        >
+                                            <div className="text-center">
+                                                <p className="font-semibold">{occupancy.type}</p>
+                                                {occupancy.price && (
+                                                    <p className="text-xs opacity-90">
+                                                        ₹{new Intl.NumberFormat("en-IN").format(occupancy.price)}
+                                                    </p>
+                                                )}
+                                                {occupancy.min && occupancy.max && (
+                                                    <p className="text-xs opacity-75">
+                                                        {occupancy.min}-{occupancy.max} persons
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        );
+                    })()}
 
                     {/* Subscription Type Selector - show if admin provided plan in ANY mode */}
                     {(planAvailableAny('monthly') || planAvailableAny('oneTime')) && (
                         <div className="max-w-sm">
                             <h3 className="text-lg font-semibold text-gray-800 mb-4">Choose Plan Type</h3>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-                                {/* Monthly Option */}
-                                {planAvailableAny('monthly') && (
-                                        <button
-                                            onClick={() => {
-                                                console.log("=== MONTHLY BUTTON CLICKED ===");
-                                                console.log("Current mode before plan selection:", mode);
-                                                console.log("Is monthly available in current mode?", planAvailable('monthly'));
-                                                setSubscriptionType("monthly");
-                                                setSelectedPlan("monthly");
-                                                setUserPickedPlan(true);
-                                                console.log("Subscription type set to: monthly");
-                                                if (!planAvailable('monthly')) {
-                                                    console.log("Monthly not available in current mode, finding alternative...");
-                                                    const m = findModeForPlan('monthly');
-                                                    console.log("findModeForPlan returned:", m);
-                                                    if (m) {
-                                                        console.log("Switching mode from", mode, "to", m);
-                                                        setMode(m);
-                                                    }
-                                                } else {
-                                                    console.log("Monthly is available in current mode:", mode);
-                                                }
-                                            }}
-                                            className={`p-3 rounded-lg border-2 transition-all duration-200 ${subscriptionType === "monthly"
-                                                ? "border-[#C5703F] bg-[#C5703F] text-white shadow-md"
-                                                : "border-gray-300 bg-white text-gray-700 hover:border-[#C5703F] hover:bg-gray-50"
-                                            }`}
-                                        >
-                                            <div className="text-center">
-                                                <p className="font-semibold">Monthly</p>
-                                                {(() => {
-                                                    const pv = getPlanPricePreview('monthly');
-                                                    return pv ? (
-                                                        <>
-                                                            <p className="text-xs mt-1">From ₹{new Intl.NumberFormat('en-IN').format(pv.price)}</p>
-                                                            {/* <p className="text-xs font-medium text-blue-600 mt-1">
-                                                                Mode: {pv.mode || mode || 'Online'}
-                                                            </p> */}
-                                                        </>
-                                                    ) : null;
-                                                })()}
-                                            </div>
-                                        </button>
-                                    )}
-
                                 {/* One Time Option */}
                                 {planAvailableAny('oneTime') && (
                                     <button
@@ -1323,6 +1352,7 @@ export default function GuideClassDetails() {
                                             setSubscriptionType("oneTime");
                                             setSelectedPlan("oneTime");
                                             setUserPickedPlan(true);
+                                            setSelectedOccupancy(null); // Reset occupancy when changing plan type
                                             if (!planAvailable('oneTime')) {
                                                 const m = findModeForPlan('oneTime');
                                                 if (m) setMode(m);
@@ -1341,6 +1371,52 @@ export default function GuideClassDetails() {
                                                     <>
                                                         <p className="text-xs mt-1">From ₹{new Intl.NumberFormat('en-IN').format(pv.price)}</p>
                                                         {/* <p className="text-xs font-medium text-green-600 mt-1">
+                                                            Mode: {pv.mode || mode || 'Online'}
+                                                        </p> */}
+                                                    </>
+                                                ) : null;
+                                            })()}
+                                        </div>
+                                    </button>
+                                )}
+
+                                {/* Monthly Option */}
+                                {planAvailableAny('monthly') && (
+                                    <button
+                                        onClick={() => {
+                                            console.log("=== MONTHLY BUTTON CLICKED ===");
+                                            console.log("Current mode before plan selection:", mode);
+                                            console.log("Is monthly available in current mode?", planAvailable('monthly'));
+                                            setSubscriptionType("monthly");
+                                            setSelectedPlan("monthly");
+                                            setUserPickedPlan(true);
+                                            setSelectedOccupancy(null); // Reset occupancy when changing plan type
+                                            console.log("Subscription type set to: monthly");
+                                            if (!planAvailable('monthly')) {
+                                                console.log("Monthly not available in current mode, finding alternative...");
+                                                const m = findModeForPlan('monthly');
+                                                console.log("findModeForPlan returned:", m);
+                                                if (m) {
+                                                    console.log("Switching mode from", mode, "to", m);
+                                                    setMode(m);
+                                                }
+                                            } else {
+                                                console.log("Monthly is available in current mode:", mode);
+                                            }
+                                        }}
+                                        className={`p-3 rounded-lg border-2 transition-all duration-200 ${subscriptionType === "monthly"
+                                            ? "border-[#C5703F] bg-[#C5703F] text-white shadow-md"
+                                            : "border-gray-300 bg-white text-gray-700 hover:border-[#C5703F] hover:bg-gray-50"
+                                        }`}
+                                    >
+                                        <div className="text-center">
+                                            <p className="font-semibold">Monthly</p>
+                                            {(() => {
+                                                const pv = getPlanPricePreview('monthly');
+                                                return pv ? (
+                                                    <>
+                                                        <p className="text-xs mt-1">From ₹{new Intl.NumberFormat('en-IN').format(pv.price)}</p>
+                                                        {/* <p className="text-xs font-medium text-blue-600 mt-1">
                                                             Mode: {pv.mode || mode || 'Online'}
                                                         </p> */}
                                                     </>
@@ -1379,12 +1455,18 @@ export default function GuideClassDetails() {
                                             onClick={async (e) => {
                                                 e.preventDefault();
                                                 try {
-                                                    // Resolve a mode that supports the selected subscription (price OR schedule)
-                                                    let desiredMode = findModeForPlan(subscriptionType);
-                                                    if (desiredMode && desiredMode !== mode) {
-                                                        setMode(desiredMode);
-                                                        // yield a tick so mode-dependent selectors use updated state
-                                                        await new Promise(r => setTimeout(r, 0));
+                                                    // Only switch mode if the current mode doesn't support the selected plan
+                                                    // This respects the user's explicit mode selection
+                                                    if (!planAvailable(subscriptionType)) {
+                                                        let desiredMode = findModeForPlan(subscriptionType);
+                                                        if (desiredMode && desiredMode !== mode) {
+                                                            console.log(`Current mode (${mode}) doesn't support ${subscriptionType}, switching to ${desiredMode}`);
+                                                            setMode(desiredMode);
+                                                            // yield a tick so mode-dependent selectors use updated state
+                                                            await new Promise(r => setTimeout(r, 0));
+                                                        }
+                                                    } else {
+                                                        console.log(`Current mode (${mode}) supports ${subscriptionType}, keeping user's selection`);
                                                     }
 
                                                     // If user selected monthly, lock it before opening modal to avoid any fallback

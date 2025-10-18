@@ -17,6 +17,9 @@
     "functions": {
       "port": 5002
     },
+    "pubsub": {
+      "port": 8089
+    },
     "ui": {
       "enabled": true,
       "port": 4002

@@ -944,6 +944,7 @@ exports.processWhatsappReminders = onSchedule({
     timeZone: 'Asia/Kolkata',
     memory: '256MiB',
     timeoutSeconds: 300,
+    region: 'us-central1',
 }, async () => {
     try {
         const nowTs = admin.firestore.Timestamp.now();
@@ -1345,7 +1346,7 @@ exports.createOrder = functions.https.onCall(async (data, context) => {
 
 exports.confirmPayment = functions.https.onCall(async (data, context) => {
     try {
-        const { userId, email, name, cartData, total, paymentResponse, formData, coupon } = data.data;
+        const { userId, email, name, cartData, GiftCardCoupon, total, paymentResponse, formData, coupon } = data.data;
 
         const adminEmail = "urbanpilgrim25@gmail.com";
 
@@ -2185,9 +2186,11 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                 subscriptionType: item?.subscriptionType || undefined,
                 occupancyType: item?.occupancyType || undefined,
                 gstRate: gstRate,
+                discount: item?.monthly?.discount || 0,
                 sac: (item?.sac || item?.hsn || '').toString().slice(0, 32) || undefined,
                 listingType,
                 commission,
+                GiftCardCoupon: GiftCardCoupon?.discount || 0,
                 organizer: item?.organizer || item?.meetGuide || null
             };
             console.log("safeItem: ", safeItem);
@@ -2244,7 +2247,8 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                             gross: gross,
                             discount: 0,
                             taxableValue: gross,
-                            igst: igstAmount
+                            igst: igstAmount,
+                            GiftCardCoupon: it?.GiftCardCoupon || 0,
                         };
                         }),
                         totalAmount: singleTotal
@@ -2306,9 +2310,10 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                             title: `${item.title} - Admin Commission (${item.commission.adminShare}%)`,
                             sac: item.sac || '',
                             gross: adminAmount,
-                            discount: 0,
                             taxableValue: adminAmount,
-                            igst: adminAmount * (Number(item.gstRate || 0) / 100)
+                            igst: adminAmount * (Number(item.gstRate || 0) / 100),
+                            discount: item?.discount || 0,
+                            GiftCardCoupon: ((item?.GiftCardCoupon || 0) * item.commission.adminShare) / 100,
                         }],
                         totalAmount: adminAmount
                     };
@@ -2355,8 +2360,10 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                             items: [{
                                 title: `${item.title} - Organizer Share (${item.commission.organizerShare}%)`,
                                 gross: organizerAmount,
-                                discount: 0,
-                                taxableValue: organizerAmount
+                                taxableValue: organizerAmount,
+                                igst: organizerAmount * (Number(item.gstRate || 0) / 100),
+                                discount: item?.discount || 0,
+                                GiftCardCoupon: ((item?.GiftCardCoupon || 0) * item.commission.organizerShare) / 100,
                             }],
                             totalAmount: organizerAmount
                         };
