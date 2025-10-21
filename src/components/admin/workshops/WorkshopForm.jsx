@@ -3,27 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { X, Plus } from "lucide-react";
 import { FaTimes } from "react-icons/fa";
 import { showSuccess, showError } from "../../../utils/toast";
-import {
-    setThumbnailUploadProgress,
-    setThumbnailUploading,
-    setImageUploadProgress,
-    setImageUploading,
-    setVideoUploadProgress,
-    setVideoUploading,
-    setGuideUploadProgress,
-    setGuideUploading,
-    setSaving,
-    addWorkshop,
-    updateWorkshop,
-    clearUploadStates,
-    setCurrentWorkshop,
-    clearCurrentWorkshop
-} from "../../../features/workshopsSlice";
-import {
-    createWorkshop,
-    updateWorkshop as updateWorkshopService,
-    uploadFile
-} from "../../../services/workshopService";
+import { setThumbnailUploadProgress, setThumbnailUploading, setImageUploadProgress, setImageUploading, setVideoUploadProgress, setVideoUploading, setGuideUploadProgress, setGuideUploading, setSaving, addWorkshop, updateWorkshop, clearUploadStates, setCurrentWorkshop, clearCurrentWorkshop } from "../../../features/workshopsSlice"; import { createWorkshop, updateWorkshop as updateWorkshopService, uploadFile, saveWorkshopOrganizerData } from "../../../services/workshopService";
 
 export default function WorkshopForm() {
     const [formData, setFormData] = useState({
@@ -334,6 +314,18 @@ export default function WorkshopForm() {
             return;
         }
         
+        // Validate organizer email and phone number (compulsory for new workshops)
+        if (!isEditing) {
+            if (!formData.guide?.[0]?.email || formData.guide[0].email.trim() === "") {
+                showError("Organizer email is required!");
+                return;
+            }
+            if (!formData.guide?.[0]?.number || formData.guide[0].number.trim() === "") {
+                showError("Organizer phone number is required!");
+                return;
+            }
+        }
+        
         dispatch(setSaving(true));
         
         try {
@@ -348,12 +340,51 @@ export default function WorkshopForm() {
                 // Create new workshop
                 const newWorkshop = await createWorkshop(formData);
                 dispatch(addWorkshop(newWorkshop));
-                showSuccess("Workshop created successfully!");
+                
+                // Save organizer data to root organizers collection
+                // Helper function to clean undefined/null values from objects
+                const cleanUndefined = (obj) => {
+                    if (Array.isArray(obj)) {
+                        return obj.map(cleanUndefined);
+                    } else if (obj !== null && typeof obj === 'object') {
+                        return Object.fromEntries(
+                            Object.entries(obj)
+                                .filter(([_, v]) => v !== undefined && v !== null && v !== '')
+                                .map(([k, v]) => [k, cleanUndefined(v)])
+                        );
+                    }
+                    return obj;
+                };
+
+                const rawProgramData = {
+                    title: formData?.title || '',
+                    price: formData?.price || '',
+                    extraPersonPrice: formData?.extraPersonPrice || '',
+                    minPerson: formData?.minPerson || '',
+                    maxPerson: formData?.maxPerson || '',
+                    variants: formData?.variants || [],
+                    sessionDescription: formData?.sessionDescription || '',
+                    sessionTopics: formData?.sessionTopics || []
+                };
+
+                // Remove undefined/null/empty fields to prevent Firestore error
+                const programData = cleanUndefined(rawProgramData);
+
+                const organizerData = {
+                    name: formData.guide[0].name,
+                    email: formData.guide[0].email,
+                    number: formData.guide[0].number,
+                    programData: programData
+                };
+                
+                await saveWorkshopOrganizerData(organizerData);
+                
+                showSuccess("Workshop and organizer saved successfully!");
                 resetForm();
             }
         } catch (error) {
             console.error('Save workshop error:', error);
-            showError("Failed to save workshop");
+            showError(`Failed to save workshop: ${error.message}`);
         } finally {
             dispatch(setSaving(false));
         }
@@ -934,22 +965,28 @@ export default function WorkshopForm() {
                         className="text-sm w-full border border-gray-300 p-3 rounded-lg"
                     />
 
-                    <label className="block text-md font-semibold text-gray-700 mb-2">Email</label>
+                    <label className="block text-md font-semibold text-gray-700 mb-2">
+                        Email <span className="text-red-500">*</span>
+                    </label>
                     <input
                         type="email"
                         value={formData.guide[0].email}
-                        placeholder="Enter email address"
+                        placeholder="Enter email address (Required)"
                         onChange={(e) => handleGuideChange("email", e.target.value)}
                         className="text-sm w-full border border-gray-300 p-3 rounded-lg"
+                        required
                     />
 
-                    <label className="block text-md font-semibold text-gray-700 mb-2">Contact Number</label>
+                    <label className="block text-md font-semibold text-gray-700 mb-2">
+                        Contact Number <span className="text-red-500">*</span>
+                    </label>
                     <input
                         type="tel"
                         value={formData.guide[0].number}
-                        placeholder="Enter contact number"
+                        placeholder="Enter contact number (Required)"
                         onChange={(e) => handleGuideChange("number", e.target.value)}
                         className="text-sm w-full border border-gray-300 p-3 rounded-lg"
+                        required
                     />
 
                     <label className="block text-md font-semibold text-gray-700 mb-2">Title</label>

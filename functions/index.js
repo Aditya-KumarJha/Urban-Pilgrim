@@ -1722,10 +1722,7 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                     } else {
                         console.log("Guide not found");
                     }
-                } else if (
-                    program.type == "retreat" ||
-                    program.category == "retreat" ||
-                    // Check if it's a retreat by checking if it has an id (retreats use numbered ids)
+                } else if ( program.type == "retreat" || program.category == "retreat" ||
                     (program.id && !program.type && !program.category)
                 ) {
                     console.log("Processing retreat purchase for:", program.title);
@@ -1776,9 +1773,7 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                             console.log("No matching retreat found for title: ", program.title);
                         }
                     }
-                } else if (
-                    program.type == "live" ||
-                    program.category == "live"
+                } else if ( program.type == "live" || program.category == "live"
                 ) {
                     programRef = db
                         .collection("pilgrim_sessions")
@@ -1881,9 +1876,7 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                         });
                         updateData = { slides: updatedSlides };
                     }
-                } else if (
-                    program.type == "recorded" ||
-                    program.category == "recorded"
+                } else if ( program.type == "recorded" || program.category == "recorded"
                 ) {
                     programRef = db
                         .collection("pilgrim_sessions")

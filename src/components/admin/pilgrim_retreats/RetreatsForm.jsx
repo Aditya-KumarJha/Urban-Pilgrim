@@ -6,7 +6,7 @@ import { FaEdit, FaTrash, FaPlus, FaTimes } from "react-icons/fa";
 import { useDrag, useDrop } from "react-dnd";
 import { useDropzone } from "react-dropzone";
 import { Plus } from "lucide-react"
-import { deleteRetreatItem, fetchRetreatData, saveOrUpdateRetreatData } from "../../../services/pilgrim_retreat/retreatService";
+import { deleteRetreatItem, fetchRetreatData, saveOrUpdateRetreatData, saveOrganizerData } from "../../../services/pilgrim_retreat/retreatService";
 import { setRetreatData } from "../../../features/pilgrim_retreat/pilgrimRetreatSlice";
 import { useDispatch } from "react-redux";
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
@@ -798,6 +798,18 @@ export default function RetreatsForm() {
 
     const handleSubmitRetreatCard = async () => {
         try {
+            // Validate organizer email and phone number (compulsory for new retreats)
+            if (editingIndex === null) {
+                if (!formData?.meetGuide?.email || formData?.meetGuide?.email.trim() === "") {
+                    showError("Organizer email is required!");
+                    return;
+                }
+                if (!formData?.meetGuide?.number || formData?.meetGuide?.number.trim() === "") {
+                    showError("Organizer phone number is required!");
+                    return;
+                }
+            }
+
             if (editingIndex !== null) {
                 // Update the existing card
                 await saveOrUpdateRetreatData(uid, editingIndex, formData);
@@ -811,15 +823,56 @@ export default function RetreatsForm() {
                 // Create a new card
                 await saveOrUpdateRetreatData(uid, items.length + 1, formData);
                 dispatch(setRetreatData(uid, items.length + 1, items));
+                
+                // Save organizer data to root organizers collection
+                // Helper function to clean undefined/null values from objects
+                const cleanUndefined = (obj) => {
+                    if (Array.isArray(obj)) {
+                        return obj.map(cleanUndefined);
+                    } else if (obj !== null && typeof obj === 'object') {
+                        return Object.fromEntries(
+                            Object.entries(obj)
+                                .filter(([_, v]) => v !== undefined && v !== null && v !== '')
+                                .map(([k, v]) => [k, cleanUndefined(v)])
+                        );
+                    }
+                    return obj;
+                };
+
+                const rawProgramData = {
+                    retreatTitle: formData?.pilgrimRetreatCard?.title || '',
+                    price: formData?.pilgrimRetreatCard?.price || '',
+                    category: formData?.pilgrimRetreatCard?.category || '',
+                    location: formData?.pilgrimRetreatCard?.location || '',
+                    duration: formData?.pilgrimRetreatCard?.duration || '',
+                    session: {
+                        dateOptions: formData?.session?.dateOptions || [],
+                        occupancies: formData?.session?.occupancies || []
+                    },
+                    programSchedule: formData?.programSchedule || []
+                };
+
+                // Remove undefined/null/empty fields to prevent Firestore error
+                const programData = cleanUndefined(rawProgramData);
+
+                const organizerData = {
+                    email: formData?.meetGuide?.email,
+                    number: formData?.meetGuide?.number,
+                    programData: programData
+                };
+                
+                await saveOrganizerData(organizerData);
+                
                 console.log(`Retreat saved successfully!`, formData);
                 resetForm();
                 addItem2(formData);
-                showError("Retreat saved successfully!");
+                showSuccess("Retreat and organizer saved successfully!");
                 console.log(`after reset`, formData);
             }
 
         } catch (error) {
-            console.error(`Failed to save Retreat, please try again. ${error.message}`);
+            console.error(`Failed to save Retreat: ${error.message}`);
+            showError(`Failed to save Retreat: ${error.message}`);
         }
     };
 
@@ -1758,22 +1811,28 @@ export default function RetreatsForm() {
                         className="w-full border rounded p-2 mb-4"
                     />
 
-                    <label className="block font-semibold mb-1">Email</label>
+                    <label className="block font-semibold mb-1">
+                        Email <span className="text-red-500">*</span>
+                    </label>
                     <input
                         type="email"
                         value={formData?.meetGuide?.email}
-                        placeholder="Enter email address"
+                        placeholder="Enter email address (Required)"
                         onChange={(e) => handleFieldChange("meetGuide", "email", e.target.value)}
                         className="w-full border rounded p-2 mb-4"
+                        required
                     />
 
-                    <label className="block font-semibold mb-1">Phone Number</label>
+                    <label className="block font-semibold mb-1">
+                        Phone Number <span className="text-red-500">*</span>
+                    </label>
                     <input
                         type="tel"
                         value={formData?.meetGuide?.number}
-                        placeholder="Enter phone number"
+                        placeholder="Enter phone number (Required)"
                         onChange={(e) => handleFieldChange("meetGuide", "number", e.target.value)}
                         className="w-full border rounded p-2 mb-4"
+                        required
                     />
                 </div>
             </div>

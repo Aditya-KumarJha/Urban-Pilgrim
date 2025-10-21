@@ -5,7 +5,7 @@ import { X, Plus, Trash2, GripVertical, Edit2 } from "lucide-react";
 import { storage } from "../../../services/firebase";
 import { deleteObject, getDownloadURL, ref, uploadBytes, uploadBytesResumable } from "firebase/storage";
 import { v4 as uuidv4 } from "uuid";
-import { deleteSlideByIndex, fetchGuideData, saveOrUpdateGuideData } from "../../../services/pilgrim_guide/guideService";
+import { deleteSlideByIndex, fetchGuideData, saveOrUpdateGuideData, saveGuideOrganizerData } from "../../../services/pilgrim_guide/guideService";
 import { useDispatch, useSelector } from "react-redux";
 import { setGuides } from "../../../features/pilgrim_guide/pilgrimGuideSlice";
 import { showSuccess, showError } from "../../../utils/toast"
@@ -1245,6 +1245,22 @@ export default function GuideForm() {
         //     return;
         // }
 
+        // Validate organizer email, phone number, and Google Meet link (compulsory for new guides)
+        if (!isEditing) {
+            if (!formData?.organizer?.email || formData?.organizer?.email.trim() === "") {
+                showError("Organizer email is required!");
+                return;
+            }
+            if (!formData?.organizer?.contactNumber || formData?.organizer?.contactNumber.trim() === "") {
+                showError("Organizer phone number is required!");
+                return;
+            }
+            if (!formData?.organizer?.googleMeetLink || formData?.organizer?.googleMeetLink.trim() === "") {
+                showError("Google Meet link is required!");
+                return;
+            }
+        }
+
         const newCard = {
             guideCard: { ...formData.guideCard },
             organizer: { ...formData.organizer },
@@ -1275,6 +1291,107 @@ export default function GuideForm() {
                 // Add a new card
                 updatedGuides = [...guides, newCard];
                 console.log("Session Card Added Successfully");
+                
+                // Save organizer data to root organizers collection
+                // Helper function to clean undefined/null values from objects
+                const cleanUndefined = (obj) => {
+                    if (Array.isArray(obj)) {
+                        return obj.map(cleanUndefined);
+                    } else if (obj !== null && typeof obj === 'object') {
+                        return Object.fromEntries(
+                            Object.entries(obj)
+                                .filter(([_, v]) => v !== undefined && v !== null && v !== '')
+                                .map(([k, v]) => [k, cleanUndefined(v)])
+                        );
+                    }
+                    return obj;
+                };
+
+                // Build program data with online/offline modes
+                const rawProgramData = {
+                    title: formData?.guideCard?.title || '',
+                    price: formData?.guideCard?.price || '',
+                    category: formData?.guideCard?.category || '',
+                    mode: {
+                        online: formData?.online?.planChoice || '',
+                        offline: formData?.offline?.planChoice || ''
+                    }
+                };
+
+                // Add online plan details
+                if (formData?.online?.planChoice) {
+                    rawProgramData.online = {};
+                    
+                    if (formData.online.planChoice === "Monthly" || formData.online.planChoice === "Both") {
+                        rawProgramData.online.monthly = {
+                            price: formData?.online?.monthly?.price || '',
+                            individualPrice: formData?.online?.monthly?.individualPrice || '',
+                            couplesPrice: formData?.online?.monthly?.couplesPrice || '',
+                            groupPrice: formData?.online?.monthly?.groupPrice || '',
+                            groupMin: formData?.online?.monthly?.groupMin || '',
+                            groupMax: formData?.online?.monthly?.groupMax || '',
+                            discount: formData?.online?.monthly?.discount || '',
+                            sessionsCount: formData?.online?.monthly?.sessionsCount || '',
+                            occupancies: formData?.online?.monthly?.occupancies || []
+                        };
+                    }
+                    
+                    if (formData.online.planChoice === "One Time" || formData.online.planChoice === "Both") {
+                        rawProgramData.online.oneTime = {
+                            price: formData?.online?.oneTime?.price || '',
+                            individualPrice: formData?.online?.oneTime?.individualPrice || '',
+                            couplesPrice: formData?.online?.oneTime?.couplesPrice || '',
+                            groupPrice: formData?.online?.oneTime?.groupPrice || '',
+                            groupMin: formData?.online?.oneTime?.groupMin || '',
+                            groupMax: formData?.online?.oneTime?.groupMax || '',
+                            occupancies: formData?.online?.oneTime?.occupancies || []
+                        };
+                    }
+                }
+
+                // Add offline plan details
+                if (formData?.offline?.planChoice) {
+                    rawProgramData.offline = {};
+                    
+                    if (formData.offline.planChoice === "Monthly" || formData.offline.planChoice === "Both") {
+                        rawProgramData.offline.monthly = {
+                            price: formData?.offline?.monthly?.price || '',
+                            individualPrice: formData?.offline?.monthly?.individualPrice || '',
+                            couplesPrice: formData?.offline?.monthly?.couplesPrice || '',
+                            groupPrice: formData?.offline?.monthly?.groupPrice || '',
+                            groupMin: formData?.offline?.monthly?.groupMin || '',
+                            groupMax: formData?.offline?.monthly?.groupMax || '',
+                            discount: formData?.offline?.monthly?.discount || '',
+                            sessionsCount: formData?.offline?.monthly?.sessionsCount || '',
+                            occupancies: formData?.offline?.monthly?.occupancies || []
+                        };
+                    }
+                    
+                    if (formData.offline.planChoice === "One Time" || formData.offline.planChoice === "Both") {
+                        rawProgramData.offline.oneTime = {
+                            price: formData?.offline?.oneTime?.price || '',
+                            individualPrice: formData?.offline?.oneTime?.individualPrice || '',
+                            couplesPrice: formData?.offline?.oneTime?.couplesPrice || '',
+                            groupPrice: formData?.offline?.oneTime?.groupPrice || '',
+                            groupMin: formData?.offline?.oneTime?.groupMin || '',
+                            groupMax: formData?.offline?.oneTime?.groupMax || '',
+                            occupancies: formData?.offline?.oneTime?.occupancies || []
+                        };
+                    }
+                }
+
+                // Remove undefined/null/empty fields to prevent Firestore error
+                const programData = cleanUndefined(rawProgramData);
+
+                const organizerData = {
+                    name: formData?.organizer?.name,
+                    email: formData?.organizer?.email,
+                    number: formData?.organizer?.contactNumber,
+                    address: formData?.organizer?.address,
+                    programData: programData
+                };
+                
+                await saveGuideOrganizerData(organizerData);
             }
 
             // Update Redux store
@@ -3148,13 +3265,16 @@ export default function GuideForm() {
                         </div>
 
                         <div>
-                            <label className="block text-md font-semibold text-gray-700 mb-2">Organizer Email</label>
+                            <label className="block text-md font-semibold text-gray-700 mb-2">
+                                Organizer Email <span className="text-red-500">*</span>
+                            </label>
                             <input
-                                placeholder="Enter Organizer Email"
+                                placeholder="Enter Organizer Email (Required)"
                                 type="email"
                                 value={formData?.organizer?.email}
                                 onChange={(e) => handleFieldChange("organizer", "email", e.target.value)}
                                 className="text-sm w-full border border-gray-300 p-3 rounded-lg "
+                                required
                             />
                             {errors?.organizerEmail && <p className="text-red-500 text-sm mt-1">{errors?.organizerEmail}</p>}
                         </div>
@@ -3170,25 +3290,35 @@ export default function GuideForm() {
                         </div>
 
                         <div>
-                            <label className="block text-md font-semibold text-gray-700 mb-2">Google Meet Link</label>
+                            <label className="block text-md font-semibold text-gray-700 mb-2">
+                                Google Meet Link <span className="text-red-500">*</span>
+                            </label>
                             <input
-                                placeholder="Enter Google Meet Link"
+                                placeholder="Enter Google Meet Link (Required)"
                                 type="url"
                                 value={formData?.organizer?.googleMeetLink}
                                 onChange={(e) => handleFieldChange("organizer", "googleMeetLink", e.target.value)}
                                 className="text-sm w-full border border-gray-300 p-3 rounded-lg "
+                                disabled={isEditing}
+                                required
                             />
+                            {isEditing && (
+                                <p className="text-xs text-gray-500 mt-1">Google Meet link cannot be edited</p>
+                            )}
                             {errors?.organizerGoogleMeetLink && <p className="text-red-500 text-sm mt-1">{errors?.organizerGoogleMeetLink}</p>}
                         </div>
 
                         <div>
-                            <label className="block text-md font-semibold text-gray-700 mb-2">Contact Number</label>
+                            <label className="block text-md font-semibold text-gray-700 mb-2">
+                                Contact Number <span className="text-red-500">*</span>
+                            </label>
                             <input
-                                placeholder="Enter Contact Number"
+                                placeholder="Enter Contact Number (Required)"
                                 type="tel"
                                 value={formData?.organizer?.contactNumber}
                                 onChange={(e) => handleFieldChange("organizer", "contactNumber", e.target.value)}
                                 className="text-sm w-full border border-gray-300 p-3 rounded-lg "
+                                required
                             />
                         </div>
                     </div>

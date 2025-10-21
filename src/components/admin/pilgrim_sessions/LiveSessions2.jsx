@@ -7,8 +7,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { deleteObject, getDownloadURL, ref, uploadBytes, uploadBytesResumable } from "firebase/storage";
 import { v4 as uuidv4 } from "uuid";
 import { storage } from "../../../services/firebase";
-import { showSuccess } from "../../../utils/toast";
-import { deleteLiveSessionByIndex, fetchLiveSessionData, saveOrUpdateLiveSessionData } from "../../../services/pilgrim_session/liveSessionService";
+import { showSuccess, showError } from "../../../utils/toast";
+import { deleteLiveSessionByIndex, fetchLiveSessionData, saveOrUpdateLiveSessionData, saveLiveSessionOrganizerData } from "../../../services/pilgrim_session/liveSessionService";
 import { setLiveSessions } from "../../../features/pilgrim_session/liveSessionsSlice";
 
 const ItemType = "SLIDE";
@@ -847,6 +847,22 @@ export default function LiveSession2() {
         //     return;
         // }
 
+        // Validate organizer email, phone number, and Google Meet link (compulsory for new live sessions)
+        if (!isEditing) {
+            if (!formData?.organizer?.email || formData?.organizer?.email.trim() === "") {
+                showError("Organizer email is required!");
+                return;
+            }
+            if (!formData?.organizer?.contactNumber || formData?.organizer?.contactNumber.trim() === "") {
+                showError("Organizer phone number is required!");
+                return;
+            }
+            if (!formData?.organizer?.googleMeetLink || formData?.organizer?.googleMeetLink.trim() === "") {
+                showError("Google Meet link is required!");
+                return;
+            }
+        }
+
         // Filter out incomplete live slots before saving
         const cleanedLiveSlots = (formData.liveSlots || []).filter(s => !!s?.date && !!s?.startTime && !!s?.endTime);
 
@@ -878,6 +894,55 @@ export default function LiveSession2() {
             } else {
                 updatedPrograms = [...allData, newCard];
                 console.log("Live Session Added Successfully");
+                
+                // Save organizer data to root organizers collection
+                // Helper function to clean undefined/null values from objects
+                const cleanUndefined = (obj) => {
+                    if (Array.isArray(obj)) {
+                        return obj.map(cleanUndefined);
+                    } else if (obj !== null && typeof obj === 'object') {
+                        return Object.fromEntries(
+                            Object.entries(obj)
+                                .filter(([_, v]) => v !== undefined && v !== null && v !== '')
+                                .map(([k, v]) => [k, cleanUndefined(v)])
+                        );
+                    }
+                    return obj;
+                };
+
+                const rawProgramData = {
+                    title: formData?.liveSessionCard?.title || '',
+                    category: formData?.liveSessionCard?.category || '',
+                    price: formData?.liveSessionCard?.price || '',
+                    numberOfDays: formData?.liveSessionCard?.days || '',
+                    numberOfVideos: formData?.liveSessionCard?.videos || '',
+                    googleMeetLink: formData?.organizer?.googleMeetLink || '',
+                    oneTimeSubscription: {
+                        price: formData?.oneTimeSubscription?.price || '',
+                        individualPrice: formData?.oneTimeSubscription?.individualPrice || '',
+                        couplesPrice: formData?.oneTimeSubscription?.couplesPrice || '',
+                        groupPrice: formData?.oneTimeSubscription?.groupPrice || '',
+                        groupMin: formData?.oneTimeSubscription?.groupMin || '',
+                        groupMax: formData?.oneTimeSubscription?.groupMax || '',
+                        slots: formData?.oneTimeSubscription?.slots || [],
+                        description: formData?.oneTimeSubscription?.description || ''
+                    },
+                    liveSlots: cleanedLiveSlots,
+                    programSchedule: formData?.programSchedule || []
+                };
+
+                // Remove undefined/null/empty fields to prevent Firestore error
+                const programData = cleanUndefined(rawProgramData);
+
+                const organizerData = {
+                    name: formData?.organizer?.name,
+                    email: formData?.organizer?.email,
+                    phone: formData?.organizer?.contactNumber,
+                    address: formData?.organizer?.address,
+                    programData: programData
+                };
+                
+                await saveLiveSessionOrganizerData(organizerData);
             }
 
             dispatch(setLiveSessions(updatedPrograms));
@@ -1262,38 +1327,51 @@ export default function LiveSession2() {
 
                         {/* Organizer Email */}
                         <div className="mb-4">
-                            <label className="block text-md font-semibold text-gray-700 mb-2">Organizer Email</label>
+                            <label className="block text-md font-semibold text-gray-700 mb-2">
+                                Organizer Email <span className="text-red-500">*</span>
+                            </label>
                             <input
-                                placeholder="Enter Organizer Email"
+                                placeholder="Enter Organizer Email (Required)"
                                 type="email"
                                 value={formData?.organizer?.email}
                                 onChange={(e) => handleFieldChange("organizer", "email", e.target.value)}
                                 className="text-sm w-full border border-gray-300 p-3 rounded-lg"
+                                required
                             />
                         </div>
 
                         {/* Contact Number */}
                         <div className="mb-4">
-                            <label className="block text-md font-semibold text-gray-700 mb-2">Contact Number</label>
+                            <label className="block text-md font-semibold text-gray-700 mb-2">
+                                Contact Number <span className="text-red-500">*</span>
+                            </label>
                             <input
-                                placeholder="Enter Contact Number"
+                                placeholder="Enter Contact Number (Required)"
                                 type="tel"
                                 value={formData?.organizer?.contactNumber}
                                 onChange={(e) => handleFieldChange("organizer", "contactNumber", e.target.value)}
                                 className="text-sm w-full border border-gray-300 p-3 rounded-lg"
+                                required
                             />
                         </div>
 
                         {/* Google Meet Link */}
                         <div className="mb-4">
-                            <label className="block text-md font-semibold text-gray-700 mb-2">Google Meet Link</label>
+                            <label className="block text-md font-semibold text-gray-700 mb-2">
+                                Google Meet Link <span className="text-red-500">*</span>
+                            </label>
                             <input
-                                placeholder="Enter Google Meet Link"
+                                placeholder="Enter Google Meet Link (Required)"
                                 type="url"
                                 value={formData?.organizer?.googleMeetLink}
                                 onChange={(e) => handleFieldChange("organizer", "googleMeetLink", e.target.value)}
                                 className="text-sm w-full border border-gray-300 p-3 rounded-lg"
+                                disabled={isEditing}
+                                required
                             />
+                            {isEditing && (
+                                <p className="text-xs text-gray-500 mt-1">Google Meet link cannot be edited</p>
+                            )}
                         </div>
                     </div>
 
