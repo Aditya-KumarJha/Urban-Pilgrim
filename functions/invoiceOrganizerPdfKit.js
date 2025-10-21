@@ -119,7 +119,8 @@ async function generateOrganizerInvoicePdfBuffer(invoiceData) {
       // Discount
       if (totalDiscount > 0) {
         yPos += 15;
-        doc.text('Discount', summaryX, yPos);
+        const discountPercentage = totalGross > 0 ? ((totalDiscount / totalGross) * 100).toFixed(2) : '0';
+        doc.text(`Discount (${discountPercentage}%)`, summaryX, yPos);
         doc.text(`- Rs. ${totalDiscount.toFixed(2)}`, 500, yPos, { align: 'right' });
       }
       

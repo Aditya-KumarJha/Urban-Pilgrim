@@ -227,170 +227,120 @@ async function createGiftCardWithCoupon(couponCode) {
 async function addUserToProgram(db, organiserMeta, categoryKey, programTitle, programInfo, userInfo) {
     try {
         const email = organiserMeta?.email;
-        if (!email || !categoryKey || !programTitle || !userInfo?.userId) return;
+        if (!email || !programTitle || !userInfo?.userId) {
+            console.log('Missing required fields:', { email, programTitle, userId: userInfo?.userId });
+            return;
+        }
 
-        // Category mapping
-        const catMap = { live: 'liveSessions', retreat: 'retreats', guide: 'guides' };
-        const cat = catMap[categoryKey] || categoryKey;
-
-        // 1) Upsert organiser root doc (keyed by email)
-        const organisersRef = db.collection('organisers');
-        const snapshot = await organisersRef.where('email', '==', email).limit(1).get();
-        let organiserDocRef;
+        // 1) Find organizer by email in "organizers" collection
+        const organizersRef = db.collection('organizers');
+        const snapshot = await organizersRef.where('email', '==', email).limit(1).get();
+        
         if (snapshot.empty) {
-            organiserDocRef = organisersRef.doc(); // new UID
-            await organiserDocRef.set({
-                email,
-                number: organiserMeta?.number || null,
-                title: organiserMeta?.title || null,
-                name: organiserMeta?.name || null,
-                password: organiserMeta?.password || null,
-                createdAt: new Date(),
-                updatedAt: new Date(),
-            });
-        } else {
-            organiserDocRef = snapshot.docs[0].ref;
-            await organiserDocRef.set({
-                email,
-                number: organiserMeta?.number || null,
-                title: organiserMeta?.title || null,
-                name: organiserMeta?.name || null,
-                password: organiserMeta?.password || null,
-                updatedAt: new Date(),
-            }, { merge: true });
+            console.log(`No organizer found with email: ${email}. Cannot add user to program.`);
+            return;
         }
 
-        // 2) Find or create program doc under category subcollection
-        const catCol = organiserDocRef.collection(cat);
-        const progSnap = await catCol.where('title', '==', programTitle).limit(1).get();
-
-        let programDocRef;
-        if (progSnap.empty) {
-            // Create new program - use map for users to avoid nested arrays
-            programDocRef = catCol.doc();
-            const usersMap = {};
-            if (userInfo?.userId) {
-                usersMap[userInfo.userId] = {
-                    userId: userInfo.userId,
-                    name: userInfo.name || '',
-                    email: userInfo.email || ''
-                };
-            }
-            await programDocRef.set({
-                title: programTitle,
-                meetLink: programInfo?.meetLink || null,
-                subscriptionType: programInfo?.subscriptionType || null,
-                slots: programInfo?.slots || [],
-                scheduleDates: programInfo?.scheduleDates || [],
-                users: usersMap, // Use map instead of array
-                createdAt: new Date(),
-                updatedAt: new Date(),
-            });
-        } else {
-            // Update existing program
-            programDocRef = progSnap.docs[0].ref;
-            const progData = progSnap.docs[0].data() || {};
-
-            // Merge slots uniquely
-            const prevSlots = Array.isArray(progData.slots) ? progData.slots : [];
-            const newSlots = Array.isArray(programInfo?.slots) ? programInfo.slots : [];
-            const mergedSlots = Array.from(new Map([...prevSlots, ...newSlots].map(s => [JSON.stringify(s), s]))).map(([, v]) => v);
-
-            // Merge dates uniquely
-            const prevDates = new Set(Array.isArray(progData.scheduleDates) ? progData.scheduleDates : []);
-            (Array.isArray(programInfo?.scheduleDates) ? programInfo.scheduleDates : []).forEach(d => { if (d) prevDates.add(d); });
-
-            // Merge users as map, not array
-            const prevUsers = progData.users || {};
-            const mergedUsers = { ...prevUsers };
-            if (userInfo?.userId) {
-                mergedUsers[userInfo.userId] = {
-                    userId: userInfo.userId,
-                    name: userInfo.name || '',
-                    email: userInfo.email || ''
-                };
-            }
-
-            await programDocRef.set({
-                title: programTitle,
-                meetLink: programInfo?.meetLink || progData.meetLink || null,
-                subscriptionType: programInfo?.subscriptionType || progData.subscriptionType || null,
-                slots: mergedSlots,
-                scheduleDates: Array.from(prevDates),
-                users: mergedUsers, // Use map instead of array
-                updatedAt: new Date(),
-            }, { merge: true });
-        }
-
-        // 3) Mirror at organiser ROOT level with numbered programs and users array
-        const rootKeyMap = { liveSessions: 'live', retreats: 'retreat', guides: 'guide' };
-        const rootKey = rootKeyMap[cat] || cat;
-
-        // Read existing to find/create program
-        const organiserSnap = await organiserDocRef.get();
-        const organiserData = organiserSnap.data() || {};
-        const categoryData = organiserData[rootKey] || {};
-
-        // Find existing program by title or create new one
-        let programKey = null;
-        let existingProg = null;
+        const organizerDocRef = snapshot.docs[0].ref;
+        const organizerData = snapshot.docs[0].data() || {};
         
-        for (const [key, prog] of Object.entries(categoryData)) {
-            if (prog?.title === programTitle) {
-                programKey = key;
-                existingProg = prog;
-                break;
-            }
+        // 2) Get existing programs array
+        let programs = Array.isArray(organizerData.programs) ? organizerData.programs : [];
+        
+        // 3) Find the program by matching title
+        const programIndex = programs.findIndex(p => p.title === programTitle);
+        
+        if (programIndex === -1) {
+            console.log(`Program "${programTitle}" not found for organizer ${email}. Cannot add user.`);
+            return;
         }
 
-        // If no existing program, create new numbered program
-        if (!programKey) {
-            const existingKeys = Object.keys(categoryData).filter(k => k.startsWith('program'));
-            const maxNum = existingKeys.length > 0 ? Math.max(...existingKeys.map(k => parseInt(k.replace('program', '')) || 0)) : 0;
-            programKey = `program${maxNum + 1}`;
-            existingProg = {};
+        // 4) Get the program
+        let program = programs[programIndex];
+        
+        // 5) Ensure users array exists
+        if (!Array.isArray(program.users)) {
+            program.users = [];
         }
 
-        // Build scheduleddate array from slots
-        const scheduleddate = [];
+        // 6) Build user slots array from programInfo
+        const userSlots = [];
         const slotsArr = Array.isArray(programInfo?.slots) ? programInfo.slots : [];
+        
         for (const slot of slotsArr) {
-            scheduleddate.push({
-                time: `${slot?.startTime || ''} - ${slot?.endTime || ''}`,
-                status: slot?.status || 'pending',
-                date: slot?.date || null
+            userSlots.push({
+                date: slot?.date || null,
+                startTime: slot?.startTime || null,
+                endTime: slot?.endTime || null,
+                location: slot?.location || null,
+                type: slot?.type || null,
+                status: slot?.status || 'pending'
             });
         }
 
-        // Get existing users map and add/update current user
-        const existingUsers = existingProg.users || {};
-        const uid = userInfo?.userId || '';
+        // 7) Check if user already exists in this program
+        const existingUserIndex = program.users.findIndex(u => u.userId === userInfo.userId);
         
-        // Get existing user's scheduled dates or create empty array
-        const existingScheduled = Array.isArray(existingUsers[uid]?.scheduleddate) ? existingUsers[uid].scheduleddate : [];
-        const mergedScheduled = [...existingScheduled, ...scheduleddate];
-        
-        const newUser = {
-            name: userInfo?.name || '',
-            email: userInfo?.email || '',
-            uid,
-            scheduleddate: mergedScheduled
-        };
+        if (existingUserIndex !== -1) {
+            // User exists - merge their slots
+            const existingUser = program.users[existingUserIndex];
+            const existingSlots = Array.isArray(existingUser.slots) ? existingUser.slots : [];
+            
+            // Merge slots (avoid exact duplicates)
+            const mergedSlots = [...existingSlots];
+            for (const newSlot of userSlots) {
+                const isDuplicate = existingSlots.some(s => 
+                    s.date === newSlot.date && 
+                    s.startTime === newSlot.startTime && 
+                    s.endTime === newSlot.endTime
+                );
+                if (!isDuplicate) {
+                    mergedSlots.push(newSlot);
+                }
+            }
+            
+            // Update existing user
+            program.users[existingUserIndex] = {
+                userId: userInfo.userId,
+                name: userInfo.name || existingUser.name || '',
+                email: userInfo.email || existingUser.email || '',
+                phone: userInfo.phone || existingUser.phone || null,
+                slots: mergedSlots,
+                updatedAt: new Date().toISOString()
+            };
+        } else {
+            // New user - add to users array
+            program.users.push({
+                userId: userInfo.userId,
+                name: userInfo.name || '',
+                email: userInfo.email || '',
+                phone: userInfo.phone || null,
+                slots: userSlots,
+                addedAt: new Date().toISOString()
+            });
+        }
 
-        // Create users map (not array) to avoid nested arrays
-        const updatedUsers = { ...existingUsers };
-        updatedUsers[uid] = newUser;
+        // 8) Update the program in the array
+        programs[programIndex] = program;
 
-        const rootUpdates = {};
-        rootUpdates[`${rootKey}.${programKey}.title`] = programTitle;
-        rootUpdates[`${rootKey}.${programKey}.subscriptionType`] = programInfo?.subscriptionType || existingProg.subscriptionType || null;
-        rootUpdates[`${rootKey}.${programKey}.meetingLink`] = programInfo?.googleMeetLink || existingProg.googleMeetLink || null;
-        rootUpdates[`${rootKey}.${programKey}.users`] = updatedUsers;
+        // 9) Save back to Firestore
+        await organizerDocRef.update({
+            programs: programs,
+            updatedAt: new Date().toISOString()
+        });
 
-        await organiserDocRef.set(rootUpdates, { merge: true });
+        console.log(`Successfully added user ${userInfo.userId} to program "${programTitle}" for organizer ${email}`);
+        return { success: true, organizerId: organizerDocRef.id };
 
     } catch (err) {
-        console.error('addUserToProgram failed:', { organiserMeta, categoryKey, programTitle, err: err?.message });
+        console.error('addUserToProgram failed:', { 
+            email: organiserMeta?.email, 
+            programTitle, 
+            userId: userInfo?.userId,
+            error: err?.message,
+            stack: err?.stack 
+        });
+        throw err;
     }
 }
 
@@ -1977,15 +1927,23 @@ exports.confirmPayment = functions.https.onCall(async (data, context) => {
                             }
                         }
 
-                        // Update organiser nested structure under 'organisers' collection ONLY
+                        // Update organizer structure in 'organizers' collection
                         const organiserEmail = organizer?.email || null;
                         if (organiserEmail) {
+                            // Get phone from formData
+                            const rawPhone = formData?.whatsapp || formData?.phone || formData?.whatsappNumber || formData?.number || null;
+                            
                             const programInfo = {
                                 subscriptionType: program?.subscriptionType || null,
                                 scheduleDates,
                                 slots,
                             };
-                            const userInfo = { userId, name, email };
+                            const userInfo = { 
+                                userId, 
+                                name, 
+                                email,
+                                phone: rawPhone 
+                            };
                             const adduserProgrammmm = await addUserToProgram(db, organizer, typeKey, program.title, programInfo, userInfo);
                             console.log('Added user to program:', adduserProgrammmm)
                         } else {

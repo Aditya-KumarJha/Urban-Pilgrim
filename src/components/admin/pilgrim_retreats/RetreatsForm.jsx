@@ -810,6 +810,45 @@ export default function RetreatsForm() {
                 }
             }
 
+            // Save organizer data to root organizers collection (for both new and edit)
+            // Helper function to clean undefined/null values from objects
+            const cleanUndefined = (obj) => {
+                if (Array.isArray(obj)) {
+                    return obj.map(cleanUndefined);
+                } else if (obj !== null && typeof obj === 'object') {
+                    return Object.fromEntries(
+                        Object.entries(obj)
+                            .filter(([_, v]) => v !== undefined && v !== null && v !== '')
+                            .map(([k, v]) => [k, cleanUndefined(v)])
+                    );
+                }
+                return obj;
+            };
+
+            const rawProgramData = {
+                retreatTitle: formData?.pilgrimRetreatCard?.title || '',
+                price: formData?.pilgrimRetreatCard?.price || '',
+                category: formData?.pilgrimRetreatCard?.category || '',
+                location: formData?.pilgrimRetreatCard?.location || '',
+                duration: formData?.pilgrimRetreatCard?.duration || '',
+                session: {
+                    dateOptions: formData?.session?.dateOptions || [],
+                    occupancies: formData?.session?.occupancies || []
+                },
+                programSchedule: formData?.programSchedule || []
+            };
+
+            // Remove undefined/null/empty fields to prevent Firestore error
+            const programData = cleanUndefined(rawProgramData);
+
+            const organizerData = {
+                email: formData?.meetGuide?.email,
+                number: formData?.meetGuide?.number,
+                programData: programData
+            };
+            
+            await saveOrganizerData(organizerData);
+
             if (editingIndex !== null) {
                 // Update the existing card
                 await saveOrUpdateRetreatData(uid, editingIndex, formData);
@@ -823,50 +862,10 @@ export default function RetreatsForm() {
                 // Create a new card
                 await saveOrUpdateRetreatData(uid, items.length + 1, formData);
                 dispatch(setRetreatData(uid, items.length + 1, items));
-                
-                // Save organizer data to root organizers collection
-                // Helper function to clean undefined/null values from objects
-                const cleanUndefined = (obj) => {
-                    if (Array.isArray(obj)) {
-                        return obj.map(cleanUndefined);
-                    } else if (obj !== null && typeof obj === 'object') {
-                        return Object.fromEntries(
-                            Object.entries(obj)
-                                .filter(([_, v]) => v !== undefined && v !== null && v !== '')
-                                .map(([k, v]) => [k, cleanUndefined(v)])
-                        );
-                    }
-                    return obj;
-                };
-
-                const rawProgramData = {
-                    retreatTitle: formData?.pilgrimRetreatCard?.title || '',
-                    price: formData?.pilgrimRetreatCard?.price || '',
-                    category: formData?.pilgrimRetreatCard?.category || '',
-                    location: formData?.pilgrimRetreatCard?.location || '',
-                    duration: formData?.pilgrimRetreatCard?.duration || '',
-                    session: {
-                        dateOptions: formData?.session?.dateOptions || [],
-                        occupancies: formData?.session?.occupancies || []
-                    },
-                    programSchedule: formData?.programSchedule || []
-                };
-
-                // Remove undefined/null/empty fields to prevent Firestore error
-                const programData = cleanUndefined(rawProgramData);
-
-                const organizerData = {
-                    email: formData?.meetGuide?.email,
-                    number: formData?.meetGuide?.number,
-                    programData: programData
-                };
-                
-                await saveOrganizerData(organizerData);
-                
                 console.log(`Retreat saved successfully!`, formData);
                 resetForm();
                 addItem2(formData);
-                showSuccess("Retreat and organizer saved successfully!");
+                showSuccess("Retreat saved successfully!");
                 console.log(`after reset`, formData);
             }
 

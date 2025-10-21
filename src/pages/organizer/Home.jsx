@@ -9,8 +9,8 @@ import { showSuccess, showError } from '../../utils/toast';
 function Home({ organizerUid }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [organiserDocId, setOrganiserDocId] = useState('');
-    const [programs, setPrograms] = useState([]); // [{category, id, title, meetLink, users: {}, rootKey}]
+    const [organizerDocId, setOrganizerDocId] = useState('');
+    const [programs, setPrograms] = useState([]); // [{programId, title, mode, users: []}]
     const organizer = useSelector(state => state.organizerAuth?.organizer);
     const isAdmin = useSelector(state => state.adminAuth?.isAuthenticated);
     const navigate = useNavigate();
@@ -21,8 +21,8 @@ function Home({ organizerUid }) {
         const scheduled = allSlots.length;
         const conducted = allSlots.filter(s => (s?.status || '').toLowerCase() === 'completed').length;
         const pending = Math.max(0, scheduled - conducted);
-        const students = programs.reduce((acc, p) => acc + (Number(p.students || 0)), 0);
-        return { scheduled, conducted, pending, students };
+        const users = programs.reduce((acc, p) => acc + (Number(p.usersCount || 0)), 0);
+        return { scheduled, conducted, pending, users };
     }, [programs]);
 
     // Load organiser + programs
@@ -39,7 +39,7 @@ function Home({ organizerUid }) {
     
                 // If admin is accessing with uid parameter, use that directly
                 if (isAdmin && organizerUid) {
-                    const docRef = doc(db, 'organisers', organizerUid);
+                    const docRef = doc(db, 'organizers', organizerUid);
                     const docSnap = await getDoc(docRef);
                     
                     if (!docSnap.exists()) {
@@ -51,23 +51,23 @@ function Home({ organizerUid }) {
                 } else {
                     // Regular organizer auth flow (Redux)
                     if (!organizer) {
-                        throw new Error('Please sign in as an organiser to view the dashboard.');
+                        throw new Error('Please sign in as an organizer to view the dashboard.');
                     }
         
-                    // Find organiser doc by email, fallback to name
+                    // Find organizer doc by email, fallback to name
                     let orgSnap = null;
                     if (organizer.email) {
                         orgSnap = await getDocs(
-                            query(collection(db, 'organisers'), where('email', '==', organizer.email))
+                            query(collection(db, 'organizers'), where('email', '==', organizer.email))
                         );
                     }
                     if ((!orgSnap || orgSnap.empty) && organizer.name) {
                         orgSnap = await getDocs(
-                            query(collection(db, 'organisers'), where('name', '==', organizer.name))
+                            query(collection(db, 'organizers'), where('name', '==', organizer.name))
                         );
                     }
                     if (!orgSnap || orgSnap.empty) {
-                        throw new Error('No organiser profile found for this account.');
+                        throw new Error('No organizer profile found for this account.');
                     }
         
                     orgDoc = orgSnap.docs[0];
@@ -75,152 +75,61 @@ function Home({ organizerUid }) {
                 }
     
                 if (!isMounted) return;
-                setOrganiserDocId(orgDocId);
+                setOrganizerDocId(orgDocId);
     
                 const orgData = orgDoc.data() || {};
                 console.log('Organizer data:', orgData);
     
                 const aggregated = [];
     
-                // Root-level categories
-                const categoryMap = {
-                    guide: 'guides',
-                    retreat: 'retreats',
-                    live: 'liveSessions'
-                };
+                // Get programs array
+                const programsArray = Array.isArray(orgData.programs) ? orgData.programs : [];
+                console.log('Found programs:', programsArray.length);
     
-                // for (const [rootKey, displayCategory] of Object.entries(categoryMap)) {
-                //     const categoryData = orgData[rootKey];
+                // Process each program
+                for (const program of programsArray) {
+                    if (!program || typeof program !== 'object') continue;
     
-                //     if (!categoryData || typeof categoryData !== 'object') {
-                //         console.log(`No data found for category: ${rootKey}`);
-                //         continue;
-                //     }
+                    console.log('Processing program:', program.title);
     
-                //     console.log(`Category ${rootKey}:`, categoryData);
+                    // Get users array
+                    const usersArray = Array.isArray(program.users) ? program.users : [];
+                    const usersCount = usersArray.length;
     
-                //     // Process each program (program1, program2, etc.)
-                //     for (const [programKey, programData] of Object.entries(categoryData)) {
-                //         if (!programData || typeof programData !== 'object') {
-                //             console.log(`Skipping invalid program: ${programKey}`);
-                //             continue;
-                //         }
+                    // Collect all slots from all users
+                    const allSlots = [];
     
-                //         console.log(`Program ${programKey}:`, programData);
+                    for (const user of usersArray) {
+                        if (!user || typeof user !== 'object') continue;
     
-                //         // Users map
-                //         const usersMap = programData.users || {};
-                //         const studentsCount = Object.keys(usersMap).length;
+                        const userName = user.name || '';
+                        const userEmail = user.email || '';
+                        const userId = user.userId || '';
     
-                //         // Collect all slots from all users
-                //         const allSlots = [];
-                //         const userList = [];
-    
-                //         for (const [userId, userData] of Object.entries(usersMap)) {
-                //             if (!userData || typeof userData !== 'object') continue;
-    
-                //             // ✅ Extract name and email for each user
-                //             userList.push({
-                //                 userId,
-                //                 name: userData.name || '',
-                //                 email: userData.email || ''
-                //             });
-    
-                //             // Collect scheduled dates
-                //             if (Array.isArray(userData.scheduleddate)) {
-                //                 const slotsForUser = userData.scheduleddate.map(slot => ({
-                //                     ...slot,
-                //                     userName: userData.name || '',
-                //                     userEmail: userData.email || '',
-                //                     userId: userData.uid || userId,
-                //                     status: slot.status || 'pending'
-                //                 }));
-                //                 allSlots.push(...slotsForUser);
-                //             }
-                //         }
-    
-                //         aggregated.push({
-                //             category: displayCategory,
-                //             id: programKey,
-                //             title: programData.title || programKey,
-                //             meetLink: programData.meetingLink || programData.meetLink || '',
-                //             subscriptionType: programData.subscriptionType || '',
-                //             slots: allSlots,
-                //             students: studentsCount,
-                //             rootKey,
-                //             users: userList // ✅ sirf name & email list
-                //         });
-                //     }
-                // }
-
-                for (const [rootKey, displayCategory] of Object.entries(categoryMap)) {
-                    // Find all program keys by scanning orgData for dot-notation keys
-                    const programKeys = new Set();
-                    
-                    for (const key of Object.keys(orgData)) {
-                        if (key.startsWith(`${rootKey}.`)) {
-                            const parts = key.split('.');
-                            if (parts.length >= 2) {
-                                programKeys.add(parts[1]); // program1, program2, etc.
-                            }
+                        // Collect slots from user
+                        if (Array.isArray(user.slots)) {
+                            const slotsForUser = user.slots.map(slot => ({
+                                ...slot,
+                                userName,
+                                userEmail,
+                                userId,
+                                status: (slot.status || 'pending').toLowerCase(),
+                            }));
+                            allSlots.push(...slotsForUser);
                         }
                     }
-                
-                    console.log(`Found programs for ${rootKey}:`, Array.from(programKeys));
-                
-                    // Process each program
-                    for (const programKey of programKeys) {
-                        const prefix = `${rootKey}.${programKey}`;
-                        
-                        // ✅ Read using dot-notation STRING keys
-                        const title = orgData[`${prefix}.title`] || programKey;
-                        const meetingLink = orgData[`${prefix}.meetingLink`] || orgData[`${prefix}.meetLink`] || '';
-                        const subscriptionType = orgData[`${prefix}.subscriptionType`] || '';
-                        const usersMap = orgData[`${prefix}.users`] || {};
-                        
-                        console.log(`Program data for ${programKey}:`, { title, usersMap });
-                
-                        const studentsCount = Object.keys(usersMap).length;
-                        const allSlots = [];
-                
-                        // Process users
-                        for (const [userId, userData] of Object.entries(usersMap)) {
-                            console.log("=== Processing User ===", userId, userData);
-                
-                            const userName = userData?.name || '';
-                            const userEmail = userData?.email || '';
-                            const userUid = userData?.uid || userId;
-                
-                            if (userData && Array.isArray(userData.scheduleddate)) {
-                                const slotsForUser = userData.scheduleddate.map(slot => ({
-                                    ...slot,
-                                    userName,
-                                    userEmail,
-                                    userId: userUid,
-                                    status: (slot.status || 'pending').toLowerCase(),
-                                }));
-                                allSlots.push(...slotsForUser);
-                            } else {
-                                console.log(`No scheduleddate array for user ${userId}`);
-                            }
-                        }
-                
-                        console.log(`All users for ${programKey}:`, usersMap);
-                
-                        // Push to aggregated list
-                        aggregated.push({
-                            category: displayCategory,
-                            id: programKey,
-                            title,
-                            meetLink: meetingLink,
-                            subscriptionType,
-                            slots: allSlots,
-                            students: studentsCount,
-                            rootKey,
-                            users: usersMap
-                        });
-                    }
-                }                                
+    
+                    aggregated.push({
+                        programId: program.programId || '',
+                        title: program.title || 'Untitled',
+                        category: program.category || '',
+                        mode: program.mode || '',
+                        price: program.price || '',
+                        slots: allSlots,
+                        usersCount: usersCount,
+                        users: usersArray
+                    });
+                }
     
                 console.log('Final aggregated programs:', aggregated);
     
@@ -241,20 +150,20 @@ function Home({ organizerUid }) {
         };
     }, [organizer, isAdmin, organizerUid]);    
 
-    // Mark slot as completed - updates root-level structure
-    async function markCompleted(programId, rootKey, userId, slot) {
+    // Mark slot as completed - updates programs[] array structure
+    async function markCompleted(programId, userId, slot) {
         try {
             console.log("🚀 Starting markCompleted function");
-            console.log("Parameters:", { programId, rootKey, userId, slot });
+            console.log("Parameters:", { programId, userId, slot });
             
-            if (!organiserDocId) {
-                console.error("No organiserDocId found");
+            if (!organizerDocId) {
+                console.error("No organizerDocId found");
                 showError("Organizer ID not found");
                 return;
             }
     
-            console.log("📄 Fetching organizer document:", organiserDocId);
-            const orgRef = doc(db, "organisers", organiserDocId);
+            console.log("📄 Fetching organizer document:", organizerDocId);
+            const orgRef = doc(db, "organizers", organizerDocId);
             const orgSnap = await getDoc(orgRef);
             
             if (!orgSnap.exists()) {
@@ -264,109 +173,82 @@ function Home({ organizerUid }) {
             }
     
             const orgData = orgSnap.data();
-            console.log("📊 Organizer data keys:", Object.keys(orgData));
-    
-            // 🔑 usersMap is stored as a flat object field using dot-notation
-            const usersPath = `${rootKey}.${programId}.users`;
-            console.log("🔍 Looking for users at path:", usersPath);
+            const programsArray = Array.isArray(orgData.programs) ? orgData.programs : [];
             
-            const usersMap = orgData[usersPath] || {};
-            console.log("👥 Users found:", Object.keys(usersMap));
-    
-            if (!usersMap[userId]) {
-                console.error("User not found in program:", userId);
-                console.error("Available users:", Object.keys(usersMap));
+            // Find the program
+            const programIndex = programsArray.findIndex(p => p.programId === programId);
+            if (programIndex === -1) {
+                console.error("Program not found:", programId);
+                showError("Program not found");
+                return;
+            }
+            
+            const program = { ...programsArray[programIndex] };
+            const usersArray = Array.isArray(program.users) ? program.users : [];
+            
+            // Find the user
+            const userIndex = usersArray.findIndex(u => u.userId === userId);
+            if (userIndex === -1) {
+                console.error("User not found:", userId);
                 showError("User not found in program");
                 return;
             }
-    
-            const userData = usersMap[userId];
-            console.log("👤 User data:", userData);
             
-            const scheduleddate = [...(userData.scheduleddate || [])];
-            console.log("📅 User's scheduled dates:", scheduleddate);
-    
+            const user = { ...usersArray[userIndex] };
+            const slotsArray = Array.isArray(user.slots) ? user.slots : [];
+            
             // Find the slot to update
-            const slotIndex = scheduleddate.findIndex(
-                s => s.date === slot.date && s.time === slot.time
+            const slotIndex = slotsArray.findIndex(
+                s => s.date === slot.date && s.startTime === slot.startTime && s.endTime === slot.endTime
             );
     
             if (slotIndex === -1) {
                 console.error("Slot not found for update");
-                console.error("Looking for:", { date: slot.date, time: slot.time });
-                console.error("Available slots:", scheduleddate.map(s => ({ date: s.date, time: s.time })));
                 showError("Session slot not found");
                 return;
             }
     
             console.log("✅ Found slot at index:", slotIndex);
-            console.log("Current slot:", scheduleddate[slotIndex]);
             
-            // Always update to completed
-            scheduleddate[slotIndex] = {
-                ...scheduleddate[slotIndex],
+            // Update the slot
+            slotsArray[slotIndex] = {
+                ...slotsArray[slotIndex],
                 status: "completed",
                 completedAt: new Date().toISOString(),
             };
-    
-            // Update the entire users field
-            const updatedUsersMap = {
-                ...usersMap,
-                [userId]: {
-                    ...userData,
-                    scheduleddate,
-                }
-            };
+            
+            // Update user with new slots
+            user.slots = slotsArray;
+            usersArray[userIndex] = user;
+            
+            // Update program with new users
+            program.users = usersArray;
+            programsArray[programIndex] = program;
             
             console.log("🔄 Attempting Firestore update...");
-            console.log("Document path:", `organisers/${organiserDocId}`);
-            console.log("Field path:", usersPath);
-            console.log("Updated slot:", scheduleddate[slotIndex]);
             
-            // Perform the update using setDoc with merge to avoid conflicts
-            console.log("🔧 Using setDoc with merge for more reliable update...");
-            await setDoc(orgRef, {
-                [usersPath]: updatedUsersMap,
-            }, { merge: true });
+            // Update the entire programs array
+            await updateDoc(orgRef, {
+                programs: programsArray
+            });
             
             console.log("✅ Firestore update completed successfully");
-            
-            // Verify the update with a longer delay to ensure propagation
-            console.log("🔍 Verifying update...");
-            await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay
-            const verifySnap = await getDoc(orgRef);
-            if (verifySnap.exists()) {
-                const verifyData = verifySnap.data();
-                const verifyUsersMap = verifyData[usersPath] || {};
-                const verifyUser = verifyUsersMap[userId];
-                
-                if (verifyUser && verifyUser.scheduleddate) {
-                    const verifySlot = verifyUser.scheduleddate.find(s => s.date === slot.date && s.time === slot.time);
-                    console.log("🔍 Verified slot status:", verifySlot?.status);
-                    
-                    if (verifySlot?.status === "completed") {
-                        console.log("✅ Verification successful - status updated in Firestore");
-                    } else {
-                        console.error("❌ Verification failed - status not updated in Firestore");
-                        console.error("Expected: completed, Got:", verifySlot?.status);
-                    }
-                }
-            }
     
             // Update local UI
             setPrograms(prev =>
                 prev.map(p => {
-                    if (p.id === programId && p.rootKey === rootKey) {
+                    if (p.programId === programId) {
                         return {
                             ...p,
                             slots: p.slots.map(s =>
                                 s.date === slot.date &&
-                                s.time === slot.time &&
+                                s.startTime === slot.startTime &&
+                                s.endTime === slot.endTime &&
                                 s.userId === userId
                                     ? { ...s, status: "completed", completedAt: new Date().toISOString() }
                                     : s
                             ),
-                            users: updatedUsersMap
+                            users: usersArray
                         };
                     }
                     return p;
@@ -378,12 +260,6 @@ function Home({ organizerUid }) {
             
         } catch (e) {
             console.error("💥 Error in markCompleted:", e);
-            console.error("Error details:", {
-                name: e.name,
-                message: e.message,
-                code: e.code,
-                stack: e.stack
-            });
             showError(`Failed to update session status: ${e.message}`);
         }
     }    
@@ -434,8 +310,8 @@ function Home({ organizerUid }) {
                             <Users className="w-8 h-8 opacity-80" />
                             <TrendingUp className="w-5 h-5 opacity-60" />
                         </div>
-                        <div className="text-3xl font-bold mb-1">{counts.students}</div>
-                        <div className="text-blue-100 text-sm">Students Enrolled</div>
+                        <div className="text-3xl font-bold mb-1">{counts.users}</div>
+                        <div className="text-blue-100 text-sm">Users Enrolled</div>
                     </div>
 
                     <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white transform hover:scale-105 transition-transform">
@@ -469,7 +345,7 @@ function Home({ organizerUid }) {
                         <div className="bg-white rounded-xl shadow-lg p-12 text-center">
                             <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                             <p className="text-gray-500 text-lg">No programs found</p>
-                            <p className="text-gray-400 text-sm mt-2">Your programs will appear here once students enroll</p>
+                            <p className="text-gray-400 text-sm mt-2">Your programs will appear here once users enroll</p>
                         </div>
                     ) : (
                         programs.map(program => {
@@ -478,7 +354,7 @@ function Home({ organizerUid }) {
                             const pendingSlots = programSlots.length - completedSlots;
 
                             return (
-                                <div key={`${program.rootKey}-${program.id}`} className="bg-white rounded-xl shadow-lg overflow-hidden">
+                                <div key={program.programId} className="bg-white rounded-xl shadow-lg overflow-hidden">
                                     {/* Program Header */}
                                     <div className="bg-gradient-to-r from-blue-600 to-orange-500 p-6 text-white">
                                         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -495,7 +371,7 @@ function Home({ organizerUid }) {
                                                     )}
                                                     <span className="bg-white/20 px-3 py-1 rounded-full">
                                                         <Users className="w-4 h-4 inline mr-1" />
-                                                        {program.students} Students 
+                                                        {program.usersCount} Users
                                                     </span>
                                                 </div>
                                             </div>
@@ -623,7 +499,7 @@ function Home({ organizerUid }) {
                                                                 <div className="flex-1">
                                                                     <div className="flex items-center gap-3 mb-2">
                                                                         <div className={`w-2 h-2 rounded-full ${isCompleted ? 'bg-green-500' : 'bg-orange-500'}`}></div>
-                                                                        <span className="font-semibold text-gray-800">{slot.userName || 'Student'}</span>
+                                                                        <span className="font-semibold text-gray-800">{slot.userName || 'User'}</span>
                                                                         <span className="text-sm text-gray-500">{slot.userEmail}</span>
                                                                     </div>
                                                                     <div className="flex flex-wrap gap-4 text-sm text-gray-600 ml-5">
@@ -647,7 +523,7 @@ function Home({ organizerUid }) {
                                                                         </span>
                                                                     ) : (
                                                                         <button
-                                                                            onClick={() => markCompleted(program.id, program.rootKey, slot.userId, slot)}
+                                                                            onClick={() => markCompleted(program.programId, slot.userId, slot)}
                                                                             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2"
                                                                         >
                                                                             <CheckCircle className="w-4 h-4" />

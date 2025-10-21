@@ -24,7 +24,7 @@ export default function OrganizerSignIn() {
 
             // Firestore: find organizer by username
             const q = query(
-                collection(db, "organisers"),
+                collection(db, "organizers"),
                 where("name", "==", name),
                 limit(1)
             );

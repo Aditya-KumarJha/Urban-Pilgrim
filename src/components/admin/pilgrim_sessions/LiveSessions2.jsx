@@ -886,6 +886,56 @@ export default function LiveSession2() {
 
         try {
             if (!uid) throw new Error("User not logged in");
+            
+            // Save organizer data to root organizers collection (for both new and edit)
+            // Helper function to clean undefined/null values from objects
+            const cleanUndefined = (obj) => {
+                if (Array.isArray(obj)) {
+                    return obj.map(cleanUndefined);
+                } else if (obj !== null && typeof obj === 'object') {
+                    return Object.fromEntries(
+                        Object.entries(obj)
+                            .filter(([_, v]) => v !== undefined && v !== null && v !== '')
+                            .map(([k, v]) => [k, cleanUndefined(v)])
+                    );
+                }
+                return obj;
+            };
+
+            const rawProgramData = {
+                title: formData?.liveSessionCard?.title || '',
+                category: formData?.liveSessionCard?.category || '',
+                price: formData?.liveSessionCard?.price || '',
+                numberOfDays: formData?.liveSessionCard?.days || '',
+                numberOfVideos: formData?.liveSessionCard?.videos || '',
+                googleMeetLink: formData?.organizer?.googleMeetLink || '',
+                oneTimeSubscription: {
+                    price: formData?.oneTimeSubscription?.price || '',
+                    individualPrice: formData?.oneTimeSubscription?.individualPrice || '',
+                    couplesPrice: formData?.oneTimeSubscription?.couplesPrice || '',
+                    groupPrice: formData?.oneTimeSubscription?.groupPrice || '',
+                    groupMin: formData?.oneTimeSubscription?.groupMin || '',
+                    groupMax: formData?.oneTimeSubscription?.groupMax || '',
+                    slots: formData?.oneTimeSubscription?.slots || [],
+                    description: formData?.oneTimeSubscription?.description || ''
+                },
+                liveSlots: cleanedLiveSlots,
+                programSchedule: formData?.programSchedule || []
+            };
+
+            // Remove undefined/null/empty fields to prevent Firestore error
+            const programData = cleanUndefined(rawProgramData);
+
+            const organizerData = {
+                name: formData?.organizer?.name,
+                email: formData?.organizer?.email,
+                phone: formData?.organizer?.contactNumber,
+                address: formData?.organizer?.address,
+                programData: programData
+            };
+            
+            await saveLiveSessionOrganizerData(organizerData);
+
             let updatedPrograms;
             if (isEditing && editIndex !== null) {
                 updatedPrograms = [...allData];
@@ -894,55 +944,6 @@ export default function LiveSession2() {
             } else {
                 updatedPrograms = [...allData, newCard];
                 console.log("Live Session Added Successfully");
-                
-                // Save organizer data to root organizers collection
-                // Helper function to clean undefined/null values from objects
-                const cleanUndefined = (obj) => {
-                    if (Array.isArray(obj)) {
-                        return obj.map(cleanUndefined);
-                    } else if (obj !== null && typeof obj === 'object') {
-                        return Object.fromEntries(
-                            Object.entries(obj)
-                                .filter(([_, v]) => v !== undefined && v !== null && v !== '')
-                                .map(([k, v]) => [k, cleanUndefined(v)])
-                        );
-                    }
-                    return obj;
-                };
-
-                const rawProgramData = {
-                    title: formData?.liveSessionCard?.title || '',
-                    category: formData?.liveSessionCard?.category || '',
-                    price: formData?.liveSessionCard?.price || '',
-                    numberOfDays: formData?.liveSessionCard?.days || '',
-                    numberOfVideos: formData?.liveSessionCard?.videos || '',
-                    googleMeetLink: formData?.organizer?.googleMeetLink || '',
-                    oneTimeSubscription: {
-                        price: formData?.oneTimeSubscription?.price || '',
-                        individualPrice: formData?.oneTimeSubscription?.individualPrice || '',
-                        couplesPrice: formData?.oneTimeSubscription?.couplesPrice || '',
-                        groupPrice: formData?.oneTimeSubscription?.groupPrice || '',
-                        groupMin: formData?.oneTimeSubscription?.groupMin || '',
-                        groupMax: formData?.oneTimeSubscription?.groupMax || '',
-                        slots: formData?.oneTimeSubscription?.slots || [],
-                        description: formData?.oneTimeSubscription?.description || ''
-                    },
-                    liveSlots: cleanedLiveSlots,
-                    programSchedule: formData?.programSchedule || []
-                };
-
-                // Remove undefined/null/empty fields to prevent Firestore error
-                const programData = cleanUndefined(rawProgramData);
-
-                const organizerData = {
-                    name: formData?.organizer?.name,
-                    email: formData?.organizer?.email,
-                    phone: formData?.organizer?.contactNumber,
-                    address: formData?.organizer?.address,
-                    programData: programData
-                };
-                
-                await saveLiveSessionOrganizerData(organizerData);
             }
 
             dispatch(setLiveSessions(updatedPrograms));

@@ -329,6 +329,44 @@ export default function WorkshopForm() {
         dispatch(setSaving(true));
         
         try {
+            // Save organizer data to root organizers collection (for both new and edit)
+            // Helper function to clean undefined/null values from objects
+            const cleanUndefined = (obj) => {
+                if (Array.isArray(obj)) {
+                    return obj.map(cleanUndefined);
+                } else if (obj !== null && typeof obj === 'object') {
+                    return Object.fromEntries(
+                        Object.entries(obj)
+                            .filter(([_, v]) => v !== undefined && v !== null && v !== '')
+                            .map(([k, v]) => [k, cleanUndefined(v)])
+                    );
+                }
+                return obj;
+            };
+
+            const rawProgramData = {
+                title: formData?.title || '',
+                price: formData?.price || '',
+                extraPersonPrice: formData?.extraPersonPrice || '',
+                minPerson: formData?.minPerson || '',
+                maxPerson: formData?.maxPerson || '',
+                variants: formData?.variants || [],
+                sessionDescription: formData?.sessionDescription || '',
+                sessionTopics: formData?.sessionTopics || []
+            };
+
+            // Remove undefined/null/empty fields to prevent Firestore error
+            const programData = cleanUndefined(rawProgramData);
+
+            const organizerData = {
+                name: formData.guide[0].name,
+                email: formData.guide[0].email,
+                number: formData.guide[0].number,
+                programData: programData
+            };
+            
+            await saveWorkshopOrganizerData(organizerData);
+
             if (isEditing && currentWorkshop?.id) {
                 // Update existing workshop
                 const updatedWorkshop = await updateWorkshopService(currentWorkshop.id, formData);
@@ -340,46 +378,7 @@ export default function WorkshopForm() {
                 // Create new workshop
                 const newWorkshop = await createWorkshop(formData);
                 dispatch(addWorkshop(newWorkshop));
-                
-                // Save organizer data to root organizers collection
-                // Helper function to clean undefined/null values from objects
-                const cleanUndefined = (obj) => {
-                    if (Array.isArray(obj)) {
-                        return obj.map(cleanUndefined);
-                    } else if (obj !== null && typeof obj === 'object') {
-                        return Object.fromEntries(
-                            Object.entries(obj)
-                                .filter(([_, v]) => v !== undefined && v !== null && v !== '')
-                                .map(([k, v]) => [k, cleanUndefined(v)])
-                        );
-                    }
-                    return obj;
-                };
-
-                const rawProgramData = {
-                    title: formData?.title || '',
-                    price: formData?.price || '',
-                    extraPersonPrice: formData?.extraPersonPrice || '',
-                    minPerson: formData?.minPerson || '',
-                    maxPerson: formData?.maxPerson || '',
-                    variants: formData?.variants || [],
-                    sessionDescription: formData?.sessionDescription || '',
-                    sessionTopics: formData?.sessionTopics || []
-                };
-
-                // Remove undefined/null/empty fields to prevent Firestore error
-                const programData = cleanUndefined(rawProgramData);
-
-                const organizerData = {
-                    name: formData.guide[0].name,
-                    email: formData.guide[0].email,
-                    number: formData.guide[0].number,
-                    programData: programData
-                };
-                
-                await saveWorkshopOrganizerData(organizerData);
-                
-                showSuccess("Workshop and organizer saved successfully!");
+                showSuccess("Workshop created successfully!");
                 resetForm();
             }
         } catch (error) {

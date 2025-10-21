@@ -23,27 +23,27 @@ export default function OrganizerList() {
     const fetchOrganizers = async () => {
         try {
             setLoading(true);
-            const organizersSnapshot = await getDocs(collection(db, 'organisers'));
+            const organizersSnapshot = await getDocs(collection(db, 'organizers'));
 
             const organizersData = [];
 
-            // Loop through each organizer document (uid)
+            // Loop through each organizer document
             for (const organizerDoc of organizersSnapshot.docs) {
                 const uid = organizerDoc.id;
                 const organizerData = organizerDoc.data();
 
-                // Extract name, email, number, password from the organizer document
-                // Based on the Firebase structure shown in the image
-                const { title, email, number, name, password } = organizerData;
+                // Extract fields from the new organizer structure
+                const { name, email, number, phone, address, password, programs } = organizerData;
 
-                if (title || email || number) {
+                if (email || number) {
                     organizersData.push({
                         uid,
-                        title: title || 'N/A',
+                        name: name || 'N/A',
                         email: email || 'N/A',
-                        number: number || 'N/A',
+                        number: number || phone,
+                        address: address || 'N/A',
                         password: password || '',
-                        name: name || 'N/A'
+                        programCount: Array.isArray(programs) ? programs.length : 0
                     });
                 }
             }
@@ -90,7 +90,7 @@ export default function OrganizerList() {
 
         try {
             setSaving(true);
-            const organizerRef = doc(db, 'organisers', editingOrganizer.uid);
+            const organizerRef = doc(db, 'organizers', editingOrganizer.uid);
 
             await updateDoc(organizerRef, {
                 name: editForm.name.trim(),
@@ -135,6 +135,8 @@ export default function OrganizerList() {
         );
     }
 
+    console.log("Organizers:", organizers);
+
     return (
         <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -166,9 +168,16 @@ export default function OrganizerList() {
                         </div>
 
                         <div className="p-6">
-                            <h3 className="text-xl font-bold text-gray-800 mb-4 text-center truncate">
-                                {organizer.title}
-                            </h3>
+                            <div className="flex items-center justify-center gap-2 mb-4">
+                                <h3 className="text-xl font-bold text-gray-800 text-center truncate">
+                                    {organizer.name}
+                                </h3>
+                                {organizer.programCount > 0 && (
+                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        {organizer.programCount} {organizer.programCount === 1 ? 'Program' : 'Programs'}
+                                    </span>
+                                )}
+                            </div>
 
                             <div className="space-y-3">
                                 <div className="flex items-start gap-3">
@@ -187,7 +196,7 @@ export default function OrganizerList() {
                                     </svg>
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm text-gray-500">Phone</p>
-                                        <p className="text-sm font-medium text-gray-800">{organizer.number}</p>
+                                        <p className="text-sm font-medium text-gray-800">{organizer?.number || organizer?.phone}</p>
                                     </div>
                                 </div>
                             </div>

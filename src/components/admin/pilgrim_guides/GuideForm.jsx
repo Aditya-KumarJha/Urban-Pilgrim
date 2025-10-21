@@ -1291,108 +1291,140 @@ export default function GuideForm() {
                 // Add a new card
                 updatedGuides = [...guides, newCard];
                 console.log("Session Card Added Successfully");
-                
-                // Save organizer data to root organizers collection
-                // Helper function to clean undefined/null values from objects
-                const cleanUndefined = (obj) => {
-                    if (Array.isArray(obj)) {
-                        return obj.map(cleanUndefined);
-                    } else if (obj !== null && typeof obj === 'object') {
-                        return Object.fromEntries(
-                            Object.entries(obj)
-                                .filter(([_, v]) => v !== undefined && v !== null && v !== '')
-                                .map(([k, v]) => [k, cleanUndefined(v)])
-                        );
-                    }
-                    return obj;
-                };
-
-                // Build program data with online/offline modes
-                const rawProgramData = {
-                    title: formData?.guideCard?.title || '',
-                    price: formData?.guideCard?.price || '',
-                    category: formData?.guideCard?.category || '',
-                    mode: {
-                        online: formData?.online?.planChoice || '',
-                        offline: formData?.offline?.planChoice || ''
-                    }
-                };
-
-                // Add online plan details
-                if (formData?.online?.planChoice) {
-                    rawProgramData.online = {};
-                    
-                    if (formData.online.planChoice === "Monthly" || formData.online.planChoice === "Both") {
-                        rawProgramData.online.monthly = {
-                            price: formData?.online?.monthly?.price || '',
-                            individualPrice: formData?.online?.monthly?.individualPrice || '',
-                            couplesPrice: formData?.online?.monthly?.couplesPrice || '',
-                            groupPrice: formData?.online?.monthly?.groupPrice || '',
-                            groupMin: formData?.online?.monthly?.groupMin || '',
-                            groupMax: formData?.online?.monthly?.groupMax || '',
-                            discount: formData?.online?.monthly?.discount || '',
-                            sessionsCount: formData?.online?.monthly?.sessionsCount || '',
-                            occupancies: formData?.online?.monthly?.occupancies || []
-                        };
-                    }
-                    
-                    if (formData.online.planChoice === "One Time" || formData.online.planChoice === "Both") {
-                        rawProgramData.online.oneTime = {
-                            price: formData?.online?.oneTime?.price || '',
-                            individualPrice: formData?.online?.oneTime?.individualPrice || '',
-                            couplesPrice: formData?.online?.oneTime?.couplesPrice || '',
-                            groupPrice: formData?.online?.oneTime?.groupPrice || '',
-                            groupMin: formData?.online?.oneTime?.groupMin || '',
-                            groupMax: formData?.online?.oneTime?.groupMax || '',
-                            occupancies: formData?.online?.oneTime?.occupancies || []
-                        };
-                    }
-                }
-
-                // Add offline plan details
-                if (formData?.offline?.planChoice) {
-                    rawProgramData.offline = {};
-                    
-                    if (formData.offline.planChoice === "Monthly" || formData.offline.planChoice === "Both") {
-                        rawProgramData.offline.monthly = {
-                            price: formData?.offline?.monthly?.price || '',
-                            individualPrice: formData?.offline?.monthly?.individualPrice || '',
-                            couplesPrice: formData?.offline?.monthly?.couplesPrice || '',
-                            groupPrice: formData?.offline?.monthly?.groupPrice || '',
-                            groupMin: formData?.offline?.monthly?.groupMin || '',
-                            groupMax: formData?.offline?.monthly?.groupMax || '',
-                            discount: formData?.offline?.monthly?.discount || '',
-                            sessionsCount: formData?.offline?.monthly?.sessionsCount || '',
-                            occupancies: formData?.offline?.monthly?.occupancies || []
-                        };
-                    }
-                    
-                    if (formData.offline.planChoice === "One Time" || formData.offline.planChoice === "Both") {
-                        rawProgramData.offline.oneTime = {
-                            price: formData?.offline?.oneTime?.price || '',
-                            individualPrice: formData?.offline?.oneTime?.individualPrice || '',
-                            couplesPrice: formData?.offline?.oneTime?.couplesPrice || '',
-                            groupPrice: formData?.offline?.oneTime?.groupPrice || '',
-                            groupMin: formData?.offline?.oneTime?.groupMin || '',
-                            groupMax: formData?.offline?.oneTime?.groupMax || '',
-                            occupancies: formData?.offline?.oneTime?.occupancies || []
-                        };
-                    }
-                }
-
-                // Remove undefined/null/empty fields to prevent Firestore error
-                const programData = cleanUndefined(rawProgramData);
-
-                const organizerData = {
-                    name: formData?.organizer?.name,
-                    email: formData?.organizer?.email,
-                    number: formData?.organizer?.contactNumber,
-                    address: formData?.organizer?.address,
-                    programData: programData
-                };
-                
-                await saveGuideOrganizerData(organizerData);
             }
+
+            // Save organizer data to root organizers collection (for both new and edit)
+            // Helper function to clean undefined/null values from objects
+            const cleanUndefined = (obj) => {
+                if (Array.isArray(obj)) {
+                    return obj.map(cleanUndefined);
+                } else if (obj !== null && typeof obj === 'object') {
+                    return Object.fromEntries(
+                        Object.entries(obj)
+                            .filter(([_, v]) => v !== undefined && v !== null && v !== '')
+                            .map(([k, v]) => [k, cleanUndefined(v)])
+                    );
+                }
+                return obj;
+            };
+
+            // Determine mode based on online/offline selection
+            const hasOnline = formData?.online?.planChoice && formData.online.planChoice !== '';
+            const hasOffline = formData?.offline?.planChoice && formData.offline.planChoice !== '';
+            
+            let mode = '';
+            if (hasOnline && hasOffline) {
+                mode = 'both';
+            } else if (hasOnline) {
+                mode = 'online';
+            } else if (hasOffline) {
+                mode = 'offline';
+            }
+
+            // Build program data with only relevant mode data
+            const rawProgramData = {
+                title: formData?.guideCard?.title || '',
+                price: formData?.guideCard?.price || '',
+                category: formData?.guideCard?.category || '',
+                mode: mode
+            };
+
+            // Helper function to add slots to occupancies
+            const addSlotsToOccupancies = (occupancies, slots) => {
+                if (!Array.isArray(occupancies)) return [];
+                return occupancies.map(occ => ({
+                    ...occ,
+                    slots: Array.isArray(slots) ? slots : []
+                }));
+            };
+
+            // Add online plan details only if mode is 'online' or 'both'
+            if (mode === 'online' || mode === 'both') {
+                rawProgramData.online = {};
+                
+                if (formData.online.planChoice === "Monthly" || formData.online.planChoice === "Both") {
+                    rawProgramData.online.monthly = {
+                        price: formData?.online?.monthly?.price || '',
+                        individualPrice: formData?.online?.monthly?.individualPrice || '',
+                        couplesPrice: formData?.online?.monthly?.couplesPrice || '',
+                        groupPrice: formData?.online?.monthly?.groupPrice || '',
+                        groupMin: formData?.online?.monthly?.groupMin || '',
+                        groupMax: formData?.online?.monthly?.groupMax || '',
+                        discount: formData?.online?.monthly?.discount || '',
+                        sessionsCount: formData?.online?.monthly?.sessionsCount || '',
+                        occupancies: addSlotsToOccupancies(
+                            formData?.online?.monthly?.occupancies || [],
+                            formData?.online?.monthly?.slots || []
+                        )
+                    };
+                }
+                
+                if (formData.online.planChoice === "One Time" || formData.online.planChoice === "Both") {
+                    rawProgramData.online.oneTime = {
+                        price: formData?.online?.oneTime?.price || '',
+                        individualPrice: formData?.online?.oneTime?.individualPrice || '',
+                        couplesPrice: formData?.online?.oneTime?.couplesPrice || '',
+                        groupPrice: formData?.online?.oneTime?.groupPrice || '',
+                        groupMin: formData?.online?.oneTime?.groupMin || '',
+                        groupMax: formData?.online?.oneTime?.groupMax || '',
+                        occupancies: addSlotsToOccupancies(
+                            formData?.online?.oneTime?.occupancies || [],
+                            formData?.online?.oneTime?.slots || []
+                        )
+                    };
+                }
+            }
+
+            // Add offline plan details only if mode is 'offline' or 'both'
+            if (mode === 'offline' || mode === 'both') {
+                rawProgramData.offline = {};
+                
+                if (formData.offline.planChoice === "Monthly" || formData.offline.planChoice === "Both") {
+                    rawProgramData.offline.monthly = {
+                        price: formData?.offline?.monthly?.price || '',
+                        individualPrice: formData?.offline?.monthly?.individualPrice || '',
+                        couplesPrice: formData?.offline?.monthly?.couplesPrice || '',
+                        groupPrice: formData?.offline?.monthly?.groupPrice || '',
+                        groupMin: formData?.offline?.monthly?.groupMin || '',
+                        groupMax: formData?.offline?.monthly?.groupMax || '',
+                        discount: formData?.offline?.monthly?.discount || '',
+                        sessionsCount: formData?.offline?.monthly?.sessionsCount || '',
+                        occupancies: addSlotsToOccupancies(
+                            formData?.offline?.monthly?.occupancies || [],
+                            formData?.offline?.monthly?.slots || []
+                        )
+                    };
+                }
+                
+                if (formData.offline.planChoice === "One Time" || formData.offline.planChoice === "Both") {
+                    rawProgramData.offline.oneTime = {
+                        price: formData?.offline?.oneTime?.price || '',
+                        individualPrice: formData?.offline?.oneTime?.individualPrice || '',
+                        couplesPrice: formData?.offline?.oneTime?.couplesPrice || '',
+                        groupPrice: formData?.offline?.oneTime?.groupPrice || '',
+                        groupMin: formData?.offline?.oneTime?.groupMin || '',
+                        groupMax: formData?.offline?.oneTime?.groupMax || '',
+                        occupancies: addSlotsToOccupancies(
+                            formData?.offline?.oneTime?.occupancies || [],
+                            formData?.offline?.oneTime?.slots || []
+                        )
+                    };
+                }
+            }
+
+            // Remove undefined/null/empty fields to prevent Firestore error
+            const programData = cleanUndefined(rawProgramData);
+
+            const organizerData = {
+                name: formData?.organizer?.name,
+                email: formData?.organizer?.email,
+                number: formData?.organizer?.contactNumber,
+                address: formData?.organizer?.address,
+                programData: programData
+            };
+            
+            // Save organizer data (for both new and existing programs)
+            await saveGuideOrganizerData(organizerData);
 
             // Update Redux store
             dispatch(setGuides(updatedGuides));
