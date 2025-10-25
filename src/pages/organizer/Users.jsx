@@ -8,124 +8,105 @@ import { useNavigate } from 'react-router-dom';
 function OrganizerUsers() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [organiserDocId, setOrganiserDocId] = useState('');
-    const [allStudents, setAllStudents] = useState([]);
+    const [organizerDocId, setOrganizerDocId] = useState('');
+    const [allUsers, setAllUsers] = useState([]);
     const organizer = useSelector(state => state.organizerAuth?.organizer);
     const navigate = useNavigate();
 
     useEffect(() => {
         let isMounted = true;
 
-        async function loadStudents() {
+        async function loadUsers() {
             try {
                 setLoading(true);
                 setError('');
 
                 // Require organizer auth
                 if (!organizer) {
-                    throw new Error('Please sign in as an organiser to view students.');
+                    throw new Error('Please sign in as an organizer to view users.');
                 }
 
-                // Find organiser doc by email, fallback to name
+                // Find organizer doc by email, fallback to name
                 let orgSnap = null;
                 if (organizer.email) {
                     orgSnap = await getDocs(
-                        query(collection(db, 'organisers'), where('email', '==', organizer.email))
+                        query(collection(db, 'organizers'), where('email', '==', organizer.email))
                     );
                 }
                 if ((!orgSnap || orgSnap.empty) && organizer.name) {
                     orgSnap = await getDocs(
-                        query(collection(db, 'organisers'), where('name', '==', organizer.name))
+                        query(collection(db, 'organizers'), where('name', '==', organizer.name))
                     );
                 }
                 if (!orgSnap || orgSnap.empty) {
-                    throw new Error('No organiser profile found for this account.');
+                    throw new Error('No organizer profile found for this account.');
                 }
 
                 const orgDoc = orgSnap.docs[0];
                 if (!isMounted) return;
-                setOrganiserDocId(orgDoc.id);
+                setOrganizerDocId(orgDoc.id);
 
                 const orgData = orgDoc.data() || {};
                 console.log('Organizer data:', orgData);
 
-                const studentsData = [];
+                const usersData = [];
 
-                // Root-level categories
-                const categoryMap = {
-                    guide: 'guides',
-                    retreat: 'retreats',
-                    live: 'liveSessions'
-                };
+                // Get programs array
+                const programsArray = Array.isArray(orgData.programs) ? orgData.programs : [];
+                console.log('Found programs:', programsArray.length);
 
-                for (const [rootKey, displayCategory] of Object.entries(categoryMap)) {
-                    // Find all program keys by scanning orgData for dot-notation keys
-                    const programKeys = new Set();
-                    
-                    for (const key of Object.keys(orgData)) {
-                        if (key.startsWith(`${rootKey}.`)) {
-                            const parts = key.split('.');
-                            if (parts.length >= 2) {
-                                programKeys.add(parts[1]); // program1, program2, etc.
-                            }
-                        }
-                    }
+                // Process each program
+                for (const program of programsArray) {
+                    if (!program || typeof program !== 'object') continue;
 
-                    console.log(`Found programs for ${rootKey}:`, Array.from(programKeys));
+                    console.log('Processing program:', program.title);
 
-                    // Process each program
-                    for (const programKey of programKeys) {
-                        const prefix = `${rootKey}.${programKey}`;
-                        
-                        // Read using dot-notation STRING keys
-                        const title = orgData[`${prefix}.title`] || programKey;
-                        const usersMap = orgData[`${prefix}.users`] || {};
-                        
-                        console.log(`Processing program: ${title}`, usersMap);
+                    // Get users array from program
+                    const usersArray = Array.isArray(program.users) ? program.users : [];
 
-                        // Process users in this program
-                        for (const [userId, userData] of Object.entries(usersMap)) {
-                            if (userData && (userData.name || userData.email)) {
-                                const scheduledSessions = userData.scheduleddate || [];
-                                const completedSessions = scheduledSessions.filter(s => 
-                                    (s.status || '').toLowerCase() === 'completed'
-                                );
+                    // Process each user in this program
+                    for (const user of usersArray) {
+                        if (!user || typeof user !== 'object') continue;
 
-                                studentsData.push({
-                                    id: userId,
-                                    name: userData.name || 'Unknown',
-                                    email: userData.email || 'No email',
-                                    program: title,
-                                    category: displayCategory,
-                                    rootKey,
-                                    programKey,
-                                    totalSessions: scheduledSessions.length,
-                                    completedSessions: completedSessions.length,
-                                    pendingSessions: scheduledSessions.length - completedSessions.length,
-                                    sessions: scheduledSessions.map(session => ({
-                                        ...session,
-                                        status: (session.status || 'pending').toLowerCase()
-                                    }))
-                                });
-                            }
-                        }
+                        const userSlots = Array.isArray(user.slots) ? user.slots : [];
+                        const completedSlots = userSlots.filter(s => 
+                            (s.status || '').toLowerCase() === 'completed'
+                        );
+
+                        usersData.push({
+                            userId: user.userId || '',
+                            name: user.name || 'Unknown',
+                            email: user.email || 'No email',
+                            phone: user.phone || '',
+                            program: program.title || 'Untitled',
+                            programId: program.programId || '',
+                            category: program.category || '',
+                            mode: program.mode || '',
+                            totalSessions: userSlots.length,
+                            completedSessions: completedSlots.length,
+                            pendingSessions: userSlots.length - completedSlots.length,
+                            slots: userSlots.map(slot => ({
+                                ...slot,
+                                status: (slot.status || 'pending').toLowerCase()
+                            }))
+                        });
                     }
                 }
 
-                console.log('All students data:', studentsData);
+                console.log('All users data:', usersData);
 
                 if (isMounted) {
-                    setAllStudents(studentsData);
+                    setAllUsers(usersData);
                 }
             } catch (e) {
-                console.error('Failed to load students', e);
-                if (isMounted) setError(e?.message || 'Failed to load students');
+                console.error('Failed to load users', e);
+                if (isMounted) setError(e?.message || 'Failed to load users');
             } finally {
                 if (isMounted) setLoading(false);
             }
         }
 
-        loadStudents();
+        loadUsers();
         return () => {
             isMounted = false;
         };
@@ -137,7 +118,7 @@ function OrganizerUsers() {
             <div className="min-h-screen bg-gradient-to-br from-blue-50 via-orange-50 to-blue-50 flex items-center justify-center">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-orange-500 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Loading students...</p>
+                    <p className="mt-4 text-gray-600">Loading users...</p>
                 </div>
             </div>
         );
@@ -149,7 +130,7 @@ function OrganizerUsers() {
             <div className="min-h-screen bg-gradient-to-br from-blue-50 via-orange-50 to-blue-50 flex items-center justify-center">
                 <div className="text-center">
                     <div className="text-red-500 text-6xl mb-4">⚠️</div>
-                    <h2 className="text-2xl font-bold text-gray-800 mb-2">Error Loading Students</h2>
+                    <h2 className="text-2xl font-bold text-gray-800 mb-2">Error Loading Users</h2>
                     <p className="text-gray-600 mb-4">{error}</p>
                     <button 
                         onClick={() => window.location.reload()} 
@@ -178,9 +159,9 @@ function OrganizerUsers() {
                     </div>
                     <div className="flex items-center gap-3 mb-2">
                         <Users className="w-8 h-8 text-blue-600" />
-                        <h1 className="text-3xl font-bold text-gray-800">Enrolled Students</h1>
+                        <h1 className="text-3xl font-bold text-gray-800">Enrolled Users</h1>
                     </div>
-                    <p className="text-gray-600">Manage and view all students enrolled in your programs</p>
+                    <p className="text-gray-600">Manage and view all users enrolled in your programs</p>
                 </div>
 
                 {/* Summary Stats */}
@@ -189,8 +170,8 @@ function OrganizerUsers() {
                         <div className="flex items-center justify-between mb-4">
                             <Users className="w-8 h-8 text-blue-500" />
                         </div>
-                        <div className="text-3xl font-bold text-gray-800 mb-1">{allStudents.length}</div>
-                        <div className="text-gray-600 text-sm">Total Students</div>
+                        <div className="text-3xl font-bold text-gray-800 mb-1">{allUsers.length}</div>
+                        <div className="text-gray-600 text-sm">Total Users</div>
                     </div>
 
                     <div className="bg-white rounded-xl shadow-lg p-6">
@@ -198,7 +179,7 @@ function OrganizerUsers() {
                             <BookOpen className="w-8 h-8 text-green-500" />
                         </div>
                         <div className="text-3xl font-bold text-gray-800 mb-1">
-                            {allStudents.reduce((acc, student) => acc + student.totalSessions, 0)}
+                            {allUsers.reduce((acc, user) => acc + user.totalSessions, 0)}
                         </div>
                         <div className="text-gray-600 text-sm">Total Sessions</div>
                     </div>
@@ -208,7 +189,7 @@ function OrganizerUsers() {
                             <CheckCircle className="w-8 h-8 text-purple-500" />
                         </div>
                         <div className="text-3xl font-bold text-gray-800 mb-1">
-                            {allStudents.reduce((acc, student) => acc + student.completedSessions, 0)}
+                            {allUsers.reduce((acc, user) => acc + user.completedSessions, 0)}
                         </div>
                         <div className="text-gray-600 text-sm">Completed Sessions</div>
                     </div>
@@ -218,31 +199,31 @@ function OrganizerUsers() {
                             <Clock className="w-8 h-8 text-orange-500" />
                         </div>
                         <div className="text-3xl font-bold text-gray-800 mb-1">
-                            {allStudents.reduce((acc, student) => acc + student.pendingSessions, 0)}
+                            {allUsers.reduce((acc, user) => acc + user.pendingSessions, 0)}
                         </div>
                         <div className="text-gray-600 text-sm">Pending Sessions</div>
                     </div>
                 </div>
 
-                {/* Students List */}
-                {allStudents.length === 0 ? (
+                {/* Users List */}
+                {allUsers.length === 0 ? (
                     <div className="bg-white rounded-xl shadow-lg p-12 text-center">
                         <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                        <p className="text-gray-500 text-lg">No students enrolled yet</p>
-                        <p className="text-gray-400 text-sm mt-2">Students will appear here once they enroll in your programs</p>
+                        <p className="text-gray-500 text-lg">No users enrolled yet</p>
+                        <p className="text-gray-400 text-sm mt-2">Users will appear here once they enroll in your programs</p>
                     </div>
                 ) : (
                     <div className="bg-white rounded-xl shadow-lg overflow-hidden">
                         <div className="p-6 border-b border-gray-200">
-                            <h2 className="text-xl font-semibold text-gray-800">Student Details</h2>
-                            <p className="text-gray-600 text-sm mt-1">Complete list of enrolled students and their progress</p>
+                            <h2 className="text-xl font-semibold text-gray-800">User Details</h2>
+                            <p className="text-gray-600 text-sm mt-1">Complete list of enrolled users and their progress</p>
                         </div>
 
                         <div className="overflow-x-auto">
                             <table className="w-full">
                                 <thead className="bg-gray-50">
                                     <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Program</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sessions</th>
@@ -250,13 +231,13 @@ function OrganizerUsers() {
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
-                                    {allStudents.map((student, index) => {
-                                        const progressPercentage = student.totalSessions > 0 
-                                            ? Math.round((student.completedSessions / student.totalSessions) * 100) 
+                                    {allUsers.map((user, index) => {
+                                        const progressPercentage = user.totalSessions > 0 
+                                            ? Math.round((user.completedSessions / user.totalSessions) * 100) 
                                             : 0;
 
                                         return (
-                                            <tr key={`${student.id}-${index}`} className="hover:bg-gray-50">
+                                            <tr key={`${user.userId}-${index}`} className="hover:bg-gray-50">
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="flex items-center">
                                                         <div className="flex-shrink-0 h-10 w-10">
@@ -265,35 +246,35 @@ function OrganizerUsers() {
                                                             </div>
                                                         </div>
                                                         <div className="ml-4">
-                                                            <div className="text-sm font-medium text-gray-900">{student.name}</div>
+                                                            <div className="text-sm font-medium text-gray-900">{user.name}</div>
                                                             <div className="text-sm text-gray-500 flex items-center gap-1">
                                                                 <Mail className="w-3 h-3" />
-                                                                {student.email}
+                                                                {user.email}
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="text-sm text-gray-900 font-medium">{student.program}</div>
+                                                    <div className="text-sm text-gray-900 font-medium">{user.program}</div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                                                        {student.category}
+                                                        {user.category}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                     <div className="flex gap-4">
                                                         <span className="flex items-center gap-1">
                                                             <BookOpen className="w-4 h-4 text-gray-500" />
-                                                            {student.totalSessions}
+                                                            {user.totalSessions}
                                                         </span>
                                                         <span className="flex items-center gap-1 text-green-600">
                                                             <CheckCircle className="w-4 h-4" />
-                                                            {student.completedSessions}
+                                                            {user.completedSessions}
                                                         </span>
                                                         <span className="flex items-center gap-1 text-orange-600">
                                                             <Clock className="w-4 h-4" />
-                                                            {student.pendingSessions}
+                                                            {user.pendingSessions}
                                                         </span>
                                                     </div>
                                                 </td>

@@ -178,11 +178,19 @@ const UpcomingEvents = () => {
                                             className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:border-blue-300 cursor-pointer transition-colors"
                                             onClick={() => addProgram(program)}
                                         >
-                                            <img
-                                                src={program.image}
-                                                alt={program.title}
-                                                className="w-12 h-12 object-cover rounded-lg"
-                                            />
+                                            {program.image?.includes('.mp4') || program.image?.includes('.webm') || program?.image?.includes('.mov') || program?.image?.includes('.webm') ? (
+                                                <video
+                                                    src={program.image}
+                                                    className="w-12 h-12 object-cover rounded-lg"
+                                                    muted
+                                                />
+                                            ) : (
+                                                <img
+                                                    src={program.image}
+                                                    alt={program.title}
+                                                    className="w-12 h-12 object-cover rounded-lg"
+                                                />
+                                            )}
                                             <div className="flex-1 min-w-0">
                                                 <h3 className="font-medium text-gray-900 truncate">{program.title}</h3>
                                                 <div className="flex items-center gap-2 mt-1">
@@ -295,11 +303,19 @@ const SortableItem = ({ program, toggleVisibility, removeProgram }) => {
             >
                 <GripVertical className="w-5 h-5 text-gray-400" />
             </div>
-            <img
-                src={program.image}
-                alt={program.title}
-                className="w-12 h-12 object-cover rounded-lg"
-            />
+            {program.image?.endsWith('.mp4') || program.image?.endsWith('.webm') ? (
+                <video
+                    src={program.image}
+                    className="w-12 h-12 object-cover rounded-lg"
+                    muted
+                />
+            ) : (
+                <img
+                    src={program.image}
+                    alt={program.title}
+                    className="w-12 h-12 object-cover rounded-lg"
+                />
+            )}
             <div className="flex-1 min-w-0">
                 <h3 className="font-medium text-gray-900 truncate">{program.title}</h3>
                 <div className="flex items-center gap-2 mt-1">

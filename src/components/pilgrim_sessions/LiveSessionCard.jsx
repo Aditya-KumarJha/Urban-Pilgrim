@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 export default function LiveSessionCard({ image, category, title, price }) {
   const navigate = useNavigate();
   const handleCardClick = () => {
-    navigate(`/session/${title.replace(/\s+/g, '-').toLowerCase()}/details`);
+    navigate(`/session/${title.trim().replace(/\s+/g, '-').toLowerCase()}/details`);
   };
   return (
     <div className="rounded-xl overflow-hidden shadow-md bg-white flex flex-col max-w-[300px] sm:max-w-xs" onClick={handleCardClick}>

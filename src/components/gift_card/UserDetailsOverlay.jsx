@@ -1,17 +1,6 @@
 import { useState, useEffect } from "react";
 
-export default function UserDetailsOverlay({ 
-    giftCard, 
-    selectedPrice, 
-    quantity, 
-    total, 
-    onClose, 
-    onConfirm, 
-    isLoggedIn = false, 
-    user = null, 
-    sendOtp, 
-    verifyOtp 
-}) {
+export default function UserDetailsOverlay({ giftCard, selectedPrice, quantity, total, onClose, onConfirm, isLoggedIn = false, user = null, sendOtp, verifyOtp }) {
     const [formData, setFormData] = useState({
         firstName: "",
         lastName: "",
@@ -32,12 +21,13 @@ export default function UserDetailsOverlay({
     const [emailError, setEmailError] = useState("");
     const [whatsappError, setWhatsappError] = useState("");
 
-    // Auto-populate email when user is logged in
+    // Auto-populate email and WhatsApp number when user is logged in
     useEffect(() => {
-        if (isLoggedIn && user?.email) {
+        if (isLoggedIn && user) {
             setFormData(prev => ({
                 ...prev,
-                email: user.email
+                email: user.email || '',
+                whatsappNumber: user.whatsappNumber || ''
             }));
             setEmailVerified(true); // Skip email verification for logged-in users
         }
@@ -198,26 +188,25 @@ export default function UserDetailsOverlay({
                             )}
                         </div>
 
-                        {/* WhatsApp Number field */}
-                        {!isLoggedIn && (
-                            <div>
-                                <input 
-                                    name="whatsappNumber" 
-                                    type="tel" 
-                                    placeholder="WhatsApp Number (e.g., 9876543210)" 
-                                    value={formData.whatsappNumber} 
-                                    onChange={handleChange} 
-                                    maxLength={10}
-                                    className={`w-full border p-2 rounded ${
-                                        whatsappError ? 'border-red-500' : ''
-                                    }`}
-                                    required
-                                />
-                                {whatsappError && (
-                                    <p className="text-red-500 text-xs text-left mt-1 ml-1">{whatsappError}</p>
-                                )}
-                            </div>
-                        )}
+                        {/* WhatsApp Number field - always show, but read-only for logged-in users */}
+                        <div>
+                            <input 
+                                name="whatsappNumber" 
+                                type="tel" 
+                                placeholder="WhatsApp Number (e.g., 9876543210)" 
+                                value={formData.whatsappNumber} 
+                                onChange={handleChange} 
+                                maxLength={10}
+                                className={`w-full border p-2 rounded ${isLoggedIn ? 'bg-gray-100 cursor-not-allowed' : ''} ${
+                                    whatsappError ? 'border-red-500' : ''
+                                }`}
+                                readOnly={isLoggedIn}
+                                required
+                            />
+                            {whatsappError && (
+                                <p className="text-red-500 text-xs text-left mt-1 ml-1">{whatsappError}</p>
+                            )}
+                        </div>
 
                         {!isLoggedIn && (
                             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
@@ -286,8 +275,8 @@ export default function UserDetailsOverlay({
                     </div>
 
                     <button 
-                        type="submit" 
-                        className="w-full bg-[#2F6288] hover:bg-[#224b66] text-white py-3 rounded-lg font-semibold disabled:opacity-60"
+                        type="submit"
+                        className="w-full text-center bg-[#2F6288] hover:bg-[#224b66] text-white py-3 rounded-lg font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
                         disabled={!isLoggedIn && !emailVerified}
                     >
                         Proceed to Payment - ₹{total.toLocaleString("en-IN")}

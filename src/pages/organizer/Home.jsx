@@ -483,7 +483,11 @@ function Home({ organizerUid }) {
                                                         }
                                                     };
                                                     
-                                                    const { dateStr, timeStr } = formatDateTime(slot.date, slot.time);
+                                                    // Combine startTime and endTime into expected format
+                                                    const timeString = slot.startTime && slot.endTime 
+                                                        ? `${slot.startTime} - ${slot.endTime}` 
+                                                        : null;
+                                                    const { dateStr, timeStr } = formatDateTime(slot.date, timeString);
                                                     
                                                     return (
                                                         <div

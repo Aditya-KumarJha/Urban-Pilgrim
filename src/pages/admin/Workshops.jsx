@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -8,17 +8,37 @@ import WorkshopBookingTable from "../../components/admin/workshops/WorkshopBooki
 import {
     setWorkshops,
     setCurrentWorkshop,
-    deleteWorkshop as deleteWorkshopAction
+    deleteWorkshop as deleteWorkshopAction,
+    setLoading
 } from "../../features/workshopsSlice";
 import {
     updateWorkshop as updateWorkshopService,
-    deleteWorkshop as deleteWorkshopService
+    deleteWorkshop as deleteWorkshopService,
+    getWorkshops
 } from "../../services/workshopService";
 import { showSuccess, showError } from "../../utils/toast";
 
 export default function Workshops() {
     const dispatch = useDispatch();
-    const { workshops } = useSelector((state) => state.workshops);
+    const { workshops, loading } = useSelector((state) => state.workshops);
+
+    // Fetch workshops on component mount
+    useEffect(() => {
+        const fetchWorkshops = async () => {
+            try {
+                dispatch(setLoading(true));
+                const fetchedWorkshops = await getWorkshops();
+                dispatch(setWorkshops(fetchedWorkshops));
+            } catch (error) {
+                console.error("Error fetching workshops:", error);
+                showError("Failed to load workshops");
+            } finally {
+                dispatch(setLoading(false));
+            }
+        };
+
+        fetchWorkshops();
+    }, [dispatch]);
 
     // Move workshop items (drag and drop)
     const moveItem = useCallback((dragIndex, hoverIndex) => {
@@ -88,19 +108,31 @@ export default function Workshops() {
             {/* Current Workshops */}
             <div className="p-8">
                 <h3 className="text-lg font-bold mt-6 mb-3">Current Workshop Items</h3>
-                <DndProvider backend={HTML5Backend}>
-                    {workshops && workshops.map((item, index) => (
-                        <WorkshopItem
-                            key={index}
-                            index={index}
-                            slide={item}
-                            moveSlide={moveItem}
-                            onEdit={(i) => editItem(i)}
-                            onDelete={deleteItem}
-                            onToggle={toggleItem}
-                        />
-                    ))}
-                </DndProvider>
+                
+                {loading ? (
+                    <div className="flex justify-center items-center py-8">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                        <span className="ml-3 text-gray-600">Loading workshops...</span>
+                    </div>
+                ) : workshops && workshops.length > 0 ? (
+                    <DndProvider backend={HTML5Backend}>
+                        {workshops.map((item, index) => (
+                            <WorkshopItem
+                                key={index}
+                                index={index}
+                                slide={item}
+                                moveSlide={moveItem}
+                                onEdit={(i) => editItem(i)}
+                                onDelete={deleteItem}
+                                onToggle={toggleItem}
+                            />
+                        ))}
+                    </DndProvider>
+                ) : (
+                    <div className="text-center py-8 text-gray-500">
+                        <p>No workshops found. Create your first workshop using the form above.</p>
+                    </div>
+                )}
             </div>
 
             {/* Workshop Bookings Table */}

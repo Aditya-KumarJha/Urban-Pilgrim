@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 export default function RecordedProgramCard({ image, category, title, days, videos, price }) {
   const navigate = useNavigate();
   const handleCardClick = () => {
-    navigate(`/program/${title.replace(/\s+/g, '-').toLowerCase()}/details`);
+    navigate(`/program/${title.trim().replace(/\s+/g, '-').toLowerCase()}/details`);
   };
 
   return (

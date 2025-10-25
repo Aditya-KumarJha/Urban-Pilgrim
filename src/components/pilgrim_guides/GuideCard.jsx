@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 export default function GuideCard({ image, thumbnailType, category, title, price }) {
     const navigate = useNavigate();
     const handleCardClick = (title) => {
-        navigate(`/guide/${title.replace(/\s+/g, '-').toLowerCase()}`);
+        navigate(`/guide/${title.trim().replace(/\s+/g, '-').toLowerCase()}`);
     };
     return (
         <div className="rounded-xl overflow-hidden shadow-md bg-white flex flex-col max-w-[300px] sm:max-w-xs" onClick={() => handleCardClick(title)}>

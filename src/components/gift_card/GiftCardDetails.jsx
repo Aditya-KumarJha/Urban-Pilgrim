@@ -175,9 +175,12 @@ export default function GiftCardDetails() {
 
     const handleConfirmPurchase = async (formData) => {
         try {
-            // After OTP verification, user will be signed in. Guard just in case.
-            if (!user) {
-                showError("Please verify your email to continue");
+            // Get user email from either logged-in user or form data
+            const purchaserEmail = user?.email || formData.email;
+            const purchaserName = user?.displayName || `${formData.firstName} ${formData.lastName}` || purchaserEmail?.split('@')[0] || 'Pilgrim';
+
+            if (!purchaserEmail) {
+                showError("Email is required to continue");
                 return;
             }
 
@@ -209,13 +212,14 @@ export default function GiftCardDetails() {
                         // Confirm payment and generate coupon
                         const confirmPayment = httpsCallable(functions, 'confirmGiftCardProgramPayment');
                         await confirmPayment({
-                            purchaserEmail: user.email,
-                            purchaserName: user.displayName || user.email?.split('@')[0] || 'Pilgrim',
+                            purchaserEmail: purchaserEmail,
+                            purchaserName: purchaserName,
                             giftCardType: giftCard.category,
                             giftCardTitle: giftCard.title,
                             amount: selectedPrice.value,
                             quantity: quantity,
-                            paymentResponse: response
+                            paymentResponse: response,
+                            billingDetails: formData  // Include full form data
                         });
                         
                         // Hide processing loader
@@ -302,9 +306,9 @@ export default function GiftCardDetails() {
                 {/* Image - Sticky */}
                 <div className="flex-shrink-0 space-y-4 md:sticky mx-auto top-24 self-start">
                     <img
-                            src="/gift_card.jpg"
-                            alt={giftCard.title}
-                            className="rounded-xl xl:h-[380px] lg:h-[280px] md:h-[210px] sm:h-[350px] object-cover"
+                        src="/gift_card.jpg"
+                        alt={giftCard.title}
+                        className="rounded-xl xl:h-[380px] lg:h-[280px] md:h-[210px] sm:h-[350px] object-cover"
                     />
                 </div>
 

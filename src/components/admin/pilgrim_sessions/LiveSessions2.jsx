@@ -1330,13 +1330,15 @@ export default function LiveSession2() {
                         <div className="mb-4">
                             <label className="block text-md font-semibold text-gray-700 mb-2">
                                 Organizer Email <span className="text-red-500">*</span>
+                                {isEditing && <span className="text-xs text-gray-500 ml-2">(Cannot be changed during edit)</span>}
                             </label>
                             <input
                                 placeholder="Enter Organizer Email (Required)"
                                 type="email"
                                 value={formData?.organizer?.email}
                                 onChange={(e) => handleFieldChange("organizer", "email", e.target.value)}
-                                className="text-sm w-full border border-gray-300 p-3 rounded-lg"
+                                className={`text-sm w-full border border-gray-300 p-3 rounded-lg ${isEditing ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                                disabled={isEditing}
                                 required
                             />
                         </div>

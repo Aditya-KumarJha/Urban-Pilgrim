@@ -16,18 +16,18 @@ export default function WorkshopCard({
     const navigate = useNavigate();
     
     const handleCardClick = () => {
-        navigate(`/workshop/${title.replace(/\s+/g, '-').toLowerCase()}/details`);
+        navigate(`/workshop/${title.trim().replace(/\s+/g, '-').toLowerCase()}/details`);
     };
 
     const handleViewDetails = (e) => {
         e.stopPropagation();
-        navigate(`/workshop/${title.replace(/\s+/g, '-').toLowerCase()}/details`);
+        navigate(`/workshop/${title.trim().replace(/\s+/g, '-').toLowerCase()}/details`);
     };
 
     const handleBookNow = (e) => {
         e.stopPropagation();
         // Add to cart or direct booking logic
-        navigate(`/workshop/${title.replace(/\s+/g, '-').toLowerCase()}/details`);
+        navigate(`/workshop/${title.trim().replace(/\s+/g, '-').toLowerCase()}/details`);
     };
 
     // Helper function to determine media type

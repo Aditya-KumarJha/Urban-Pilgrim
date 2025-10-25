@@ -134,6 +134,35 @@ export const fetchAllEvents = async (dispatch) => {
             console.error("Error fetching recorded programs:", error);
         }
 
+        /** ---------------- WORKSHOPS ---------------- **/
+        try {
+            const workshopsRef = collection(db, 'workshops');
+            const workshopsSnapshot = await getDocs(workshopsRef);
+            
+            workshopsSnapshot.forEach((doc) => {
+                const workshop = doc.data();
+                if (workshop?.title) {
+                    allEvents.push(
+                        mapEvent(
+                            `workshop-${doc.id}`,
+                            'workshop',
+                            {
+                                title: workshop.title,
+                                image: workshop.thumbnail || '',
+                                category: workshop.category || 'Workshop',
+                                price: workshop.price || '0',
+                                location: workshop.location || 'TBD'
+                            },
+                            workshop.createdAt,
+                            workshop
+                        )
+                    );
+                }
+            });
+        } catch (error) {
+            console.error("Error fetching workshops:", error);
+        }
+
         // console.log("allEvents: ", allEvents)
         
         /** ---------------- FILTER & SORT ---------------- **/

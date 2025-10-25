@@ -1810,15 +1810,17 @@ export default function RetreatsForm() {
                         className="w-full border rounded p-2 mb-4"
                     />
 
-                    <label className="block font-semibold mb-1">
-                        Email <span className="text-red-500">*</span>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Organizer Email <span className="text-red-500">*</span>
+                        {editingIndex !== null && <span className="text-xs text-gray-500 ml-2">(Cannot be changed during edit)</span>}
                     </label>
                     <input
                         type="email"
                         value={formData?.meetGuide?.email}
                         placeholder="Enter email address (Required)"
                         onChange={(e) => handleFieldChange("meetGuide", "email", e.target.value)}
-                        className="w-full border rounded p-2 mb-4"
+                        className={`w-full border rounded p-2 mb-4 ${editingIndex !== null ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                        disabled={editingIndex !== null}
                         required
                     />
 

@@ -965,14 +965,16 @@ export default function WorkshopForm() {
                     />
 
                     <label className="block text-md font-semibold text-gray-700 mb-2">
-                        Email <span className="text-red-500">*</span>
+                        Guide/Organizer Email <span className="text-red-500">*</span>
+                        {isEditing && <span className="text-xs text-gray-500 ml-2">(Cannot be changed during edit)</span>}
                     </label>
                     <input
                         type="email"
                         value={formData.guide[0].email}
                         placeholder="Enter email address (Required)"
                         onChange={(e) => handleGuideChange("email", e.target.value)}
-                        className="text-sm w-full border border-gray-300 p-3 rounded-lg"
+                        className={`text-sm w-full border border-gray-300 p-3 rounded-lg ${isEditing ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                        disabled={isEditing}
                         required
                     />
 
