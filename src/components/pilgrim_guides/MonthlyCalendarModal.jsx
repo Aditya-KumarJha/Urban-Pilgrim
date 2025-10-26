@@ -5,12 +5,12 @@ import { useDispatch } from "react-redux";
 import { addToCart } from "../../features/cartSlice.js";
 import { showSuccess, showError } from "../../utils/toast.js";
 
-export default function MonthlyCalendarModal({ isOpen, onClose, sessionData, selectedPlan, mode, availableSlots = [], occupancyType = '', userMonthlySlots = [], slotBookings = {}, onAddToCart, cartItems = [] }) {
+export default function MonthlyCalendarModal({ isOpen, onClose, sessionData, selectedPlan, mode, availableSlots = [], occupancyType = '', userMonthlySlots = [], slotBookings = {}, quantity = 1, onAddToCart, cartItems = [] }) {
     // Dynamic mode with default fallback
     const dynamicMode = mode || 'Online';
     
     // Dynamic occupancy type with default fallback
-    const dynamicOccupancyType = occupancyType || 'individual';
+    const dynamicOccupancyType = (occupancyType || 'individual').toLowerCase();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(null);
     const [selectedSlot, setSelectedSlot] = useState(null);
@@ -553,11 +553,11 @@ export default function MonthlyCalendarModal({ isOpen, onClose, sessionData, sel
                 gst: sessionData?.guideCard?.gst || 0,
                 persons: 1,
                 image: sessionData?.guideCard?.thumbnail || '',
-                quantity: 1,
+                quantity: quantity || 1,
                 type: 'guide',
                 mode: dynamicMode,
                 subscriptionType: selectedPlan,
-                occupancyType: dynamicOccupancyType,
+                occupancyType: occupancyType || 'individual',
                 organizer: sessionData?.organizer || {},
                 calendarId: sessionData?.organizer?.calendarId || sessionData?.organizer?.email || 'primary',
                 // Include monthly discount so CartPage can apply it
@@ -1049,14 +1049,45 @@ export default function MonthlyCalendarModal({ isOpen, onClose, sessionData, sel
                                 const canShowIndCoupleCTA = !isGroup && selectedSlotsMulti.length > 0 && remainingSessionsAfterCart > 0;
                                 return (canShowGroupCTA || canShowIndCoupleCTA);
                             })() && (
-                                    <div className="flex justify-end mt-6">
-                                        <button
-                                            onClick={handleAddMonthlyToCart}
-                                            disabled={loading}
-                                            className="px-6 py-3 bg-[#2F6288] text-white rounded-lg hover:bg-[#2F6288]/90 disabled:opacity-50 font-semibold"
-                                        >
-                                            {loading ? 'Adding...' : 'Add to Cart'}
-                                        </button>
+                                    <div className="space-y-3 mt-6">
+                                        {/* Occupancy Price Display */}
+                                        <div className="bg-gray-50 p-4 rounded-lg">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-sm text-gray-600">
+                                                    Occupancy: <span className="font-medium text-gray-900 capitalize">{dynamicOccupancyType}</span>
+                                                </span>
+                                                <span className="text-lg font-bold text-[#2F6288]">
+                                                    ₹{(() => {
+                                                        const modeKey = dynamicMode?.toLowerCase();
+                                                        const subscriptionKey = selectedPlan;
+                                                        const price = sessionData[modeKey]?.[subscriptionKey]?.price;
+                                                        return (Number(price || 0) * quantity).toLocaleString();
+                                                    })()}
+                                                </span>
+                                            </div>
+                                            {quantity > 1 && (
+                                                <p className="text-xs text-gray-500 mt-1">
+                                                    ₹{(() => {
+                                                        const modeKey = dynamicMode?.toLowerCase();
+                                                        const subscriptionKey = selectedPlan;
+                                                        return Number(sessionData[modeKey]?.[subscriptionKey]?.price || 0).toLocaleString();
+                                                    })()} × {quantity} sessions
+                                                </p>
+                                            )}
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                {selectedSlotsMulti.length} slot{selectedSlotsMulti.length !== 1 ? 's' : ''} selected
+                                            </p>
+                                        </div>
+
+                                        <div className="flex justify-end">
+                                            <button
+                                                onClick={handleAddMonthlyToCart}
+                                                disabled={loading}
+                                                className="px-6 py-3 bg-[#2F6288] text-white rounded-lg hover:bg-[#2F6288]/90 disabled:opacity-50 font-semibold"
+                                            >
+                                                {loading ? 'Adding...' : 'Add to Cart'}
+                                            </button>
+                                        </div>
                                     </div>
                                 )}
 

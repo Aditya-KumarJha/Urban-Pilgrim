@@ -32,6 +32,7 @@ export default function GuideClassDetails() {
     const [availableSlots, setAvailableSlots] = useState([]);
     const [mainImage, setMainImage] = useState('');
     const [galleryImages, setGalleryImages] = useState([]);
+    const [galleryVideos, setGalleryVideos] = useState([]);
     const [mainImageType, setMainImageType] = useState('image');
     const [showFreeTrail, setShowFreeTrail] = useState(false);
     const [selectedOccupancy, setSelectedOccupancy] = useState(null);
@@ -558,6 +559,7 @@ export default function GuideClassDetails() {
                     // Extract and set gallery images and videos
                     if (found?.session?.images && Array.isArray(found.session.images)) {
                         setGalleryImages(found.session.images);
+                        setGalleryVideos(found.session.videos);
                         const firstMedia = found?.guideCard?.thumbnail || found.session.images[0] || "";
                         setMainImage(firstMedia);
                         setMainImageType(getMediaType(firstMedia));
@@ -566,6 +568,7 @@ export default function GuideClassDetails() {
                         setMainImage(thumbnail);
                         setMainImageType(getMediaType(thumbnail));
                         setGalleryImages([]);
+                        setGalleryVideos([]);
                     }
                 }
             } catch (error) {
@@ -1164,8 +1167,8 @@ export default function GuideClassDetails() {
                         />
                     )}
 
-                    {/* Gallery Media Thumbnails */}
-                    {galleryImages.length > 0 && (
+                    {/* Gallery Media Thumbnails (Images + Videos Mixed) */}
+                    {(galleryImages.length > 0 || galleryVideos.length > 0) && (
                         <div className="flex gap-3 overflow-x-auto pb-2">
                             {/* Main thumbnail */}
                             {sessionData?.guideCard?.thumbnail && (
@@ -1198,8 +1201,8 @@ export default function GuideClassDetails() {
                                 </div>
                             )}
                             
-                            {/* Gallery thumbnails */}
-                            {galleryImages.map((media, index) => (
+                            {/* Gallery thumbnails - Images and Videos mixed */}
+                            {[...galleryImages, ...(galleryVideos || [])].map((media, index) => (
                                 <div key={index} className="relative flex-shrink-0">
                                     {getMediaType(media) === 'video' ? (
                                         <div className="relative">
@@ -1590,6 +1593,7 @@ export default function GuideClassDetails() {
                     waitingPeriod={waitingPeriod}
                     onGroupBooking={handleGroupBooking}
                     cartItems={cartItems}
+                    quantity={quantity}
                     onAddToCart={async (cartItem) => {
                         console.log("Adding to cart from monthly modal:", cartItem);
                         dispatch(addToCartRedux(cartItem));
@@ -1614,6 +1618,7 @@ export default function GuideClassDetails() {
                     personsPerBooking={getPersonsPerBooking()}
                     occupancyType={selectedOccupancy?.type || ''}
                     capacityMax={getOneTimeCapacityForSelected()}
+                    quantity={quantity}
                     onAddToCart={(cartItem) => {
                         dispatch(addToCartRedux(cartItem));
                         setShowCalendar(false);
