@@ -160,24 +160,6 @@ export default function GuideClassDetails() {
     }
   };
 
-                    <div>
-                        {sessionData?.guideCard?.description?.split('\n').map((line, index) => (
-                            <div key={index} className="mb-2">
-                                {line}
-                            </div>
-                        ))}
-                    </div>
-
-      // Update only purchasedUsers inside sessionData to keep other local edits
-      setSessionData((prev) => {
-        if (!prev) return found;
-        return { ...prev, purchasedUsers: found.purchasedUsers || [] };
-      });
-    } catch (err) {
-      console.error("Failed to refresh purchasedUsers:", err);
-    }
-  };
-
   // Check group availability and status
   const checkGroupAvailability = (slot, adminSettings) => {
     const groupMin = Number(adminSettings?.groupMin || 0);
@@ -203,29 +185,16 @@ export default function GuideClassDetails() {
 
   // Handle group booking logic with 7-day waiting period
   const handleGroupBooking = async (slot, adminSettings) => {
-    const groupMin = Number(adminSettings?.groupMin || 0);
-    const groupMax = Number(adminSettings?.groupMax || 0);
+    try {
+      const groupMin = Number(adminSettings?.groupMin || 0);
+      const groupMax = Number(adminSettings?.groupMax || 0);
 
-            {/* Description */}
-            <div className="text-sm text-gray-700 max-w-7xl mx-auto mt-10 px-4">
-                <p>
-                    {sessionData?.session?.sessiondescription}
-                </p>
-            </div>
-
-            {/* Yoga Vidya Skills */}
-            <div className="max-w-7xl mx-auto mt-10 px-4">
-                <h2 className="font-bold text-gray-800 mt-4 capitalize">{sessionData?.session?.title}</h2>
-                <ul className="list-disc list-inside text-sm text-gray-700 capitalize mt-2 space-y-1">
-                    {sessionData?.session?.description
-                        ?.split("\n")
-                        .filter((line) => line.trim() !== "")
-                        .map((line, i) => (
-                            <li key={i}>{line.trim()}</li>
-                        ))}
-                </ul>
-
-            </div>
+      // Get current bookings for this slot
+      const currentBookings = slot.bookings || [];
+      const updatedBookings = [
+        ...currentBookings,
+        { userId: user?.uid, timestamp: new Date() },
+      ];
 
       // If this is the first booking, start waiting period
       if (updatedBookings.length === 1) {
@@ -409,6 +378,40 @@ export default function GuideClassDetails() {
       console.log("Group data saved to Firebase");
     } catch (error) {
       console.error("Error saving group data:", error);
+    }
+  };
+
+  // Load purchased users data
+  const loadPurchasedUsers = async () => {
+    if (!sessionData) {
+      console.log("❌ Cannot load purchased users - missing sessionData");
+      return;
+    }
+
+    try {
+      const sessionRef = doc(db, `pilgrim_guides/${uid}/guides/data`);
+      const snapshot = await getDoc(sessionRef);
+
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        const slidesArray = Array.isArray(data.slides)
+          ? data.slides
+          : Object.values(data.slides || {});
+
+        const found = slidesArray.find(
+          (r) => normalize(r?.guideCard?.title) === normalize(formattedTitle),
+        );
+
+        if (found) {
+          // Update only purchasedUsers inside sessionData to keep other local edits
+          setSessionData((prev) => {
+            if (!prev) return found;
+            return { ...prev, purchasedUsers: found.purchasedUsers || [] };
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load purchasedUsers:", err);
     }
   };
 
