@@ -1,0 +1,15 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default: Allow authenticated users to read/write their own data
+    match /{document=**} {
+      allow read, write: if true;
+    }
+    
+    // Public collections (if any)
+    // match /public/{document=**} {
+    //   allow read: if true;
+    // }
+  }
+}
