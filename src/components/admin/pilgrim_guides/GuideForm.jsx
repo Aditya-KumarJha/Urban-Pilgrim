@@ -21,6 +21,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { setGuides } from "../../../features/pilgrim_guide/pilgrimGuideSlice";
 import { showSuccess, showError } from "../../../utils/toast";
 import toast from "react-hot-toast";
+import RichTextEditor from "../../common/RichTextEditor";
 
 const ItemType = "SLIDE";
 
@@ -2261,13 +2262,12 @@ export default function GuideForm() {
             <label className="block text-md font-semibold text-gray-700 mb-2">
               Description
             </label>
-            <textarea
-              placeholder="Enter Description"
+            <RichTextEditor
               value={formData?.guideCard?.description}
-              onChange={(e) =>
-                handleFieldChange("guideCard", "description", e.target.value)
+              onChange={(value) =>
+                handleFieldChange("guideCard", "description", value)
               }
-              className="text-sm w-full border border-gray-300 p-3 rounded-lg "
+              placeholder="Enter Description"
               rows={3}
             />
             {errors.description && (
@@ -2632,19 +2632,19 @@ export default function GuideForm() {
                       <label className="block text-md font-semibold text-gray-700 mb-2">
                         Monthly Online Subscription Description
                       </label>
-                      <textarea
-                        placeholder="Enter Description"
+                      <RichTextEditor
                         value={formData.online.monthly.description}
-                        onChange={(e) =>
+                        onChange={(value) =>
                           handleFieldChange(
                             null,
                             "description",
-                            e.target.value,
+                            value,
                             "online",
                             "monthly",
                           )
                         }
-                        className="text-sm w-full border border-gray-300 p-3 rounded-lg  h-24 resize-none"
+                        placeholder="Enter Description"
+                        rows={4}
                       />
                     </div>
 
@@ -4036,19 +4036,19 @@ export default function GuideForm() {
                       <label className="block text-md font-semibold text-gray-700 mb-2">
                         Monthly Offline Subscription Description
                       </label>
-                      <textarea
-                        placeholder="Enter Description"
+                      <RichTextEditor
                         value={formData.offline.monthly.description}
-                        onChange={(e) =>
+                        onChange={(value) =>
                           handleFieldChange(
                             null,
                             "description",
-                            e.target.value,
+                            value,
                             "offline",
                             "monthly",
                           )
                         }
-                        className="text-sm w-full border border-gray-300 p-3 rounded-lg  h-24 resize-none"
+                        placeholder="Enter Description"
+                        rows={4}
                       />
                     </div>
 
@@ -5273,17 +5273,13 @@ export default function GuideForm() {
             <label className="block text-md font-semibold text-gray-700 mb-2">
               Session Description
             </label>
-            <textarea
-              placeholder="Enter Description"
+            <RichTextEditor
               value={formData?.session?.sessiondescription}
-              onChange={(e) =>
-                handleFieldChange(
-                  "session",
-                  "sessiondescription",
-                  e.target.value,
-                )
+              onChange={(value) =>
+                handleFieldChange("session", "sessiondescription", value)
               }
-              className="text-sm w-full border border-gray-300 p-3 rounded-lg h-24 resize-none"
+              placeholder="Enter Description"
+              rows={4}
             />
           </div>
 
@@ -5490,13 +5486,13 @@ export default function GuideForm() {
               <label className="block text-md font-semibold text-gray-700 mb-2">
                 Description
               </label>
-              <textarea
-                placeholder="Enter Description"
+              <RichTextEditor
                 value={formData?.session?.description}
-                onChange={(e) =>
-                  handleFieldChange("session", "description", e.target.value)
+                onChange={(value) =>
+                  handleFieldChange("session", "description", value)
                 }
-                className="text-sm w-full border border-gray-300 p-3 rounded-lg  h-24 resize-none"
+                placeholder="Enter Description"
+                rows={4}
               />
             </div>
 
