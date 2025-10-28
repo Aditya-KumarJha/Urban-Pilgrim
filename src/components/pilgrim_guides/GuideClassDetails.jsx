@@ -26,6 +26,7 @@ import { getProgramButtonConfig } from "../../utils/userProgramUtils";
 import { useNavigate } from "react-router-dom";
 import FreeTrailModal from "../modals/FreeTrailModal";
 import { showError, showSuccess } from "../../utils/toast";
+import PilgrimGuide from "../pilgrim_retreats/Pilgrim_Guide";
 
 export default function GuideClassDetails() {
   const dispatch = useDispatch();
@@ -1311,7 +1312,7 @@ export default function GuideClassDetails() {
   };
 
   return (
-    <div className="px-4 py-10 md:mt-[100px] mt-[70px] bg-gradient-to-r from-[#FAF4F0] to-white">
+    <div className="py-10 md:mt-[100px] mt-[70px] bg-gradient-to-r from-[#FAF4F0] to-white">
       {/* title and price */}
       <div className="max-w-7xl mx-auto px-4">
         <h1 className="text-4xl font-bold">{sessionData?.guideCard?.title}</h1>
@@ -1757,7 +1758,7 @@ export default function GuideClassDetails() {
       </div>
 
       {/* Description */}
-      <div className="text-sm text-gray-700 max-w-7xl mx-auto mt-10 px-4">
+      <div className="text-sm text-gray-700 max-w-7xl mx-auto my-10 px-4">
         <div
           className="prose prose-sm max-w-none"
           dangerouslySetInnerHTML={{
@@ -1767,7 +1768,7 @@ export default function GuideClassDetails() {
       </div>
 
       {/* Yoga Vidya Skills */}
-      <div className="max-w-7xl mx-auto mt-10 px-4">
+      <div className="text-sm max-w-7xl mx-auto my-10 px-4">
         <h2 className="font-bold text-gray-800 mt-4 capitalize">
           {sessionData?.session?.title}
         </h2>
@@ -1778,6 +1779,11 @@ export default function GuideClassDetails() {
           }}
         />
       </div>
+
+      {/* Meet Your Pilgrim Guide */}
+      {sessionData?.guide?.[0] && (
+        <PilgrimGuide guides={sessionData?.guide[0]} />
+      )}
 
       {/* You may also like */}
       <div className="max-w-7xl mx-auto p-6 rounded-2xl grid gap-6 px-4">
@@ -1795,8 +1801,10 @@ export default function GuideClassDetails() {
           {allEvents && Object.keys(allEvents).length > 0 ? (
             Object.entries(allEvents)
               .filter(([id, data]) => {
-                // Only show events that have an image (mapped under upcomingSessionCard)
-                return !!data?.upcomingSessionCard?.image;
+                // Only show guide programs that have an image
+                return (
+                  data?.type === "guide" && !!data?.upcomingSessionCard?.image
+                );
               })
               .sort(() => Math.random() - 0.5)
               .slice(0, 3)
@@ -1809,7 +1817,7 @@ export default function GuideClassDetails() {
                   }
                   title={data?.upcomingSessionCard?.title || "Program"}
                   price={`${data?.upcomingSessionCard?.price || "0"}`}
-                  type={data?.type || "program"}
+                  type={data?.type || "guide"}
                 />
               ))
           ) : (

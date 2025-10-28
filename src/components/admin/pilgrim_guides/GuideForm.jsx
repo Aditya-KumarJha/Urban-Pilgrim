@@ -192,6 +192,7 @@ export default function GuideForm() {
       description: "",
       freeTrialVideo: null,
     },
+    guide: [{ title: "", description: "", image: null }],
     slides: [],
   });
   const dispatch = useDispatch();
@@ -220,6 +221,8 @@ export default function GuideForm() {
     useState(0);
   const [isFreeTrialVideoUploading, setIsFreeTrialVideoUploading] =
     useState(false);
+  const [guideUploadProgress, setGuideUploadProgress] = useState(0);
+  const [isGuideUploading, setIsGuideUploading] = useState(false);
   // One-Time multi-date selection (Online/Offline)
   const [otOnlineSelectedDates, setOtOnlineSelectedDates] = useState([]);
   const [otOnlineMulti, setOtOnlineMulti] = useState(false);
@@ -348,6 +351,70 @@ export default function GuideForm() {
       setIsThumbnailUploading(false);
       setThumbnailUploadProgress(0);
       alert("Error uploading file. Please try again.");
+    }
+  };
+
+  const handleGuideChange = (field, value) => {
+    const updatedGuide = [...formData.guide];
+    updatedGuide[0][field] = value;
+    setFormData((prev) => ({
+      ...prev,
+      guide: updatedGuide,
+    }));
+  };
+
+  const handleGuideImageChange = async (file) => {
+    if (!file) return;
+    try {
+      if (!file.type.startsWith("image/")) {
+        alert("Please upload an image file");
+        return;
+      }
+
+      setIsGuideUploading(true);
+      setGuideUploadProgress(0);
+
+      const filePath = `pilgrim_guides/meet_guides/${uuidv4()}_${file.name}`;
+      const storageRef = ref(storage, filePath);
+      const uploadTask = uploadBytesResumable(storageRef, file);
+
+      uploadTask.on(
+        "state_changed",
+        (snapshot) => {
+          const progress =
+            (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          setGuideUploadProgress(Math.round(progress));
+        },
+        (error) => {
+          console.error("Upload failed:", error);
+          setIsGuideUploading(false);
+          setGuideUploadProgress(0);
+        },
+        async () => {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+          handleGuideChange("image", downloadURL);
+          setIsGuideUploading(false);
+          setGuideUploadProgress(0);
+        },
+      );
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      setIsGuideUploading(false);
+      setGuideUploadProgress(0);
+    }
+  };
+
+  const handleGuideImageRemove = async () => {
+    try {
+      const currentImage = formData.guide?.[0]?.image;
+      if (currentImage) {
+        const imageRef = ref(storage, currentImage);
+        await deleteObject(imageRef);
+        console.log("Image deleted from storage:", currentImage);
+      }
+      handleGuideChange("image", null);
+    } catch (error) {
+      console.error("Error removing image:", error);
     }
   };
 
@@ -701,6 +768,9 @@ export default function GuideForm() {
         description: slideToEdit?.session?.description || "",
         freeTrialVideo: slideToEdit?.session?.freeTrialVideo || null,
       },
+      guide: slideToEdit?.guide || [
+        { title: "", description: "", image: null },
+      ],
       slides: slideToEdit?.slides || [],
     }));
 
@@ -827,6 +897,7 @@ export default function GuideForm() {
         description: "",
         freeTrialVideo: null,
       },
+      guide: [{ title: "", description: "", image: null }],
       guideSlots: [{ date: "", startTime: "", endTime: "" }],
     }));
   };
@@ -1494,6 +1565,7 @@ export default function GuideForm() {
       online: { ...formData.online },
       offline: { ...formData.offline },
       session: { ...formData.session },
+      guide: [...formData.guide],
       slides: [
         {
           title: formData.guideCard.title,
@@ -5584,6 +5656,113 @@ export default function GuideForm() {
                   disabled={isFreeTrialVideoUploading}
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Meet Your Pilgrim Guide */}
+          <div className="mb-8">
+            <h2 className="sm:text-2xl font-bold text-[#2F6288] text-xl mb-6">
+              {isEditing
+                ? "Edit Meet Your Pilgrim Guide"
+                : "Meet Your Pilgrim Guide"}{" "}
+              <span className="bg-[#2F6288] mt-1 w-20 h-1 block"></span>
+            </h2>
+
+            <div className="mb-6 pt-4 relative flex flex-col space-y-4">
+              <label className="block text-md font-semibold text-gray-700 mb-2">
+                Add Photo
+              </label>
+              {formData.guide[0].image ? (
+                <div className="relative inline-block mb-4">
+                  <img
+                    src={formData.guide[0].image}
+                    alt="Preview"
+                    className="w-64 h-auto object-contain rounded shadow"
+                  />
+                  <button
+                    onClick={handleGuideImageRemove}
+                    className="absolute top-0 right-0 bg-white border border-gray-300 rounded-full p-1 transform translate-x-1/2 -translate-y-1/2 hover:bg-gray-200"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : isGuideUploading ? (
+                <div className="max-w-xs aspect-square border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center mb-4">
+                  <div className="text-center flex flex-col items-center">
+                    <div className="relative w-12 h-12 mb-3">
+                      <div className="absolute inset-0 border-4 border-gray-200 rounded-full"></div>
+                      <div
+                        className="absolute inset-0 border-4 border-[#2F6288] rounded-full border-t-transparent animate-spin"
+                        style={{
+                          background: `conic-gradient(from 0deg, #2F6288 ${guideUploadProgress * 3.6}deg, transparent ${guideUploadProgress * 3.6}deg)`,
+                        }}
+                      ></div>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-xs font-semibold text-[#2F6288]">
+                          {guideUploadProgress}%
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-sm text-[#2F6288] font-medium">
+                      Uploading Guide Image...
+                    </p>
+                    <div className="w-24 bg-gray-200 rounded-full h-2 mt-2">
+                      <div
+                        className="bg-[#2F6288] h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${guideUploadProgress}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="mb-4">
+                  <label
+                    htmlFor="guide-upload"
+                    className="max-w-xs aspect-square border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50"
+                  >
+                    <img
+                      src="/assets/admin/upload.svg"
+                      alt="Upload Icon"
+                      className="w-12 h-12 mb-2"
+                    />
+                    <span>Click to upload image</span>
+                    <span className="text-sm text-gray-400">
+                      Size: (402×453)px
+                    </span>
+                    <input
+                      id="guide-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) =>
+                        handleGuideImageChange(e.target.files[0])
+                      }
+                      className="hidden"
+                      disabled={isGuideUploading}
+                    />
+                  </label>
+                </div>
+              )}
+
+              <label className="block text-md font-semibold text-gray-700 mb-2">
+                Title
+              </label>
+              <input
+                type="text"
+                value={formData.guide[0].title}
+                placeholder="Enter title"
+                onChange={(e) => handleGuideChange("title", e.target.value)}
+                className="text-sm w-full border border-gray-300 p-3 rounded-lg"
+              />
+
+              <label className="block text-md font-semibold text-gray-700 mb-2">
+                Description
+              </label>
+              <RichTextEditor
+                value={formData.guide[0].description}
+                onChange={(value) => handleGuideChange("description", value)}
+                placeholder="Enter description"
+                rows={4}
+              />
             </div>
           </div>
         </div>
