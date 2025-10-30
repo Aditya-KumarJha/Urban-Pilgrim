@@ -53,7 +53,7 @@ const NavBar = () => {
                 <img
                     onClick={() => navigate("/")}
                     className="logo cursor-pointer"
-                    src="https://www.urbanpilgrim.in/cdn/shop/files/logo.jpg?v=1744941617&width=600"
+                    src="/urban-pilgrim-logo.png"
                     alt="Urban Pilgrim"
                 />
             </div>
