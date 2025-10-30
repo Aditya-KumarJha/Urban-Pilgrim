@@ -27,7 +27,8 @@ export default function UserDetailsOverlay({ giftCard, selectedPrice, quantity, 
             setFormData(prev => ({
                 ...prev,
                 email: user.email || '',
-                whatsappNumber: user.whatsappNumber || ''
+                // Only update whatsappNumber if user has it and field is empty
+                whatsappNumber: user.whatsappNumber || prev.whatsappNumber
             }));
             setEmailVerified(true); // Skip email verification for logged-in users
         }
@@ -112,7 +113,7 @@ export default function UserDetailsOverlay({ giftCard, selectedPrice, quantity, 
         try {
             setVerifying(true);
             if (typeof verifyOtp === 'function') {
-                const ok = await verifyOtp(formData.email, otp);
+                const ok = await verifyOtp(formData.email, otp, formData.whatsappNumber);
                 if (ok === false) {
                     setEmailVerified(false);
                     return;

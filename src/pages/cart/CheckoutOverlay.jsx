@@ -27,7 +27,8 @@ export default function CheckoutOverlay({ cartData, total, onClose, onConfirm, i
             setFormData(prev => ({
                 ...prev,
                 email: user.email || '',
-                whatsappNumber: user.whatsappNumber || ''
+                // Only update whatsappNumber if user has it and field is empty
+                whatsappNumber: user.whatsappNumber || prev.whatsappNumber
             }));
             setEmailVerified(true); // Skip email verification for logged-in users
         }

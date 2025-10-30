@@ -158,18 +158,25 @@ export default function GiftCardDetails() {
         return true;
     };
 
-    const verifyOtp = async (email, otp) => {
+    const verifyOtp = async (email, otp, whatsappNumber) => {
         const verifyOtpFn = httpsCallable(functions, "verifyOtp");
         const res = await verifyOtpFn({ email, otp });
         const result = await signInWithCustomToken(auth, res.data.token);
         const user = result.user;
-        // Ensure user doc exists
+        // Ensure user doc exists with WhatsApp number
         const userRef = doc(db, "users", user.uid, "info", "details");
         const userSnap = await getDoc(userRef);
         if (!userSnap.exists()) {
-            await setDoc(userRef, { uid: user.uid, email: user.email, createdAt: new Date() });
+            await setDoc(userRef, { 
+                uid: user.uid, 
+                email: user.email, 
+                whatsappNumber: whatsappNumber || '',
+                createdAt: new Date() 
+            });
+            dispatch(setUser({ uid: user.uid, email: user.email, whatsappNumber: whatsappNumber || '' }));
+        } else {
+            dispatch(setUser({ uid: user.uid, email: user.email, whatsappNumber: userSnap.data()?.whatsappNumber }));
         }
-        dispatch(setUser({ uid: user.uid, email: user.email }));
         return true;
     };
 
