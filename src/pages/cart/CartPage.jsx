@@ -345,7 +345,7 @@ export default function CartPage() {
 			const { data: order } = await createGiftOrder({ amount: giftAmount });
 
 			const options = {
-				key: 'rzp_test_5Qxb0fQ1nBKqtZ',
+				key: 'rzp_live_3NlFfPs6Z3NcoM',
 				amount: order.amount,
 				currency: order.currency,
 				name: 'Urban Pilgrim',
