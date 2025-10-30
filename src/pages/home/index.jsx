@@ -15,7 +15,7 @@ import HeroCarousel from "../../components/HeroCarousel.jsx";
 import About from "../../components/about/About.jsx";
 import UpComing from "../../components/upcoming_events/UpComing.jsx";
 import ViewAll from "../../components/ui/button/ViewAll.jsx";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import { db } from "../../services/firebase.js";
 import { ChevronDown } from "lucide-react";
 
@@ -152,6 +152,7 @@ function Home() {
 
     const [sessionData, setSessionData] = useState(null);
     const [recordedSessionData, setRecordedSessionData] = useState(null);
+    const [workshopData, setWorkshopData] = useState(null);
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -179,10 +180,25 @@ function Home() {
                     console.log("No recorded session slides found in Firestore");
                 }
 
+                // Fetch workshops
+                const workshopsCollectionRef = collection(db, 'workshops');
+                const workshopsSnapshot = await getDocs(workshopsCollectionRef);
+                
+                if (!workshopsSnapshot.empty) {
+                    const workshopsArray = workshopsSnapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }));
+                    setWorkshopData(workshopsArray || []);
+                } else {
+                    console.log("No workshops found in Firestore");
+                }
+
                 // Extract unique categories for session filter
                 const liveCategories = liveSnapshot.exists() ? Object.values(liveSnapshot.data().slides).map(session => session?.liveSessionCard?.category).filter(Boolean) : [];
                 const recordedCategories = recordedSnapshot.exists() ? Object.values(recordedSnapshot.data().slides).map(session => session?.recordedProgramCard?.category).filter(Boolean) : [];
-                const allSessionCategories = [...liveCategories, ...recordedCategories];
+                const workshopCategories = workshopsSnapshot.empty ? [] : workshopsSnapshot.docs.map(doc => doc.data()?.category).filter(Boolean);
+                const allSessionCategories = [...liveCategories, ...recordedCategories, ...workshopCategories];
                 const categories = ['all', ...new Set(allSessionCategories)];
                 setSessionCategories(categories);
             } catch (error) {
@@ -265,6 +281,12 @@ function Home() {
     const filteredRecordedSessions = recordedSessionData ? recordedSessionData.filter(session => {
         if (selectedSessionCategory === 'all') return true;
         return session?.recordedProgramCard?.category === selectedSessionCategory;
+    }) : [];
+
+    // Filter workshops based on selected category
+    const filteredWorkshops = workshopData ? workshopData.filter(workshop => {
+        if (selectedSessionCategory === 'all') return true;
+        return workshop?.category === selectedSessionCategory;
     }) : [];
 
     // Scroll handling functions
@@ -716,6 +738,12 @@ function Home() {
                                 filteredRecordedSessions && filteredRecordedSessions.length > 0 &&
                                 filteredRecordedSessions.map((session, index) => (
                                     <PersondetailsCard type="recorded-session" key={`recorded-${index}`} image={session?.recordedProgramCard?.thumbnail} title={session?.recordedProgramCard?.title} price={session?.recordedProgramCard?.price} />
+                                ))
+                            }
+                            {
+                                filteredWorkshops && filteredWorkshops.length > 0 &&
+                                filteredWorkshops.map((workshop, index) => (
+                                    <PersondetailsCard type="workshop" key={`workshop-${index}`} image={workshop?.thumbnail} title={workshop?.title} price={workshop?.price} />
                                 ))
                             }
                         </motion.div>

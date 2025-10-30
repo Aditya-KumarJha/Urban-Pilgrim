@@ -11,7 +11,7 @@ export default function Sidebar({ activeSection, setActiveSection }) {
     const menu = [
         { name: "Home Page", key: "home" },
         { name: "Pilgrim retreats", key: "retreats" },
-        { name: "Pilgrim sessions", key: "sessions" },
+        { name: "Pilgrim Wellness Program", key: "sessions" },
         { name: "Workshops", key: "workshops" },
         { name: "Pilgrim Guides", key: "guides" },
         { name: "Upcoming Events", key: "events" },

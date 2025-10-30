@@ -25,9 +25,10 @@ const PersonDetailsSlider = ({ image, title, price, type="" }) => {
             case 'recorded-session':
                 navigate(`/program/${slug}/details`);
                 break;
+            case 'workshop':
+                navigate(`/workshop/${slug}/details`);
+                break;
             default:
-                // Fallback navigation
-                navigate(`/event/${slug}`);
                 break;
         }
     };

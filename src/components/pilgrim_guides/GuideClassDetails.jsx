@@ -679,14 +679,16 @@ export default function GuideClassDetails() {
       offlineMonthly: sessionData?.offline?.monthly,
     });
 
-    if (sessionData?.guideCard?.subCategory) {
-      const sub = sessionData.guideCard.subCategory.toLowerCase();
-      if (sub === "offline") setMode("Offline");
-      else if (sub === "online") setMode("Online");
-      else if (sub === "both") {
-        // For "both" category, only set default if no mode is currently selected
-        if (!mode) setMode("Online"); // Default to Online instead of Offline
-      }
+    if (!sessionData?.guideCard?.subCategory) return;
+    
+    const sub = sessionData.guideCard.subCategory.toLowerCase();
+    if (sub === "offline") {
+      setMode("Offline");
+    } else if (sub === "online") {
+      setMode("Online");
+    } else if (sub === "both") {
+      // For "both" category, default to Online
+      setMode("Online");
     }
   }, [sessionData]);
 
@@ -694,7 +696,7 @@ export default function GuideClassDetails() {
   // Priority: match 'Individual' first, then 'Single', else first item, else synthetic { type: 'Individual' }
   // Set default occupancy based on current mode and subscription type
   useEffect(() => {
-    if (selectedOccupancy || !mode || !subscriptionType) return;
+    if (!mode || !subscriptionType || !sessionData) return;
 
     const occupancies = getCurrentOccupancies();
     let defaultOcc = null;
@@ -744,8 +746,12 @@ export default function GuideClassDetails() {
   useEffect(() => {
     if (!sessionData) return;
     if (subscriptionType) return; // already chosen
+    if (!mode) return; // wait for mode to be set first
+    
     const hasMonthly = planAvailableAny("monthly");
     const hasOneTime = planAvailableAny("oneTime");
+
+    console.log("🎯 Default plan selection:", { hasMonthly, hasOneTime, mode });
 
     // Prefer One-Time by default (whether both available or only oneTime available)
     if (hasOneTime) {
@@ -764,7 +770,7 @@ export default function GuideClassDetails() {
         if (m) setMode(m);
       }
     }
-  }, [sessionData, selectedOccupancy, subscriptionType]);
+  }, [sessionData, mode, subscriptionType]);
 
   // Get slots by subscription type and mode
   const getAvailableSlots = () => {

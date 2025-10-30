@@ -487,7 +487,7 @@ export default function CalendarModal({
     <div className="fixed inset-0 bg-black/30 backdrop-blur-xs flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b">
+        <div className="flex justify-between items-center p-6 border-b sticky top-0 bg-white z-10">
           <div>
             <h2 className="text-xl font-bold text-gray-800">
               {sessionData?.session?.title || "Book Your Session"}
