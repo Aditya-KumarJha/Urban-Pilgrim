@@ -8,39 +8,6 @@ import { useDispatch } from "react-redux";
 import { setHighlight } from "../features/home_slices/highlightSlice";
 import { useNavigate } from "react-router-dom";
 
-const data = [
-    {
-        title: "How Yoga’s Ancient Science Rewires Your Brain for Peace",
-        description:
-            "Clinical studies now prove what yogis knew—specific pranayama techniques can lower cortisol by 37% in 21 days.",
-        linkText: "Learn more",
-    },
-    {
-        title: "The Power of Breath in Daily Stress Reduction",
-        description:
-            "Explore how daily breathwork transforms your nervous system and cultivates calm.",
-        linkText: "Discover more",
-    },
-    {
-        title: "Rebuild Focus with Yogic Discipline",
-        description:
-            "Unlock ancient yogic routines to train your brain to resist distractions naturally.",
-        linkText: "Explore",
-    },
-    {
-        title: "Align Body and Mind with Morning Yoga",
-        description:
-            "Simple morning sequences can improve your mood and focus throughout the day.",
-        linkText: "Start Now",
-    },
-    {
-        title: "Boost Sleep Quality Through Evening Practices",
-        description:
-            "Wind down your system with nightly flows proven to help your body recover deeper.",
-        linkText: "Read more",
-    },
-];
-
 export default function YogaCard() {
     const [current, setCurrent] = useState(0);
     const [highlightCard, setHighlightCard] = useState([]);
@@ -114,28 +81,13 @@ export default function YogaCard() {
             className="max-w-[1200px] mx-auto p-4"
         >
             <div className="bg-white rounded-lg overflow-visible flex flex-col md:flex-row shadow-xl filter drop-shadow-[-46px_46px_27.5px_rgba(0,0,0,0.25)] md:max-w-full max-w-[300px] md:max-h-[480px]">
-                {/* Image or Video */}
+                {/* Image */}
                 <div className="md:w-1/2 w-full">
-                    {(currentHighlight?.image?.includes('.mp4') || 
-                        currentHighlight?.image?.includes('.mov') || 
-                        currentHighlight?.image?.includes('.webm') || 
-                        currentHighlight?.image?.includes('.avi') || 
-                        currentHighlight?.image?.includes('.mkv')) ? (
-                        <video
-                            src={currentHighlight?.image}
-                            className="w-full md:h-full h-50 object-cover rounded-t-lg md:rounded-l-lg md:rounded-tr-none"
-                            autoPlay
-                            loop
-                            muted
-                            playsInline
-                        />
-                    ) : (
-                        <img
-                            src={currentHighlight?.image || "/assets/yoga.svg"}
-                            alt="Yoga"
-                            className="w-full md:h-full h-50 object-cover rounded-t-lg md:rounded-l-lg md:rounded-tr-none"
-                        />
-                    )}
+                    <img
+                        src={currentHighlight?.image || "/assets/yoga.svg"}
+                        alt="Yoga"
+                        className="w-full md:h-full h-50 object-cover rounded-t-lg md:rounded-l-lg md:rounded-tr-none"
+                    />
                 </div>
 
                 {/* Content */}
@@ -144,13 +96,7 @@ export default function YogaCard() {
                         <h2 className="text-sm sm:text-xl md:text-2xl line-clamp-2 font-semibold mb-4">{currentHighlight?.title}</h2>
                         <p className="text-xs text-gray-600 mb-6 line-clamp-2">{currentHighlight?.description}</p>
                         <p
-                            onClick={() => navigate(`/yoga/${slugify(currentHighlight?.title)}`, {
-                                state: {
-                                    image: currentHighlight?.image,
-                                    title: currentHighlight?.title,
-                                    description: currentHighlight?.description
-                                }
-                            })}
+                            onClick={() => navigate(`/yoga/${slugify(currentHighlight?.title)}`, {state: {image: currentHighlight?.image, title: currentHighlight?.title, description: currentHighlight?.description}})}
                             className="text-[#79534E] md:text-sm text-xs cursor-pointer font-semibold flex items-center gap-2"
                         >
                             {currentHighlight?.linkText || "Learn more"}

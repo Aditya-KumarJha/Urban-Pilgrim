@@ -65,8 +65,7 @@ export default function EventCard({ data }) {
                         } else if (eventId.startsWith('recorded-')) {
                             navigate(`/program/${slug}/details`);
                         } else {
-                            // Fallback to original route
-                            navigate(`/event/${slug}`);
+                            navigate(`/workshop/${slug}/details`);
                         }
                     }}
                     className="md:text-lg sm:text-base text-xs cursor-pointer font-semibold text-[#1A1A1A] leading-tight"

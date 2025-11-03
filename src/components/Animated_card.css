@@ -41,8 +41,6 @@
     justify-content: center;
     align-items: center;
     gap: 10px;
-    white-space: nowrap;
-    text-overflow: ellipsis;
     max-width: 90%;
 }
 
@@ -52,6 +50,8 @@
     color: #ffffff;
     font-family: "Poppins", sans-serif;
     text-align: center;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .card_arrow {

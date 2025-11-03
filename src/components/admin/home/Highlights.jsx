@@ -340,7 +340,7 @@ export default function Highlights() {
                     disabled={isUploading}
                     className={`bg-gradient-to-b from-[#C5703F] to-[#C16A00] text-white px-4 py-2 rounded hover:bg-gradient-to-b hover:from-[#C16A00] hover:to-[#C5703F] transition-colors ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                    {editingIndex !== null ? "Update Highlight" : "Add Highlights"}
+                    {editingIndex !== null ? "Update Pilgrim Says" : "Add Pilgrim Says"}
                 </button>
             </div>
 

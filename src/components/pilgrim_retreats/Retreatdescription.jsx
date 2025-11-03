@@ -333,46 +333,58 @@ export default function Retreatdescription() {
                 </h2>
 
                 <motion.div 
-                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" 
+                    className="md:grid flex flex-col mx-auto lg:mx-0 md:grid-cols-2 lg:grid-cols-3 gap-6" 
                     initial={{ y: 100, opacity: 0 }} 
                     whileInView={{ y: 0, opacity: 1 }} 
                     transition={{ duration: 0.5, ease: "easeOut" }} 
                     viewport={{ once: true, amount: 0.1 }}
                 >
                     {allEvents && Object.keys(allEvents).length > 0 ? (
-                        (() => {
-                            const entries = (Array.isArray(allEvents)
-                                ? allEvents.map((v, idx) => [idx, v])
-                                : Object.entries(allEvents))
-                                .filter(([id, data]) => data?.type === 'retreat' && (!!data?.pilgrimRetreatCard?.image || !!data?.upcomingSessionCard?.image));
-                            if (entries.length === 0) {
+                        Object.entries(allEvents)
+                            .filter(([, data]) => {
+                                // Only show retreat programs that have an image
                                 return (
-                                    <>
-                                        <PersondetailsCard image="/assets/Rohini_singh.png" title="Discover your true self - A 28 day program with Rohini Singh Sisodia" price="Rs.14,999.00" />
-                                        <PersondetailsCard image="/assets/Anisha.png" title="Let's meditate for an hour - With Anisha" price="Rs.199.00" />
-                                        <PersondetailsCard image="/assets/arati_prasad.png" title="Menopausal fitness - A 4 day regime curated by Aarti Prasad" price="Rs.4,000.00" />
-                                    </>
+                                    data?.type === 'retreat' && 
+                                    (!!data?.pilgrimRetreatCard?.image || !!data?.upcomingSessionCard?.image)
                                 );
-                            }
-
-                            return entries
-                                .sort(() => Math.random() - 0.5)
-                                .slice(0, 3)
-                                .map(([id, data]) => (
-                                    <PersondetailsCard
-                                        key={id}
-                                        image={data?.originalData?.pilgrimRetreatCard?.image || '/assets/default-event.png'}
-                                        title={data?.originalData?.pilgrimRetreatCard?.title || 'Retreat'}
-                                        price={`${data?.originalData?.pilgrimRetreatCard?.price || '0'}`}
-                                        type={'retreat'}
-                                    />
-                                ));
-                        })()
+                            })
+                            .sort(() => Math.random() - 0.5)
+                            .slice(0, 3)
+                            .map(([id, data]) => (
+                                <PersondetailsCard
+                                    key={id}
+                                    image={
+                                        data?.pilgrimRetreatCard?.image || 
+                                        data?.upcomingSessionCard?.image || 
+                                        '/assets/default-event.png'
+                                    }
+                                    title={
+                                        data?.pilgrimRetreatCard?.title || 
+                                        data?.upcomingSessionCard?.title || 
+                                        'Retreat'
+                                    }
+                                    price={`${data?.pilgrimRetreatCard?.price || data?.upcomingSessionCard?.price || '0'}`}
+                                    type={'retreat'}
+                                />
+                            ))
                     ) : (
+                        // Fallback to original cards if no events loaded
                         <>
-                            <PersondetailsCard image="/assets/Rohini_singh.png" title="Discover your true self - A 28 day program with Rohini Singh Sisodia" price="Rs.14,999.00" />
-                            <PersondetailsCard image="/assets/Anisha.png" title="Let's meditate for an hour - With Anisha" price="Rs.199.00" />
-                            <PersondetailsCard image="/assets/arati_prasad.png" title="Menopausal fitness - A 4 day regime curated by Aarti Prasad" price="Rs.4,000.00" />
+                            <PersondetailsCard 
+                                image="/assets/Rohini_singh.png" 
+                                title="Discover your true self - A 28 day program with Rohini Singh Sisodia" 
+                                price="Rs.14,999.00" 
+                            />
+                            <PersondetailsCard 
+                                image="/assets/Anisha.png" 
+                                title="Let's meditate for an hour - With Anisha" 
+                                price="Rs.199.00" 
+                            />
+                            <PersondetailsCard 
+                                image="/assets/arati_prasad.png" 
+                                title="Menopausal fitness - A 4 day regime curated by Aarti Prasad" 
+                                price="Rs.4,000.00" 
+                            />
                         </>
                     )}
                 </motion.div>

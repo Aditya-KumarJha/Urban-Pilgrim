@@ -304,7 +304,7 @@ export default function ProgramDetails() {
                 </h2>
 
                 <motion.div 
-                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" 
+                    className="md:grid flex flex-col mx-auto lg:mx-0 md:grid-cols-2 lg:grid-cols-3 gap-6"  
                     initial={{ y: 100, opacity: 0 }} 
                     whileInView={{ y: 0, opacity: 1 }} 
                     transition={{ duration: 0.5, ease: "easeOut" }} 
