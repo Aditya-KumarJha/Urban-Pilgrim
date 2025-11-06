@@ -5686,7 +5686,7 @@ export default function GuideForm() {
                             <label className="block text-md font-semibold text-gray-700 mb-2">
                                 Add Photo
                             </label>
-                            {formData.guide[0].image ? (
+                            {formData?.guide?.[0]?.image ? (
                                 <div className="relative inline-block mb-4">
                                     <img
                                         src={formData.guide[0].image}
@@ -5762,7 +5762,7 @@ export default function GuideForm() {
                             </label>
                             <input
                                 type="text"
-                                value={formData.guide[0].title}
+                                value={formData?.guide?.[0]?.title || ""}
                                 placeholder="Enter title"
                                 onChange={(e) => handleGuideChange("title", e.target.value)}
                                 className="text-sm w-full border border-gray-300 p-3 rounded-lg"
@@ -5772,7 +5772,7 @@ export default function GuideForm() {
                                 Description
                             </label>
                             <RichTextEditor
-                                value={formData.guide[0].description}
+                                value={formData?.guide?.[0]?.description || ""}
                                 onChange={(value) => handleGuideChange("description", value)}
                                 placeholder="Enter description"
                                 rows={4}
