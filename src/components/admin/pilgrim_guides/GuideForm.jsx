@@ -5384,7 +5384,7 @@ export default function GuideForm() {
                                         className="w-10 h-10 mb-2"
                                     />
                                     <span>Click to upload image</span>
-                                    <p className="text-gray-400">Size: (700×400)px</p>
+                                    <p className="text-gray-400">Size: (550×300)px</p>
                                     <input
                                         type="file"
                                         accept="image/*"
