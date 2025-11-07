@@ -67,7 +67,7 @@ export default function EventDetails() {
 
     useEffect(() => {
         window.scrollTo(0,0);
-    },[])
+    },[eventName])
 
     return (
         <>

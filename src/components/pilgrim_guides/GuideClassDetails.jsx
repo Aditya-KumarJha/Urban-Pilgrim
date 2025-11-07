@@ -68,10 +68,6 @@ export default function GuideClassDetails() {
   const userPrograms = useSelector((state) => state.userProgram);
   const cartItems = useSelector((state) => state.cart?.items || []);
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
-
   // Get events from Redux store
   const { allEvents } = useSelector((state) => state.allEvents);
 
@@ -579,6 +575,11 @@ export default function GuideClassDetails() {
   const formattedTitle = guideClassName.replace(/-/g, " ");
   const [sessionData, setSessionData] = useState(null);
   const uid = "pilgrim_guides";
+
+  // Scroll to top whenever the guide changes
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [guideClassName]);
 
   // Auto-set subscription type based on schedule-aware availability, but never override user click
   useEffect(() => {

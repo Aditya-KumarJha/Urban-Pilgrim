@@ -40,7 +40,7 @@ export default function Retreatdescription() {
 
     useEffect(() => {
         window.scrollTo(0,0);
-    },[])
+    },[retreatName])
 
     // Auto-select first occupancy when retreat data loads
     useEffect(() => {

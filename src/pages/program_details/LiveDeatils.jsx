@@ -78,7 +78,7 @@ export default function LiveDetails() {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, []);
+  }, [sessionId]);
 
   const Data = useSelector((state) => state.pilgrimLiveSession.LiveSession);
   const cartItems = useSelector((state) => state.cart.items || []);

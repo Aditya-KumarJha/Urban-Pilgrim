@@ -25,6 +25,10 @@ export default function WorkshopDetails() {
     const [requestData, setRequestData] = useState(null);
 
     useEffect(() => {
+        window.scrollTo(0, 0);
+    }, [title]);
+
+    useEffect(() => {
         const fetchWorkshopByTitle = async () => {
             try {
                 setLoading(true);

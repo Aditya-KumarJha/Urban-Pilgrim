@@ -32,7 +32,7 @@ export default function ProgramDetails() {
 
     useEffect(() => {
         window.scrollTo(0, 0);
-    }, []);
+    }, [programId]);
 
     const Data = useSelector((state) => state?.pilgrimRecordedSession?.recordedSessions);
     const { allEvents } = useSelector((state) => state.allEvents);
