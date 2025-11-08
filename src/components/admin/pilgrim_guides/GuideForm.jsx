@@ -82,7 +82,6 @@ function SlideItem({
             <div className="flex items-center gap-2">
                 <button
                     onClick={() => {
-                        console.log("Edit button clicked for index:", index);
                         editSlide(index);
                     }}
                     disabled={isLoading}
@@ -269,16 +268,7 @@ export default function GuideForm() {
                         },
                     },
                 };
-
-                // Debug: Log when sessionsCount changes
-                if (field === "sessionsCount") {
-                    console.log(
-                        `Sessions count updated for ${mode} ${subscriptionType}:`,
-                        value,
-                    );
-                    console.log(`Updated data:`, updated[mode][subscriptionType]);
-                }
-
+                
                 return updated;
             } else if (mode && !subscriptionType) {
                 // Handle mode-level fields (e.g., online.planChoice, offline.planChoice)
@@ -410,7 +400,6 @@ export default function GuideForm() {
             if (currentImage) {
                 const imageRef = ref(storage, currentImage);
                 await deleteObject(imageRef);
-                console.log("Image deleted from storage:", currentImage);
             }
             handleGuideChange("image", null);
         } catch (error) {
@@ -503,7 +492,6 @@ export default function GuideForm() {
                 mode === "Online"
                     ? { date: "", startTime: "", endTime: "" }
                     : { date: "", startTime: "", endTime: "", location: "" };
-            console.log("newSlot", newSlot);
             updated.session[`${mode.toLowerCase()}Slots`] = [
                 ...(updated.session[`${mode.toLowerCase()}Slots`] || []),
                 newSlot,
@@ -582,7 +570,6 @@ export default function GuideForm() {
 
             setSlideData((prev) => prev.filter((_, i) => i !== index));
 
-            console.log("Slide removed locally and from Firestore");
             toast.success("Guide removed successfully");
         } catch (err) {
             console.error("Error removing slide:", err);
@@ -590,13 +577,6 @@ export default function GuideForm() {
     };
 
     const editSlide = async (index) => {
-        console.log("🔄 Loading latest data for edit...", {
-            index,
-            allDataLength: allData.length,
-            guidesLength: guides.length,
-            slideDataLength: slideData.length,
-        });
-
         // Check against slideData instead of allData since that's what the UI shows
         if (index < 0 || index >= slideData.length) {
             console.error(
@@ -629,9 +609,6 @@ export default function GuideForm() {
 
             // If not found in current Redux state, fetch latest and try again
             if (!slideToEdit) {
-                console.log(
-                    "Guide not found in Redux by title, fetching latest data...",
-                );
                 const latestData = await fetchGuideData(uid);
                 setAllData(latestData);
 
@@ -657,10 +634,6 @@ export default function GuideForm() {
                 return;
             }
 
-            console.log("✅ Editing latest slide data:", slideToEdit);
-            console.log("Monthly online data:", slideToEdit?.online?.monthly);
-            console.log("Monthly offline data:", slideToEdit?.offline?.monthly);
-            console.log("Organizer data:", slideToEdit?.organizer);
         } catch (error) {
             console.error("Error in editSlide:", error);
             setIsLoading(false);
@@ -1119,15 +1092,6 @@ export default function GuideForm() {
                 type: "individual",
             });
 
-            console.log(
-                `Slot added to ${dayName} for ${modeKey}:`,
-                next[modeKey].monthly.dayBasedPattern[dayName],
-            );
-            console.log(
-                `Total dayBasedPattern:`,
-                next[modeKey].monthly.dayBasedPattern,
-            );
-
             return next;
         });
     };
@@ -1140,10 +1104,6 @@ export default function GuideForm() {
             ) {
                 next[modeKey].monthly.dayBasedPattern[dayName].slots[slotIndex][field] =
                     value;
-                console.log(
-                    `Updated ${field} for ${dayName} slot ${slotIndex}:`,
-                    value,
-                );
             }
             return next;
         });
@@ -1166,21 +1126,17 @@ export default function GuideForm() {
         setFormData((prev) => {
             const next = { ...prev };
             const dayPattern = next[modeKey].monthly.dayBasedPattern;
-            console.log(`🔄 Replicating week to month for ${modeKey}:`, dayPattern);
 
             if (!dayPattern || Object.keys(dayPattern).length === 0) {
                 showError(
                     "❌ No day-based pattern found to replicate. Please add slots first using 'Initialize Day-Based Setup'.",
                 );
-                console.log("❌ No dayBasedPattern found to replicate");
                 return prev;
             }
 
             // Convert day-based pattern to old weeklyPattern format for compatibility
             const weeklyPattern = [];
             Object.entries(dayPattern).forEach(([dayName, dayData]) => {
-                console.log(`Processing ${dayName}:`, dayData);
-
                 // Check if dayData exists and has slots
                 if (
                     dayData &&
@@ -1224,9 +1180,6 @@ export default function GuideForm() {
                             times: processedTimes,
                         });
 
-                        console.log(
-                            `✅ Added ${shortDay} with ${processedTimes.length} valid slots`,
-                        );
                     } else {
                         console.log(`❌ ${dayName} has no valid slots (empty times)`);
                     }
@@ -1242,9 +1195,7 @@ export default function GuideForm() {
                 return prev;
             }
 
-            console.log(`🎯 Generated weeklyPattern:`, weeklyPattern);
             next[modeKey].monthly.weeklyPattern = weeklyPattern;
-            console.log(`📅 Final monthly data:`, next[modeKey].monthly);
 
             showSuccess(
                 `✅ Week pattern replicated! ${weeklyPattern.length} day(s) will repeat every week.`,
@@ -1414,14 +1365,11 @@ export default function GuideForm() {
 
     // Update/remove one-time slot by unique id for robust editing
     const updateOneTimeSlot = (modeKey, slotId, field, value) => {
-        console.log(`🔄 Updating ${modeKey} slot ${slotId}: ${field} = ${value}`);
 
         setFormData((prev) => {
             const next = JSON.parse(JSON.stringify(prev)); // Deep clone
             const slots = next[modeKey].oneTime.slots || [];
             const slotIndex = slots.findIndex((s) => s.id === slotId);
-
-            console.log(`Found slot at index ${slotIndex}`, slots[slotIndex]);
 
             if (slotIndex !== -1) {
                 // Ensure slot has all required fields with proper defaults
@@ -1435,7 +1383,6 @@ export default function GuideForm() {
                     [field]: value, // Update the specific field
                 };
 
-                console.log(`✅ Updated slot:`, slots[slotIndex]);
             } else {
                 console.error(`❌ Slot not found: ${slotId}`);
             }
@@ -1491,7 +1438,6 @@ export default function GuideForm() {
         const loadCards = async () => {
             try {
                 const guides = await fetchGuideData(uid);
-                console.log("Fetched guide cards:", guides);
 
                 // Handle both object and array structures
                 let slidesData = [];
@@ -1590,11 +1536,9 @@ export default function GuideForm() {
                 // Replace the existing card at editIndex
                 updatedGuides = [...guides];
                 updatedGuides[editIndex] = newCard;
-                console.log("Session Card Updated Successfully");
             } else {
                 // Add a new card
                 updatedGuides = [...guides, newCard];
-                console.log("Session Card Added Successfully");
             }
 
             // Save organizer data to root organizers collection (for both new and edit)
@@ -1752,7 +1696,6 @@ export default function GuideForm() {
 
             // Save full updated guides array to Firestore
             const status = await saveOrUpdateGuideData(uid, "slides", updatedGuides);
-            console.log(`Firestore ${status} successfully`);
             showSuccess("Session saved successfully");
 
             // Reset local form state
@@ -3713,9 +3656,7 @@ export default function GuideForm() {
                                                                                         value="individual"
                                                                                         checked={slotType === "individual"}
                                                                                         onChange={() => {
-                                                                                            console.log(
-                                                                                                `📻 Radio: ${s.id} -> individual`,
-                                                                                            );
+                                                                                            
                                                                                             updateOneTimeSlot(
                                                                                                 "online",
                                                                                                 s.id,
@@ -3734,9 +3675,6 @@ export default function GuideForm() {
                                                                                         value="couple"
                                                                                         checked={slotType === "couple"}
                                                                                         onChange={() => {
-                                                                                            console.log(
-                                                                                                `📻 Radio: ${s.id} -> couple`,
-                                                                                            );
                                                                                             updateOneTimeSlot(
                                                                                                 "online",
                                                                                                 s.id,
@@ -3755,9 +3693,6 @@ export default function GuideForm() {
                                                                                         value="group"
                                                                                         checked={slotType === "group"}
                                                                                         onChange={() => {
-                                                                                            console.log(
-                                                                                                `📻 Radio: ${s.id} -> group`,
-                                                                                            );
                                                                                             updateOneTimeSlot(
                                                                                                 "online",
                                                                                                 s.id,
@@ -5110,9 +5045,6 @@ export default function GuideForm() {
                                                                                     value="individual"
                                                                                     checked={slotType === "individual"}
                                                                                     onChange={() => {
-                                                                                        console.log(
-                                                                                            `📻 Offline Radio: ${s.id} -> individual`,
-                                                                                        );
                                                                                         updateOneTimeSlot(
                                                                                             "offline",
                                                                                             s.id,
@@ -5131,9 +5063,6 @@ export default function GuideForm() {
                                                                                     value="couple"
                                                                                     checked={slotType === "couple"}
                                                                                     onChange={() => {
-                                                                                        console.log(
-                                                                                            `📻 Offline Radio: ${s.id} -> couple`,
-                                                                                        );
                                                                                         updateOneTimeSlot(
                                                                                             "offline",
                                                                                             s.id,
@@ -5152,9 +5081,6 @@ export default function GuideForm() {
                                                                                     value="group"
                                                                                     checked={slotType === "group"}
                                                                                     onChange={() => {
-                                                                                        console.log(
-                                                                                            `📻 Offline Radio: ${s.id} -> group`,
-                                                                                        );
                                                                                         updateOneTimeSlot(
                                                                                             "offline",
                                                                                             s.id,

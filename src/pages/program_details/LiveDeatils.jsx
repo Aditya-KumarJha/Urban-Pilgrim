@@ -126,8 +126,6 @@ export default function LiveDetails() {
     loadEvents();
   }, [dispatch, allEvents]);
 
-  console.log("programData: ", programData);
-
   const increment = () => setPersons((prev) => prev + 1);
   const decrement = () => setPersons((prev) => (prev > 1 ? prev - 1 : 1));
 

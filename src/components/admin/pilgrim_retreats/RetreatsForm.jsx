@@ -197,7 +197,6 @@ export default function RetreatsForm() {
                                 ...prev,
                                 cardUploadProgress: Math.round(progress),
                             }));
-                            console.log("Upload is " + progress + "% done");
                         },
                         (error) => {
                             console.error("Upload failed:", error);
@@ -222,10 +221,6 @@ export default function RetreatsForm() {
                                 isCardUploading: false,
                                 cardUploadProgress: 0,
                             }));
-
-                            console.log("Upload complete - downloadURL: ", downloadURL);
-                            console.log("File type: ", file.type);
-                            console.log("Is video: ", file.type.startsWith("video/"));
                         },
                     );
                 } catch (err) {
@@ -340,7 +335,6 @@ export default function RetreatsForm() {
                     // Optional: track upload progress
                     const progress =
                         (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                    console.log(`Upload is ${progress}% done`);
                 },
                 (error) => {
                     console.error("Upload failed:", error);
@@ -766,7 +760,6 @@ export default function RetreatsForm() {
         };
 
         setItems((prevItems) => [...prevItems, newItem]);
-        console.log("newItem2 :", newItem);
     };
 
     const updateItem = (index) => {
@@ -786,8 +779,6 @@ export default function RetreatsForm() {
         updatedItems[index] = updatedItem;
         setItems(updatedItems);
 
-        console.log("after update: ", updatedItem);
-
         updatedItem.data = formData;
 
         setEditingIndex(null);
@@ -795,7 +786,6 @@ export default function RetreatsForm() {
 
     const editItem = (index) => {
         const item = items[index];
-        console.log("item: ", items);
         // If you ever stored an array in data, grab the first element; otherwise use the object.
 
         setFormData(item?.data || {}); // <- put the real form data back into the form
@@ -824,7 +814,6 @@ export default function RetreatsForm() {
         // Update Redux state
         dispatch(setRetreatData(uid, backendIndex, reindexedItems));
 
-        console.log(`Item at index ${backendIndex} deleted successfully.`);
     };
 
     const toggleItem = (index) => {
@@ -902,7 +891,6 @@ export default function RetreatsForm() {
         const loadCards = async () => {
             try {
                 const cards = await fetchRetreatData(uid);
-                console.log("Fetched retreat cards:", cards);
                 if (cards !== null) {
                     addItem(cards);
                 }
@@ -978,7 +966,6 @@ export default function RetreatsForm() {
                 await saveOrUpdateRetreatData(uid, editingIndex, formData);
                 dispatch(setRetreatData(uid, editingIndex, items));
                 updateItem(editingIndex - 1);
-                console.log(`Retreat updated successfully!`, formData);
                 showSuccess("Retreat updated successfully!");
                 resetForm();
                 setEditingIndex(null);
@@ -986,11 +973,9 @@ export default function RetreatsForm() {
                 // Create a new card
                 await saveOrUpdateRetreatData(uid, items.length + 1, formData);
                 dispatch(setRetreatData(uid, items.length + 1, items));
-                console.log(`Retreat saved successfully!`, formData);
                 resetForm();
                 addItem2(formData);
                 showSuccess("Retreat saved successfully!");
-                console.log(`after reset`, formData);
             }
         } catch (error) {
             console.error(`Failed to save Retreat: ${error.message}`);

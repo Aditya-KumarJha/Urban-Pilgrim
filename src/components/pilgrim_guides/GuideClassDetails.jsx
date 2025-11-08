@@ -306,7 +306,6 @@ export default function GuideClassDetails() {
         });
 
         if (refundResponse.ok) {
-          console.log(`Refund processed for user ${booking.userId}`);
         } else {
           console.error(`Failed to process refund for user ${booking.userId}`);
         }
@@ -377,7 +376,6 @@ export default function GuideClassDetails() {
       };
 
       await addDoc(collection(db, "groupBookings"), groupData);
-      console.log("Group data saved to Firebase");
     } catch (error) {
       console.error("Error saving group data:", error);
     }
@@ -386,7 +384,6 @@ export default function GuideClassDetails() {
   // Load purchased users data
   const loadPurchasedUsers = async () => {
     if (!sessionData) {
-      console.log("❌ Cannot load purchased users - missing sessionData");
       return;
     }
 
@@ -431,17 +428,8 @@ export default function GuideClassDetails() {
   // Load user's monthly bookings
   const loadUserMonthlyBookings = async () => {
     if (!user || !sessionData) {
-      console.log(
-        "❌ Cannot load monthly bookings - missing user or sessionData",
-      );
       return;
     }
-
-    console.log("🔍 Loading user monthly bookings...", {
-      userId: user.uid,
-      programTitle: sessionData.guideCard.title,
-      currentMonth,
-    });
 
     try {
       const bookingsQuery = query(
@@ -457,8 +445,6 @@ export default function GuideClassDetails() {
         bookings.push({ id: doc.id, ...doc.data() });
       });
 
-      console.log("📅 User monthly bookings loaded:", bookings);
-      // Temporary: Force empty array for testing
       setUserMonthlySlots([]);
       // setUserMonthlySlots(bookings);
     } catch (error) {
@@ -498,8 +484,6 @@ export default function GuideClassDetails() {
 
   // Convert dayBasedPattern to weeklyPattern format for compatibility
   const convertDayBasedToWeeklyPattern = (dayBasedPattern) => {
-    console.log("Converting dayBasedPattern:", dayBasedPattern);
-
     const weeklyPattern = [];
     const dayMap = {
       Monday: "Mon",
@@ -512,8 +496,6 @@ export default function GuideClassDetails() {
     };
 
     Object.entries(dayBasedPattern).forEach(([dayName, dayData]) => {
-      console.log(`Processing day: ${dayName}`, dayData);
-
       if (
         dayData &&
         dayData.slots &&
@@ -532,8 +514,6 @@ export default function GuideClassDetails() {
             slot.endTime !== "",
         );
 
-        console.log(`Valid slots for ${dayName}:`, validSlots);
-
         if (validSlots.length > 0) {
           weeklyPattern.push({
             days: [shortDay],
@@ -543,15 +523,10 @@ export default function GuideClassDetails() {
               type: slot.type || "individual",
             })),
           });
-          console.log(
-            `Added pattern for ${dayName}:`,
-            weeklyPattern[weeklyPattern.length - 1],
-          );
         }
       }
     });
 
-    console.log("Final converted weeklyPattern:", weeklyPattern);
     return weeklyPattern;
   };
 
@@ -647,12 +622,6 @@ export default function GuideClassDetails() {
 
           setSessionData(found || null);
 
-          // Debug: Log the loaded session data to check monthly slots and organizer
-          console.log("Loaded session data:", found);
-          console.log("Monthly online data:", found?.online?.monthly);
-          console.log("Monthly offline data:", found?.offline?.monthly);
-          console.log("Organizer data:", found?.organizer);
-
           // Extract and set gallery images and videos
           if (found?.session?.images && Array.isArray(found.session.images)) {
             setGalleryImages(found.session.images);
@@ -678,12 +647,6 @@ export default function GuideClassDetails() {
   }, [formattedTitle, uid]);
 
   useEffect(() => {
-    // Debug and set mode based on sessionData
-    console.log("sessiondata: ", sessionData);
-    console.log("Available monthly plans:", {
-      onlineMonthly: sessionData?.online?.monthly,
-      offlineMonthly: sessionData?.offline?.monthly,
-    });
 
     if (!sessionData?.guideCard?.subCategory) return;
     
@@ -737,13 +700,6 @@ export default function GuideClassDetails() {
     }
 
     if (defaultOcc) {
-      console.log(
-        "Setting default occupancy for",
-        mode,
-        subscriptionType,
-        ":",
-        defaultOcc,
-      );
       setSelectedOccupancy(defaultOcc);
     }
   }, [sessionData, mode, subscriptionType]);
@@ -756,8 +712,6 @@ export default function GuideClassDetails() {
     
     const hasMonthly = planAvailableAny("monthly");
     const hasOneTime = planAvailableAny("oneTime");
-
-    console.log("🎯 Default plan selection:", { hasMonthly, hasOneTime, mode });
 
     // Prefer One-Time by default (whether both available or only oneTime available)
     if (hasOneTime) {
@@ -784,17 +738,6 @@ export default function GuideClassDetails() {
     const modeKey = mode.toLowerCase();
     const plan = sessionData?.[modeKey]?.[subscriptionType] || {};
 
-    // Debug: Check if monthly data is available
-    console.log("getAvailableSlots Debug:", {
-      mode: mode,
-      modeKey: modeKey,
-      subscriptionType: subscriptionType,
-      plan: plan,
-      hasWeeklyPattern: !!plan.weeklyPattern,
-      weeklyPatternLength: plan.weeklyPattern?.length || 0,
-      fullSessionData: sessionData,
-    });
-
     // One-time: use stored date slots directly
     if (subscriptionType === "oneTime") {
       const slots = Array.isArray(plan.slots) ? plan.slots : [];
@@ -813,49 +756,25 @@ export default function GuideClassDetails() {
 
     // Monthly: generate slots from current date to end of month with booking restrictions
     if (subscriptionType === "monthly") {
-      console.log("=== MONTHLY SLOT GENERATION ===");
-      console.log("Plan data:", plan);
-      console.log("Sessions count:", plan.sessionsCount);
-
       // Check for both old weeklyPattern and new dayBasedPattern
       let pattern = Array.isArray(plan.weeklyPattern) ? plan.weeklyPattern : [];
-      console.log("Initial weeklyPattern:", pattern);
-      console.log("WeeklyPattern length:", pattern.length);
 
       // If weeklyPattern exists but is empty, or if we have dayBasedPattern, use dayBasedPattern
       if (
         plan.dayBasedPattern &&
         Object.keys(plan.dayBasedPattern).length > 0
       ) {
-        console.log(
-          "Found dayBasedPattern, converting to weeklyPattern:",
-          plan.dayBasedPattern,
-        );
         const convertedPattern = convertDayBasedToWeeklyPattern(
           plan.dayBasedPattern,
         );
-        console.log("Converted pattern:", convertedPattern);
 
         // Use converted pattern if it has more slots than existing weeklyPattern
         if (convertedPattern.length > pattern.length) {
           pattern = convertedPattern;
-          console.log("Using converted dayBasedPattern");
         }
       }
 
-      console.log("Final monthly pattern:", pattern);
-      console.log("Pattern length:", pattern.length);
-      console.log("Pattern details:", JSON.stringify(pattern, null, 2));
-
       if (pattern.length === 0) {
-        console.log(
-          "❌ No monthly pattern available - Check if slots are saved properly",
-        );
-        console.log("Available data:", {
-          weeklyPattern: plan.weeklyPattern,
-          dayBasedPattern: plan.dayBasedPattern,
-          fullPlan: plan,
-        });
         return [];
       }
 
@@ -871,19 +790,6 @@ export default function GuideClassDetails() {
       const endDate = new Date(today);
       endDate.setDate(today.getDate() + 30); // Next 30 days from today
 
-      console.log(
-        "Generating monthly slots from",
-        startDate.toISOString().slice(0, 10),
-        "to",
-        endDate.toISOString().slice(0, 10),
-      );
-      console.log(
-        "Today is:",
-        today.toLocaleDateString("en-US", { weekday: "long" }),
-        today.toISOString().slice(0, 10),
-      );
-      console.log("Monthly period: 30 days from today");
-
       for (
         let d = new Date(startDate);
         d <= endDate;
@@ -896,32 +802,13 @@ export default function GuideClassDetails() {
         const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 
         if (reservedMonths.has(ym)) {
-          console.log(`Skipping reserved month: ${ym}`);
           continue; // block entire month
         }
 
-        console.log(`Processing date: ${ymd} (${dayShort})`);
-
-        // Special logging for Monday dates
-        if (dayShort === "Mon") {
-          console.log(`🔍 MONDAY FOUND: ${ymd} (${dayShort})`);
-        }
-
         pattern.forEach((row, rowIdx) => {
-          console.log(`Checking pattern row ${rowIdx}:`, row);
-          console.log(`Row days:`, row.days, `Current day:`, dayShort);
-
           if ((row.days || []).includes(dayShort)) {
-            console.log(`✅ Day ${dayShort} matches pattern days:`, row.days);
-
-            if (dayShort === "Mon") {
-              console.log(`🎯 MONDAY SLOT MATCH FOUND!`);
-              console.log(`Monday row times:`, row.times);
-            }
 
             (row.times || []).forEach((t, tIdx) => {
-              console.log(`Processing time slot:`, t);
-
               const slot = {
                 date: ymd,
                 startTime: t.startTime,
@@ -932,8 +819,6 @@ export default function GuideClassDetails() {
                 tIdx,
               };
 
-              console.log(`Created slot:`, slot);
-
               // Apply monthly booking restrictions
               const occLabel = (selectedOccupancy?.type || "").toLowerCase();
 
@@ -941,12 +826,9 @@ export default function GuideClassDetails() {
               const canBook = { canBook: true, reason: "Testing mode" };
               // const canBook = canBookMonthlySlot(slot, occLabel, userMonthlySlots, plan);
 
-              console.log(`Can book slot:`, canBook);
-
               // Only show slots that can be booked
               if (canBook.canBook) {
                 out.push(slot);
-                console.log(`✅ Added slot to output:`, slot);
               } else {
                 console.log(`❌ Slot rejected:`, canBook.reason);
               }
@@ -960,8 +842,6 @@ export default function GuideClassDetails() {
         });
       }
 
-      console.log(`Total slots generated: ${out.length}`);
-      console.log("Generated slots:", out);
 
       // Debug: Show Monday slots specifically
       const mondaySlots = out.filter((slot) => {
@@ -970,7 +850,6 @@ export default function GuideClassDetails() {
           slotDate.toLocaleDateString("en-US", { weekday: "short" }) === "Mon"
         );
       });
-      console.log(`🔍 Monday slots found: ${mondaySlots.length}`, mondaySlots);
 
       // Filter by selected occupancy type
       const occLabel = (selectedOccupancy?.type || "").toLowerCase();
@@ -978,13 +857,6 @@ export default function GuideClassDetails() {
       if (occLabel.includes("couple") || occLabel.includes("twin"))
         viewType = "couple";
       else if (occLabel.includes("group")) viewType = "group";
-
-      console.log(`🎯 Filtering slots by occupancy:`, {
-        selectedOccupancy: selectedOccupancy?.type,
-        occLabel,
-        viewType,
-        totalSlots: out.length,
-      });
 
       const filtered = out.filter((s) => {
         // For group occupancy, handle special logic
@@ -1015,8 +887,6 @@ export default function GuideClassDetails() {
         return s.type === "individual" && currentBookings.length === 0;
       });
 
-      console.log(`📊 Final filtered slots: ${filtered.length}`, filtered);
-
       // Debug: Show filtered Monday slots
       const filteredMondaySlots = filtered.filter((slot) => {
         const slotDate = new Date(slot.date);
@@ -1024,10 +894,6 @@ export default function GuideClassDetails() {
           slotDate.toLocaleDateString("en-US", { weekday: "short" }) === "Mon"
         );
       });
-      console.log(
-        `🔍 Filtered Monday slots: ${filteredMondaySlots.length}`,
-        filteredMondaySlots,
-      );
 
       return filtered;
     }
@@ -1038,7 +904,6 @@ export default function GuideClassDetails() {
   // Load monthly booking data when component mounts or session data changes
   useEffect(() => {
     if (sessionData && user) {
-      console.log("✅ Loading monthly booking data...");
       loadUserMonthlyBookings();
       loadSlotBookings();
     } else {
@@ -1528,8 +1393,6 @@ export default function GuideClassDetails() {
                       <button
                         key={index}
                         onClick={() => {
-                          console.log("=== OCCUPANCY SELECTED ===");
-                          console.log("Selected occupancy:", occupancy);
                           setSelectedOccupancy(occupancy);
                         }}
                         className={`px-4 py-2 rounded-lg border transition-all duration-200 text-sm ${
@@ -1612,25 +1475,13 @@ export default function GuideClassDetails() {
                 {planAvailableAny("monthly") && (
                   <button
                     onClick={() => {
-                      console.log("=== MONTHLY BUTTON CLICKED ===");
-                      console.log("Current mode before plan selection:", mode);
-                      console.log(
-                        "Is monthly available in current mode?",
-                        planAvailable("monthly"),
-                      );
                       setSubscriptionType("monthly");
                       setSelectedPlan("monthly");
                       setUserPickedPlan(true);
                       setSelectedOccupancy(null); // Reset occupancy when changing plan type
-                      console.log("Subscription type set to: monthly");
                       if (!planAvailable("monthly")) {
-                        console.log(
-                          "Monthly not available in current mode, finding alternative...",
-                        );
                         const m = findModeForPlan("monthly");
-                        console.log("findModeForPlan returned:", m);
                         if (m) {
-                          console.log("Switching mode from", mode, "to", m);
                           setMode(m);
                         }
                       } else {
@@ -1712,9 +1563,6 @@ export default function GuideClassDetails() {
                           if (!planAvailable(subscriptionType)) {
                             let desiredMode = findModeForPlan(subscriptionType);
                             if (desiredMode && desiredMode !== mode) {
-                              console.log(
-                                `Current mode (${mode}) doesn't support ${subscriptionType}, switching to ${desiredMode}`,
-                              );
                               setMode(desiredMode);
                               // yield a tick so mode-dependent selectors use updated state
                               await new Promise((r) => setTimeout(r, 0));
@@ -1875,7 +1723,6 @@ export default function GuideClassDetails() {
           cartItems={cartItems}
           quantity={quantity}
           onAddToCart={async (cartItem) => {
-            console.log("Adding to cart from monthly modal:", cartItem);
             dispatch(addToCartRedux(cartItem));
             setShowCalendar(false);
             // Reload all booking data to ensure UI is up to date

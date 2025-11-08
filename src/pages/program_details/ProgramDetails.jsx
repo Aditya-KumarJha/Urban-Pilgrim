@@ -70,8 +70,6 @@ export default function ProgramDetails() {
         }
     }, [Data, programId]);
 
-    // console.log("programData: ", programData);
-
     const increment = () => setPersons((prev) => prev + 1);
     const decrement = () => setPersons((prev) => (prev > 1 ? prev - 1 : 1));
 
@@ -95,7 +93,6 @@ export default function ProgramDetails() {
         };
 
         dispatch(addToCart(cartItem));
-        console.log("Added to cart:", cartItem);
         showSuccess("Added to cart!");
     };
 
