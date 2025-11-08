@@ -50,7 +50,7 @@ export default function MonthlyCalendarModal({
     return () => {
       document.body.style.overflow = "";
     };
-  }, []);
+  }, [isOpen]);
 
   const plan = sessionData?.[dynamicMode?.toLowerCase()]?.[selectedPlan] || {};
   const sessionsPerMonth = Number(plan.sessionsCount || 0);
@@ -966,9 +966,19 @@ export default function MonthlyCalendarModal({
   ]);
 
   return (
-    <div className="fixed inset-0 bg-black/30 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div 
+      className="fixed inset-0 bg-black/30 backdrop-blur-xs z-50 flex items-center justify-center p-4"
+      onClick={handleCloseModal}
+      onWheel={(e) => e.stopPropagation()}
+      onTouchMove={(e) => e.stopPropagation()}
+    >
       {/* White modal - scrollable container */}
-      <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+      <div 
+        className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+        onWheel={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex justify-between items-center p-6 border-b sticky top-0 bg-white z-10">
           <div>
