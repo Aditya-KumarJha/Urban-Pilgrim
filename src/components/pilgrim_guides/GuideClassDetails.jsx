@@ -86,6 +86,11 @@ export default function GuideClassDetails() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch]);
 
+  // Always scroll to top when this component mounts (guide details page opened)
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // ========== Monthly Booking Utility Functions ==========
 
   // Filter slots to show only current date to end of month
