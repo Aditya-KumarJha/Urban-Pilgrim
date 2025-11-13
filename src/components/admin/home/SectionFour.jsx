@@ -9,6 +9,7 @@ import { storage } from "../../../services/firebase";
 import { v4 as uuidv4 } from "uuid";
 import { showSuccess } from "../../../utils/toast";
 
+import OptimizedImage from '../../../components/ui/OptimizedImage';
 function SectionFour() {
     const [image, setImage] = useState(null);
     const [features, setFeatures] = useState([]);
@@ -207,7 +208,7 @@ function SectionFour() {
                 </div>
             ) : image ? (
                 <div className="relative inline-block mb-4">
-                    <img src={image} alt="Preview" className="w-64 h-auto object-cover rounded shadow" />
+                    <OptimizedImage src={image} alt="Preview" className="w-64 h-auto object-cover rounded shadow" />
                     <button
                         onClick={handleRemoveImage}
                         className="absolute top-0 right-0 bg-white border border-gray-300 rounded-full p-1 transform translate-x-1/2 -translate-y-1/2 hover:bg-gray-200"
@@ -221,7 +222,7 @@ function SectionFour() {
                     className="w-full h-40 border-2 border-dashed border-gray-300 rounded flex items-center justify-center text-gray-500 cursor-pointer mb-4 hover:bg-gray-50 flex-col"
                 >
                     <input {...getInputProps()} disabled={isMainImageUploading} />
-                    <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-12 h-12 mb-2" />
+                    <OptimizedImage src="/assets/admin/upload.svg" alt="Upload Icon" className="w-12 h-12 mb-2" />
                     {isDragActive ? "Drop the image here..." : "Click to upload or drag and drop"}
                 </div>
             )}
@@ -275,8 +276,7 @@ function SectionFour() {
                         </div>
                     ) : feature.image ? (
                         <div className="relative inline-block mb-4">
-                            <img
-                                src={feature.image}
+                            <OptimizedImage                                 src={feature.image}
                                 alt="Preview"
                                 className="w-64 h-auto object-contain rounded shadow"
                             />
@@ -293,8 +293,7 @@ function SectionFour() {
                                 htmlFor={`feature-upload-${index}`}
                                 className="w-full h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50"
                             >
-                                <img
-                                    src="/assets/admin/upload.svg"
+                                <OptimizedImage                                     src="/assets/admin/upload.svg"
                                     alt="Upload Icon"
                                     className="w-12 h-12 mb-2"
                                 />

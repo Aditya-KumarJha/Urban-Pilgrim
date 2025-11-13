@@ -24,6 +24,7 @@ import { storage } from "../../../services/firebase";
 import { showError, showSuccess } from "../../../utils/toast";
 import RichTextEditor from "../../common/RichTextEditor";
 
+import OptimizedImage from '../../../components/ui/OptimizedImage';
 const ItemType = "RETREAT";
 
 function SlideItem({ slide, index, moveSlide, onEdit, onDelete, onToggle }) {
@@ -62,8 +63,7 @@ function SlideItem({ slide, index, moveSlide, onEdit, onDelete, onToggle }) {
                         onMouseLeave={(e) => e.target.pause()}
                     />
                 ) : (
-                    <img
-                        src={slide?.image}
+                    <OptimizedImage                         src={slide?.image}
                         alt="Slide Thumbnail"
                         className="w-16 h-16 object-cover rounded mt-1"
                     />
@@ -1046,8 +1046,7 @@ export default function RetreatsForm() {
                                         playsInline
                                     />
                                 ) : (
-                                    <img
-                                        src={formData.pilgrimRetreatCard.image}
+                                    <OptimizedImage                                         src={formData.pilgrimRetreatCard.image}
                                         alt="Uploaded"
                                         className="h-full object-contain rounded-md"
                                     />
@@ -1055,8 +1054,7 @@ export default function RetreatsForm() {
                             </div>
                         ) : (
                             <div className="text-center text-gray-500 flex flex-col items-center">
-                                <img
-                                    src="/assets/admin/upload.svg"
+                                <OptimizedImage                                     src="/assets/admin/upload.svg"
                                     alt="Upload Icon"
                                     className="w-12 h-12 mb-2"
                                 />
@@ -1464,8 +1462,7 @@ export default function RetreatsForm() {
                 <div className="mb-4">
                     {(!formData?.oneTimePurchase?.images || formData?.oneTimePurchase?.images?.length < 5) && (
                         <label className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50">
-                            <img
-                                src="/assets/admin/upload.svg"
+                            <OptimizedImage                                 src="/assets/admin/upload.svg"
                                 alt="Upload Icon"
                                 className="w-10 h-10 mb-2"
                             />
@@ -1522,8 +1519,7 @@ export default function RetreatsForm() {
                         <div className="flex flex-wrap gap-4 mt-4">
                             {formData.oneTimePurchase.images.map((img, idx) => (
                                 <div key={idx} className="relative w-40 h-28">
-                                    <img
-                                        src={img}
+                                    <OptimizedImage                                         src={img}
                                         alt={`otp-img-${idx}`}
                                         className="w-full h-full object-cover rounded"
                                     />
@@ -1546,8 +1542,7 @@ export default function RetreatsForm() {
                 <div className="mb-4">
                     {(!formData?.oneTimePurchase?.videos || formData?.oneTimePurchase?.videos?.length < 6) && (
                         <label className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50">
-                            <img
-                                src="/assets/admin/upload.svg"
+                            <OptimizedImage                                 src="/assets/admin/upload.svg"
                                 alt="Upload Icon"
                                 className="w-10 h-10 mb-2"
                             />
@@ -1650,8 +1645,7 @@ export default function RetreatsForm() {
                                     </label>
                                     {feature.image ? (
                                         <div className="relative inline-block mb-4">
-                                            <img
-                                                src={feature?.image}
+                                            <OptimizedImage                                                 src={feature?.image}
                                                 alt="Preview"
                                                 className="w-32 h-32 object-contain rounded"
                                             />
@@ -1673,8 +1667,7 @@ export default function RetreatsForm() {
                                             flex-col items-center justify-center text-gray-500 cursor-pointer
                                             hover:bg-gray-50"
                                             >
-                                                <img
-                                                    src="/assets/admin/upload.svg"
+                                                <OptimizedImage                                                     src="/assets/admin/upload.svg"
                                                     alt="Upload Icon"
                                                     className="w-12 h-12 mb-2"
                                                 />
@@ -2076,8 +2069,7 @@ export default function RetreatsForm() {
                     <label className="block font-semibold mb-1">Add Icon</label>
                     {formData?.meetGuide?.image ? (
                         <div className="relative inline-block mb-4">
-                            <img
-                                src={formData?.meetGuide?.image}
+                            <OptimizedImage                                 src={formData?.meetGuide?.image}
                                 alt="Preview"
                                 className="w-64 h-auto object-contain rounded shadow"
                             />
@@ -2123,8 +2115,7 @@ export default function RetreatsForm() {
                                 htmlFor="guide-upload"
                                 className="w-full h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50"
                             >
-                                <img
-                                    src="/assets/admin/upload.svg"
+                                <OptimizedImage                                     src="/assets/admin/upload.svg"
                                     alt="Upload Icon"
                                     className="w-12 h-12 mb-2"
                                 />

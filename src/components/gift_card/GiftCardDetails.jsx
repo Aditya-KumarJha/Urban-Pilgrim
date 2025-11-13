@@ -11,6 +11,7 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { setUser } from "../../features/authSlice";
 import UserDetailsOverlay from "./UserDetailsOverlay";
 
+import OptimizedImage from '../../components/ui/OptimizedImage';
 export default function GiftCardDetails() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -311,8 +312,7 @@ export default function GiftCardDetails() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-7xl mx-auto px-4 md:py-10 py-4">
                 {/* Image - Sticky */}
                 <div className="flex-shrink-0 space-y-4 md:sticky mx-auto top-24 self-start">
-                    <img
-                        src="/gift_card.jpg"
+                    <OptimizedImage                         src="/gift_card.jpg"
                         alt={giftCard.title}
                         className="rounded-xl xl:h-[380px] lg:h-[280px] md:h-[210px] sm:h-[350px] object-cover"
                     />

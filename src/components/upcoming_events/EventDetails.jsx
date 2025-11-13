@@ -12,6 +12,7 @@ import PilgrimGuide from "../pilgrim_retreats/Pilgrim_Guide";
 import PersondetailsCard from "../../components/persondetails_card";
 import { motion } from "framer-motion"
 
+import OptimizedImage from '../../components/ui/OptimizedImage';
 export default function EventDetails() {
     const [mode, setMode] = useState(null);
     const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -89,8 +90,7 @@ export default function EventDetails() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-7xl mx-auto px-4 py-10">
                     {/* Image */}
                     <div className="flex-shrink-0">
-                        <img
-                            src={eventData?.upcomingSessionCard?.image || "https://images.unsplash.com/photo-1529070538774-1843cb3265df"}
+                        <OptimizedImage                             src={eventData?.upcomingSessionCard?.image || "https://images.unsplash.com/photo-1529070538774-1843cb3265df"}
                             alt="Instructor"
                             className="rounded-xl h-full object-cover"
                         />

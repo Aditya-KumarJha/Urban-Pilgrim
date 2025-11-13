@@ -2,6 +2,7 @@ import { useDrag, useDrop } from "react-dnd";
 import { MdDragIndicator } from "react-icons/md";
 import { FaTrash, FaEdit, FaEye, FaEyeSlash } from "react-icons/fa";
 
+import OptimizedImage from '../../../components/ui/OptimizedImage';
 const ItemType = "WORKSHOP";
 
 function WorkshopItem({ slide, index, moveSlide, onEdit, onDelete, onToggle }) {
@@ -29,7 +30,7 @@ function WorkshopItem({ slide, index, moveSlide, onEdit, onDelete, onToggle }) {
                 <MdDragIndicator className="text-gray-400 cursor-move" />
                 <div className="w-12 h-12 bg-gray-200 rounded overflow-hidden">
                     {slide.thumbnail ? (
-                        <img src={slide.thumbnail} alt="Workshop thumbnail" className="w-full h-full object-cover" />
+                        <OptimizedImage src={slide.thumbnail} alt="Workshop thumbnail" className="w-full h-full object-cover" />
                     ) : (
                         <div className="w-full h-full flex items-center justify-center">
                             <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

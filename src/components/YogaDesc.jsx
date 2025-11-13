@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import OptimizedImage from '../components/ui/OptimizedImage';
 
 export default function YogaDesc() {
     const location = useLocation();
@@ -53,7 +54,7 @@ export default function YogaDesc() {
                             Your browser does not support the video tag.
                         </video>
                     ) : (
-                        <img
+                        <OptimizedImage
                             src={image}
                             alt={title}
                             className="rounded-xl shadow-lg border border-gray-200 w-full h-[300px] md:h-[400px] lg:h-[500px] object-cover"

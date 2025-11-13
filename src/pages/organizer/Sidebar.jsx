@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { clearOrganizer } from "../../features/organizerAuthSlice";
 import { showSuccess } from "../../utils/toast";
 
+import OptimizedImage from '../../components/ui/OptimizedImage';
 export default function Sidebar({ activeSection, setActiveSection }) {
     const [isOpen, setIsOpen] = useState(false);
     const dispatch = useDispatch();
@@ -99,7 +100,7 @@ export default function Sidebar({ activeSection, setActiveSection }) {
                             ${activeSection === key ? "bg-[#fceee3] text-[#0c3c60]" : "text-gray-600"}
                             hover:bg-[#fceee3]`}
                         >
-                            <img src={`/assets/admin/${key}.svg`} alt={`${name} icon`} className="w-6 h-6" />
+                            <OptimizedImage src={`/assets/admin/${key}.svg`} alt={`${name} icon`} className="w-6 h-6" />
                             {name}
                         </button>
                     ))}

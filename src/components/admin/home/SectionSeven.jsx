@@ -4,6 +4,7 @@ import { setLoading, setSectionSeven } from "../../../features/home_slices/secti
 import { fetchSectionSeven, saveSectionSeven } from "../../../services/home_service/sectionSevenService";
 import toast from "react-hot-toast";
 
+import OptimizedImage from '../../../components/ui/OptimizedImage';
 function SectionSeven() {
     const [title, setTitle] = useState("It asks: What about me?");
     const [description, setDescription] = useState(
@@ -49,7 +50,7 @@ function SectionSeven() {
                     onChange={(e) => setTitle(e.target.value)}
                     className="w-full border rounded p-2 pr-10"
                 />
-                <img src="/assets/admin/edit.svg" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <OptimizedImage src="/assets/admin/edit.svg" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             </div>
 
             <label className="block font-semibold mb-1">Description</label>
@@ -60,7 +61,7 @@ function SectionSeven() {
                     onChange={(e) => setDescription(e.target.value)}
                     className="w-full border rounded p-2 pr-10"
                 />
-                <img src="/assets/admin/edit.svg" className="absolute right-3 top-3 text-gray-400" />
+                <OptimizedImage src="/assets/admin/edit.svg" className="absolute right-3 top-3 text-gray-400" />
             </div>
 
             <div className="flex justify-end gap-3">

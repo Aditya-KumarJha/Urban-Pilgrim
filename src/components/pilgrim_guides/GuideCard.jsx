@@ -1,6 +1,7 @@
 import { FaInfoCircle, FaMapMarkerAlt } from "react-icons/fa";
 import { BsFillCameraVideoFill } from "react-icons/bs";
 import { useNavigate } from "react-router-dom";
+import OptimizedImage from '../../components/ui/OptimizedImage';
 
 export default function GuideCard({ image, thumbnailType, category, title, price }) {
     const navigate = useNavigate();
@@ -21,7 +22,7 @@ export default function GuideCard({ image, thumbnailType, category, title, price
                     playsInline
                 />
             ) : (
-                <img src={image} alt={title} className="aspect-[5/4] w-full object-cover object-top" />
+                <OptimizedImage src={image} alt={title} className="aspect-[5/4] w-full object-cover object-top" />
             )}
 
             <div className="p-3 sm:p-4 flex flex-col justify-between flex-1">

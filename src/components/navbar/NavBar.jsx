@@ -11,6 +11,7 @@ import SearchBar from "../SearchBar";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../services/firebase";
 
+import OptimizedImage from '../../components/ui/OptimizedImage';
 const NavBar = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [showSearch, setShowSearch] = useState(false);
@@ -50,8 +51,7 @@ const NavBar = () => {
     return (
         <nav className="navbar">
             <div className="navbar-brand">
-                <img
-                    onClick={() => navigate("/")}
+                <OptimizedImage                     onClick={() => navigate("/")}
                     className="logo cursor-pointer"
                     src="/urban_pilgrim_logo.png"
                     alt="Urban Pilgrim"
@@ -91,8 +91,7 @@ const NavBar = () => {
 
                 {/* 👤 User Icon or Profile */}
                 {user ? (
-                    <img
-                        src={user.photoURL || "https://i.pravatar.cc/40"} // fallback avatar
+                    <OptimizedImage                         src={user.photoURL || "https://i.pravatar.cc/40"} // fallback avatar
                         alt="Profile"
                         className="profile-icon cursor-pointer"
                         onClick={() => navigate("/userdashboard")}

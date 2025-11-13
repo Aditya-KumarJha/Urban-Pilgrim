@@ -9,6 +9,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { signOut } from "firebase/auth";
 import { auth, db } from "../services/firebase";
 import { collection, query as fsQuery, where, limit, getDocs } from "firebase/firestore";
+import OptimizedImage from '../components/ui/OptimizedImage';
 import { logout } from "../features/authSlice";
 import { showSuccess } from "../utils/toast";
 import { useNavigate } from "react-router-dom";
@@ -249,7 +250,7 @@ function Dashboard() {
             >
                 {/* Mobile header with close button */}
                 <div className="flex justify-between items-center px-4 pt-2 border-b lg:hidden">
-                    <img src="/urban_pilgrim_logo.png" alt="Logo" className="h-14 w-14 rounded" />
+                    <OptimizedImage src="/urban_pilgrim_logo.png" alt="Logo" className="h-14 w-14 rounded" />
                     <button
                         onClick={() => setSidebarOpen(false)}
                         className="p-2 rounded-md hover:bg-gray-100"
@@ -259,7 +260,7 @@ function Dashboard() {
                 </div>
 
                 <div className="p-2 hidden lg:block">
-                    <img
+                    <OptimizedImage
                         src="/urban_pilgrim_logo.png"
                         alt="Logo"
                         className="mx-auto rounded h-16 w-16 sm:h-24 sm:w-24"

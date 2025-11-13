@@ -8,6 +8,7 @@ import { storage } from "../../../services/firebase";
 import { v4 as uuidv4 } from "uuid";
 import { showSuccess } from "../../../utils/toast";
 
+import OptimizedImage from '../../../components/ui/OptimizedImage';
 function SectionThree() {
     const [image, setImage] = useState(null);
     const [title, setTitle] = useState("Begin your pilgrimage here");
@@ -180,7 +181,7 @@ function SectionThree() {
                     onChange={(e) => setTitle(e.target.value)}
                     className="w-full border rounded p-2 pr-10"
                 />
-                <img src="/assets/admin/edit.svg" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <OptimizedImage src="/assets/admin/edit.svg" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             </div>
 
             {programs && programs.map((program, index) => (
@@ -223,8 +224,7 @@ function SectionThree() {
                         </div>
                     ) : (typeof program.image === 'string' && /^https?:\/\//.test(program.image)) ? (
                         <div className="relative inline-block mb-4">
-                            <img
-                                src={program.image}
+                            <OptimizedImage                                 src={program.image}
                                 alt="Preview"
                                 className="w-64 h-auto object-cover rounded shadow"
                                 onError={() => handleProgramImageError(index)}
@@ -242,8 +242,7 @@ function SectionThree() {
                                 htmlFor={`program-upload-${index}`}
                                 className="w-full h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50"
                             >
-                                <img
-                                    src="/assets/admin/upload.svg"
+                                <OptimizedImage                                     src="/assets/admin/upload.svg"
                                     alt="Upload Icon"
                                     className="w-12 h-12 mb-2"
                                 />

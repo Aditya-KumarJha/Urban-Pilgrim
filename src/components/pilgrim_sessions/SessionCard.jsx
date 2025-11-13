@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import OptimizedImage from '../../components/ui/OptimizedImage';
 
 export default function SessionCard({ session }) {
     const [imageLoaded, setImageLoaded] = useState(false);
@@ -16,7 +17,7 @@ export default function SessionCard({ session }) {
             {/* Session Image */}
             <div className="relative h-48 bg-gray-200">
                 {session.thumbnail && (
-                    <img
+                    <OptimizedImage
                         src={session.thumbnail}
                         alt={session.title}
                         className={`w-full h-full object-cover transition-opacity duration-300 ${

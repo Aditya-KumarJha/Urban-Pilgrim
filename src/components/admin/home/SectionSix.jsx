@@ -4,6 +4,7 @@ import { setLoading, setSectionSix } from "../../../features/home_slices/section
 import { fetchSectionSix, saveSectionSix } from "../../../services/home_service/sectionSixService";
 import { showSuccess } from "../../../utils/toast";
 
+import OptimizedImage from '../../../components/ui/OptimizedImage';
 function SectionSix() {
     const [title, setTitle] = useState("Find your Pilgrim Session");
     const [description, setDescription] = useState(
@@ -49,7 +50,7 @@ function SectionSix() {
                     onChange={(e) => setTitle(e.target.value)}
                     className="w-full border rounded p-2 pr-10"
                 />
-                <img src="/assets/admin/edit.svg" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <OptimizedImage src="/assets/admin/edit.svg" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             </div>
 
             <label className="block font-semibold mb-1">Description</label>
@@ -60,7 +61,7 @@ function SectionSix() {
                     onChange={(e) => setDescription(e.target.value)}
                     className="w-full border rounded p-2 pr-10"
                 />
-                <img src="/assets/admin/edit.svg" className="absolute right-3 top-3 text-gray-400" />
+                <OptimizedImage src="/assets/admin/edit.svg" className="absolute right-3 top-3 text-gray-400" />
             </div>
 
             <div className="flex justify-end gap-3">

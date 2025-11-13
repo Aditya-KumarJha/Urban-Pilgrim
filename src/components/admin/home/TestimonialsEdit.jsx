@@ -7,6 +7,7 @@ import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebas
 import { storage } from "../../../services/firebase";
 import { showSuccess } from "../../../utils/toast";
 
+import OptimizedImage from '../../../components/ui/OptimizedImage';
 function TestimonialsEdit() {
     const [testimonial, setTestimonial] = useState([]);
     const [uploadProgress, setUploadProgress] = useState({});
@@ -197,7 +198,7 @@ function TestimonialsEdit() {
                                 onChange={(e) => handleTestimonialNameChange(index, e.target.value)}
                                 className="w-full border rounded p-2 pr-10"
                             />
-                            <img src="/assets/admin/edit.svg" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                            <OptimizedImage src="/assets/admin/edit.svg" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                         </div>
 
                         <label className="block font-semibold mb-1">Short Designation</label>
@@ -209,7 +210,7 @@ function TestimonialsEdit() {
                                 onChange={(e) => handleTestimonialShortDesignationChange(index, e.target.value)}
                                 className="w-full border rounded p-2 pr-10"
                             />
-                            <img src="/assets/admin/edit.svg" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                            <OptimizedImage src="/assets/admin/edit.svg" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                         </div>
 
                         <label className="block font-semibold mb-1">Quoted Text</label>
@@ -221,13 +222,12 @@ function TestimonialsEdit() {
                                 onChange={(e) => handleTestimonialQuotedTextChange(index, e.target.value)}
                                 className="w-full border rounded p-2 pr-10"
                             />
-                            <img src="/assets/admin/edit.svg" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                            <OptimizedImage src="/assets/admin/edit.svg" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                         </div>
 
                         {testimonial.image ? (
                             <div className="relative inline-block mb-4">
-                                <img
-                                    src={testimonial.image}
+                                <OptimizedImage                                     src={testimonial.image}
                                     alt="Preview"
                                     className="w-64 h-auto object-cover rounded shadow"
                                 />
@@ -269,8 +269,7 @@ function TestimonialsEdit() {
                                         </div>
                                     ) : (
                                         <>
-                                            <img
-                                                src="/assets/admin/upload.svg"
+                                            <OptimizedImage                                                 src="/assets/admin/upload.svg"
                                                 alt="Upload Icon"
                                                 className="w-12 h-12 mb-2"
                                             />

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { MdKeyboardArrowDown, MdKeyboardArrowUp } from "react-icons/md";
 import { firestoreService } from "../../services/firestoreService";
 
+import OptimizedImage from '../../components/ui/OptimizedImage';
 export default function FilterBar({ onFiltersChange, initialFilters = {} }) {
   const [filters, setFilters] = useState({
     mode: initialFilters.mode || '',
@@ -82,7 +83,7 @@ export default function FilterBar({ onFiltersChange, initialFilters = {} }) {
               : 'border-[#00000033] hover:border-gray-400'
           }`}
         >
-          {icon && <img src={icon} alt="" className="w-4 h-4" />}
+          {icon && <OptimizedImage src={icon} alt="" className="w-4 h-4" />}
           {selectedValue || filterType.charAt(0).toUpperCase() + filterType.slice(1).replace(/([A-Z])/g, ' $1')}
           {isOpen ? <MdKeyboardArrowUp /> : <MdKeyboardArrowDown />}
         </button>

@@ -4,6 +4,7 @@ import Button from "../../components/ui/button";
 import SEO from "../../components/SEO.jsx";
 import { useEffect } from "react";
 
+import OptimizedImage from '../../components/ui/OptimizedImage';
 export default function JoinGuides() {
 
     useEffect(() => {
@@ -40,8 +41,7 @@ export default function JoinGuides() {
                 ogImage="/assets/joinus/joinus.png"
             />
             <div className="relative w-full mb-10">
-                <img
-                    src="/retreats.svg"
+                <OptimizedImage                     src="/retreats.svg"
                     alt="Guides Header"
                     className="absolute inset-0 w-full h-full object-cover z-0 border-b-2 border-[#ffffff33]"
                 />
@@ -83,8 +83,7 @@ export default function JoinGuides() {
                         <Steps steps={steps} />
                         <Button btn_name={"Join Us As Urban Pilgrim Guide"} />
                     </div>
-                    <img
-                        src="/assets/joinus/joinus.png"
+                    <OptimizedImage                         src="/assets/joinus/joinus.png"
                         alt="Join Us"
                         className="lg:w-full w-auto object-cover object-top rounded-lg mb-10 md:mb-0 lg:max-h-[600px] max-h-[300px] aspect-auto"
                         style={{ boxShadow: "-20px 26px 25.7px rgba(0, 0, 0, 0.25)" }}

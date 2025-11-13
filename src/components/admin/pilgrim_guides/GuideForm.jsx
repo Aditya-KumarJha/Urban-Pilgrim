@@ -23,6 +23,7 @@ import { showSuccess, showError } from "../../../utils/toast";
 import toast from "react-hot-toast";
 import RichTextEditor from "../../common/RichTextEditor";
 
+import OptimizedImage from '../../../components/ui/OptimizedImage';
 const ItemType = "SLIDE";
 
 function SlideItem({
@@ -65,8 +66,7 @@ function SlideItem({
                             loop
                         />
                     ) : (
-                        <img
-                            src={slide?.thumbnail}
+                        <OptimizedImage                             src={slide?.thumbnail}
                             alt="Slide Thumbnail"
                             className="w-16 h-16 object-cover rounded mt-1"
                         />
@@ -2091,8 +2091,7 @@ export default function GuideForm() {
                                             playsInline
                                         />
                                     ) : (
-                                        <img
-                                            src={formData?.guideCard?.thumbnail}
+                                        <OptimizedImage                                             src={formData?.guideCard?.thumbnail}
                                             alt="Thumbnail"
                                             className="h-full object-contain rounded"
                                         />
@@ -2135,8 +2134,7 @@ export default function GuideForm() {
                                 </div>
                             ) : (
                                 <div className="text-center text-sm text-gray-500 flex flex-col items-center">
-                                    <img
-                                        src="/assets/admin/upload.svg"
+                                    <OptimizedImage                                         src="/assets/admin/upload.svg"
                                         alt="Upload Icon"
                                         className="w-12 h-12 mb-2"
                                     />
@@ -5304,8 +5302,7 @@ export default function GuideForm() {
                         {formData?.session?.images &&
                             formData?.session?.images?.length < 11 && (
                                 <label className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50">
-                                    <img
-                                        src="/assets/admin/upload.svg"
+                                    <OptimizedImage                                         src="/assets/admin/upload.svg"
                                         alt="Upload Icon"
                                         className="w-10 h-10 mb-2"
                                     />
@@ -5368,8 +5365,7 @@ export default function GuideForm() {
                             {formData?.session?.images &&
                                 formData?.session?.images.map((img, index) => (
                                     <div key={index} className="relative w-40 h-28">
-                                        <img
-                                            src={img}
+                                        <OptimizedImage                                             src={img}
                                             alt={`img-${index}`}
                                             className="w-full h-full object-cover rounded shadow"
                                         />
@@ -5392,8 +5388,7 @@ export default function GuideForm() {
                         {formData?.session?.videos &&
                             formData?.session?.videos.length < 6 && (
                                 <label className="w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50">
-                                    <img
-                                        src="/assets/admin/upload.svg"
+                                    <OptimizedImage                                         src="/assets/admin/upload.svg"
                                         alt="Upload Icon"
                                         className="w-10 h-10 mb-2"
                                     />
@@ -5572,8 +5567,7 @@ export default function GuideForm() {
                                     </div>
                                 ) : (
                                     <div className="text-center text-gray-500 flex flex-col items-center">
-                                        <img
-                                            src="/assets/admin/upload.svg"
+                                        <OptimizedImage                                             src="/assets/admin/upload.svg"
                                             alt="Upload Icon"
                                             className="w-12 h-12 mb-2"
                                         />
@@ -5614,8 +5608,7 @@ export default function GuideForm() {
                             </label>
                             {formData?.guide?.[0]?.image ? (
                                 <div className="relative inline-block mb-4">
-                                    <img
-                                        src={formData.guide[0].image}
+                                    <OptimizedImage                                         src={formData.guide[0].image}
                                         alt="Preview"
                                         className="w-64 h-auto object-contain rounded shadow"
                                     />
@@ -5660,8 +5653,7 @@ export default function GuideForm() {
                                         htmlFor="guide-upload"
                                         className="max-w-xs aspect-square border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50"
                                     >
-                                        <img
-                                            src="/assets/admin/upload.svg"
+                                        <OptimizedImage                                             src="/assets/admin/upload.svg"
                                             alt="Upload Icon"
                                             className="w-12 h-12 mb-2"
                                         />

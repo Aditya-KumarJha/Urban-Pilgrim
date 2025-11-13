@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 
+import OptimizedImage from '../../components/ui/OptimizedImage';
 export default function ImageGallery({ images = [], videos = [] }) {
     // Combine images and videos into a single media array
     const allMedia = [...images, ...videos];
@@ -103,8 +104,7 @@ export default function ImageGallery({ images = [], videos = [] }) {
                                     muted
                                 />
                             ) : (
-                                <img
-                                    src={allMedia[3]}
+                                <OptimizedImage                                     src={allMedia[3]}
                                     alt="thumb-3"
                                     className="w-full h-full object-cover"
                                 />

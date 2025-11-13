@@ -1,6 +1,7 @@
 import { FaWind, FaWater, FaFire } from "react-icons/fa";
 import { FaCube } from "react-icons/fa6";
 
+import OptimizedImage from '../../components/ui/OptimizedImage';
 const features = [
   {
     icon: <FaWind className="text-[#C16A00] text-3xl" />,
@@ -34,8 +35,7 @@ export default function FeatureProgram({ features }) {
               key={idx}
               className="bg-white p-6 rounded-xl shadow-md flex flex-col gap-4"
             >
-              <img
-                src={item?.image}
+              <OptimizedImage                 src={item?.image}
                 alt={item.title}
                 className="w-8 h-8 object-cover"
               />

@@ -14,6 +14,7 @@ import {
 } from "../../../services/workshopService";
 import { showSuccess, showError } from "../../../utils/toast";
 
+import OptimizedImage from '../../../components/ui/OptimizedImage';
 export default function WorkshopList() {
     const dispatch = useDispatch();
     const { workshops, loading, error } = useSelector((state) => state.workshops);
@@ -115,8 +116,7 @@ export default function WorkshopList() {
                             {/* Workshop Thumbnail */}
                             <div className="relative h-48 bg-gray-200">
                                 {workshop.thumbnail ? (
-                                    <img
-                                        src={workshop.thumbnail}
+                                    <OptimizedImage                                         src={workshop.thumbnail}
                                         alt={workshop.title}
                                         className="w-full h-full object-cover"
                                     />

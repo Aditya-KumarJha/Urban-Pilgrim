@@ -18,6 +18,7 @@ import { showSuccess } from "../../utils/toast.js"
 import { fetchAllEvents } from "../../utils/fetchEvents";
 import { getProgramButtonConfig } from "../../utils/userProgramUtils";
 
+import OptimizedImage from '../../components/ui/OptimizedImage';
 export default function ProgramDetails() {
     const params = useParams();
     const [programData, setProgramData] = useState(null);
@@ -181,8 +182,7 @@ export default function ProgramDetails() {
 
                         {/* Days */}
                         <div className="flex items-center gap-2 text-sm text-[#787B7B] font-bold">
-                            <img
-                                src="/assets/program/package.svg"
+                            <OptimizedImage                                 src="/assets/program/package.svg"
                                 alt="package"
                                 className="h-4 w-4"
                             />
@@ -194,8 +194,7 @@ export default function ProgramDetails() {
 
                         {/* No. of persons/session */}
                         <div className="flex flex-wrap items-center gap-2 text-sm text-[#787B7B] font-bold">
-                            <img
-                                src="/assets/program/people.svg"
+                            <OptimizedImage                                 src="/assets/program/people.svg"
                                 alt="package"
                                 className="h-4 w-4"
                             />

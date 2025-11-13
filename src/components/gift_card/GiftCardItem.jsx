@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 
+import OptimizedImage from '../../components/ui/OptimizedImage';
 export default function GiftCardItem({ giftCard }) {
     const navigate = useNavigate();
     const cardRef = useRef(null);
@@ -36,8 +37,7 @@ export default function GiftCardItem({ giftCard }) {
         <div ref={cardRef} className="bg-white rounded-xl shadow-[-16px_16px_18px_rgba(0,0,0,0.25)] overflow-hidden transition-shadow duration-300">
             {/* Main Media Display */}
             <div className="relative">
-                <img
-                    src="/gift_card.jpg"
+                <OptimizedImage                     src="/gift_card.jpg"
                     alt={giftCard.title}
                     className="w-full h-[210px] object-cover"
                     onError={() => setImageError(true)}

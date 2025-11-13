@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import Button from "../ui/button";
 
+import OptimizedImage from '../../components/ui/OptimizedImage';
 export default function RetreatCard({ retreat }) {
     const navigate = useNavigate();
     const pilgrimRetreatCard = retreat?.pilgrimRetreatCard;
@@ -21,17 +22,17 @@ export default function RetreatCard({ retreat }) {
                     playsInline
                 />
             ) : (
-                <img src={pilgrimRetreatCard?.image} alt={pilgrimRetreatCard?.title} className="h-44 sm:h-52 w-full object-cover p-3 sm:p-4" />
+                <OptimizedImage src={pilgrimRetreatCard?.image} alt={pilgrimRetreatCard?.title} className="h-44 sm:h-52 w-full object-cover p-3 sm:p-4" />
             )}
             
             <div className="p-3 sm:p-4">
                 <h3 className="font-semibold text-lg sm:text-xl leading-tight">{pilgrimRetreatCard?.title}</h3>
                 <div className="text-xs sm:text-sm text-gray-600 flex flex-col items-start mt-1.5 sm:mt-2 space-y-1.5 sm:space-y-2">
                     <span className="flex items-center gap-1.5 sm:gap-2">
-                        <img src="/assets/retreats/Location.svg" className="w-4 h-4 sm:w-5 sm:h-5 text-[#A0A3A2]" /> {pilgrimRetreatCard?.location}
+                        <OptimizedImage src="/assets/retreats/Location.svg" className="w-4 h-4 sm:w-5 sm:h-5 text-[#A0A3A2]" /> {pilgrimRetreatCard?.location}
                     </span>
                     <span className="flex items-center gap-1.5 sm:gap-2">
-                        <img src="/assets/retreats/card_tick.svg" className="w-4 h-4 sm:w-5 sm:h-5 text-[#A0A3A2]" /> {pilgrimRetreatCard?.category || ""}
+                        <OptimizedImage src="/assets/retreats/card_tick.svg" className="w-4 h-4 sm:w-5 sm:h-5 text-[#A0A3A2]" /> {pilgrimRetreatCard?.category || ""}
                     </span>
                 </div>
                 <div className="mt-3 sm:mt-4 flex items-center justify-between" onClick={() => handleCardClick(pilgrimRetreatCard?.title)}>

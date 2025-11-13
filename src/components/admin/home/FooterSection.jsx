@@ -4,6 +4,7 @@ import { setFooters, setLoading } from "../../../features/home_slices/footerSlic
 import { fetchFooter, saveFooterLinks, deleteFooterLink } from "../../../services/home_service/footerService";
 import { showSuccess } from "../../../utils/toast";
 
+import OptimizedImage from '../../../components/ui/OptimizedImage';
 function FooterSection() {
     const [footer, setFooter] = useState([]);
     const [heading, setHeading] = useState("");
@@ -102,7 +103,7 @@ function FooterSection() {
                         onChange={(e) => handleShortTextChange(e.target.value)}
                         className="w-full border rounded p-2 pr-10"
                     />
-                    <img src="/assets/admin/edit.svg" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <OptimizedImage src="/assets/admin/edit.svg" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 </div>
 
                 <label className="block font-semibold mb-1">Heading</label>
@@ -114,7 +115,7 @@ function FooterSection() {
                         onChange={(e) => handleHeadingChange(e.target.value)}
                         className="w-full border rounded p-2 pr-10"
                     />
-                    <img src="/assets/admin/edit.svg" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <OptimizedImage src="/assets/admin/edit.svg" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 </div>
 
 
@@ -136,7 +137,7 @@ function FooterSection() {
                                 onChange={(e) => handleFooterMenuChange(index, e.target.value)}
                                 className="w-full border rounded p-2 pr-10"
                             />
-                            <img src="/assets/admin/edit.svg" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                            <OptimizedImage src="/assets/admin/edit.svg" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                         </div>
 
                         <label className="block font-semibold mb-1">Link URL</label>
@@ -148,7 +149,7 @@ function FooterSection() {
                                 onChange={(e) => handleFooterLinkUrlChange(index, e.target.value)}
                                 className="w-full border rounded p-2 pr-10"
                             />
-                            <img src="/assets/admin/edit.svg" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                            <OptimizedImage src="/assets/admin/edit.svg" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                         </div>
                     </div>
                 ))}

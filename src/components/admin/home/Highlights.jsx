@@ -12,6 +12,7 @@ import { v4 as uuidv4 } from "uuid";
 import { storage } from "../../../services/firebase";
 import { showSuccess } from "../../../utils/toast";
 
+import OptimizedImage from '../../../components/ui/OptimizedImage';
 const ItemType = "HIGHLIGHT";
 
 function HighlightItem({ highlight, index, moveHighlight, onEdit, onDelete, onToggle }) {
@@ -48,7 +49,7 @@ function HighlightItem({ highlight, index, moveHighlight, onEdit, onDelete, onTo
                         preload="metadata"
                     />
                 ) : (
-                    <img src={highlight.image} alt="thumb" className="h-12 w-12 rounded object-cover" />
+                    <OptimizedImage src={highlight.image} alt="thumb" className="h-12 w-12 rounded object-cover" />
                 )}
                 <div>
                     <p className="font-semibold">{highlight.title}</p>
@@ -315,11 +316,11 @@ export default function Highlights() {
                                 Your browser does not support the video tag.
                             </video>
                         ) : (
-                            <img src={image} alt="preview" className="h-full object-contain" />
+                            <OptimizedImage src={image} alt="preview" className="h-full object-contain" />
                         )
                     ) : (
                         <div className="text-center text-gray-500 flex flex-col items-center">
-                            <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-12 h-12 mb-2" />
+                            <OptimizedImage src="/assets/admin/upload.svg" alt="Upload Icon" className="w-12 h-12 mb-2" />
                             <p>{isDragActive ? "Drop here..." : "Click to upload images or videos"}</p>
                             <p className="text-xs mt-1">Supported: JPG, PNG, GIF, WebP, SVG, MP4, WebM, OGG, AVI, MOV</p>
                         </div>

@@ -18,6 +18,7 @@ import ViewAll from "../../components/ui/button/ViewAll.jsx";
 import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import { db } from "../../services/firebase.js";
 import { ChevronDown } from "lucide-react";
+import OptimizedImage from '../../components/ui/OptimizedImage';
 
 function Home() {
     // const wrapperRef = useRef(null);
@@ -445,7 +446,7 @@ function Home() {
             <div className="content3">
                 <div className="c3container">
                     <motion.div className="c3img" initial={{ x: -100, opacity: 0 }} whileInView={{ x: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} viewport={{ once: true }}>
-                        <img src={contentImage} alt="iamge" />
+                        <OptimizedImage src={contentImage} alt="iamge" />
                     </motion.div>
                     <motion.div className="c3text_container" initial={{ x: 100, opacity: 0 }} whileInView={{ x: 0, opacity: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} viewport={{ once: true }}>
                         <motion.div className="datacontainer">
@@ -462,7 +463,7 @@ function Home() {
             {/* Find your Guides */}
             <div className="content6">
                 <div className="meditateimg ">
-                    <img src="/assets/meditationimg.png" alt="error" />
+                    <OptimizedImage src="/assets/meditationimg.png" alt="error" />
                 </div>
                 
                 <div className="c6container">

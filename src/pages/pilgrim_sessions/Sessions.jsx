@@ -11,6 +11,7 @@ import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useSelector } from "react-redux";
 import { calculateBestSellingPrograms, getTopBestSellingPrograms } from "../../utils/bestSellingUtils";
 
+import OptimizedImage from '../../components/ui/OptimizedImage';
 export default function Sessions() {
     const [filters, setFilters] = useState({});
     const [bestSellingActive, setBestSellingActive] = useState(false);
@@ -55,8 +56,7 @@ export default function Sessions() {
                 ogImage="/retreats.svg"
             />
             <div className="relative w-full mb-10">
-                <img
-                    src="/retreats.svg"
+                <OptimizedImage                     src="/retreats.svg"
                     alt="Sessions Header"
                     className="absolute inset-0 w-full h-full object-cover z-0"
                 />

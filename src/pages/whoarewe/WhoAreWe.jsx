@@ -3,6 +3,7 @@ import Button from "../../components/ui/button";
 import SEO from "../../components/SEO.jsx";
 import { useEffect } from "react";
 
+import OptimizedImage from '../../components/ui/OptimizedImage';
 export default function WhoAreWe() {
 
   useEffect(() => {
@@ -20,8 +21,7 @@ export default function WhoAreWe() {
         ogImage="/assets/whyus/whowe.png"
       />
       <div className="mt-[100px] relative w-full">
-        <img
-          src="/assets/whyus/whowe.png"
+        <OptimizedImage           src="/assets/whyus/whowe.png"
           alt="Who Are We Header"
           className="absolute inset-0 w-full h-full object-cover z-0"
         />
@@ -62,8 +62,7 @@ export default function WhoAreWe() {
       </div>
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 items-center px-4">
         <div className="relative">
-          <img
-            src="/assets/joinus/joinusadv.png"
+          <OptimizedImage             src="/assets/joinus/joinusadv.png"
             alt="Founder"
             className="rounded-lg shadow-md relative z-10 max-h-[400px] w-full object-cover"
           />

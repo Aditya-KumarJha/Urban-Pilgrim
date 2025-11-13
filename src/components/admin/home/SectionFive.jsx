@@ -4,6 +4,7 @@ import { setLoading, setSectionFive } from "../../../features/home_slices/sectio
 import { fetchSectionFive, saveSectionFive } from "../../../services/home_service/sectionFiveService";
 import { showSuccess } from "../../../utils/toast";
 
+import OptimizedImage from '../../../components/ui/OptimizedImage';
 function SectionFive() {
     const [title, setTitle] = useState("Book your Pilgrim Experience");
     const [description, setDescription] = useState(
@@ -50,7 +51,7 @@ function SectionFive() {
                     onChange={(e) => setTitle(e.target.value)}
                     className="w-full border rounded p-2 pr-10"
                 />
-                <img src="/assets/admin/edit.svg" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <OptimizedImage src="/assets/admin/edit.svg" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             </div>
 
             <label className="block font-semibold mb-1">Description</label>
@@ -61,7 +62,7 @@ function SectionFive() {
                     onChange={(e) => setDescription(e.target.value)}
                     className="w-full border rounded p-2 pr-10"
                 />
-                <img src="/assets/admin/edit.svg" className="absolute right-3 top-3 text-gray-400" />
+                <OptimizedImage src="/assets/admin/edit.svg" className="absolute right-3 top-3 text-gray-400" />
             </div>
 
             <div className="flex justify-end gap-3">

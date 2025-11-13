@@ -17,6 +17,7 @@ import { showSuccess, showError } from "../../utils/toast.js";
 import BundlesPopup from "../../components/pilgrim_retreats/BundlesPopup.jsx";
 import { fetchAllEvents } from "../../utils/fetchEvents";
 import LiveCalendarModal from "../../components/pilgrim_sessions/LiveCalendarModal";
+import OptimizedImage from '../../components/ui/OptimizedImage';
 
 export default function LiveDetails() {
   const params = useParams();
@@ -244,8 +245,7 @@ export default function LiveDetails() {
 
             {/* Days */}
             <div className="flex items-center gap-2 text-sm text-[#787B7B] font-bold">
-              <img
-                src="/assets/program/package.svg"
+              <OptimizedImage                 src="/assets/program/package.svg"
                 alt="package"
                 className="h-4 w-4"
               />
@@ -261,8 +261,7 @@ export default function LiveDetails() {
               if (available.length === 0) return null;
               return (
                 <div className="flex flex-wrap items-center gap-2 text-sm text-[#787B7B] font-bold">
-                  <img
-                    src="/assets/program/people.svg"
+                  <OptimizedImage                     src="/assets/program/people.svg"
                     alt="people"
                     className="h-4 w-4"
                   />

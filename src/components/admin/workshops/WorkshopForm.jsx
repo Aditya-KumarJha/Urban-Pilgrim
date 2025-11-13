@@ -27,6 +27,7 @@ import {
 } from "../../../services/workshopService";
 import RichTextEditor from "../../common/RichTextEditor";
 
+import OptimizedImage from '../../../components/ui/OptimizedImage';
 export default function WorkshopForm() {
   const [formData, setFormData] = useState({
     // Workshop Card Details
@@ -478,8 +479,7 @@ export default function WorkshopForm() {
                   className="w-64 h-auto object-contain rounded shadow"
                 />
               ) : (
-                <img
-                  src={formData.thumbnail}
+                <OptimizedImage                   src={formData.thumbnail}
                   alt="Thumbnail Preview"
                   className="w-64 h-auto object-contain rounded shadow"
                 />
@@ -525,8 +525,7 @@ export default function WorkshopForm() {
                 htmlFor="thumbnail-upload"
                 className="w-full h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50"
               >
-                <img
-                  src="/assets/admin/upload.svg"
+                <OptimizedImage                   src="/assets/admin/upload.svg"
                   alt="Upload Icon"
                   className="w-10 h-10 mb-2"
                 />
@@ -849,8 +848,7 @@ export default function WorkshopForm() {
               <label
                 className={`w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50 ${Object.keys(uploading.images || {}).length > 0 ? "pointer-events-none opacity-75" : ""}`}
               >
-                <img
-                  src="/assets/admin/upload.svg"
+                <OptimizedImage                   src="/assets/admin/upload.svg"
                   alt="Upload Icon"
                   className="w-10 h-10 mb-2"
                 />
@@ -914,8 +912,7 @@ export default function WorkshopForm() {
               {formData.images &&
                 formData.images.map((img, index) => (
                   <div key={index} className="relative w-40 h-28">
-                    <img
-                      src={img}
+                    <OptimizedImage                       src={img}
                       alt={`img-${index}`}
                       className="w-full h-full object-cover rounded shadow"
                     />
@@ -946,8 +943,7 @@ export default function WorkshopForm() {
               <label
                 className={`w-56 h-40 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50 ${Object.keys(uploading.videos || {}).length > 0 ? "pointer-events-none opacity-75" : ""}`}
               >
-                <img
-                  src="/assets/admin/upload.svg"
+                <OptimizedImage                   src="/assets/admin/upload.svg"
                   alt="Upload Icon"
                   className="w-10 h-10 mb-2"
                 />
@@ -1045,8 +1041,7 @@ export default function WorkshopForm() {
           </label>
           {formData.guide[0].image ? (
             <div className="relative inline-block mb-4">
-              <img
-                src={formData.guide[0].image}
+              <OptimizedImage                 src={formData.guide[0].image}
                 alt="Preview"
                 className="w-64 h-auto object-contain rounded shadow"
               />
@@ -1091,8 +1086,7 @@ export default function WorkshopForm() {
                 htmlFor="guide-upload"
                 className="max-w-xs aspect-square border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-50"
               >
-                <img
-                  src="/assets/admin/upload.svg"
+                <OptimizedImage                   src="/assets/admin/upload.svg"
                   alt="Upload Icon"
                   className="w-12 h-12 mb-2"
                 />

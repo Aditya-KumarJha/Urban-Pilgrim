@@ -6,6 +6,7 @@ import Testimonials from "../../components/Testimonials";
 import SEO from "../../components/SEO.jsx";
 import { useEffect, useState } from "react";
 
+import OptimizedImage from '../../components/ui/OptimizedImage';
 export default function UpcomingEvents() {
     const [filters, setFilters] = useState({});
 
@@ -31,8 +32,7 @@ export default function UpcomingEvents() {
                 ogImage="/public/assets/eventbg.svg"
             />
             <div className="relative w-full mb-10">
-                <img
-                    src="/public/assets/eventbg.svg"
+                <OptimizedImage                     src="/public/assets/eventbg.svg"
                     alt="Events Header"
                     className="absolute inset-0 w-full h-full object-cover z-0"
                 />

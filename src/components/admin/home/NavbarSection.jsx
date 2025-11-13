@@ -5,6 +5,7 @@ import { setNavbars, setLoading } from "../../../features/home_slices/navbarSlic
 import { showSuccess } from "../../../utils/toast";
 
 
+import OptimizedImage from '../../../components/ui/OptimizedImage';
 function NavbarSection() {
     const [navbar, setNavbar] = useState([]);
 
@@ -83,7 +84,7 @@ function NavbarSection() {
                                 onChange={(e) => handleNavbarMenuChange(index, e.target.value)}
                                 className="w-full border rounded p-2 pr-10"
                             />
-                            <img src="/assets/admin/edit.svg" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                            <OptimizedImage src="/assets/admin/edit.svg" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                         </div>
 
                         <label className="block font-semibold mb-1">Link URL</label>
@@ -95,7 +96,7 @@ function NavbarSection() {
                                 onChange={(e) => handleNavbarLinkUrlChange(index, e.target.value)}
                                 className="w-full border rounded p-2 pr-10"
                             />
-                            <img src="/assets/admin/edit.svg" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                            <OptimizedImage src="/assets/admin/edit.svg" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                         </div>
                     </div>
                 ))}

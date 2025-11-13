@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { addToCart } from "../../features/cartSlice";
 import { showSuccess, showError } from "../../utils/toast";
 
+import OptimizedImage from '../../components/ui/OptimizedImage';
 export default function WorkshopPrograms() {
     const navigate = useNavigate();
     const dispatch = useDispatch();
@@ -103,8 +104,7 @@ export default function WorkshopPrograms() {
                                         preload="metadata"
                                     />
                                 ) : (
-                                    <img
-                                        src={workshop.thumbnail || '/assets/workshop-placeholder.jpg'}
+                                    <OptimizedImage                                         src={workshop.thumbnail || '/assets/workshop-placeholder.jpg'}
                                         alt={workshop.title}
                                         className="w-full h-full object-cover"
                                     />

@@ -13,6 +13,7 @@ import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from "uuid";
 import { showSuccess } from "../../../utils/toast";
 
+import OptimizedImage from '../../../components/ui/OptimizedImage';
 const ItemType = "SLIDE";
 
 function SlideItem({ slide, index, moveSlide, onEdit, onDelete, onToggle }) {
@@ -38,7 +39,7 @@ function SlideItem({ slide, index, moveSlide, onEdit, onDelete, onToggle }) {
         >
             <div className="flex items-center gap-3">
                 <MdDragIndicator className="text-gray-400 cursor-move" />
-                <img src={slide.image} alt="thumb" className="h-12 w-12 rounded object-cover" />
+                <OptimizedImage src={slide.image} alt="thumb" className="h-12 w-12 rounded object-cover" />
                 <div>
                     <p className="font-semibold">{slide.title}</p>
                     <p className="text-sm text-gray-500">Link: {slide.link}</p>
@@ -234,10 +235,10 @@ export default function ImageSlider() {
                             </div>
                         </div>
                     ) : image ? (
-                        <img src={image} alt="preview" className="h-full object-contain" />
+                        <OptimizedImage src={image} alt="preview" className="h-full object-contain" />
                     ) : (
                         <div className="text-center text-gray-500 flex flex-col items-center">
-                            <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-12 h-12 mb-2" />
+                            <OptimizedImage src="/assets/admin/upload.svg" alt="Upload Icon" className="w-12 h-12 mb-2" />
                             <p>{isDragActive ? "Drop here..." : "Click to upload or drag and drop"}</p>
                         </div>
                     )}

@@ -10,6 +10,7 @@ import { GripVertical, Plus, X, Eye, EyeOff } from 'lucide-react';
 import { fetchAllEvents } from '../../../utils/fetchEvents';
 import { useDispatch } from 'react-redux';
 
+import OptimizedImage from '../../../components/ui/OptimizedImage';
 const UpcomingEvents = () => {
     const [allPrograms, setAllPrograms] = useState([]);
     const [selectedPrograms, setSelectedPrograms] = useState([]);
@@ -185,8 +186,7 @@ const UpcomingEvents = () => {
                                                     muted
                                                 />
                                             ) : (
-                                                <img
-                                                    src={program.image}
+                                                <OptimizedImage                                                     src={program.image}
                                                     alt={program.title}
                                                     className="w-12 h-12 object-cover rounded-lg"
                                                 />
@@ -310,8 +310,7 @@ const SortableItem = ({ program, toggleVisibility, removeProgram }) => {
                     muted
                 />
             ) : (
-                <img
-                    src={program.image}
+                <OptimizedImage                     src={program.image}
                     alt={program.title}
                     className="w-12 h-12 object-cover rounded-lg"
                 />

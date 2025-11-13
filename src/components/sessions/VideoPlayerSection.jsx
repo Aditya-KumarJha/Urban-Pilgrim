@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { FiPlay } from "react-icons/fi";
 import ReactPlayer from "react-player";
 
+import OptimizedImage from '../../components/ui/OptimizedImage';
 export default function YouTubeVideoPlaylist({ videos = [], programData = null }) {
     const [currentVideo, setCurrentVideo] = useState(videos[0] || null);
 
@@ -50,8 +51,7 @@ export default function YouTubeVideoPlaylist({ videos = [], programData = null }
                                 }`}
                         >
                             <div className="relative w-28 h-16 overflow-hidden rounded-md flex-shrink-0">
-                                <img
-                                    src={video.thumbnail || video.image || `https://img.youtube.com/vi/${video.src?.split('v=')[1]}/hqdefault.jpg`}
+                                <OptimizedImage                                     src={video.thumbnail || video.image || `https://img.youtube.com/vi/${video.src?.split('v=')[1]}/hqdefault.jpg`}
                                     alt={video.title}
                                     className="w-full h-full object-cover"
                                 />

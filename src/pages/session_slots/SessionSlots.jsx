@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 
+import OptimizedImage from '../../components/ui/OptimizedImage';
 const SessionSlots = () => {
     const params = useParams();
     const sessionId = params.sessionId;
@@ -251,8 +252,7 @@ const SessionSlots = () => {
             />
             
             <div className="relative w-full ">
-                <img
-                    src="/retreats.svg"
+                <OptimizedImage                     src="/retreats.svg"
                     alt="Guides Header"
                     className="absolute inset-0 w-full h-full object-cover z-0 border-b-2 border-[#ffffff33]"
                 />
@@ -324,8 +324,7 @@ const SessionSlots = () => {
                                     className="flex flex-col md:flex-row gap-4 p-4 border rounded-xl shadow w-full"
                                 >
                                     <div className="relative w-full md:w-56 h-36 flex-shrink-0 overflow-hidden rounded-lg">
-                                        <img
-                                            src={sessionData.image || sessionData?.liveSessionCard?.thumbnail || "https://images.unsplash.com/photo-1506748686214-e9df14d4d9d0"}
+                                        <OptimizedImage                                             src={sessionData.image || sessionData?.liveSessionCard?.thumbnail || "https://images.unsplash.com/photo-1506748686214-e9df14d4d9d0"}
                                             alt="Slot Thumbnail"
                                             className="w-full h-full object-cover"
                                         />

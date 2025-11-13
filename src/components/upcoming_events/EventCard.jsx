@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 
+import OptimizedImage from '../../components/ui/OptimizedImage';
 export default function EventCard({ data }) {
     const navigate = useNavigate();
 
@@ -31,8 +32,7 @@ export default function EventCard({ data }) {
                     Your browser does not support the video tag.
                 </video>
             ) : (
-                <img
-                    src={data.image}
+                <OptimizedImage                     src={data.image}
                     alt={data.title}
                     className="w-full sm:h-60 h-48 aspect-square object-fill rounded-t-xl"
                 />

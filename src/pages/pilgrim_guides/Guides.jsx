@@ -9,6 +9,7 @@ import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useSelector } from "react-redux";
 import { calculateBestSellingPrograms, getTopBestSellingPrograms } from "../../utils/bestSellingUtils";
 
+import OptimizedImage from '../../components/ui/OptimizedImage';
 export default function Guides() {
     const [filters, setFilters] = useState({
         category: '',
@@ -93,8 +94,7 @@ export default function Guides() {
             <div className="min-h-screen bg-gradient-to-b from-[#FAF4F0] to-white lg:mt-[100px] mt-[70px]">
                 
                 <div className="relative w-full mb-10">
-                    <img
-                        src="/retreats.svg"
+                    <OptimizedImage                         src="/retreats.svg"
                         alt="Guides Header"
                         className="absolute inset-0 w-full h-full object-cover z-0"
                     />

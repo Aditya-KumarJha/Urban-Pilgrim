@@ -5,6 +5,7 @@ import { db } from "../services/firebase";
 import { useDispatch } from "react-redux";
 import { setTestimonials } from "../features/home_slices/testimonials";
 
+import OptimizedImage from '../components/ui/OptimizedImage';
 export default function Testimonials() {
 
     const [TestimonialList, setTestimonialList] = useState([]);
@@ -48,8 +49,7 @@ export default function Testimonials() {
                         <p className="text-gray-700 text-base sm:text-lg mb-4 sm:mb-6 px-3 sm:px-4">{t?.quotedText}</p>
                         {/* Author Section */}
                         <div className="flex items-center gap-3 border-t">
-                            <img
-                                src={t?.image}
+                            <OptimizedImage                                 src={t?.image}
                                 alt={t?.name}
                                 className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover m-3 sm:m-4"
                             />

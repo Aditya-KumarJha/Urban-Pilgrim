@@ -28,6 +28,7 @@ import FreeTrailModal from "../modals/FreeTrailModal";
 import { showError, showSuccess } from "../../utils/toast";
 import PilgrimGuide from "../pilgrim_retreats/Pilgrim_Guide";
 
+import OptimizedImage from '../../components/ui/OptimizedImage';
 export default function GuideClassDetails() {
   const dispatch = useDispatch();
   const [mode, setMode] = useState(null);
@@ -1222,8 +1223,7 @@ export default function GuideClassDetails() {
               Your browser does not support the video tag.
             </video>
           ) : (
-            <img
-              src={mainImage || sessionData?.guideCard?.thumbnail}
+            <OptimizedImage               src={mainImage || sessionData?.guideCard?.thumbnail}
               alt="Instructor"
               className="rounded-xl xl:h-[400px] xl:w-[700px] md:h-[450px] sm:h-[480px] object-cover"
             />
@@ -1259,8 +1259,7 @@ export default function GuideClassDetails() {
                       </div>
                     </div>
                   ) : (
-                    <img
-                      src={sessionData.guideCard.thumbnail}
+                    <OptimizedImage                       src={sessionData.guideCard.thumbnail}
                       alt="Main thumbnail"
                       className="w-20 h-20 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
                       onClick={() =>
@@ -1297,8 +1296,7 @@ export default function GuideClassDetails() {
                         </div>
                       </div>
                     ) : (
-                      <img
-                        src={media}
+                      <OptimizedImage                         src={media}
                         alt={`Gallery ${index + 1}`}
                         className="w-20 h-20 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
                         onClick={() => handleMediaSelect(media)}

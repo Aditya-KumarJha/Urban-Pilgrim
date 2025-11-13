@@ -2,6 +2,7 @@ import FeatureSection from "../../components/whyus/FeatureSection";
 import SEO from "../../components/SEO.jsx";
 import { useEffect } from "react";
 
+import OptimizedImage from '../../components/ui/OptimizedImage';
 export default function WhyUs() {
   useEffect(() => {
     // Scroll to top on mount
@@ -18,8 +19,7 @@ export default function WhyUs() {
         ogImage="/retreats.svg"
       />
       <div className="relative w-full">
-        <img
-          src="/retreats.svg"
+        <OptimizedImage           src="/retreats.svg"
           alt="Guides Header"
           className="absolute inset-0 w-full h-full object-cover z-0 border-b-2 border-[#ffffff33]"
         />

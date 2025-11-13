@@ -1,6 +1,7 @@
 import { FaInfoCircle } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
+import OptimizedImage from '../../components/ui/OptimizedImage';
 export default function RecordedProgramCard({ image, category, title, days, videos, price }) {
   const navigate = useNavigate();
   const handleCardClick = () => {
@@ -12,8 +13,7 @@ export default function RecordedProgramCard({ image, category, title, days, vide
       className="rounded-xl overflow-hidden shadow-md bg-white flex flex-col max-w-[300px] sm:max-w-xs"
       onClick={handleCardClick}
     >
-      <img
-        src={image}
+      <OptimizedImage         src={image}
         alt={title}
         className="w-full aspect-[5/4] object-cover object-top"
       />
@@ -29,11 +29,11 @@ export default function RecordedProgramCard({ image, category, title, days, vide
 
         <div className="flex flex-col items-start text-xs sm:text-sm text-gray-600 gap-1 mb-3">
           <div className="flex items-center gap-1">
-            <img src="/assets/sessions/calendar.svg" className="text-gray-500 w-4 h-4" />
+            <OptimizedImage src="/assets/sessions/calendar.svg" className="text-gray-500 w-4 h-4" />
             <span>{days} days</span>
           </div>
           <div className="flex items-center gap-1">
-            <img src="/assets/sessions/video.svg" className="text-gray-500 w-4 h-4" />
+            <OptimizedImage src="/assets/sessions/video.svg" className="text-gray-500 w-4 h-4" />
             <span>{videos} videos</span>
           </div>
         </div>
@@ -50,7 +50,7 @@ export default function RecordedProgramCard({ image, category, title, days, vide
 
         <div className="flex gap-2 mt-auto">
           <button className="flex-1 bg-[#2F6288] text-white text-xs sm:text-sm py-1.5 sm:py-2 px-3 rounded-lg flex items-center justify-center gap-1 hover:bg-[#2F6288]/80">
-            <img src="/assets/sessions/cart.svg" className="text-sm h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <OptimizedImage src="/assets/sessions/cart.svg" className="text-sm h-3.5 w-3.5 sm:h-4 sm:w-4" />
             Purchase
           </button>
           <button className="flex-1 border border-[#2F6288] text-[#2F6288] text-xs sm:text-sm py-1.5 sm:py-2 px-3 rounded-lg flex items-center justify-center gap-1 hover:bg-blue-50">

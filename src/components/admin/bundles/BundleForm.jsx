@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Plus, Trash2, Package, DollarSign, Percent, FileText } from "lucide-react";
 import { updateBundleForm, addProgramToVariant, removeProgramFromVariant } from "../../../features/bundleSlice";
 
+import OptimizedImage from '../../../components/ui/OptimizedImage';
 export default function BundleForm({ isOpen, onClose, onSave, isEditing, allPrograms }) {
     const dispatch = useDispatch();
     const bundleForm = useSelector((state) => state.bundles.bundleForm);
@@ -439,7 +440,7 @@ export default function BundleForm({ isOpen, onClose, onSave, isEditing, allProg
                                                     <div key={program.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                                                         <div className="flex items-center gap-3">
                                                             {program?.image && (
-                                                                <img src={program?.image} alt={program?.title} className="w-10 h-10 rounded object-cover" />
+                                                                <OptimizedImage src={program?.image} alt={program?.title} className="w-10 h-10 rounded object-cover" />
                                                             )}
                                                             <div>
                                                                 <p className="font-medium text-sm">{program?.title}</p>
@@ -533,7 +534,7 @@ export default function BundleForm({ isOpen, onClose, onSave, isEditing, allProg
                                                     <div key={program.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                                                         <div className="flex items-center gap-3">
                                                             {program?.image && (
-                                                                <img src={program?.image} alt={program?.title} className="w-10 h-10 rounded object-cover" />
+                                                                <OptimizedImage src={program?.image} alt={program?.title} className="w-10 h-10 rounded object-cover" />
                                                             )}
                                                             <div>
                                                                 <p className="font-medium text-sm">{program?.title}</p>
@@ -591,7 +592,7 @@ export default function BundleForm({ isOpen, onClose, onSave, isEditing, allProg
                                                 className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                                             >
                                                 {program?.image && (
-                                                    <img src={program?.image} alt={program?.title} className="w-12 h-12 rounded object-cover" />
+                                                    <OptimizedImage src={program?.image} alt={program?.title} className="w-12 h-12 rounded object-cover" />
                                                 )}
                                                 <div className="flex-1 min-w-0">
                                                     <h4 className="font-medium text-sm text-gray-900 truncate">

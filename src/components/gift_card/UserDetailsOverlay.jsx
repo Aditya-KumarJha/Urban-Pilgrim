@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 
+import OptimizedImage from '../../components/ui/OptimizedImage';
 export default function UserDetailsOverlay({ giftCard, selectedPrice, quantity, total, onClose, onConfirm, isLoggedIn = false, user = null, sendOtp, verifyOtp }) {
     const [formData, setFormData] = useState({
         firstName: "",
@@ -152,7 +153,7 @@ export default function UserDetailsOverlay({ giftCard, selectedPrice, quantity, 
                 <div className="mb-4 pb-4 border-b">
                     <h2 className="text-xl font-bold mb-3 text-[#2F6288]">Complete Your Purchase</h2>
                     <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg">
-                        <img 
+                        <OptimizedImage 
                             src={giftCard.thumbnail} 
                             alt={giftCard.title}
                             className="w-12 h-12 object-cover rounded"

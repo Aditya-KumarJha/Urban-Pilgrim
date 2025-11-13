@@ -9,6 +9,7 @@ import { storage } from "../../../services/firebase";
 import { v4 as uuidv4 } from "uuid";
 import { showSuccess } from "../../../utils/toast";
 
+import OptimizedImage from '../../../components/ui/OptimizedImage';
 function SectionOne() {
     const dispatch = useDispatch();
     const { title, description, image } = useSelector((state) => state.sectionOne);
@@ -146,8 +147,7 @@ function SectionOne() {
                     </div>
                 ) : localImage ? (
                     <div className="relative h-full flex items-center">
-                        <img
-                            src={localImage}
+                        <OptimizedImage                             src={localImage}
                             alt="Preview"
                             className="h-full object-contain rounded"
                         />
@@ -163,7 +163,7 @@ function SectionOne() {
                     </div>
                 ) : (
                     <div className="text-center text-gray-500 flex flex-col items-center">
-                        <img src="/assets/admin/upload.svg" alt="Upload Icon" className="w-12 h-12 mb-2" />
+                        <OptimizedImage src="/assets/admin/upload.svg" alt="Upload Icon" className="w-12 h-12 mb-2" />
                         <p>{isDragActive ? "Drop here..." : "Click to upload or drag and drop"}</p>
                     </div>
                 )}
@@ -176,7 +176,7 @@ function SectionOne() {
                     onChange={(e) => setLocalTitle(e.target.value)}
                     className="w-full border rounded p-2 pr-10"
                 />
-                <img src="/assets/admin/edit.svg" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <OptimizedImage src="/assets/admin/edit.svg" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             </div>
 
             <label className="block font-semibold mb-1">Description</label>
@@ -187,7 +187,7 @@ function SectionOne() {
                     onChange={(e) => setLocalDescription(e.target.value)}
                     className="w-full border rounded p-2 pr-10"
                 />
-                <img src="/assets/admin/edit.svg" className="absolute right-3 top-3 text-gray-400" />
+                <OptimizedImage src="/assets/admin/edit.svg" className="absolute right-3 top-3 text-gray-400" />
             </div>
 
             <div className="flex justify-end gap-3">

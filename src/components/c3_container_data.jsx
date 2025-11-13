@@ -1,5 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
+import OptimizedImage from '../components/ui/OptimizedImage';
 
 function C3ContainerData({ img, heading, content, imageCss }) {
     return (
@@ -7,7 +8,7 @@ function C3ContainerData({ img, heading, content, imageCss }) {
             <motion.div
                 className="relative inline-flex sm:items-center items-start sm:gap-5 gap-3 sm:p-5 max-h-[100%] w-auto"
             >
-                <img
+                <OptimizedImage
                     src={img}
                     alt=""
                     className={`${imageCss} object-contain`}

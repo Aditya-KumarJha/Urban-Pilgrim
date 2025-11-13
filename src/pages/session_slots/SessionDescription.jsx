@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 
+import OptimizedImage from '../../components/ui/OptimizedImage';
 const SessionDescription = () => {
     const params = useParams();
     const programId = params.programId;
@@ -56,8 +57,7 @@ const SessionDescription = () => {
                 ogType="video"
             />
             <div className="relative w-full ">
-                <img
-                    src="/retreats.svg"
+                <OptimizedImage                     src="/retreats.svg"
                     alt="Program Header"
                     className="absolute inset-0 w-full h-full object-cover z-0 border-b-2 border-[#ffffff33]"
                 />

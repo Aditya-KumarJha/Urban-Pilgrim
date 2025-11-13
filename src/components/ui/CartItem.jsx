@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { FiTrash2, FiPlus, FiMinus } from "react-icons/fi";
 
+import OptimizedImage from '../../components/ui/OptimizedImage';
 export default function CartItem({
   item,
   onRemove,
@@ -57,8 +58,7 @@ export default function CartItem({
           playsInline
         />
       ) : (
-        <img
-          src={item.image || item.thumbnail}
+        <OptimizedImage           src={item.image || item.thumbnail}
           alt={item.title}
           className="w-20 h-20 rounded-md object-cover flex-shrink-0"
         />

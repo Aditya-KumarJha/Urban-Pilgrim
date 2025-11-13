@@ -7,6 +7,7 @@ import { httpsCallable } from "firebase/functions";
 import { functions, db } from "../../services/firebase";
 import { collection, getDocs, query, where } from "firebase/firestore";
 
+import OptimizedImage from '../../components/ui/OptimizedImage';
 export default function WorkshopDetails() {
     const { title } = useParams();
     const navigate = useNavigate();
@@ -315,8 +316,7 @@ export default function WorkshopDetails() {
                             Your browser does not support the video tag.
                         </video>
                     ) : (
-                        <img
-                            src={mainImage || workshop.thumbnail}
+                        <OptimizedImage                             src={mainImage || workshop.thumbnail}
                             alt={workshop.title}
                             className="rounded-xl xl:h-[400px] xl:w-[700px] md:h-[450px] sm:h-[480px] object-cover"
                         />
@@ -327,8 +327,7 @@ export default function WorkshopDetails() {
                         <div className="flex gap-3 overflow-x-auto pb-2">
                             {/* Images */}
                             {workshop.images?.map((image, index) => (
-                                <img
-                                    key={`img-${index}`}
+                                <OptimizedImage                                     key={`img-${index}`}
                                     src={image}
                                     alt={`Gallery ${index + 1}`}
                                     className="w-20 h-20 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
@@ -567,8 +566,7 @@ export default function WorkshopDetails() {
                         {workshop.guide.map((guide, index) => (
                             <div key={index} className="md:flex items-start gap-6 ">
                                 {guide.image && (
-                                    <img
-                                        src={guide.image}
+                                    <OptimizedImage                                         src={guide.image}
                                         alt={guide.title}
                                         className="md:w-2/5 lg:aspect-[3/4] md:aspect-[2.5/4] mx-auto rounded-lg object-cover flex-shrink-0"
                                     />

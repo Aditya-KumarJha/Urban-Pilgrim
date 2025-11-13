@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import Steps from "../../components/Steps";
 import Button from "../../components/ui/button";
 
+import OptimizedImage from '../../components/ui/OptimizedImage';
 export default function JoinAdvisors() {
 
     useEffect(() => {
@@ -32,8 +33,7 @@ export default function JoinAdvisors() {
     return (
         <div className=" bg-gradient-to-b from-[#FAF4F0] to-white mt-[100px]">
             <div className="relative w-full mb-10">
-                <img
-                    src="/retreats.svg"
+                <OptimizedImage                     src="/retreats.svg"
                     alt="Guides Header"
                     className="absolute inset-0 w-full h-full object-cover z-0 border-b-2 border-[#ffffff33]"
                 />
@@ -76,8 +76,7 @@ export default function JoinAdvisors() {
                         <Steps steps={steps} />
                         <Button btn_name={"Join Us As Trip Curators"} />
                     </div>
-                    <img
-                        src="/assets/joinus/joinusadv.png"
+                    <OptimizedImage                         src="/assets/joinus/joinusadv.png"
                         alt="Join Us"
                         className="lg:w-full w-auto object-cover object-top rounded-lg mb-10 md:mb-0 lg:max-h-[600px] max-h-[300px] aspect-auto"
                         style={{ boxShadow: "-20px 26px 25.7px rgba(0, 0, 0, 0.25)" }}

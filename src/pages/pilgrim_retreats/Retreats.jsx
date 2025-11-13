@@ -5,6 +5,7 @@ import Testimonials from "../../components/Testimonials";
 import SEO from "../../components/SEO.jsx";
 import { useEffect, useState } from "react";
 
+import OptimizedImage from '../../components/ui/OptimizedImage';
 export default function Retreats() {
     const [filters, setFilters] = useState({});
     const [bestSellingActive, setBestSellingActive] = useState(false);
@@ -35,8 +36,7 @@ export default function Retreats() {
                 ogImage="/retreats.svg"
             />
             <div className="relative w-full mb-10">
-                <img
-                    src="/retreats.svg"
+                <OptimizedImage                     src="/retreats.svg"
                     alt="Retreat Header"
                     className="absolute inset-0 w-full h-full object-cover z-0"
                 />

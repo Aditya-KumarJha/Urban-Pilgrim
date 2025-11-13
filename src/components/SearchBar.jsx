@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../services/firebase";
 
+import OptimizedImage from '../components/ui/OptimizedImage';
 export default function SearchBar({ onClose }) {
     const [searchQuery, setSearchQuery] = useState("");
     const [searchResults, setSearchResults] = useState([]);
@@ -339,7 +340,7 @@ export default function SearchBar({ onClose }) {
                                         {/* Result Image */}
                                         <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
                                             {result.image ? (
-                                                <img 
+                                                <OptimizedImage 
                                                     src={result.image} 
                                                     alt={result.title}
                                                     className="w-full h-full object-cover"

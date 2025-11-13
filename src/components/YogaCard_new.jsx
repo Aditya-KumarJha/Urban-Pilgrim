@@ -7,6 +7,7 @@ import { db } from "../services/firebase";
 import { useDispatch } from "react-redux";
 import { setHighlight } from "../features/home_slices/highlightSlice";
 import { useNavigate } from "react-router-dom";
+import OptimizedImage from '../components/ui/OptimizedImage';
 
 export default function YogaCard() {
     const [current, setCurrent] = useState(0);
@@ -83,7 +84,7 @@ export default function YogaCard() {
             <div className="bg-white rounded-lg overflow-visible flex flex-col md:flex-row shadow-xl filter drop-shadow-[-46px_46px_27.5px_rgba(0,0,0,0.25)] md:max-w-full max-w-[300px] md:max-h-[480px]">
                 {/* Image */}
                 <div className="md:w-1/2 w-full">
-                    <img
+                    <OptimizedImage
                         src={currentHighlight?.image || "/assets/yoga.svg"}
                         alt="Yoga"
                         className="w-full md:h-full h-50 object-cover rounded-t-lg md:rounded-l-lg md:rounded-tr-none"

@@ -8,6 +8,7 @@ import { useDispatch } from "react-redux";
 import { setHighlight } from "../features/home_slices/highlightSlice";
 import { useNavigate } from "react-router-dom";
 
+import OptimizedImage from '../components/ui/OptimizedImage';
 export default function YogaCard() {
     const [current, setCurrent] = useState(0);
     const [highlightCard, setHighlightCard] = useState([]);
@@ -96,8 +97,7 @@ export default function YogaCard() {
                             playsInline
                         />
                     ) : (
-                        <img
-                            src={currentHighlight?.image || "/assets/yoga.svg"}
+                        <OptimizedImage                             src={currentHighlight?.image || "/assets/yoga.svg"}
                             alt="Yoga"
                             className="w-full md:h-full h-[51%] object-cover rounded-t-lg md:rounded-l-lg md:rounded-tr-none"
                         />

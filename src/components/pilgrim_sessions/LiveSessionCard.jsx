@@ -2,6 +2,7 @@ import { FaInfoCircle } from "react-icons/fa";
 import { BsFillCameraVideoFill } from "react-icons/bs";
 import { useNavigate } from "react-router-dom";
 
+import OptimizedImage from '../../components/ui/OptimizedImage';
 export default function LiveSessionCard({ image, category, title, price }) {
   const navigate = useNavigate();
   const handleCardClick = () => {
@@ -9,7 +10,7 @@ export default function LiveSessionCard({ image, category, title, price }) {
   };
   return (
     <div className="rounded-xl overflow-hidden shadow-md bg-white flex flex-col max-w-[300px] sm:max-w-xs" onClick={handleCardClick}>
-      <img src={image} alt={title} className="w-full aspect-[5/4] object-cover object-top" />
+      <OptimizedImage src={image} alt={title} className="w-full aspect-[5/4] object-cover object-top" />
 
       <div className="p-3 sm:p-4 flex flex-col justify-between flex-1">
         <span className="inline-block bg-[#EAEFF3] text-[#3A6288] text-[10px] sm:text-xs font-semibold px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full mb-2 w-fit">

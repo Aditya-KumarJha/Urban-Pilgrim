@@ -2,6 +2,7 @@ import { FaInfoCircle, FaUsers } from "react-icons/fa";
 // import { MdWorkshop } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
 
+import OptimizedImage from '../../components/ui/OptimizedImage';
 export default function WorkshopCard({ 
     id, 
     image, 
@@ -58,7 +59,7 @@ export default function WorkshopCard({
                         playsInline
                     />
                 ) : (
-                    <img 
+                    <OptimizedImage 
                         src={mediaSrc} 
                         alt={title} 
                         className="w-full aspect-[5/4] object-cover object-top" 

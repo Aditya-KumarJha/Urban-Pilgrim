@@ -1,3 +1,4 @@
+import OptimizedImage from '../../components/ui/OptimizedImage';
 export default function JourneySection({
   journey,
   retreatDescription,
@@ -48,8 +49,7 @@ export default function JourneySection({
             </div>
           </a>
         ) : (
-          <img
-            src="/assets/location.svg"
+          <OptimizedImage             src="/assets/location.svg"
             alt="Location map"
             className="rounded-xl shadow-lg w-full h-auto min-h-40 object-cover"
           />

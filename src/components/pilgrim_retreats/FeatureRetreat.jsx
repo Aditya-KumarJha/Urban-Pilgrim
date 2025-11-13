@@ -1,3 +1,4 @@
+import OptimizedImage from '../../components/ui/OptimizedImage';
 // import { FaHome, FaLeaf, FaMountain, FaUtensils, FaPrayingHands, FaHeart } from "react-icons/fa";
 
 // const features = [
@@ -40,7 +41,7 @@ export default function FeatureRetreat({ features }) {
             <div className="grid md:grid-cols-3 sm:grid-cols-2 gap-6">
                 {features && features.map((item, idx) => (
                     <div key={idx} className="bg-white p-6 rounded-xl shadow-md flex flex-col gap-4">
-                        <img src={item.image} alt="icon" className="w-8 h-8 text-[#C16A00]" />
+                        <OptimizedImage src={item.image} alt="icon" className="w-8 h-8 text-[#C16A00]" />
                         <h3 className="text-[#004B6E] font-semibold">{item?.title}</h3>
                         <p className="text-gray-600 text-sm">{item?.shortdescription}</p>
                     </div>

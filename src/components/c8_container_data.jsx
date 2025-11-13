@@ -1,10 +1,11 @@
 import Button from "./ui/button/index.jsx";
 
+import OptimizedImage from '../components/ui/OptimizedImage';
 function C8ContainerData() {
     return (
         <div className="md:w-screen sm:h-[50vh] h-[40vh] w-auto lg:h-auto relative">
             <div className="w-full h-full">
-                <img src="/assets/bazar.svg" alt="none" className="w-full h-full object-cover object-center" />
+                <OptimizedImage src="/assets/bazar.svg" alt="none" className="w-full h-full object-cover object-center" />
             </div>
 
             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-2
