@@ -68,7 +68,14 @@ export default function EventCard({ data }) {
                             navigate(`/workshop/${slug}/details`);
                         }
                     }}
-                    className="md:text-lg sm:text-base text-xs cursor-pointer font-semibold text-[#1A1A1A] leading-tight"
+                    className="md:text-lg sm:text-base text-xs cursor-pointer font-semibold text-[#1A1A1A] leading-snug break-words whitespace-normal"
+                    style={{
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        minHeight: '2.5em'
+                    }}
                 >
                     {data.title}
                 </h3>

@@ -318,7 +318,7 @@ export default function WorkshopDetails() {
                     ) : (
                         <OptimizedImage                             src={mainImage || workshop.thumbnail}
                             alt={workshop.title}
-                            className="rounded-xl xl:h-[400px] xl:w-[700px] md:h-[450px] sm:h-[480px] object-cover"
+                            className="rounded-xl xl:h-[400px] xl:w-[700px] md:h-[450px] sm:h-[480px] object-cover lg:object-fill"
                         />
                     )}
 
